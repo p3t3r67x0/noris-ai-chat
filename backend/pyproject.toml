@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling==1.32.4"]
+build-backend = "hatchling.build"
+
+[project]
+name = "noris-ai-backend"
+version = "0.1.0"
+description = "noris AI modular backend — foundation stage"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  "alembic==1.20.0",
+  "fastapi==0.142.2",
+  "psycopg[binary]==3.3.6",
+  "pydantic==2.13.5",
+  "pydantic-ai-slim==1.107.6",
+  "pydantic-settings==2.15.0",
+  "sqlalchemy[asyncio]==2.0.54",
+  "uvicorn==0.54.0",
+]
+
+[dependency-groups]
+dev = [
+  "httpx==0.28.1",
+  "pytest==9.1.1",
+  "pytest-asyncio==1.4.0",
+  "ruff==0.16.10",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/noris_ai"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC", "S", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]
+
+[tool.pyright]
+pythonVersion = "3.13"
+typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"
+include = ["src", "migrations", "scripts", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-config --strict-markers"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = ["error"]
+markers = ["integration: requires an explicitly configured disposable PostgreSQL database"]
+
+[tool.uv]
+# Server deployments and host development use CPython on Linux/macOS/Windows.
+environments = ["sys_platform != 'emscripten'"]

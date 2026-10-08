@@ -1,0 +1,2 @@
+# Insert inside the existing "table inet filter" -> "chain forward" block.
+iifname "noris-chat0" oifname "noris-chat0" counter accept comment "noris-ai-chat:noris-chat0"

@@ -1,0 +1,17 @@
+.git
+.agents
+.codex
+.aws
+.env
+.env.*
+!.env.example
+**/node_modules
+**/.venv
+backend/dist
+**/.nuxt
+**/.output
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/test-results
+**/playwright-report

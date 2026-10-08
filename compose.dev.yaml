@@ -1,0 +1,21 @@
+# Explicit development overlay: hot reload and loopback-only host access.
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:${NORIS_POSTGRES_PORT:-55432}:5432"
+  backend:
+    build:
+      target: development
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./backend/src:/app/backend/src:ro
+  frontend:
+    build:
+      target: development
+    environment:
+      NORIS_DEV_API_TARGET: http://backend:8000
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./frontend/app:/app/frontend/app:ro

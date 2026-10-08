@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+:root {
+  color: #172536;
+  background: #f6f8fa;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 40rem; margin: 12vh auto; padding: 2rem; }
+h1 { font-size: 2rem; letter-spacing: -0.04em; }
+.service-status { margin-top: 2rem; }
+button {
+  font: inherit;
+  color: #fff;
+  background: #24446a;
+  border: 0;
+  border-radius: 0.5rem;
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+}
+button:disabled { opacity: 0.6; cursor: wait; }
+button:focus-visible { outline: 3px solid #376dad; outline-offset: 4px; }
