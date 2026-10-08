@@ -1,0 +1,11 @@
+{
+  "extends": "./.nuxt/tsconfig.app.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "types": ["node"]
+  },
+  "include": ["tests/**/*.ts", "vitest.config.ts", "playwright.config.ts", "app/**/*.ts", "app/**/*.vue", ".nuxt/**/*.d.ts"]
+}
