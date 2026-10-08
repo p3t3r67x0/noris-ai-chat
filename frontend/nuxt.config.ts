@@ -22,7 +22,8 @@ export default defineNuxtConfig({
     preset: 'node-server',
     devProxy: {
       '/api': {
-        target: process.env.NORIS_DEV_API_TARGET ?? 'http://127.0.0.1:8000',
+        // Nitro removes the mount prefix before forwarding the request.
+        target: new URL('/api', process.env.NORIS_DEV_API_TARGET ?? 'http://127.0.0.1:8000').href,
         changeOrigin: false,
       },
     },
