@@ -1,8 +1,28 @@
 # Etappe 0: Implementierung und Prüfstand
 
-**Stand: 2026-10-08.** Die Foundation aus Abschnitt 11 der vollständig gelesenen `PLAN.md` ist implementiert. Die vollständige Abnahme bleibt für die unten aufgeführten Laufzeit- und CI-Prüfungen offen. Etappe 1 wurde nicht begonnen und benötigt weiterhin die ausdrückliche Freigabe.
+**Stand: 2026-10-08.** Die Foundation aus Abschnitt 11 der vollständig gelesenen `PLAN.md` ist implementiert. Alle automatisierten Abnahmebedingungen sind im Remote-CI-Lauf nachgewiesen. Etappe 1 wurde nicht begonnen und benötigt weiterhin die ausdrückliche Freigabe.
 
-## Erfolgreiche Prüfungen
+## Erfolgreicher Remote-CI-Lauf
+
+Der [Pull-Request-Lauf 37832047858](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37832047858) und der zugehörige [Push-Lauf 37832039411](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37832039411) sind für den Code-Commit `59839474bb1ec0f95a680577be76c28e39bf22df` erfolgreich abgeschlossen. Beide Jobs `checks` und `compose-smoke` sind grün. Der folgende Dokumentationscommit verändert diesen geprüften Code nicht.
+
+| Prüfung | Remote-Ergebnis |
+| --- | --- |
+| Normale Installation | Python- und Node-Abhängigkeiten mit unveränderten Lockfiles installiert; Node-Installationsskripte erfolgreich |
+| Lint und Typen | Ruff, Formatprüfung, ESLint 10, Pyright **1.1.408 strict**, Nuxt-/Test-Typecheck und Skript-Typecheck bestanden |
+| API-Vertrag | OpenAPI und generierte TypeScript-Verträge aktuell |
+| Backend Unit/Contract | **38 bestanden** in 2,24 s |
+| Frontend Unit | **6 bestanden**, 2 Testdateien |
+| PostgreSQL-Integration | **3 bestanden** in 0,56 s; Upgrade, Wiederholung, Downgrade, Schema-Check, Rollback und Readiness geprüft |
+| Migration für Browserlauf | `alembic upgrade head` erfolgreich |
+| Desktop-/Mobile-E2E | **6 bestanden** in 9,5 s; echte FE→BE→DB-Verbindung, Reload, Fehlerbehebung per Tastatur und Viewport geprüft |
+| Produktionsbuilds | Python-sdist/Wheel und Nuxt-Client/SSR/Nitro erfolgreich |
+| Compose-Konfiguration | Basis- und Entwicklungskonfiguration gültig |
+| Frischer Compose-Stack | Images gebaut, PostgreSQL initialisiert, Migration abgeschlossen, Stack gesund; Proxy und Readiness geprüft; Anwendungsrolle ohne Superuser-/BYPASSRLS-Rechte |
+
+Insgesamt bestehen **53 automatisierte Tests** sowie die zusätzlichen statischen, Build- und Compose-Prüfungen. CI verwendet Python 3.13, Node 24, uv 0.12.5, pnpm 11.1.3 und PostgreSQL 18.6. Die zuvor dokumentierten lokalen Sandbox-Grenzen sind weiterhin reale lokale Einschränkungen; die Remote-Läufe liefern die fehlenden Laufzeitnachweise.
+
+## Erfolgreiche lokale Prüfungen
 
 | Prüfung | Befehl | Ergebnis |
 | --- | --- | --- |
@@ -30,16 +50,18 @@ Insgesamt wurden **44 automatisierte Unit-/Contract-Tests erfolgreich ausgeführ
 
 Die letzte Prüfung verwendete Python **3.13.15**, Node.js **22.22.3**, uv **0.12.5**, pnpm **11.1.3** und Docker Compose **2.39.4**. Compose war hier als eigenständiges `docker-compose` verfügbar. Dockerfiles und CI verwenden Node 24; der Host-Build mit Node 24 wurde in dieser Umgebung nicht ausgeführt.
 
-## Nicht ausführbare Prüfungen und beobachtete Grenzen
+## Lokale Grenzen und spätere Nachweise
+
+Diese Tabelle dokumentiert die früheren lokalen Versuche. Die erfolgreiche Remote-Verifikation steht oben; sie hebt die Zugriffsbeschränkungen der lokalen Agent-Umgebung nicht auf.
 
 | Prüfung | Tatsächliches Ergebnis | Ursache / verbleibender Nachweis |
 | --- | --- | --- |
 | PostgreSQL-Integrationstests | Drei Fixture-Fehler vor den Testassertionen | SQLAlchemy/psycopg meldet beim Unix-Socket `Operation not permitted`. Auch TCP-Sockets sind gesperrt. Upgrade, Downgrade, Schema-Check, Rollback und DB-Readiness müssen mit erreichbarem PostgreSQL ausgeführt werden. |
 | Desktop-/Mobile-E2E | API-Webserver beendet sich mit Exit-Code 3; kein Browser-Test ausgeführt | Uvicorn darf `127.0.0.1:8000` nicht binden. Die Tests starten API und Nuxt selbst und benötigen die migrierte Datenbank. |
 | Vollständiger Compose-Start und Docker-Builds | Start scheitert vor dem Image-Build | Verbindung zu `/var/run/docker.sock` wird mit `operation not permitted` verweigert. Ein frischer Volume-Start, Init-Rollen, Migration und Proxy-Routing bleiben offen. |
-| Pyright strict | Nach Veröffentlichung erstmals in CI ausgeführt; zwölf Fehler im ersten Lauf. Korrektur lokal mit Pyright 1.1.409 bestanden. | Die gepinnte CI-Version 1.1.408 war lokal nicht verfügbar. Ein später gefundener vorhandener Node-Cache enthält 1.1.409; der erneute CI-Lauf prüft weiterhin 1.1.408. |
+| Pyright strict | Zwölf Fehler im ersten CI-Lauf korrigiert; lokal mit 1.1.409 und remote mit der gepinnten Version **1.1.408 bestanden** | Die gepinnte Version war lokal nicht verfügbar. Ein später gefundener Node-Cache enthält 1.1.409; die Repository-/CI-Version wurde nicht verändert. |
 | Normaler Node-Installationslauf einschließlich Installationsskripten | esbuild-Installationsskript beendet sich mit `spawnSync ... EPERM` | Die Umgebung sperrt den Unterprozess im Versionscheck. Abhängigkeiten wurden für die Codeprüfungen mit `--ignore-scripts` installiert; die native esbuild-Datei ist vorhanden. CI und Dockerfiles führen die normale Installation mit Skripten aus. |
-| GitHub Actions | Compose-Smoke, Typprüfungen, Unit-Tests und Datenbankintegration bestanden; Browserlauf nach Typkorrektur an Entwicklungsproxy gescheitert. | [PR #1](https://github.com/p3t3r67x0/noris-ai-chat/pull/1) wurde über die GitHub-Anbindung veröffentlicht. Der nächste Lauf prüft die Proxy-Korrektur. |
+| GitHub Actions | Nach Typ- und Entwicklungsproxy-Korrektur **beide Jobs bestanden** | [PR #1](https://github.com/p3t3r67x0/noris-ai-chat/pull/1) wurde über die GitHub-Anbindung veröffentlicht; die ursprüngliche lokale `.git` ist für den Agenten schreibgeschützt. |
 | actionlint | Nicht ausgeführt | CLI nicht installiert; YAML-Parsing ersetzt keine semantische Actions-Prüfung. |
 
 Der PostgreSQL-Testlauf wurde explizit mit einer auf `_test` endenden Test-URL versucht. Die Fixture erzwingt diesen Namenssuffix und setzt sowohl Anwendungs- als auch Migrations-URL auf die disposable Testdatenbank. Ohne explizite Test-URL bricht sie ab, statt die Entwicklungsdatenbank zu verändern.
@@ -61,7 +83,7 @@ Im Node-Abhängigkeitsbaum verbleiben zwei Hinweise aus Upstream-Paketen: `glob@
 - Anwendung und Migration verwenden getrennte DB-Rollen. `noris_app` besitzt weder Superuser- noch `BYPASSRLS`-Rechte. Die tatsächlichen Rollenrechte werden im Compose-CI-Job geprüft; RLS-Tabellen und Mandantentrennung folgen in Etappe 2.
 - `.env` und Laufzeitartefakte sind ausgeschlossen. Eingecheckte Beispielwerte und Testzugangsdaten sind lokale Platzhalter; keine echten Provider-/OIDC-Zugangsdaten wurden hinzugefügt.
 
-Der erste erfolgreiche Compose-Smoke-Job bestätigt einen frischen Checkout mit Image-Builds, PostgreSQL-Initialisierung, Online-Migration, gesundem Stack, Frontend über den Proxy und DB-Readiness über dieselbe Origin. Die Anwendung meldet weder Superuser- noch BYPASSRLS-Rechte. „CI grün“ sowie der separate Datenbankintegrations- und Browserlauf bleiben bis zum erfolgreichen Checks-Job **offen**. Die Start- und Prüfkommandos sind in der [README](../README.md) dokumentiert.
+Die automatisierten Etappe-0-Abnahmebedingungen „frischer Checkout startet“, „FE → BE → DB funktioniert“, „Migration auf laufender DB erfolgreich“ und „CI grün“ sind durch beide erfolgreichen Jobs erfüllt. Die Anwendung meldet weder Superuser- noch BYPASSRLS-Rechte. Die Start- und Prüfkommandos sind in der [README](../README.md) dokumentiert. Die konkrete Firewall-Konfiguration des Nutzerhosts einschließlich Boot-Verhalten bleibt separat manuell zu prüfen; CI verändert diese Host-Konfiguration nicht.
 
 ## Korrektur des lokalen Backend-Starts
 
@@ -110,3 +132,11 @@ Für die gewünschte dauerhafte Freigabe verwendet `compose.yaml` jetzt ein expl
 Die README beschreibt das Sichern und Bearbeiten von `/etc/nftables.conf`, das Ergänzen der markierten Regel direkt nach `policy drop;`, die Prüfung mit `nft --check`, das Aktivieren des Boot-Dienstes und die einmalige Netzwerk-Neuerstellung mit erhaltenem PostgreSQL-Datenvolume. Die sofortige Freigabe verwendet weiterhin das geprüfte `network-repair`-Skript. Ein Reload der vorhandenen Host-Datei würde durch ihr `flush ruleset` auch Docker-Regeln löschen und ist deshalb kein Teil der Anleitung. `/etc/nftables.conf` und der nftables-Dienst wurden vom Agenten nicht verändert.
 
 Nach dieser Änderung bestehen **38 Backend-Unit-/Contract-Tests in 3,78 s**, Ruff-Lint und Formatprüfung aller **24 Python-Dateien**. Zwei zusätzliche Fälle prüfen den konfigurierten Namen für beide Interface-Matches und die Erkennung einer bereits vorhandenen Regel für den festen Namen. Die vier Compose-Konfigurationen (Basis/Entwicklung jeweils mit Build-Netzwerk `default`/`host`) sind gültig, enthalten `noris-chat0` und ordnen weiterhin alle fünf Dienste dem gemeinsamen Default-Netzwerk zu. Tatsächliche Bridge-Erstellung, Host-Konfigurationsänderung, nftables-Laufzeit-/Boot-Prüfung und erneute DB-Migration sind hier weiterhin gesperrt und werden nicht als erfolgreich ausgegeben. Frontend-Code und Lockfiles wurden nicht geändert; Etappe 1 wurde nicht begonnen.
+
+## Korrekturen aus den ersten PR-Läufen
+
+Der erste Checks-Job meldete zwölf Pyright-Fehler: Pydantics synthetisierte Konstruktor-Signatur enthält den Laufzeitparameter `_env_file` nicht; außerdem galten lokal dekorierte Handler als ungenutzte Funktionen. `EnvironmentSettings` übernimmt jetzt sämtliche typisierten und validierten Settings-Felder und deaktiviert ausschließlich die dotenv-Datei über die geerbte Modellkonfiguration. Export und isolierte Unit-Konfigurationen verwenden diese Unterklasse. Fehlerhandler und Test-Routen werden ausdrücklich registriert. Die Kontextmanager sind als `AsyncGenerator` annotiert. Die strikte Typprüfung wurde weder abgeschwächt noch durch Fehlerunterdrückungen umgangen.
+
+Nach der Typkorrektur bestanden statische Prüfungen, Unit- und Datenbanktests. Die sechs Browsertests lieferten jedoch HTTP 404: Nitro entfernt beim Entwicklungsproxy den Mount-Präfix `/api`. Das Proxy-Ziel enthält diesen Präfix jetzt ausdrücklich, sodass FastAPI den vollständigen Pfad `/api/v1/health/ready` erhält. Die bestehenden realen Desktop-/Mobile-Tests bestehen anschließend vollständig und sichern dieses Verhalten ab. Der Produktionsproxy war bereits erfolgreich geprüft.
+
+Die Veröffentlichung erhält den vorhandenen MIT-Lizenzcommit als Basis. `.env`, lokale Abhängigkeiten und Build-Artefakte sind ausgeschlossen. Der Git-Checkout unter `/tmp/noris-ai-foundation-pr` und ein geprüftes Git-Bundle unter `/tmp/noris-ai-etappe-0.bundle` enthalten die veröffentlichte Historie; die ursprüngliche schreibgeschützte `.git` wurde nicht verändert.
