@@ -1,4 +1,4 @@
-FROM node:24-bookworm-slim AS base
+FROM node:25-bookworm-slim AS base
 RUN npm install --global pnpm@11.1.3
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
@@ -18,7 +18,7 @@ COPY frontend ./frontend
 RUN pnpm install --frozen-lockfile
 RUN pnpm --dir frontend build
 
-FROM node:24-bookworm-slim AS production
+FROM node:25-bookworm-slim AS production
 WORKDIR /app
 COPY --from=build --chown=node:node /app/frontend/.output ./
 USER node
