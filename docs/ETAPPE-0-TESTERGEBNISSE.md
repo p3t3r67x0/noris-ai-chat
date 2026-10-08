@@ -37,9 +37,9 @@ Die letzte Prüfung verwendete Python **3.13.15**, Node.js **22.22.3**, uv **0.1
 | PostgreSQL-Integrationstests | Drei Fixture-Fehler vor den Testassertionen | SQLAlchemy/psycopg meldet beim Unix-Socket `Operation not permitted`. Auch TCP-Sockets sind gesperrt. Upgrade, Downgrade, Schema-Check, Rollback und DB-Readiness müssen mit erreichbarem PostgreSQL ausgeführt werden. |
 | Desktop-/Mobile-E2E | API-Webserver beendet sich mit Exit-Code 3; kein Browser-Test ausgeführt | Uvicorn darf `127.0.0.1:8000` nicht binden. Die Tests starten API und Nuxt selbst und benötigen die migrierte Datenbank. |
 | Vollständiger Compose-Start und Docker-Builds | Start scheitert vor dem Image-Build | Verbindung zu `/var/run/docker.sock` wird mit `operation not permitted` verweigert. Ein frischer Volume-Start, Init-Rollen, Migration und Proxy-Routing bleiben offen. |
-| Pyright strict | CLI konnte nicht installiert und nicht ausgeführt werden | `pyright==1.1.408` fehlt im lokalen Cache; Registry-Zugriff ist gesperrt. `make python-typecheck` und CI sind eingerichtet. |
+| Pyright strict | Nach Veröffentlichung erstmals in CI ausgeführt; zwölf Fehler im ersten Lauf. Korrektur lokal mit Pyright 1.1.409 bestanden. | Die gepinnte CI-Version 1.1.408 war lokal nicht verfügbar. Ein später gefundener vorhandener Node-Cache enthält 1.1.409; der erneute CI-Lauf prüft weiterhin 1.1.408. |
 | Normaler Node-Installationslauf einschließlich Installationsskripten | esbuild-Installationsskript beendet sich mit `spawnSync ... EPERM` | Die Umgebung sperrt den Unterprozess im Versionscheck. Abhängigkeiten wurden für die Codeprüfungen mit `--ignore-scripts` installiert; die native esbuild-Datei ist vorhanden. CI und Dockerfiles führen die normale Installation mit Skripten aus. |
-| GitHub Actions | Konfiguriert, nicht remote ausgeführt | Die bereitgestellte `.git`-Struktur ist kein verwendbares Git-Repository; kein Remote-CI-Lauf wurde gestartet oder als grün ausgegeben. |
+| GitHub Actions | Erster Remote-Lauf: Compose-Smoke bestanden, Checks an Pyright gescheitert. | [PR #1](https://github.com/p3t3r67x0/noris-ai-chat/pull/1) wurde über die GitHub-Anbindung veröffentlicht. Ein erneuter Lauf nach der Typkorrektur steht noch aus. |
 | actionlint | Nicht ausgeführt | CLI nicht installiert; YAML-Parsing ersetzt keine semantische Actions-Prüfung. |
 
 Der PostgreSQL-Testlauf wurde explizit mit einer auf `_test` endenden Test-URL versucht. Die Fixture erzwingt diesen Namenssuffix und setzt sowohl Anwendungs- als auch Migrations-URL auf die disposable Testdatenbank. Ohne explizite Test-URL bricht sie ab, statt die Entwicklungsdatenbank zu verändern.
@@ -61,7 +61,7 @@ Im Node-Abhängigkeitsbaum verbleiben zwei Hinweise aus Upstream-Paketen: `glob@
 - Anwendung und Migration verwenden getrennte DB-Rollen. `noris_app` besitzt weder Superuser- noch `BYPASSRLS`-Rechte. Die tatsächlichen Rollenrechte werden im Compose-CI-Job geprüft; RLS-Tabellen und Mandantentrennung folgen in Etappe 2.
 - `.env` und Laufzeitartefakte sind ausgeschlossen. Eingecheckte Beispielwerte und Testzugangsdaten sind lokale Platzhalter; keine echten Provider-/OIDC-Zugangsdaten wurden hinzugefügt.
 
-Die Abnahmebedingungen „frischer Checkout startet“, „FE → BE → DB funktioniert“, „Migration auf laufender DB erfolgreich“ und „CI grün“ sind **noch offen**. Die beiden CI-Jobs prüfen genau diese verbleibenden Punkte in einer Umgebung mit Netzwerk-, Socket- und Docker-Zugriff. Die Start- und Prüfkommandos sind in der [README](../README.md) dokumentiert.
+Der erste erfolgreiche Compose-Smoke-Job bestätigt einen frischen Checkout mit Image-Builds, PostgreSQL-Initialisierung, Online-Migration, gesundem Stack, Frontend über den Proxy und DB-Readiness über dieselbe Origin. Die Anwendung meldet weder Superuser- noch BYPASSRLS-Rechte. „CI grün“ sowie der separate Datenbankintegrations- und Browserlauf bleiben bis zum erfolgreichen Checks-Job **offen**. Die Start- und Prüfkommandos sind in der [README](../README.md) dokumentiert.
 
 ## Korrektur des lokalen Backend-Starts
 

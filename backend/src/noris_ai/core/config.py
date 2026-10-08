@@ -30,3 +30,9 @@ class Settings(BaseSettings):
         if url.drivername != "postgresql+psycopg" or not url.database:
             raise ValueError("A PostgreSQL URL using the psycopg driver and a database is required")
         return value
+
+
+class EnvironmentSettings(Settings):
+    """Load settings from the environment and explicit values without reading a dotenv file."""
+
+    model_config = SettingsConfigDict(env_file=None)

@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
 from uuid import UUID
 
@@ -6,7 +6,7 @@ import pytest
 from fastapi import FastAPI, Request
 from httpx import ASGITransport, AsyncClient
 
-from noris_ai.core.config import Settings
+from noris_ai.core.config import EnvironmentSettings
 from noris_ai.main import create_app
 
 
@@ -21,7 +21,7 @@ class FixedProbe:
 @asynccontextmanager
 async def app_client(
     application: FastAPI, *, raise_app_exceptions: bool = True
-) -> AsyncIterator[AsyncClient]:
+) -> AsyncGenerator[AsyncClient]:
     async with (
         application.router.lifespan_context(application),
         AsyncClient(
@@ -35,7 +35,7 @@ async def app_client(
 @pytest.fixture
 async def client() -> AsyncIterator[AsyncClient]:
     async with app_client(
-        create_app(Settings(environment="test", _env_file=None), FixedProbe(True))
+        create_app(EnvironmentSettings(environment="test"), FixedProbe(True))
     ) as c:
         yield c
 
@@ -74,10 +74,10 @@ async def test_not_found_uses_standard_error_contract(client: AsyncClient) -> No
 async def test_internal_failure_does_not_expose_exception_details() -> None:
     application = create_app(probe=FixedProbe(True))
 
-    @application.get("/test-error")
     async def fail() -> None:
         raise RuntimeError("sensitive provider credential")
 
+    application.add_api_route("/test-error", fail, methods=["GET"])
     async with app_client(application, raise_app_exceptions=False) as client:
         response = await client.get("/test-error")
     assert response.status_code == 500
@@ -88,10 +88,10 @@ async def test_internal_failure_does_not_expose_exception_details() -> None:
 async def test_validation_failure_does_not_echo_input() -> None:
     application = create_app(probe=FixedProbe(True))
 
-    @application.get("/test-validation")
     async def validate(request: Request, count: int) -> dict[str, int]:
         return {"count": count}
 
+    application.add_api_route("/test-validation", validate, methods=["GET"])
     async with app_client(application) as client:
         response = await client.get("/test-validation?count=sensitive-user-input")
     assert response.status_code == 422
@@ -101,7 +101,7 @@ async def test_validation_failure_does_not_echo_input() -> None:
 
 async def test_production_disables_interactive_docs() -> None:
     async with app_client(
-        create_app(Settings(environment="production", _env_file=None), FixedProbe(True))
+        create_app(EnvironmentSettings(environment="production"), FixedProbe(True))
     ) as client:
         assert (await client.get("/api/v1/docs")).status_code == 404
 

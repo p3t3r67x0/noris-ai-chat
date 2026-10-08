@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import cast
 from uuid import UUID, uuid4
@@ -21,7 +21,7 @@ def create_app(settings: Settings | None = None, probe: ReadinessProbe | None = 
     config = settings if settings is not None else Settings()
 
     @asynccontextmanager
-    async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(application: FastAPI) -> AsyncGenerator[None]:
         engine = create_async_engine(
             config.database_url.get_secret_value(), pool_pre_ping=True, pool_timeout=3
         )
@@ -55,20 +55,21 @@ def create_app(settings: Settings | None = None, probe: ReadinessProbe | None = 
             headers={"X-Request-ID": str(request_id), "Cache-Control": "no-store"},
         )
 
-    @application.exception_handler(HTTPException)
-    async def http_error(request: Request, exc: HTTPException) -> JSONResponse:
+    async def http_error(request: Request, exc: Exception) -> JSONResponse:
+        http_exception = cast(HTTPException, exc)
         return error_response(
-            request, exc.status_code, "HTTP_ERROR", "Request could not be processed"
+            request, http_exception.status_code, "HTTP_ERROR", "Request could not be processed"
         )
 
-    @application.exception_handler(RequestValidationError)
-    async def validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
+    async def validation_error(request: Request, exc: Exception) -> JSONResponse:
         return error_response(request, 422, "VALIDATION_ERROR", "Request validation failed")
 
-    @application.exception_handler(Exception)
     async def internal_error(request: Request, exc: Exception) -> JSONResponse:
         return error_response(request, 500, "INTERNAL_ERROR", "An internal error occurred")
 
+    application.add_exception_handler(HTTPException, http_error)
+    application.add_exception_handler(RequestValidationError, validation_error)
+    application.add_exception_handler(Exception, internal_error)
     application.include_router(health_router, prefix="/api/v1")
     return application
 
