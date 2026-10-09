@@ -2,8 +2,9 @@ import { expect, test } from '@playwright/test'
 
 async function openSidebar(page: import('@playwright/test').Page) {
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
-  const toggle = page.getByRole('button', { name: 'Sidebar öffnen', exact: true })
-  if (await toggle.isVisible()) await toggle.click()
+  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
+  await expect(page.getByRole('navigation', { name: 'Gespräche' })).toBeVisible()
 }
 
 test('shell is responsive, has a bounded composer and renders without client errors', async ({ page }) => {

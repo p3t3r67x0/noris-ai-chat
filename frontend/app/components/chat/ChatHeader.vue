@@ -2,7 +2,7 @@
 import type { ChatModelId } from '../../composables/useModelSelection'
 import { CHAT_MODELS } from '../../composables/useModelSelection'
 
-defineProps<{ sidebarOpen: boolean }>()
+defineProps<{ sidebarOpen: boolean, busy?: boolean }>()
 const model = defineModel<ChatModelId>('model', { required: true })
 defineEmits<{ toggleSidebar: [], newChat: [] }>()
 </script>
@@ -19,7 +19,7 @@ defineEmits<{ toggleSidebar: [], newChat: [] }>()
       class="touch-control" aria-label="Neuer Chat" @click="$emit('newChat')"
     />
     <USelectMenu
-      v-model="model" :items="[...CHAT_MODELS]" value-key="id" :search-input="false"
+      v-model="model" :items="[...CHAT_MODELS]" value-key="id" :search-input="false" :disabled="busy"
       variant="ghost" color="neutral" aria-label="Modell auswählen" class="min-w-0 max-w-56 text-base font-semibold"
       :ui="{ base: 'min-h-11', content: 'min-w-64' }"
     >

@@ -29,6 +29,18 @@ Die Oberfläche hat eine unabhängig scrollbar bleibende Sidebar, einen schmalen
 
 Primärquellen, geprüft am 2026-10-09: [Nuxt-4-Verzeichnisstruktur](https://nuxt.com/docs/4.x/directory-structure/app), [Nuxt UI 4.11.3](https://github.com/nuxt/ui/releases/tag/v4.11.3), [Nuxt-UI-Installation](https://github.com/nuxt/ui/blob/v4.11.3/docs/content/docs/1.getting-started/2.installation/1.nuxt.md), [Sidebar](https://github.com/nuxt/ui/blob/v4.11.3/src/runtime/components/Sidebar.vue), [ChatPrompt einschließlich IME-Behandlung](https://github.com/nuxt/ui/blob/v4.11.3/src/runtime/components/ChatPrompt.vue).
 
-## Transport, Verzweigungen und Scrollmanagement
+## Transport und Darstellung
 
-Diese Abschnitte werden mit PR 2–4 um die tatsächlich implementierten Verträge ergänzt. Vorgaben: injizierbarer `ChatTransport`, kontrollierbare Ereignisse und AbortSignal; normalisierte Nachrichten mit Parent-ID und aktivem Blatt; terminale Zustände bleiben final; Scroll-Follow richtet sich nach der Position und der Absicht des Nutzers vor einem Layout-Update. Bestehende Nachrichten werden beim Editieren/Regenerieren nicht überschrieben.
+`ChatTransport.stream(request, signal)` liefert einen `AsyncIterable<StreamEvent>`. Der Request enthält Generation, Gespräch, unveränderliche Eingabenachricht, Modell und die aus ihrem Parent-Pfad abgeleitete Historie. Ein FastAPI-SSE-Adapter kann später dieselben typisierten Ereignisse liefern; ausschließlich der Composition Root wählt den Mock aus. UI-Komponenten kennen seine Implementierung nicht.
+
+`useChatStream` sperrt den Lauf synchron vor dem ersten Await: `idle → submitting → streaming → completed/cancelled/failed`. Terminale Zustände bleiben final. Sequenzen beginnen bei 1; wiederholte Ereignisse werden ignoriert, Lücken und unvollständig geschlossene Streams führen zu einem Fehler. Stop signalisiert `AbortSignal`; bis zum terminalen Abbruch bleibt die Generierung gesperrt. Teiltexte bleiben erhalten. Antwort- und Eingabelimits sind 32.000 Zeichen.
+
+Der Mock verwendet eine injizierbare Uhr, feste Chunks und Verzögerungen. `/fehler` liefert einen Fehler nach einer Teilantwort, `/lang` einen langen Stream; diese Befehle sind ausschließlich Demo-/Testkonventionen. Vitest steuert die Uhr und Ereignisfolgen deterministisch. Modelle sind vorbereitete Demo-Auswahlen, keine echte Provider-Registry.
+
+`UChatPrompt` übernimmt Autosize, maximale Zeilenhöhe, Enter/Shift+Enter und IME-Schutz. Die Wrapper-Komponente verhindert inkompatible Sends. `MarkdownContent` erzeugt Vue-Knoten aus Markdown-it-Tokens mit `html: false`, einer Tag-Allowlist und geprüftem Linkprotokoll. Es gibt kein `v-html`. Externe Links tragen `noopener noreferrer`; Markdown-Bilder werden als Alt-Text angezeigt, ohne Netzwerkzugriff. Code ist immer Text; Shiki lädt acht fest definierte Sprachen und zwei Themes erst nach Mount. Unbekannte Sprachen und sehr große Blöcke bleiben lesbarer Klartext. Code-/Tabellen-Scrollen bleibt auf den jeweiligen Block begrenzt.
+
+PR 2 erhält lokale Gesprächsmetadaten. Nachrichten und Entwürfe werden erst mit der validierten gemeinsamen Persistenz in PR 3 dauerhaft gespeichert.
+
+## Verzweigungen und Scrollmanagement
+
+Diese Abschnitte werden mit PR 3–4 um die tatsächlich implementierten Verträge ergänzt. Vorgaben: normalisierte Nachrichten mit Parent-ID und aktivem Blatt; Scroll-Follow richtet sich nach Position und Nutzerabsicht vor einem Layout-Update. Bestehende Nachrichten werden beim Editieren/Regenerieren nicht überschrieben.

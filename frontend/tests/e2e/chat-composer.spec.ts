@@ -1,0 +1,64 @@
+import { expect, test } from '@playwright/test'
+
+test.beforeEach(async ({ page }) => {
+  await page.goto('/')
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+})
+
+test('Enter sends once, streams safe Markdown and allows message and code copying', async ({ page, context, browserName }) => {
+  if (browserName === 'chromium') await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
+  await input.fill('Hilf mir beim Planen')
+  await input.press('Enter')
+  await expect(page.locator('.message-user')).toHaveCount(1)
+  await expect(page.getByRole('button', { name: 'Antwort stoppen', exact: true })).toBeVisible()
+  await expect(page.locator('[data-generation-status]')).toHaveAttribute('data-generation-status', 'completed')
+  await expect(page.locator('.message-assistant h3')).toHaveText('Ein guter Anfang')
+  await expect(page.locator('.message-assistant table')).toBeVisible()
+  const copy = page.getByRole('button', { name: 'Code kopieren', exact: true })
+  await copy.scrollIntoViewIfNeeded()
+  await copy.click()
+  await expect(page.getByRole('button', { name: 'Kopiert', exact: true })).toBeVisible()
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('def greet')
+  await page.getByRole('button', { name: 'Nachricht kopieren', exact: true }).first().click()
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('Hilf mir beim Planen')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+})
+
+test('Shift+Enter and IME composition keep the draft without accidental sending', async ({ page }) => {
+  const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
+  await input.fill('Erste Zeile')
+  await input.press('Shift+Enter')
+  await input.press('Z')
+  await expect(input).toHaveValue('Erste Zeile\nZ')
+  await input.evaluate(element => {
+    element.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, data: 'あ' }))
+    element.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter', isComposing: true, keyCode: 229 }))
+    element.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: 'あ' }))
+  })
+  await expect(page.locator('.message-user')).toHaveCount(0)
+})
+
+test('Stop confirms cancellation and preserves partial text', async ({ page }) => {
+  const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
+  await input.fill('/lang')
+  await input.press('Enter')
+  await expect(page.locator('.message-assistant')).toContainText('Gedanke')
+  await page.getByRole('button', { name: 'Antwort stoppen', exact: true }).click()
+  await expect(page.locator('.message-assistant')).toHaveAttribute('data-status', 'cancelled')
+  const partial = await page.locator('.message-assistant .markdown-content').textContent()
+  await expect(page.locator('.message-assistant .markdown-content')).toHaveText(partial ?? '')
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeVisible()
+})
+
+test('mock failure keeps partial output and supports another attempt', async ({ page }) => {
+  const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
+  await input.fill('/fehler')
+  await input.press('Enter')
+  await expect(page.locator('.message-assistant')).toHaveAttribute('data-status', 'failed')
+  await expect(page.locator('.message-assistant')).toContainText('Teilantwort')
+  await page.getByRole('button', { name: 'Erneut versuchen', exact: true }).click()
+  await expect(page.locator('[data-generation-status]')).toHaveAttribute('data-generation-status', 'streaming')
+  await expect(page.locator('[data-generation-status]')).toHaveAttribute('data-generation-status', 'failed')
+  await expect(page.locator('.message-user')).toHaveCount(1)
+})
