@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     llm_token_limit_parameter: Literal["max_tokens", "max_completion_tokens"] = Field(
         default="max_tokens"
     )
+    llm_reasoning_effort: Literal["low", "medium", "high"] | None = None
     llm_connect_timeout_seconds: float = Field(default=5, gt=0, le=30)
     llm_read_timeout_seconds: float = Field(default=30, gt=0, le=120)
     llm_total_timeout_seconds: float = Field(default=120, gt=0, le=600)
@@ -126,6 +127,11 @@ class Settings(BaseSettings):
         if url.drivername != "postgresql+psycopg" or not url.database:
             raise ValueError("A PostgreSQL URL using the psycopg driver and a database is required")
         return value
+
+    @field_validator("llm_reasoning_effort", mode="before")
+    @classmethod
+    def empty_reasoning_setting(cls, value: object) -> object:
+        return None if value == "" else value
 
 
 class EnvironmentSettings(Settings):

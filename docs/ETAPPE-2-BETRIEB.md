@@ -8,7 +8,7 @@ Der Real-Transport verwendet die bestehende Nuxt-Oberfläche und eine Same-Origi
 
 ## Real-Modus
 
-Die Noris-Dokumentation nennt `https://ai.noris.de/v1`, Bearer-Authentifizierung und OpenAI-kompatible Chat Completions. Der Betreiber muss die tatsächlich nutzbaren Modell-IDs und Account-Quotas selbst freischalten. Die Beispiel-ID `vllm/release/gpt-oss-120b` ist [dokumentiert](https://noris.cloud/nai/models/gpt-oss-120b/); tatsächliche Berechtigung und Erreichbarkeit bleiben ohne Live-Test ungeprüft.
+Die Noris-Dokumentation nennt `https://ai.noris.de/v1`, Bearer-Authentifizierung und OpenAI-kompatible Chat Completions. Der Betreiber muss die tatsächlich nutzbaren Modell-IDs und Account-Quotas selbst freischalten. Die ID `vllm/release/gpt-oss-120b` ist [dokumentiert](https://noris.cloud/nai/models/gpt-oss-120b/) und wurde für den bereitgestellten Account live geprüft; siehe [Etappe-2.1-Abnahme](ETAPPE-2.1-LIVE-ABNAHME.md). Diese Prüfung überträgt sich nicht automatisch auf andere Accounts oder Modelle.
 
 In der gitignorierten `.env` bzw. über serverseitige Secret-Injektion konfigurieren:
 
@@ -48,6 +48,7 @@ Alle Backend-Werte tragen das bestehende Präfix `NORIS_`. JSON-Listen müssen g
 | `NORIS_LLM_MODELS` | `[]`; IDs, Namen, availability/streaming, context_window und max_output_tokens |
 | `NORIS_LLM_DEFAULT_MODEL` | Kein Standard; muss nutzbares konfiguriertes Modell sein |
 | `NORIS_LLM_TOKEN_LIMIT_PARAMETER` | `max_tokens`; alternativ `max_completion_tokens` für passende Provider |
+| `NORIS_LLM_REASONING_EFFORT` | Unset/leer: Provider-Standard; optional `low`, `medium`, `high` ausschließlich serverseitig für kompatible Modelle |
 | `NORIS_LLM_CONNECT_TIMEOUT_SECONDS` | `5`; auch Write-/Pool-Timeout |
 | `NORIS_LLM_READ_TIMEOUT_SECONDS` | `30`; maximale Stille zwischen Netzwerkdaten |
 | `NORIS_LLM_TOTAL_TIMEOUT_SECONDS` | `120`; gesamte Generierung, höchstens 600 |
@@ -86,7 +87,7 @@ Vor Beginn des Streams verwendet die API `{error:{code,message,request_id}}`. Na
 | `OUTPUT_LIMIT`, `CONTENT_FILTERED` | Token-/Bytegrenzen bzw. Provider-Filter; Teilantwort bleibt erhalten |
 | `INTERNAL_ERROR` | Request-ID und serverseitige Diagnose ohne Secrets |
 
-Stop schließt Browser-Fetch, FastAPI-Stream und Provider-HTTP-Verbindung auch während Provider-Stille. Das wurde gegen einen echten lokalen HTTP-Server geprüft. Ob Noris damit auch GPU-Arbeit und Abrechnung unmittelbar beendet, bleibt **NOT TESTED**; keine dedizierte Noris-Cancel-API ist belegt.
+Stop schließt Browser-Fetch, FastAPI-Stream und Provider-HTTP-Verbindung auch während Provider-Stille. Das wurde gegen einen lokalen HTTP-Server und in Etappe 2.1 gegen Noris geprüft, einschließlich tatsächlicher Socket-Schließung. GPU-Abbruch und Abrechnungsstopp bleiben getrennt **NOT TESTED**; keine dedizierte Noris-Cancel-API ist belegt.
 
 ## Deterministische Tests und optionaler Live-Test
 
@@ -102,7 +103,9 @@ make build
 
 Die HTTP-/Browser-Integration startet ausschließlich lokale simulierte Provider. Browser-Tests verwenden isolierte Ports 8591–8593, Desktop und Mobile und eigene `test-results/llm`; keine Zugangsdaten oder kostenpflichtigen Calls erforderlich. Die bestehenden CI-Ziele `make test-unit` und `make test-e2e` führen auch die neuen HTTP-/Browserprüfungen aus; die Workflow-Datei bleibt unverändert. Mock-, DB- und UI-Browserprüfungen bleiben in CI aktiv.
 
-Für den Live-Test zuerst eine korrekt konfigurierte Real-Anwendung mit echten, ausschließlich serverseitigen Provider-Zugangsdaten bereitstellen. Anschließend Anwendungszugangsdaten in der Shell/Secret-Injektion setzen und ausdrücklich aktivieren:
+Für eine lokale Abnahme den [begrenzten Live-Testserver](ETAPPE-2.1-LIVE-ABNAHME.md#automatisierte-prüfung-und-reproduktion) verwenden: vorhandener Provider/Gateway, Modellzugriff vorab prüfen, separate private Anwendungszugangsdaten erzeugen und drei freigegebene Requests mit je maximal 256 Ausgabetokens erlauben. Bei GPT-OSS für diesen kurzen Test `NORIS_LLM_REASONING_EFFORT=low` setzen. Reasoning-Tokens verbrauchen ebenfalls das Outputlimit; bei Erreichen der Grenze bleibt `OUTPUT_LIMIT` das korrekte Ergebnis.
+
+Der Browser-Test kann auch eine bereits konfigurierte Real-Anwendung prüfen. Für diesen Test muss deren Katalog ausschließlich GPT-OSS 120B enthalten und das serverseitige Outputlimit auf 256 gesetzt sein. Nach ausdrücklicher Kostenfreigabe nur die getrennten Anwendungszugangsdaten injizieren:
 
 ```sh
 export NORIS_RUN_LIVE_LLM_SMOKE=1
@@ -111,4 +114,4 @@ export NORIS_LIVE_APP_ORIGIN=https://<anwendungs-host>
 pnpm --dir frontend test:e2e:live
 ```
 
-Dieser Test sendet einen kurzen echten Modellprompt durch Browser und Backend und kann Kosten verursachen. Ohne Opt-in wird er übersprungen. Screenshots, Videos und Traces sind für Live deaktiviert. Der Test benötigt keine Provider-Keys im Browser oder Playwright. Bis zu einem tatsächlich erfolgreichen Lauf bleibt die Noris-Live-Anbindung **BLOCKED**, niemals PASS. Aktuelle Nachweise: [Testergebnisse](ETAPPE-2-TESTERGEBNISSE.md).
+Dieser Test sendet die MCP-Frage durch Browser und Backend und kann Kosten verursachen. Ohne Opt-in werden beide Fälle vor Browser-/Netzwerkstart übersprungen. Der zusätzliche Stop-Test verlangt `NORIS_LIVE_TEST_STOP=1`, einen weiteren freigegebenen Aufruf und `NORIS_LIVE_SESSION` mit lokalen HTTP-Beobachtungen. Screenshots, Videos, Traces und automatische Retries sind deaktiviert. Playwright benötigt keinen Provider-Key. Der tatsächliche erfolgreiche Noris-Lauf und die vorherigen Fehlschläge sind im [Etappe-2.1-Abnahmebericht](ETAPPE-2.1-LIVE-ABNAHME.md) dokumentiert. Andere Accounts/Konfigurationen bleiben bis zu eigener Prüfung unverifiziert.

@@ -3,6 +3,8 @@ import json
 import socket
 from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import cast
 
 import httpx
 import pytest
@@ -11,6 +13,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from noris_ai.core.config import Settings
+from noris_ai.llm.live_acceptance import Observation, acceptance_app
 from noris_ai.main import create_app
 
 
@@ -135,3 +138,46 @@ async def test_actual_gateway_and_provider_http(llm_config: Settings, scenario: 
                     await closed.wait()
             assert captured[0]["model"] == "fixture-alpha"
             assert captured[0]["messages"] == PAYLOAD["messages"]
+
+
+async def test_live_observer_confirms_socket_closure_without_recording_secrets(
+    llm_config: Settings, tmp_path: Path
+) -> None:
+    upstream = FastAPI()
+    arrived, disconnected = asyncio.Event(), asyncio.Event()
+
+    async def completion() -> StreamingResponse:
+        async def chunks() -> AsyncIterator[bytes]:
+            try:
+                arrived.set()
+                yield b": waiting\n\n"
+                await asyncio.Event().wait()
+            finally:
+                disconnected.set()
+
+        return StreamingResponse(chunks(), media_type="text/event-stream")
+
+    upstream.add_api_route("/v1/chat/completions", completion, methods=["POST"])
+    async with serve(upstream) as base:
+        config = llm_config.model_copy(
+            update={"llm_base_url": base + "/v1", "llm_max_concurrent": 1}
+        )
+        app = acceptance_app(config, tmp_path)
+        observation = cast(Observation, app.state.live_observation)
+        async with serve(app) as application:
+            async with (
+                httpx.AsyncClient(base_url=application, auth=AUTH) as client,
+                client.stream("POST", "/api/v1/llm/chat", json=PAYLOAD) as response,
+            ):
+                async for line in response.aiter_lines():
+                    if "response.started" in line:
+                        break
+                async with asyncio.timeout(2):
+                    await arrived.wait()
+            async with asyncio.timeout(2):
+                await disconnected.wait()
+                await observation.finished.wait()
+            call = json.loads((tmp_path / "state.json").read_text())["calls"][0]
+            assert call["upstream_http_closed"] is True
+            assert call["upstream_socket_closed"] is True
+            assert "fixture-provider-key" not in (tmp_path / "state.json").read_text()

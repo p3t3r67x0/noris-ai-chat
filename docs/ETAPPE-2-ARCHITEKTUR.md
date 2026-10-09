@@ -20,6 +20,8 @@ README, PLAN, Etappe-1-Architektur/-Testbericht, Backend-Router/Settings/Middlew
 
 ## Tatsächliche Noris-API
 
+**Update Etappe 2.1:** Account-Modellberechtigung, vollständiges Browser-Streaming und HTTP-Abbruch wurden am 2026-10-09 live geprüft. Noris-Zwischen-Chunks ohne `finish_reason` werden jetzt akzeptiert; ein terminaler Finish und `[DONE]` bleiben erforderlich. Für den erfolgreichen 256-Token-MCP-Test wurde serverseitig `NORIS_LLM_REASONING_EFFORT=low` gesetzt. Historische Blocker und fehlgeschlagene Versuche sind im [Live-Abnahmebericht](ETAPPE-2.1-LIVE-ABNAHME.md) dokumentiert. Die folgenden Angaben beschreiben den ursprünglichen Etappe-2-Stand.
+
 Am 2026-10-09 anhand der vom Auftraggeber genannten [Noris-Dokumentation](https://noris.cloud/nai/) überprüft: Basis `https://ai.noris.de/v1`, [Bearer-Key](https://noris.cloud/nai/api/authentication/), [POST /chat/completions](https://noris.cloud/nai/api/chat-completions/) mit `stream: true` und `max_tokens`. Rollen system/user/assistant sind dokumentiert; diese Integration akzeptiert vom Browser ausschließlich user/assistant. Keine privilegierten System-/Developer-Anweisungen aus Nutzerdaten.
 
 Die [Modellübersicht](https://noris.cloud/nai/models/) nennt Generierungs-, Embedding- und Reranking-Modelle. Der [GPT-OSS-Modellvertrag](https://noris.cloud/nai/models/gpt-oss-120b/) dokumentiert die stabile ID `vllm/release/gpt-oss-120b` und 128K Kontext. Konfigurationsbeispiele nutzen diese belegte ID, nicht die bisherigen Demo-Namen. Entitlements und aktuelle Laufzeitverfügbarkeit sind ohne Key ungeprüft. Modelle werden ausschließlich durch den Betreiber freigeschaltet; keine automatische Übernahme beliebiger Provider-Modelle.

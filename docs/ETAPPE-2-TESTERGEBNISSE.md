@@ -1,5 +1,25 @@
 # Etappe 2: Prüfnachweise
 
+## Aktueller Stand Etappe 2.1
+
+Am 2026-10-09 wurden tatsächliche Noris-Modellberechtigung, Browser-End-to-End-Streaming mit GPT-OSS 120B und Stop einschließlich Upstream-Socket-Schließung geprüft: **PASS**. Zwei anfängliche Chunk-Validierungsfehler und ein Outputlimit im Reasoning sind mit ihren **FAIL**-Ergebnissen im [Live-Abnahmebericht](ETAPPE-2.1-LIVE-ABNAHME.md) dokumentiert. Die erfolgreiche Konfiguration verwendet serverseitig `NORIS_LLM_REASONING_EFFORT=low` und höchstens 256 Ausgabetokens. GPU-Abbruch und Abrechnungsstopp bleiben jeweils **NOT TESTED**.
+
+| Finale lokale Prüfung | Status | Nachweis |
+| --- | --- | --- |
+| Backend Unit-/Contract-/TCP-Integration | **PASS** | 102 Tests, davon 6 echte lokale HTTP-Tests |
+| Frontend Unit-/Transport-/Branch-Kontext | **PASS** | 89 Tests in 11 Dateien |
+| Bestehende RealTransport-Browserfälle | **PASS** | 6 Fälle, Desktop und Mobile, ausschließlich Simulator |
+| Live-Playwright MCP und Stop | **PASS** | Getrennte erfolgreiche Live-Läufe nach ausdrücklicher Kostenfreigabe; 5 tatsächliche Generierungen einschließlich 3 Fehlschlägen |
+| Live-Fehleranzeige ohne Mehrkosten | **PASS** | `CONTEXT_LIMIT`, Retry sichtbar, unveränderter Upstream-Zähler |
+| API-Drift, ESLint, Ruff, strikte Typprüfungen | **PASS** | Bestehende Checkbefehle; öffentlicher API-/SSE-Vertrag unverändert |
+| Backend-/Frontend-Produktionsbuild | **PASS** | Wheel/sdist und Nuxt/Nitro |
+| Compose Basis/Entwicklungskonfiguration | **PASS** | Bestehendes Compose-v2-Wrapper-Skript, `.env.example`, jeweils `config --quiet` |
+| Vollständige Mock-/UI-, DB- und Docker-Laufzeit-Suite lokal | **NOT TESTED** | Isoliert über [PR-Checks](https://github.com/p3t3r67x0/noris-ai-chat/pull/19/checks) prüfen; 40 bisherige Browserfälle, 3 PostgreSQL-Tests und frischer Compose-Stack |
+
+Die bisherigen Etappe-2-Ergebnisse unten bleiben als historischer Stand erhalten. Deren fehlende Zugangsdaten sind kein aktueller Blocker mehr. Die eigenständige HTTP-Probe nach Umschaltung auf `low` ist **NOT TESTED**; der komplette HTTP-/SSE-Pfad dieser Konfiguration ist durch den erfolgreichen Browser-Lauf nachgewiesen. Öffentlicher TLS-/Ingress-Betrieb, Provider-Quotas und Lasttests sind **NOT TESTED**.
+
+## Ursprüngliche Etappe-2-Prüfung
+
 Prüfdatum: 2026-10-09. Branch `feat/noris-ai-integration`, Basis PR #17 / `2d258f1b7c6312058c18047cc10ddb6df711181d`. Alle hier aufgeführten lokalen Modellaufrufe nutzen deterministische Fixtures; keine echten Provider-Zugangsdaten und keine kostenpflichtigen Calls. Die Tabelle beschreibt die lokalen Läufe. GitHub Actions führt auf dem PR zusätzlich die vollständigen Foundation-/Mock-Browser-, PostgreSQL- und Compose-Prüfungen aus; maßgeblich ist der aktuelle Check-Stand des PRs.
 
 | Prüfung | Status | Tatsächlicher Nachweis |

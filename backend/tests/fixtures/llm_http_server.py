@@ -39,6 +39,14 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
                 yield b": waiting\n\n"
                 await asyncio.Event().wait()
             chunks = ["Echte ", "HTTP-Antwort ", "mit Grüße 🌍."]
+            if prompt == "Erkläre in zwei Sätzen, was ein MCP-Server ist.":
+                chunks = [
+                    "Ein MCP-Server stellt ",
+                    "Werkzeuge und Daten bereit. ",
+                    "Er nutzt dafür das Model Context Protocol.",
+                ]
+            if prompt == "Zähle die Zahlen von 1 bis 100, jede Zahl in einer eigenen Zeile.":
+                chunks = [f"{number}\n" for number in range(1, 101)]
             if prompt.startswith("/slow"):
                 chunks += [" weiterer Text"] * 100
             for text in chunks:

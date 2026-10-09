@@ -22,7 +22,10 @@ class ProviderChoice(BaseModel):
     model_config = ConfigDict(strict=True)
     index: Literal[0]
     delta: ProviderDelta
-    finish_reason: Literal["stop", "length", "content_filter", "tool_calls", "function_call"] | None
+    # Noris omits this field on intermediate chunks. A terminal finish is still mandatory.
+    finish_reason: (
+        Literal["stop", "length", "content_filter", "tool_calls", "function_call"] | None
+    ) = None
 
 
 class ProviderChunk(BaseModel):
@@ -66,6 +69,8 @@ class OpenAICompatibleProvider:
             "stream": True,
             self._config.llm_token_limit_parameter: model.max_output_tokens,
         }
+        if self._config.llm_reasoning_effort is not None:
+            body["reasoning_effort"] = self._config.llm_reasoning_effort
         try:
             async with self._client.stream(
                 "POST",

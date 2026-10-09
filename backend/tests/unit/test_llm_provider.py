@@ -61,6 +61,62 @@ async def test_provider_handles_utf8_and_network_boundaries(
     }
 
 
+@pytest.mark.parametrize("terminal_finish", [True, False])
+async def test_noris_intermediate_chunks_may_omit_finish_reason(
+    llm_config: Settings, llm_messages: list[LLMMessage], terminal_finish: bool
+) -> None:
+    first = b'data: {"choices":[{"index":0,"delta":{"content":"MCP"}}]}\n\n'
+    data = first + (event(finish="stop") if terminal_finish else b"") + b"data: [DONE]\n\n"
+    provider = OpenAICompatibleProvider(
+        llm_config,
+        transport=httpx.MockTransport(
+            lambda _: httpx.Response(
+                200, headers={"Content-Type": "text/event-stream"}, content=data
+            )
+        ),
+    )
+    try:
+        if terminal_finish:
+            assert [
+                delta async for delta in provider.stream(llm_messages, llm_config.llm_models[0])
+            ] == ["MCP"]
+        else:
+            with pytest.raises(LLMError) as caught:
+                _ = [
+                    delta async for delta in provider.stream(llm_messages, llm_config.llm_models[0])
+                ]
+            assert caught.value.code == "INVALID_RESPONSE"
+    finally:
+        await provider.aclose()
+
+
+async def test_server_reasoning_hint_preserves_the_output_token_cap(
+    llm_config: Settings, llm_messages: list[LLMMessage]
+) -> None:
+    captured: list[httpx.Request] = []
+
+    def reply(request: httpx.Request) -> httpx.Response:
+        captured.append(request)
+        return httpx.Response(
+            200,
+            headers={"Content-Type": "text/event-stream"},
+            content=event("MCP") + event(finish="stop") + b"data: [DONE]\n\n",
+        )
+
+    config = llm_config.model_copy(update={"llm_reasoning_effort": "low"})
+    provider = OpenAICompatibleProvider(config, transport=httpx.MockTransport(reply))
+    try:
+        assert [text async for text in provider.stream(llm_messages, config.llm_models[0])] == [
+            "MCP"
+        ]
+        body = json.loads(captured[0].content)
+        assert body["reasoning_effort"] == "low"
+        assert body["max_tokens"] == config.llm_models[0].max_output_tokens
+        assert body["messages"] == [{"role": "user", "content": "Hallo 🌍"}]
+    finally:
+        await provider.aclose()
+
+
 @pytest.mark.parametrize(
     "status,code",
     [
