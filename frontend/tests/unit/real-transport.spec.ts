@@ -111,7 +111,8 @@ describe('Real transport and existing contract', () => {
   it('uses only selected branch context for retry and model switching', async () => {
     const captured: ChatRequest[] = []
     let attempt = 0
-    const transport: ChatTransport = createRealTransport({ fetcher: async (_, init) => {
+    const transport: ChatTransport = createRealTransport({ fetcher: async (url, init) => {
+      if (String(url).endsWith('/conversation-title')) return new Response('{}', { status: 503, headers: { 'Content-Type': 'application/json' } })
       captured.push(JSON.parse(String(init?.body)) as ChatRequest)
       attempt += 1
       return response(encode(attempt === 1 ? [{ seq: 1, type: 'response.started' }, { seq: 2, type: 'response.failed', code: 'RATE_LIMIT', message: 'retry' }] : events))

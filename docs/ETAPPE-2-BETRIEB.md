@@ -52,6 +52,8 @@ Alle Backend-Werte tragen das bestehende Präfix `NORIS_`. JSON-Listen müssen g
 | `NORIS_LLM_CONNECT_TIMEOUT_SECONDS` | `5`; auch Write-/Pool-Timeout |
 | `NORIS_LLM_READ_TIMEOUT_SECONDS` | `30`; maximale Stille zwischen Netzwerkdaten |
 | `NORIS_LLM_TOTAL_TIMEOUT_SECONDS` | `120`; gesamte Generierung, höchstens 600 |
+| `NORIS_LLM_TITLE_TIMEOUT_SECONDS` | `6`; eigener Titel-Timeout, höchstens 30 |
+| `NORIS_LLM_TITLE_MAX_OUTPUT_TOKENS` | `96`; Titel-Ausgabe, höchstens 256 und höchstens Modelllimit |
 | `NORIS_LLM_MAX_CONCURRENT` | `4`; aktive Anfragen und HTTP-Verbindungen, höchstens 32 |
 | `NORIS_LLM_REQUESTS_PER_MINUTE` | `20`; gemeinsame Anfragefrequenz pro Backend-Prozess |
 | `NORIS_LLM_DAILY_TOKEN_BUDGET` | `100000`; konservative Input-/Outputreservation, UTC-Tageswechsel |
@@ -67,6 +69,8 @@ Raten-/Tagesbudgets gelten für einen Prozess und bleiben bei Fehler/Stop reserv
 Die Provider-Adresse wird ausschließlich durch Betreiber konfiguriert, HTTPS und Host-Allowlist geprüft, Redirects und Umgebungs-Proxys sind deaktiviert. Loopback-HTTP ist nur für development/test zulässig. Eine vertrauenswürdige Host-Allowlist und Netzwerk-Egress-Regeln bleiben Betreiberaufgaben; die Anwendung ist kein beliebiger URL-Proxy. Bei fehlender/ungültiger Real-Konfiguration scheitert der Start kontrolliert, ohne Requests an ein Standardziel. Eine später nicht erreichbare Provider-Instanz führt zu einem Request-Fehler und beendet nicht die Anwendung.
 
 ## Healthchecks und Fehlersuche
+
+Automatische [Gesprächstitel](AI-CONVERSATION-TITLES.md) verwenden `POST /api/v1/llm/conversation-title`, dieselbe Anmeldung und dieselben Budgets. Nur dieser Prozess fügt eine serverseitige Titelanweisung hinzu. Chat-Nutzerdaten können weiterhin keine privilegierten Rollen senden. Titel-Fehler kommen als JSON zurück und lassen den Platzhalter bestehen; bei `TITLE_ALREADY_ATTEMPTED` (409) wird keine weitere Provider-Anfrage gestartet. Provider-/Antwortfehler verwenden 502, der Titel-Gesamttimeout 504, gemeinsame Raten-/Budgetlimits 429. Kein automatischer Retry.
 
 `GET /api/v1/health/live` prüft den API-Prozess. `GET /api/v1/health/ready` prüft wie zuvor PostgreSQL und Baseline. Beide rufen keinen Provider auf. `GET /api/v1/llm/models` prüft Anmeldung und statische Freigabe, **nicht** tatsächliche Provider-Liveness.
 

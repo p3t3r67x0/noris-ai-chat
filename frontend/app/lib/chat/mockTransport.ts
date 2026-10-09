@@ -1,4 +1,5 @@
 import type { ChatRequest, ChatTransport, StreamEvent } from './types'
+import { mockConversationTitle } from './titles'
 
 export interface MockClock { wait: (milliseconds: number, signal: AbortSignal) => Promise<void> }
 export const browserClock: MockClock = {
@@ -19,10 +20,14 @@ function answer(request: ChatRequest): string {
   return `Lass uns das gemeinsam durchdenken.\n\nDu fragst: **${prompt.replace(/[\\*_[\]<>`]/g, '')}**\n\n### Ein guter Anfang\n\n1. Kläre das Ziel und die wichtigsten Rahmenbedingungen.\n2. Teile die Aufgabe in überschaubare Schritte.\n3. Prüfe das Ergebnis und passe es bei Bedarf an.\n\n| Schritt | Ergebnis |\n| --- | --- |\n| Verstehen | Eine klare Frage |\n| Umsetzen | Ein erster Entwurf |\n\nEin kleines Beispiel mit Python:\n\n\`\`\`python\ndef greet(name: str) -> str:\n    return f"Hallo, {name}!"\n\nprint(greet("noris"))\n\`\`\`\n\nMehr dazu in der [Python-Dokumentation](https://docs.python.org/3/).\n\n${request.attempt > 1 ? `Das ist ein neuer Blick auf dieselbe Frage (Variante ${request.attempt}).` : 'Welchen Schritt möchtest du als Nächstes vertiefen?'}\n`
 }
 
-export function createMockTransport(options: { clock?: MockClock, initialDelay?: number, chunkDelay?: number, chunkSize?: number } = {}): ChatTransport {
+export function createMockTransport(options: { clock?: MockClock, initialDelay?: number, chunkDelay?: number, chunkSize?: number, titleDelay?: number } = {}): ChatTransport {
   const clock = options.clock ?? browserClock
   const size = Math.max(1, options.chunkSize ?? 24)
   return {
+    async generateTitle(request, signal) {
+      await clock.wait(options.titleDelay ?? 300, signal)
+      return { conversationId: request.conversationId, inputMessageId: request.inputMessageId, title: mockConversationTitle(request.firstMessage) }
+    },
     async *stream(request, signal): AsyncIterable<StreamEvent> {
       let seq = 0
       try {

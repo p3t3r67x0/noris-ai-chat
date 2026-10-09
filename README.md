@@ -228,6 +228,8 @@ Unter `/` läuft standardmäßig die lokale Chat-Demo ohne Provider-Schlüssel. 
 
 Konfiguration, Anmeldung für Real-Modus, Sicherheitsgrenzen und lokale HTTP-/Browser-Tests: [Etappe-2-Betrieb](docs/ETAPPE-2-BETRIEB.md). Der Provider ist standardmäßig deaktiviert; es gibt keine implizite externe Zieladresse. Echte Provider-Smoke-Tests verlangen einen ausdrücklichen Opt-in und Zugangsdaten außerhalb des Repositories.
 
+Neue Chats erhalten automatisch kurze [Gesprächstitel](docs/AI-CONVERSATION-TITLES.md), ohne das Antwort-Streaming zu verzögern. Manuell vergebene Namen haben Vorrang. Titel und ihr Generierungszustand bleiben im vorhandenen Browser-Speicher erhalten; im Mock-Modus entstehen ausschließlich lokale synthetische Titel. Im Real-Modus gelten die gemeinsamen Backend-Kostenlimits auch für die zusätzliche Titelanfrage.
+
 GitHub Actions führt Lint, strikte Typprüfung, API-Drift-Check, Unit-, DB- und Browser-Tests sowie Produktionsbuilds aus. Ein zweiter Job baut den vollständigen Compose-Stack aus einem frischen Checkout und prüft Proxy-Routing und DB-Rollenrechte. Browserläufe liefern Reports und Screenshots als Artefakt; fehlgeschlagene Fälle ergänzen Traces.
 
 Die Nachweise der Foundation stehen in [docs/ETAPPE-0-TESTERGEBNISSE.md](docs/ETAPPE-0-TESTERGEBNISSE.md). Aufbau und Prüfstand der Chat-Oberfläche: [Etappe-1-Architektur](docs/ETAPPE-1-ARCHITEKTUR.md), [Etappe-1-Tests](docs/ETAPPE-1-TESTERGEBNISSE.md). Die ausdrücklich beauftragte Integration ist in [Etappe-2-Architektur](docs/ETAPPE-2-ARCHITEKTUR.md), [Betrieb](docs/ETAPPE-2-BETRIEB.md) und [Testergebnissen](docs/ETAPPE-2-TESTERGEBNISSE.md) beschrieben.

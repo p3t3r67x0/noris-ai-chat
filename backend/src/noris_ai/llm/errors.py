@@ -19,6 +19,7 @@ MESSAGES = {
     "RATE_LIMIT": "Zu viele Modellanfragen. Bitte versuche es später erneut.",
     "BUDGET_LIMIT": "Das konfigurierte tägliche Tokenbudget ist ausgeschöpft.",
     "GENERATION_ACTIVE": "Diese Generierung läuft bereits.",
+    "TITLE_ALREADY_ATTEMPTED": "Für diese Unterhaltung wurde bereits ein Titel angefordert.",
     "PROVIDER_UNREACHABLE": "Der Modelldienst ist derzeit nicht erreichbar.",
     "PROVIDER_AUTH_FAILED": "Die Anmeldung beim Modelldienst ist fehlgeschlagen.",
     "PROVIDER_ERROR": "Der Modelldienst konnte die Anfrage nicht verarbeiten.",

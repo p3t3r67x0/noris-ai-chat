@@ -1,6 +1,8 @@
 export interface Conversation {
   id: string
   title: string
+  titleSource: 'fallback' | 'generated' | 'manual'
+  titleGenerationAttempted: boolean
   createdAt: string
   updatedAt: string
   archivedAt: string | null
@@ -36,6 +38,8 @@ function isConversation(value: unknown): value is Conversation {
   if (!isRecord(value)) return false
   return typeof value.id === 'string' && value.id.length > 0
     && typeof value.title === 'string' && value.title.length <= 120
+    && (value.titleSource === undefined || value.titleSource === 'fallback' || value.titleSource === 'generated' || value.titleSource === 'manual')
+    && (value.titleGenerationAttempted === undefined || typeof value.titleGenerationAttempted === 'boolean')
     && isDate(value.createdAt) && isDate(value.updatedAt)
     && (value.archivedAt === null || isDate(value.archivedAt))
     && (value.activeLeafMessageId === null || typeof value.activeLeafMessageId === 'string')
@@ -49,7 +53,10 @@ export function parseConversationSnapshot(raw: string): ConversationSnapshot | n
     const conversations: Record<string, Conversation> = {}
     for (const [id, item] of Object.entries(value.conversations)) {
       if (!isConversation(item) || item.id !== id) return null
-      Object.defineProperty(conversations, id, { value: item, enumerable: true, writable: true, configurable: true })
+      // Legacy names may be manual: preserve them and never generate retroactively.
+      const conversation: Conversation = { ...item, titleSource: item.titleSource ?? 'manual', titleGenerationAttempted: item.titleGenerationAttempted ?? true }
+      if (conversation.titleSource !== 'fallback') conversation.titleGenerationAttempted = true
+      Object.defineProperty(conversations, id, { value: conversation, enumerable: true, writable: true, configurable: true })
     }
     if (value.activeConversationId !== null && typeof value.activeConversationId !== 'string') return null
     const active = value.activeConversationId

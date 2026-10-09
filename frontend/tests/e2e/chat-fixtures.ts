@@ -9,7 +9,7 @@ export function savedChat(turns = 1): ChatSnapshot {
   }
   for (let index = 0; index < 45; index++) {
     const id = index === 0 ? 'main' : `conversation-${index}`
-    snapshot.conversations.conversations[id] = { id, title: index === 0 ? 'Unser Gespräch' : `Gedanken ${index}`, createdAt: date, updatedAt: date, archivedAt: null, activeLeafMessageId: null }
+    snapshot.conversations.conversations[id] = { id, title: index === 0 ? 'Unser Gespräch' : `Gedanken ${index}`, titleSource: 'manual', titleGenerationAttempted: true, createdAt: date, updatedAt: date, archivedAt: null, activeLeafMessageId: null }
   }
   for (let index = 0; index < turns; index++) {
     const user = `user-${index}`, assistant = `assistant-${index}`

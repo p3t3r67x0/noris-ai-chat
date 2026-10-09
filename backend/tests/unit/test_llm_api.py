@@ -9,7 +9,8 @@ from pydantic import ValidationError
 from noris_ai.core.config import EnvironmentSettings, Settings
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.gateway import LLMGateway
-from noris_ai.llm.schemas import ChatRequest, LLMMessage, LLMModel
+from noris_ai.llm.provider import ProviderMessage
+from noris_ai.llm.schemas import ChatRequest, LLMModel
 from noris_ai.main import create_app
 
 AUTH = ("fixture-user", "fixture-application-password-never-real")
@@ -26,10 +27,12 @@ PAYLOAD: dict[str, object] = {
 class FixtureProvider:
     def __init__(self, *, failure: str | None = None, wait: bool = False) -> None:
         self.failure, self.wait = failure, wait
-        self.calls: list[tuple[Sequence[LLMMessage], LLMModel]] = []
+        self.calls: list[tuple[Sequence[ProviderMessage], LLMModel]] = []
         self.closed = False
 
-    async def stream(self, messages: Sequence[LLMMessage], model: LLMModel) -> AsyncIterator[str]:
+    async def stream(
+        self, messages: Sequence[ProviderMessage], model: LLMModel
+    ) -> AsyncIterator[str]:
         self.calls.append((messages, model))
         if self.wait:
             await asyncio.Event().wait()

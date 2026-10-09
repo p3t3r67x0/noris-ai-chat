@@ -104,7 +104,7 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
       <section v-for="group in groups" :key="group.label" class="mt-5" :aria-label="group.label">
         <h2 class="sidebar-group">{{ group.label }}</h2>
         <ul class="space-y-0.5">
-          <li v-for="conversation in group.conversations" :key="conversation.id" class="conversation-row" :data-active="activeId === conversation.id">
+          <li v-for="conversation in group.conversations" :key="conversation.id" class="conversation-row" :data-conversation-id="conversation.id" :data-active="activeId === conversation.id">
             <button type="button" :aria-current="activeId === conversation.id ? 'page' : undefined" :title="conversation.title" @click="selectChat(conversation.id)">
               <span>{{ conversation.title }}</span>
             </button>

@@ -13,7 +13,9 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from noris_ai.core.config import Settings
+from noris_ai.llm.gateway import LLMGateway
 from noris_ai.llm.live_acceptance import Observation, acceptance_app
+from noris_ai.llm.schemas import ChatRequest
 from noris_ai.main import create_app
 
 
@@ -181,3 +183,91 @@ async def test_live_observer_confirms_socket_closure_without_recording_secrets(
             assert call["upstream_http_closed"] is True
             assert call["upstream_socket_closed"] is True
             assert "fixture-provider-key" not in (tmp_path / "state.json").read_text()
+
+
+@pytest.mark.parametrize("scenario", ["success", "timeout", "disconnect"])
+async def test_title_uses_existing_http_provider_and_closes_socket(
+    llm_config: Settings, scenario: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    upstream = FastAPI()
+    received, closed = asyncio.Event(), asyncio.Event()
+    captured: list[dict[str, object]] = []
+
+    async def completion(request: Request) -> StreamingResponse:
+        captured.append(await request.json())
+        received.set()
+
+        async def chunks() -> AsyncIterator[bytes]:
+            try:
+                if scenario != "success":
+                    yield b": waiting\n\n"
+                    await asyncio.Event().wait()
+                yield (
+                    b'data: {"choices":[{"index":0,"delta":{"content":"Rust vs. C++"},'
+                    b'"finish_reason":null}]}\n\n'
+                )
+                yield b'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n'
+                yield b"data: [DONE]\n\n"
+            finally:
+                closed.set()
+
+        return StreamingResponse(chunks(), media_type="text/event-stream")
+
+    upstream.add_api_route("/v1/chat/completions", completion, methods=["POST"])
+    async with serve(upstream) as base:
+        config = llm_config.model_copy(
+            update={
+                "llm_base_url": base + "/v1",
+                "llm_max_concurrent": 1,
+                "llm_title_timeout_seconds": 0.1 if scenario == "timeout" else 5.0,
+                "llm_reasoning_effort": "medium",
+            }
+        )
+        app = create_app(config)
+        async with (
+            serve(app) as application,
+            httpx.AsyncClient(base_url=application, auth=AUTH, timeout=3) as client,
+        ):
+            gateway = cast(LLMGateway, app.state.llm_gateway)
+            released = asyncio.Event()
+            original_release = gateway.release
+
+            def observed_release(generation_id: str) -> None:
+                original_release(generation_id)
+                released.set()
+
+            monkeypatch.setattr(gateway, "release", observed_release)
+            payload = {
+                "conversationId": "http-title",
+                "inputMessageId": "http-input",
+                "modelId": "fixture-alpha",
+                "firstMessage": "Welche Vorteile bietet Rust gegenüber C++?",
+            }
+            task = asyncio.create_task(client.post("/api/v1/llm/conversation-title", json=payload))
+            async with asyncio.timeout(2):
+                await received.wait()
+            if scenario == "disconnect":
+                task.cancel()
+                with pytest.raises(asyncio.CancelledError):
+                    await task
+            else:
+                response = await task
+                if scenario == "success":
+                    assert response.status_code == 200
+                    assert response.json()["title"] == "Rust vs. C++"
+                else:
+                    assert response.status_code == 504
+                    assert response.json()["error"]["code"] == "TIMEOUT"
+            async with asyncio.timeout(2):
+                await closed.wait()
+                await released.wait()
+            chat = ChatRequest.model_validate(PAYLOAD)
+            gateway.reserve(chat)
+            gateway.release(chat.generationId)
+            assert len(captured) == 1
+            messages = cast(list[dict[str, str]], captured[0]["messages"])
+            assert [message["role"] for message in messages] == ["system", "user"]
+            assert messages[1]["content"] == payload["firstMessage"]
+            assert "untrusted" in messages[0]["content"]
+            assert captured[0]["max_tokens"] == 96
+            assert captured[0]["reasoning_effort"] == "low"
