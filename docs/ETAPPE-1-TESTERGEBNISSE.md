@@ -1,5 +1,11 @@
 # Etappe 1: Testnachweise
 
+## Integrationsprüfung am 2026-10-09
+
+Der Auftraggeber hat die Integration der geprüften, bereinigten PRs #18 und #19 ausdrücklich genehmigt. #14 bis #17 sind bereits nach main gemergt. Private Referenztexte und ihre Golden wurden in der aktiven PR-Historie vollständig durch synthetische Inhalte ersetzt; die 17 separat freigegebenen alten Browserartefakte wurden gelöscht und ihre Abwesenheit erneut geprüft. **BLOCKED:** Das Original bleibt über eine alte GitHub-Commit-ID abrufbar; der ausdrücklich offengelassene Support-Takedown steht aus. Vollständige Nachweise: [Historienbereinigung](ui-reference/HISTORIENBEREINIGUNG.md).
+
+**PASS:** [aktuelle PR-18-CI auf d7fa33b](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37900051593): 76 Frontend-, 38 Backend-, 3 PostgreSQL- und 91 Browserfälle = 208 Tests, einschließlich 27 Screenshotvergleichen; Lint, strikte Typen, API-Drift, Builds und Compose-Smoke. Ein kombinierter UI-/Transport-Integrationsbranch besteht separat 301 Tests. Neue Head-/main-Commits benötigen eigene Nachweise. Die weiter unten dokumentierten älteren Prüfläufe bleiben historische Ergebnisse.
+
 Stand: 2026-10-09. Die Implementierung beginnt mit `feat/chat-shell` auf dem gemergten Etappe-0-Stand `2d5e5458da190c9439663749a4a74dddd53fcb2e`. Ergebnisse werden erst nach tatsächlicher Ausführung ergänzt.
 
 ## Umgebung
@@ -38,7 +44,7 @@ Der erste Remote-Lauf prüfte bereits Send-Anker, Fokus, Shortcuts und Gespräch
 
 **Zwischenstand:** [CI 37878303592](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37878303592) auf `d6fd1c9` bestand 38 von 40 Playwright-Fällen einschließlich aller vier Referenzvergleiche. Die beiden Scrollfälle bestanden ihre Positions-/Follow-/Lesepause-Assertions, suchten aber erst nach Ende des zeitgesteuerten Mocks den Stop-Button. Das Zeitfenster wurde auf 7,55 s begrenzt und der Streaming-Zustand vor Stop explizit geprüft. Kein Test wurde deaktiviert.
 
-**Ausstehend:** [CI 37878919360](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37878919360) prüft `80a08b4` mit korrigiertem Stop-Zeitfenster und erhöhtem Platzhalter-/Fehler-/Warnkontrast. Der Bericht wartet nicht auf diesen Lauf. Die vier visuell geprüften Referenzen stammen noch vom vorherigen Farbstand; nach dem Kontrastupdate sind mögliche Abweichungen zu prüfen und Referenzen gegebenenfalls aus tatsächlich gerenderten Bildern neu zu übernehmen. PR 4 bleibt bis dahin ein Entwurf; eine vollständige grüne Browserprüfung wird nicht behauptet.
+**PASS, nachträglich verifiziert:** [CI37879178881](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37879178881) auf `2d258f1` besteht66 Frontend-,38 Backend-,3 PostgreSQL- und40 Playwright-Fälle, alle bestehenden Screenshotvergleiche, Typen/Lint/API, beide Builds, Compose-Validierung und Smoke. Auch der Push-Lauf37879175457 ist grün. Die aktuellen acht Browser-Artefakte wurden geprüft. Damit sind die beiden früheren Stop-Timing-Fälle und der geänderte Kontrast tatsächlich verifiziert; die historischen Zwischenstände bleiben oben nachvollziehbar. Die nachgereichte Referenztreue wird separat in PR18 geprüft.
 
 Ein zusätzlicher lokaler Chromium-Start ohne Serverport war ebenfalls **BLOCKED** (`sandbox_host_linux`, `Operation not permitted`). Auch ein Unix-Socket-Server darf hier nicht binden (`EPERM`). Diese alternativen Versuche ändern keine Anwendungskonfiguration und liefern keinen erfolgreichen Browsernachweis.
 
@@ -61,3 +67,66 @@ Die Referenzbilder werden unter Linux mit gepinntem Chromium erzeugt. Die Browse
 - Die automatische Prüfung verwendet Chromium auf Desktop und einem mobilen Viewport. Eine verkleinerte Visual-Viewport-Höhe prüft den Composer; reale iOS-/Android-Tastaturen, VoiceOver/TalkBack und weitere Browserengines benötigen manuelle Abnahme.
 - Scrollpositionen überleben Gesprächswechsel innerhalb des Workspace; ein Reload öffnet den Verlauf am Ende.
 - Etappe 2 wurde nicht begonnen. Die vier PRs sind in Reihenfolge zu prüfen; Merge nur durch den Repository-Verantwortlichen.
+
+
+## Referenz-Folge-PR #18
+
+[PR #18](https://github.com/p3t3r67x0/noris-ai-chat/pull/18), `feat/chatgpt-ui-fidelity`, Basis `feat/chat-ux-polish`. Die ursprünglichen vier PRs bleiben als Stack erhalten. #17 ist nach Prüfung seines grünen Heads für Review freigegeben; kein PR wurde gemergt.
+
+### Lokal ausgeführte Prüfungen
+
+**PASS:** 74 Frontend-Unit-Tests in zwölf Dateien, 38 Backend-Unit-/Contract-Tests; ESLint, striktes Nuxt-/Vue-TypeScript einschließlich Tests, Ruff/Format (24 Dateien), Pyright (0 Fehler/Warnungen), API-Drift, Nuxt-Produktionsbuild (3,98 MB Serverartefakte, 908 kB gzip), Backend-Wheel/sdist. Beide Compose-Konfigurationen sind über den bestehenden Wrapper erfolgreich validiert.
+
+**BLOCKED lokal:** Playwright-Testserver kann nicht an `127.0.0.1:8000` binden (EPERM), Chromium-Sandboxstart ebenfalls untersagt. Der direkte Docker-Aufruf hat kein Compose-Plugin; der Wrapper findet die vorhandene standalone-v2-Version. Der lokale Smoke benötigt zusätzlich Zugriff auf den Docker-Daemon, der hier verweigert wird. Für lokale DB-Integration fehlt eine separate `NORIS_TEST_DATABASE_URL` mit `_test`; die Fixtures brechen ohne Mutation ab. Nuxt/UI-MCPs sind in dieser Sitzung nicht exponiert (`unknown MCP server`); auch der direkte MCP-Verbindungsversuch scheitert an DNS. Installierte, versionierte Komponenten und offizielle Quellen wurden als API-Ersatz geprüft. Das ist kein erfolgreicher MCP-Aufruf.
+
+### Tatsächliche Browserläufe und Korrekturen
+
+| Head / CI | Ergebnis | Konsequenz |
+| --- | --- | --- |
+| `58d57b2` / [37881075409](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37881075409) | 58/87 Browserfälle PASS; 27 Bildvergleiche FAIL, zwei neue Locator-Fälle FAIL | Exakter Locator für „Gedanken 1“; Schrift und Absatzabstände nach Bildvergleich korrigiert |
+| `dba475b` / [37881928538](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37881928538) | 62/89 Browserfälle PASS; ausschließlich 27 Bildvergleiche FAIL | H1-Umbruch auf 32px bei 42px Zeilenhöhe angepasst; Entwurfsbeobachtung getrennt |
+| `a1e4557` / [37882833762](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37882833762) | 64/91 Browserfälle PASS; ausschließlich 27 Bildvergleiche FAIL | Alle Edit-/Fokusfälle bestätigt; Variantenindex gegen wiederholte Gesamtsuche eingeführt |
+| `eb0ca33` / [37883323319](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37883323319) | 64/91 Browserfälle PASS; ausschließlich 27 Bildvergleiche FAIL; 74/38/3 Unit-/DB-Fälle und Compose-Smoke PASS | 23 neue und vier geänderte Goldens aus echtem Chromium nach visueller Prüfung übernehmen |
+| `30d54e8` / [37887972615](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37887972615) | **PASS: 74 Frontend-, 38 Backend-, 3 PostgreSQL- und 91 Browserfälle; Lint/Typen/API, beide Produktionsbuilds, Compose-Validierung und Smoke** | Alle 27 regulären Bildvergleiche bestätigen die geprüften Baselines |
+| `30d54e8` / [37887976895](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37887976895) | **PASS: Checks-Job und Compose-Smoke im separaten Pull-Request-Lauf** | Die PR-Merge-Ansicht bestätigt zusätzlich den vollständigen Gate-Lauf |
+
+Die bisherigen 27 Bildfehler waren 23 fehlende und vier absichtlich geänderte Baselines. Auch der vom Auftraggeber gemeldete [Push-Job 113667689980](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37883319472/job/113667689980?pr=18) wurde direkt gelesen und hat dieselbe Ursache. Alle 27 Bilder wurden nach tatsächlicher visueller Prüfung als reguläre Baselines committet. Der normale Push-Lauf auf `30d54e8` bestätigt jetzt alle Bildvergleiche: **206 bestandene Tests insgesamt**, davon 55 Desktop- und 36 Mobile-Browserfälle in 2,6 Minuten. Der heruntergeladene HTML-Report bestätigt `expected=91`, `unexpected=0`, `flaky=0`, `skipped=0`; [Browserartefakt 11597237665](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37887972615/artifacts/11597237665), sieben Tage verfügbar. Der separate Pull-Request-Lauf auf demselben Head ist ebenfalls vollständig grün. Die nachfolgende Dokumentationsaktualisierung verändert ausschließlich vier Markdown-Dateien; diese Ergebnisse gehören ausdrücklich zum geprüften Code-Head `30d54e8`. Builds/Compose-Validierung wurden in den vorher fehlgeschlagenen Checks-Jobs übersprungen; der neue vollständige Push-Lauf besteht beide ebenfalls. Keine Assertions, Pixelgrenzen oder Tests wurden abgeschwächt, deaktiviert oder als Skip versteckt.
+
+Die neue Matrix enthält 22 permanente Zustands-/Theme-Szenen und eine zusätzliche Referenzszene bei 1920 × 975 / DPR 1. Die vier bisherigen leeren Baselines bleiben als Tests erhalten und werden sichtbar begründet aktualisiert. Zusätzliche Größen pro Theme: 1920 × 1080, 1440 × 900, 1280 × 800, 768 × 1024, 390 × 844, 360 × 800. Neue Browserfälle prüfen Send-Anker, denselben Composer-Knoten, Stop-Fokus, simuliertes VisualViewport-Resize, Stream-/Gesprächswechsel, Tastatur-Löschen/Suche, Sidebarpräferenz, Reload, große Codeblöcke/Tabellen/URLs, Editierdialog-Fokus sowie 100/500 Nachrichten mit zehn inaktiven Varianten. Die früheren PR-17-Scroll-/Stop-Timing-Fälle bestehen unverändert.
+
+Die tatsächlichen Referenzszenen prüfen vor jeder Aufnahme Konsolen-/Hydrationfehler, horizontales Overflow, window-Scroll, berechneten Textkontrast (mindestens 4,5:1) und benannte Touch-Kontrollen (mindestens 44 × 44). Kurze Phasenmeldungen statt Token-Announcements bleiben erhalten. Das belegt ausgewählte Accessibility-Eigenschaften, keine vollständige WCAG-Konformität.
+
+### Geometrie und Bildnachweise
+
+Bei 1920 × 975 misst Chromium: Leiste 68,0px, Sidebar 375,984px, Hauptbereich 1476,016px, Inhalt/Composer 999,984px bei x=682,0px, Composer y=876/h=70/Unterabstand=29, Header 68. Mobile bei 390 × 844: Composer x=12, Breite 366, Höhe 60, Unterabstand 29. Kein äußeres Scrollen oder horizontales Seitenoverflow. Messwerte und Unterschiede stehen in [VISUAL-COMPARISON](ui-reference/VISUAL-COMPARISON.md).
+
+Das Original bleibt unverändert lokal und im aktuellen Git-Baum ausgeschlossen, SHA256 `47403b9bd1291b403e0f9e61f609a659eda5b3f624b5ed6834d13a21c24cb0e9`. Die zuerst veröffentlichte Kopie wurde aus dem aktuellen Baum entfernt; frühere Git-Objekte werden damit nicht als gelöscht behauptet. Die automatische Freigabeprüfung lehnte die früheren, nur an Sidebar und Initialen maskierten Bilder ab. Die Datenschutz-Nachprüfung bestätigte ihre unzureichende Bereinigung; diese Dateien bleiben unter `docs/ui-reference/local-comparison/quarantine/previous/` ausgeschlossen. Die fünf vollständig neu bereinigten Ansichten sind nach abschließender Freigabe am 2026-10-09 unter `ui-reference/evidence/sanitized/` veröffentlicht; nur die im [Bereinigungsbericht](ui-reference/BEREINIGUNGSBERICHT.md) dokumentierten Hashes sind freigegeben. Die damalige Referenz-Baseline übernahm private Referenztexte. Im aktuellen bereinigten Branch wurde sie durch visuell geprüften Chromium-Output mit vollständig synthetischem Inhalt ersetzt. Die synthetischen Derivate dienen der datensparsamen Veröffentlichung, nicht der Verbesserung einer Pixelquote.
+
+### Performancebeobachtung
+
+Messungen aus den tatsächlichen Chromium-Reports, jeweils ein kalter Dev-Server-Durchlauf mit 100/500 sichtbaren Nachrichten, einem langen Codeblock und zehn inaktiven Varianten. `inputToFrameMs` misst Eingabe bis zum nächsten Frame; `scrollToFrameMs` die Scrollaktion bis zum Frame, kein vollständiges FPS-Profil. Werte sind Beobachtungen, keine Benchmarkgarantie.
+
+| Zustand / Lauf | Nachrichten | Eingabe ms | Scroll ms | JS-Heap MB | DOM-Knoten |
+| --- | --- | --- | --- | --- | --- |
+| Desktop vor Variantenindex, `dba475b` | 500 | 646,2 | 692,2 | 225 | 7704 |
+| Mobile-Emulation vor Variantenindex, `dba475b` | 500 | 713,2 | 793,6 | 225 | 7706 |
+| Desktop nach Variantenindex, `eb0ca33` | 100 | 6,6 | 41,8 | 109 | 2304 |
+| Desktop nach Variantenindex, `eb0ca33` | 500 | 31,9 | 163,9 | 188 | 7704 |
+| Mobile-Emulation nach Variantenindex, `eb0ca33` | 100 | 8,3 | 85,8 | 109 | 2306 |
+| Mobile-Emulation nach Variantenindex, `eb0ca33` | 500 | 12,0 | 145,3 | 212 | 7706 |
+
+Der persistierte Entwurfs-Watch ist vom Nachrichten-Watch getrennt; eine computed Sibling-Metadatenkarte vermeidet Gesamtsuche pro Nachricht auf jedem Token. Der bestehende Nachrichtengraph bleibt erhalten. DOM-Identität wird geprüft, aber kein vollständiges Vue-Profiler-/Langzeit-Leak-Ergebnis behauptet. Die Scrollzeiten bei 500 Nachrichten lassen weitere Performanceabnahme offen; Virtualisierung wurde wegen Scroll-/Accessibility-Risiken ohne ausreichenden Nachweis nicht ergänzt.
+
+### Verbleibende Abnahme
+
+**NOT TESTED:** reale iOS-/Android-Tastaturen und Browserchrome, VoiceOver/TalkBack, Firefox/WebKit, High Contrast/Zoom, manuelle Referenzbestätigung durch den Auftraggeber. Dark/Mobile/Leerzustand sind getestete Noris-Varianten; die einzige gelieferte Referenz zeigt diese Zustände nicht. DPR, Zoom und Originalfont bleiben unbekannt. Kein Pixel-Perfect- oder ChatGPT-Funktionsparitätsversprechen. Keine Etappe 2, kein automatisches Merge.
+
+### Lokale Datenschutz-Nachprüfung der fünf Vergleichsbilder
+
+Die frühere reine Sidebar-Maskierung war unvollständig: privater Gesprächsinhalt blieb in den beiden Quellen und allen drei abgeleiteten Ansichten lesbar beziehungsweise rekonstruierbar. Die Aussage „ausschließlich kontrollierte Mock-Daten“ gilt nicht für die übernommenen Texte der Referenzszene. Die alten fünf Kandidaten liegen jetzt in einer ausgeschlossenen lokalen Quarantäne.
+
+**PASS lokal:** elf separate Datenschutzprüfungen und visuelle Einzelprüfung aller fünf neu bereinigten Bilder. Vollständiger Gesprächs-/Verlauf-/Kontoeinsatz mit synthetischen Inhalten, PNG ohne Alpha/Metadaten, ausschließlich bereinigte Quellen für Side-by-side/Overlay/Differenz, Unabhängigkeit von privaten Pixelbereichen und Git-Ausschluss wurden geprüft. **NOT RUN:** OCR, lokal nicht installiert. Kein zusätzliches CI-Testergebnis wird behauptet; die App und ihre bestehenden Baselines wurden dabei nicht verändert.
+
+**OFFEN:** Der ursprüngliche private Screenshot existiert noch im früheren Git-Commit `58d57b2`; der aktuelle Dateibaum enthält ihn nicht. Die damalige Referenz-Fixture und Baseline enthielten übernommene Texte; beide sind inzwischen einschließlich der aktiven Branch-Historie bereinigt. Die serverseitige alte Commit-Adresse bleibt ein gesonderter Support-Punkt.
+
+[Bereinigungsbericht mit den fünf freigegebenen Dateien](ui-reference/BEREINIGUNGSBERICHT.md) und [Manifest](ui-reference/evidence/sanitized/manifest.json). Die neuen Bilder sind synthetisch bearbeitete Derivate, keine unveränderten Browseraufnahmen. Nach der abschließenden Freigabe am 2026-10-09 wurden ausschließlich diese fünf PNG-Bytes unverändert zur Veröffentlichung übernommen. Erneut bestanden elf lokale Datenschutzprüfungen mit eigenständigen synthetischen Eingangsfixtures, ohne private Originaldateien und ohne Skip (8,702 s). Ruff-Lint und Formatprüfung aller drei betroffenen Python-Werkzeug-/Testdateien bestanden. SHA256, PNG-Chunk-CRCs, RGB-Modus und fehlende Metadaten wurden für die freigegebenen Veröffentlichungskopien erneut geprüft. Eine vorübergehende lokale Quota-Sperre wurde aufgehoben; die abschließenden Prüfungen liefen tatsächlich. App-Code und bestehende Testbaselines bleiben unverändert; neue CI-Läufe werden nicht mit dem zuvor geprüften Code-Head gleichgesetzt. Dieser damalige Veröffentlichungsschritt führte keinen Merge und keine Historienumschreibung aus. Die später separat genehmigte Historienbereinigung ist im aktuellen Integrationsbericht dokumentiert.

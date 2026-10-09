@@ -1,0 +1,106 @@
+{
+  "dimensions": [
+    1920,
+    975
+  ],
+  "sha256": "47403b9bd1291b403e0f9e61f609a659eda5b3f624b5ed6834d13a21c24cb0e9",
+  "method": "Original image pixels; dominant RGB in listed rectangles. Font CSS size/DPR remain estimates.",
+  "samples": {
+    "rail": {
+      "rectangle": [
+        0,
+        0,
+        68,
+        975
+      ],
+      "dominant_rgb": [
+        249,
+        249,
+        249
+      ],
+      "pixel_count": 39641
+    },
+    "sidebar": {
+      "rectangle": [
+        68,
+        0,
+        443,
+        975
+      ],
+      "dominant_rgb": [
+        252,
+        252,
+        252
+      ],
+      "pixel_count": 327103
+    },
+    "workspace": {
+      "rectangle": [
+        445,
+        65,
+        1919,
+        875
+      ],
+      "dominant_rgb": [
+        252,
+        252,
+        252
+      ],
+      "pixel_count": 956524
+    },
+    "composer": {
+      "rectangle": [
+        690,
+        890,
+        1600,
+        930
+      ],
+      "dominant_rgb": [
+        255,
+        255,
+        255
+      ],
+      "pixel_count": 34576
+    },
+    "active_conversation": {
+      "rectangle": [
+        76,
+        310,
+        436,
+        355
+      ],
+      "dominant_rgb": [
+        239,
+        239,
+        239
+      ],
+      "pixel_count": 14685
+    }
+  },
+  "heading_glyph_bounds": [
+    {
+      "sample_rows": [
+        152,
+        199
+      ],
+      "dark_pixel_bounds": [
+        683,
+        159,
+        1483,
+        188
+      ]
+    },
+    {
+      "sample_rows": [
+        199,
+        238
+      ],
+      "dark_pixel_bounds": [
+        683,
+        201,
+        1076,
+        230
+      ]
+    }
+  ]
+}

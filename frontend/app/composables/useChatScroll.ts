@@ -18,7 +18,10 @@ export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HT
     const element = scroller.value
     if (!element) return
     distance.value = distanceToBottom({ top: element.scrollTop, height: element.scrollHeight, viewport: element.clientHeight })
-    const height = `${Math.max(0, element.clientHeight - 56)}px`
+    const timeline = content.value
+    const style = timeline ? getComputedStyle(timeline) : undefined
+    const padding = style ? (Number.parseFloat(style.paddingTop) || 0) + (Number.parseFloat(style.paddingBottom) || 0) : 0
+    const height = `${Math.max(0, element.clientHeight - padding)}px`
     if (content.value?.style.getPropertyValue('--last-turn-height') !== height) content.value?.style.setProperty('--last-turn-height', height)
   }
   function cancelFrame(): void {

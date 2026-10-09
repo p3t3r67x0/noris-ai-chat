@@ -1,0 +1,110 @@
+{
+  "status": "USER_APPROVED_FOR_PUBLICATION",
+  "kind": "synthetic anonymized comparison derivatives, not unmodified browser captures",
+  "source_pixels": "only the individually reviewed static UI crops listed below",
+  "static_crops": {
+    "reference": [
+      [
+        0,
+        0,
+        68,
+        900
+      ],
+      [
+        68,
+        0,
+        444,
+        120
+      ],
+      [
+        1694,
+        0,
+        1920,
+        68
+      ]
+    ],
+    "noris": [
+      [
+        0,
+        0,
+        68,
+        900
+      ],
+      [
+        68,
+        0,
+        444,
+        120
+      ],
+      [
+        460,
+        12,
+        494,
+        56
+      ],
+      [
+        1560,
+        80,
+        1683,
+        125
+      ]
+    ]
+  },
+  "removed": [
+    "entire conversation",
+    "entire history and project area",
+    "account surface",
+    "composer and selected model",
+    "status/time/source/link information"
+  ],
+  "derived_views": "side-by-side, overlay and difference use only the two sanitized sources",
+  "files": [
+    {
+      "file": "reference-layout-redacted.png",
+      "dimensions": [
+        1920,
+        975
+      ],
+      "mode": "RGB",
+      "sha256": "d25571e65223c54be898203aa5206a154469b4c7228db3643e7534d1d664b790"
+    },
+    {
+      "file": "noris-reference.png",
+      "dimensions": [
+        1920,
+        975
+      ],
+      "mode": "RGB",
+      "sha256": "8bb368e991323165a6c569cf64b9d6562ec53b89c81dbbdc89defeabdd432eb7"
+    },
+    {
+      "file": "side-by-side.png",
+      "dimensions": [
+        3840,
+        975
+      ],
+      "mode": "RGB",
+      "sha256": "c0ec93ecef9f7a2bfa0e5c6e216c32aaff440f17142c84b05c2c720e0433489a"
+    },
+    {
+      "file": "overlay.png",
+      "dimensions": [
+        1920,
+        975
+      ],
+      "mode": "RGB",
+      "sha256": "6563363dc11162bc63b73257cee5f303984aed62ba145c252b31542f21f92a38"
+    },
+    {
+      "file": "difference.png",
+      "dimensions": [
+        1920,
+        975
+      ],
+      "mode": "RGB",
+      "sha256": "f790305f89bed895084dd784ba2c6e71169ebad5b6aeffffb605ff28673717c5"
+    }
+  ],
+  "approval_date": "2026-10-09",
+  "approval_scope": "Only these five reviewed files with the recorded SHA256 values; no private originals or old comparisons."
+}

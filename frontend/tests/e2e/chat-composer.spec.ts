@@ -49,6 +49,7 @@ test('Stop confirms cancellation and preserves partial text', async ({ page }) =
   const partial = await page.locator('.message-assistant .markdown-content').textContent()
   await expect(page.locator('.message-assistant .markdown-content')).toHaveText(partial ?? '')
   await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeVisible()
+  await expect(input).toBeFocused()
 })
 
 test('mock failure keeps partial output and supports another attempt', async ({ page }) => {
