@@ -1,0 +1,56 @@
+import { expect, test } from '@playwright/test'
+
+test.beforeEach(async ({ page }) => {
+  await page.goto('/api/v1/llm/models')
+  await page.goto('/')
+  await expect(page.locator('[data-ready="true"]')).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByRole('button', { name: 'Modell auswählen', exact: true })).toContainText('Fixture Alpha')
+})
+
+test('retains long Markdown and continues the same message after browser reload', async ({ page }, info) => {
+  const original = "# Lange Antwort\n\n```python\n" + "print('alt')\n".repeat(3000)
+  await page.getByRole('textbox', { name: 'Nachricht', exact: true }).fill(`/long ${info.project.name}`)
+  await page.getByRole('textbox', { name: 'Nachricht', exact: true }).press('Enter')
+  const reply = page.locator('.message-assistant')
+  await expect(reply).toHaveAttribute('data-status', 'incomplete')
+  await expect(reply).toContainText('Ausgabelimit erreicht – weiterschreiben')
+  const id = await reply.getAttribute('data-message-id')
+  await page.reload()
+  await expect(reply).toHaveAttribute('data-message-id', id!)
+  await expect(page.getByRole('button', { name: 'Weiterschreiben', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Weiterschreiben', exact: true }).click()
+  await expect(reply).toHaveAttribute('data-status', 'completed')
+  await expect(reply.locator('.code-block')).toHaveCount(1)
+  await expect(reply.locator('code')).toContainText("print('neu')")
+  await expect(reply.locator('td')).toHaveCount(2)
+  await expect(reply.locator('blockquote')).toHaveText('Zitat')
+  await expect(reply).toHaveAttribute('data-message-id', id!)
+  await expect(page.locator('.message-assistant')).toHaveCount(1)
+  const content = await page.evaluate((messageId) => {
+    const snapshot = JSON.parse(localStorage.getItem('noris-ai:chat:v1')!) as { messages: Record<string, { content: string }> }
+    return snapshot.messages[messageId!]?.content
+  }, id)
+  expect(content?.startsWith(original)).toBe(true)
+  expect(content?.match(/print\('alt'\)/g)).toHaveLength(3000)
+  expect(content?.match(/print\('neu'\)/g)).toHaveLength(1)
+  const width = await page.evaluate(() => ({ viewport: innerWidth, page: document.documentElement.scrollWidth }))
+  expect(width.page).toBeLessThanOrEqual(width.viewport + 1)
+  await page.reload()
+  await expect(reply).toHaveAttribute('data-status', 'completed')
+  await expect(reply.locator('blockquote')).toHaveText('Zitat')
+})
+
+test('Stop during continuation preserves the long partial response', async ({ page }, info) => {
+  await page.getByRole('textbox', { name: 'Nachricht', exact: true }).fill(`/long-stop ${info.project.name}`)
+  await page.getByRole('textbox', { name: 'Nachricht', exact: true }).press('Enter')
+  const reply = page.locator('.message-assistant')
+  await expect(reply).toHaveAttribute('data-status', 'incomplete')
+  await page.getByRole('button', { name: 'Weiterschreiben', exact: true }).click()
+  await expect(reply).toContainText("print('neu')")
+  await page.getByRole('button', { name: 'Antwort stoppen', exact: true }).click()
+  await expect(reply).toHaveAttribute('data-status', 'cancelled')
+  await expect(reply).toContainText("print('alt')")
+  await expect(reply).toContainText("print('neu')")
+  await expect(reply).not.toContainText('Antwort nicht abgeschlossen')
+  await expect(page.locator('.message-assistant')).toHaveCount(1)
+})

@@ -1,7 +1,8 @@
 import { parseConversationSnapshot } from './conversations'
 import type { ConversationSnapshot } from './conversations'
-import { MAX_MESSAGE_LENGTH, NEW_CHAT_DRAFT } from './types'
+import { NEW_CHAT_DRAFT } from './types'
 import type { ChatMessage, MessageRecords } from './types'
+import { MAX_PERSISTED_MESSAGE_CHARS, MAX_SNAPSHOT_CHARS } from './limits'
 
 export const CHAT_STORAGE_KEY = 'noris-ai:chat:v1'
 export interface ChatSnapshot {
@@ -17,18 +18,22 @@ function validMessage(value: unknown): value is ChatMessage {
   return typeof value.id === 'string' && value.id.length > 0 && typeof value.conversationId === 'string'
     && (value.parentMessageId === null || typeof value.parentMessageId === 'string')
     && (value.role === 'user' || value.role === 'assistant')
-    && typeof value.content === 'string' && value.content.length <= MAX_MESSAGE_LENGTH
+    && typeof value.content === 'string' && value.content.length <= MAX_PERSISTED_MESSAGE_CHARS
     && typeof value.createdAt === 'string' && Number.isFinite(Date.parse(value.createdAt))
-    && ['completed', 'cancelled', 'failed', 'submitting', 'streaming'].includes(String(value.status))
+    && ['completed', 'incomplete', 'cancelled', 'failed', 'submitting', 'streaming'].includes(String(value.status))
     && (value.role !== 'user' || value.status === 'completed')
     && (value.editedFromMessageId === undefined || typeof value.editedFromMessageId === 'string')
+    && (value.modelId === undefined || (typeof value.modelId === 'string' && value.modelId.length <= 200))
+    && (value.continuationCount === undefined || (Number.isSafeInteger(value.continuationCount) && Number(value.continuationCount) >= 0 && Number(value.continuationCount) <= 20))
+    && (value.errorCode === undefined || (typeof value.errorCode === 'string' && value.errorCode.length <= 100))
+    && (value.errorMessage === undefined || (typeof value.errorMessage === 'string' && value.errorMessage.length <= 1000))
 }
 function own<T>(values: Record<string, T>, id: string): T | undefined { return Object.hasOwn(values, id) ? values[id] : undefined }
 function insert<T>(values: Record<string, T>, key: string, value: T): void { Object.defineProperty(values, key, { value, enumerable: true, configurable: true, writable: true }) }
 
 export function parseChatSnapshot(raw: string): ChatSnapshot | null {
   try {
-    if (raw.length > 6_000_000) return null
+    if (raw.length > MAX_SNAPSHOT_CHARS) return null
     const data: unknown = JSON.parse(raw)
     if (!record(data) || data.version !== 1 || !record(data.messages) || !record(data.drafts) || !record(data.preferredLeaves)) return null
     const conversations = parseConversationSnapshot(JSON.stringify(data.conversations))
@@ -63,7 +68,7 @@ export function parseChatSnapshot(raw: string): ChatSnapshot | null {
     }
     const drafts: Record<string, string> = {}
     for (const [id, text] of Object.entries(data.drafts)) {
-      if ((id !== NEW_CHAT_DRAFT && !own(conversations.conversations, id)) || typeof text !== 'string' || text.length > MAX_MESSAGE_LENGTH * 2) return null
+      if ((id !== NEW_CHAT_DRAFT && !own(conversations.conversations, id)) || typeof text !== 'string' || text.length > MAX_PERSISTED_MESSAGE_CHARS * 2) return null
       insert(drafts, id, text)
     }
     const preferredLeaves: Record<string, string> = {}

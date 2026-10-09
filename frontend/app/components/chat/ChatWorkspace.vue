@@ -8,7 +8,7 @@ import ChatSidebar from './ChatSidebar.vue'
 import EmptyChatState from './EmptyChatState.vue'
 import ChatComposer from './ChatComposer.vue'
 import ChatTimeline from './ChatTimeline.vue'
-import { MAX_MESSAGE_LENGTH } from '../../lib/chat/types'
+import { chatLimits } from '../../lib/chat/limits'
 import { useChatViewport } from '../../composables/useChatViewport'
 import { useSidebarPreference } from '../../composables/useSidebarPreference'
 import ChatRail from './ChatRail.vue'
@@ -75,9 +75,10 @@ function saveEdit(): void {
       <ChatHeader v-model:model="modelId" :sidebar-open="sidebarOpen" :busy="stream.busy.value" @toggle-sidebar="sidebarOpen = !sidebarOpen" @new-chat="newChat" />
       <div class="chat-content" :data-empty="chat.visible.value.length === 0">
         <EmptyChatState v-if="chat.visible.value.length === 0" />
-        <ChatTimeline v-show="chat.visible.value.length > 0" :messages="chat.visible.value" :conversation-id="conversations.activeId.value" :busy="stream.busy.value" :variants="chat.variants" @edit="beginEdit" @regenerate="chat.regenerate($event, modelId)" @select-variant="chat.selectVariant" />
+        <ChatTimeline v-show="chat.visible.value.length > 0" :messages="chat.visible.value" :conversation-id="conversations.activeId.value" :busy="stream.busy.value" :variants="chat.variants" :can-continue="chat.canContinue" @continue="chat.continueResponse($event, modelId)" @edit="beginEdit" @regenerate="chat.regenerate($event, modelId)" @select-variant="chat.selectVariant" />
         <div class="composer-dock">
-          <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" :busy="stream.busy.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" @send="send" @stop="stop" />
+          <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" :busy="stream.busy.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" :input-error="chat.drafts.error.value" @send="send" @stop="stop" />
+          <p v-if="chat.drafts.error.value" role="alert" class="mt-2 text-center text-xs text-error">{{ chat.drafts.error.value }}</p>
           <p class="composer-note">noris AI kann Fehler machen. Prüfe wichtige Informationen.</p>
         </div>
         <div class="chat-status" :data-attention="stream.status.value === 'failed' || (stream.busy.value && chat.generatingConversationId.value !== conversations.activeId.value)" role="status" aria-live="polite" aria-atomic="true" :data-generation-status="stream.status.value">
@@ -99,13 +100,14 @@ function saveEdit(): void {
     <UModal v-model:open="editOpen" title="Nachricht bearbeiten" description="Deine ursprüngliche Frage und ihre Antworten bleiben als Variante erhalten.">
       <template #body>
         <form id="edit-message-form" @submit.prevent="saveEdit">
-          <UTextarea v-model="editText" aria-label="Nachricht bearbeiten" autofocus autoresize :rows="4" :maxrows="12" :maxlength="MAX_MESSAGE_LENGTH" class="w-full" />
+          <UTextarea v-model="editText" aria-label="Nachricht bearbeiten" autofocus autoresize :rows="4" :maxrows="12" class="w-full" />
+          <p v-if="editText.length > chatLimits.max_message_chars" role="alert" class="mt-2 text-xs text-error">Die Nachricht darf höchstens {{ chatLimits.max_message_chars.toLocaleString('de-DE') }} Zeichen enthalten.</p>
         </form>
       </template>
       <template #footer>
         <div class="flex w-full justify-end gap-2">
           <UButton color="neutral" variant="ghost" label="Abbrechen" @click="editingId = null" />
-          <UButton type="submit" form="edit-message-form" label="Speichern und senden" :disabled="stream.busy.value || !editText.trim()" />
+          <UButton type="submit" form="edit-message-form" label="Speichern und senden" :disabled="stream.busy.value || !editText.trim() || editText.length > chatLimits.max_message_chars" />
         </div>
       </template>
     </UModal>

@@ -3,6 +3,8 @@ import type { Page } from '@playwright/test'
 import { CHAT_STORAGE_KEY } from '../../app/lib/chat/persistence'
 import type { ConversationTitleRequest } from '../../app/lib/chat/types'
 
+const fixtureOrigin = `http://127.0.0.1:${Number(process.env.NORIS_E2E_PROVIDER_PORT ?? 8591)}`
+
 async function sidebar(page: Page) {
   const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
@@ -33,7 +35,7 @@ test('real transport starts chat first, posts only the first message and persist
   expect(order).toEqual(['chat', 'title'])
   expect(payload).toMatchObject({ firstMessage: 'Welche Vorteile bietet Rust gegenüber C++?', modelId: 'fixture-alpha' })
   expect(Object.keys(payload!).sort()).toEqual(['conversationId', 'firstMessage', 'inputMessageId', 'modelId'])
-  const state = await request.get('http://127.0.0.1:8591/fixture/state').then(response => response.json()) as { title_calls: { max_tokens: number, messages: { role: string, content: string }[] }[] }
+  const state = await request.get(`${fixtureOrigin}/fixture/state`).then(response => response.json()) as { title_calls: { max_tokens: number, messages: { role: string, content: string }[] }[] }
   expect(state.title_calls.some(call => call.max_tokens === 96 && call.messages[0]?.role === 'system' && call.messages[1]?.content === payload!.firstMessage)).toBe(true)
   await page.reload()
   await expect(page.locator('[data-ready="true"]')).toBeVisible()
@@ -85,7 +87,7 @@ for (const scenario of ['invalid', 'timeout', 'error'] as const) {
 }
 
 test('deletion closes a pending title request and never restores the conversation', async ({ page, request }) => {
-  const before = await request.get('http://127.0.0.1:8591/fixture/state').then(response => response.json()) as { title_cancelled: number }
+  const before = await request.get(`${fixtureOrigin}/fixture/state`).then(response => response.json()) as { title_cancelled: number }
   const started = page.waitForRequest('**/api/v1/llm/conversation-title')
   await send(page, '/title-timeout delete')
   await started
@@ -94,7 +96,7 @@ test('deletion closes a pending title request and never restores the conversatio
   await page.getByRole('button', { name: 'Aktionen für Neuer Chat' }).click()
   await page.getByRole('menuitem', { name: 'Löschen', exact: true }).click()
   await page.getByRole('dialog', { name: 'Chat löschen?' }).getByRole('button', { name: 'Chat löschen', exact: true }).click()
-  await expect.poll(async () => (await request.get('http://127.0.0.1:8591/fixture/state').then(response => response.json()) as { title_cancelled: number }).title_cancelled).toBeGreaterThan(before.title_cancelled)
+  await expect.poll(async () => (await request.get(`${fixtureOrigin}/fixture/state`).then(response => response.json()) as { title_cancelled: number }).title_cancelled).toBeGreaterThan(before.title_cancelled)
   await sidebar(page)
   await expect(page.locator('.conversation-row')).toHaveCount(0)
   await expect.poll(async () => await page.evaluate(key => Object.keys(JSON.parse(localStorage.getItem(key)!).conversations.conversations), CHAT_STORAGE_KEY)).toEqual([])

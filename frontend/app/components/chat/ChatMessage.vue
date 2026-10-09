@@ -3,9 +3,10 @@ import type { ChatMessage } from '../../lib/chat/types'
 import { useCopy } from '../../composables/useCopy'
 import MarkdownContent from './MarkdownContent'
 import MessageVariants from './MessageVariants.vue'
+import { chatLimits } from '../../lib/chat/limits'
 
-withDefaults(defineProps<{ message: ChatMessage, variants?: readonly ChatMessage[], busy?: boolean }>(), { variants: () => [], busy: false })
-const emit = defineEmits<{ edit: [], regenerate: [], selectVariant: [id: string] }>()
+withDefaults(defineProps<{ message: ChatMessage, variants?: readonly ChatMessage[], busy?: boolean, canContinue?: boolean }>(), { variants: () => [], busy: false, canContinue: false })
+const emit = defineEmits<{ edit: [], regenerate: [], continue: [], selectVariant: [id: string] }>()
 const { copy, copied, copyError } = useCopy()
 </script>
 
@@ -13,10 +14,14 @@ const { copy, copied, copyError } = useCopy()
   <article :class="['chat-message', `message-${message.role}`]" :data-message-id="message.id" :data-status="message.status" :aria-label="message.role === 'user' ? 'Deine Nachricht' : 'Antwort von noris AI'">
     <p v-if="message.role === 'user'" class="user-bubble">{{ message.content }}</p>
     <div v-else class="assistant-content">
-      <MarkdownContent v-if="message.content" :content="message.content" />
+      <MarkdownContent v-if="message.content" :content="message.content" :streaming="message.status === 'streaming'" />
       <div v-else-if="message.status === 'submitting' || message.status === 'streaming'" class="thinking-dot" aria-hidden="true" />
-      <p v-if="message.status === 'cancelled'" class="mt-3 text-xs text-muted">Antwort gestoppt · unvollständig</p>
-      <p v-else-if="message.status === 'failed'" class="mt-3 text-xs text-error">Antwort nicht abgeschlossen</p>
+      <p v-if="message.status === 'cancelled'" class="mt-3 text-xs text-muted">Antwort gestoppt.</p>
+      <p v-else-if="message.status === 'incomplete'" class="mt-3 text-xs text-muted">Ausgabelimit erreicht{{ canContinue ? ' – weiterschreiben' : '' }}</p>
+      <p v-else-if="message.status === 'failed'" class="mt-3 text-xs text-error">{{ message.errorMessage ?? 'Die Antwort konnte nicht vollständig übertragen werden.' }}</p>
+      <UButton v-if="canContinue" color="neutral" variant="outline" label="Weiterschreiben" class="mt-3 min-h-11" :disabled="busy" @click="emit('continue')" />
+      <p v-if="message.status === 'incomplete' && (message.continuationCount ?? 0) >= chatLimits.max_continuations" class="mt-3 text-xs text-muted">Fortsetzungslimit erreicht. Der bisherige Text bleibt erhalten.</p>
+      <p v-else-if="message.status === 'incomplete' && message.content.length >= chatLimits.max_response_chars" class="mt-3 text-xs text-muted">Die Größenbegrenzung dieser Antwort ist erreicht.</p>
     </div>
     <div v-if="message.content && message.status !== 'streaming' && message.status !== 'submitting'" class="message-actions">
       <UButton :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" color="neutral" variant="ghost" class="touch-control" :aria-label="copied ? 'Nachricht kopiert' : 'Nachricht kopieren'" @click="copy(message.content)" />

@@ -16,6 +16,7 @@ from noris_ai.core.schemas import ErrorDetail, ErrorResponse
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.gateway import LLMGateway
 from noris_ai.llm.schemas import (
+    ChatLimits,
     ChatRequest,
     ConversationTitleRequest,
     ConversationTitleResponse,
@@ -89,6 +90,27 @@ async def models(gateway: Annotated[LLMGateway, Depends(access)]) -> ModelCatalo
             model for model in gateway.config.llm_models if model.available and model.streaming
         ],
         default_model=gateway.config.llm_default_model,
+        limits=ChatLimits(
+            max_message_chars=gateway.config.llm_max_message_chars,
+            max_response_chars=gateway.config.llm_max_response_chars,
+            max_stream_bytes=gateway.config.llm_max_stream_bytes,
+            stream_timeout_ms=int(
+                (
+                    gateway.config.llm_total_timeout_seconds
+                    + gateway.config.llm_connect_timeout_seconds
+                    + 15
+                )
+                * 1000
+            ),
+            stream_idle_timeout_ms=int(
+                max(
+                    gateway.config.llm_read_timeout_seconds + 15,
+                    gateway.config.llm_heartbeat_seconds * 3,
+                )
+                * 1000
+            ),
+            max_continuations=gateway.config.llm_max_continuations,
+        ),
     )
 
 

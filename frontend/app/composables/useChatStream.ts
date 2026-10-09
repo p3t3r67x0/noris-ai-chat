@@ -1,15 +1,18 @@
 import { computed, ref } from 'vue'
-import { isBusy, MAX_MESSAGE_LENGTH } from '../lib/chat/types'
+import { isBusy } from '../lib/chat/types'
+import { chatLimits } from '../lib/chat/limits'
 import type { ChatRequest, ChatTransport, GenerationStatus } from '../lib/chat/types'
 
 export interface StreamCallbacks {
   delta: (text: string) => void
   status: (status: Exclude<GenerationStatus, 'idle'>) => void
+  failure?: (code: string, message: string) => void
 }
 
 export function useChatStream(transport: ChatTransport) {
   const status = ref<GenerationStatus>('idle')
   const error = ref<string | null>(null)
+  const errorCode = ref<string | null>(null)
   const cancellationRequested = ref(false)
   const running = ref(false)
   const busy = computed(() => running.value)
@@ -23,10 +26,11 @@ export function useChatStream(transport: ChatTransport) {
     const signal = controller.signal
     status.value = 'submitting'
     error.value = null
+    errorCode.value = null
     cancellationRequested.value = false
     callbacks.status('submitting')
     let sequence = 0
-    let length = 0
+    let length = request.operation === 'continue' ? (request.messages.at(-1)?.content.length ?? 0) : 0
     const transition = (next: Exclude<GenerationStatus, 'idle'>) => { status.value = next; callbacks.status(next) }
     try {
       for await (const event of transport.stream(request, signal)) {
@@ -44,12 +48,19 @@ export function useChatStream(transport: ChatTransport) {
           case 'response.output_text.delta':
             if (currentStatus() !== 'streaming') throw new Error('Text ohne gestartete Antwort')
             length += event.delta.length
-            if (length > MAX_MESSAGE_LENGTH) throw new Error('Die Antwort überschreitet die zulässige Länge.')
+            if (length > chatLimits.max_response_chars) {
+              errorCode.value = 'RESPONSE_SIZE_LIMIT'
+              throw new Error('Die Antwort hat die konfigurierte Größenbegrenzung erreicht.')
+            }
             callbacks.delta(event.delta)
             break
           case 'response.completed': transition('completed'); break
+          case 'response.incomplete': transition('incomplete'); break
           case 'response.cancelled': transition('cancelled'); break
-          case 'response.failed': error.value = event.message; transition('failed'); break
+          case 'response.failed':
+            error.value = event.message; errorCode.value = event.code
+            callbacks.failure?.(event.code, event.message)
+            transition('failed'); break
         }
         if (!isBusy(status.value)) break
       }
@@ -63,6 +74,8 @@ export function useChatStream(transport: ChatTransport) {
       if (signal.aborted) transition('cancelled')
       else {
         error.value = cause instanceof Error ? cause.message : 'Die Antwort konnte nicht geladen werden.'
+        errorCode.value ??= 'STREAM_INTERRUPTED'
+        callbacks.failure?.(errorCode.value, error.value)
         transition('failed')
       }
     }
@@ -76,5 +89,5 @@ export function useChatStream(transport: ChatTransport) {
     controller.abort()
   }
 
-  return { status, error, busy, cancellationRequested, start, stop }
+  return { status, error, errorCode, busy, cancellationRequested, start, stop }
 }

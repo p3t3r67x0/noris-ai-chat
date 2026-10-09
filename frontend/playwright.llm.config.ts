@@ -1,25 +1,34 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const providerPort = Number(process.env.NORIS_E2E_PROVIDER_PORT ?? 8591)
+const backendPort = Number(process.env.NORIS_E2E_BACKEND_PORT ?? 8592)
+const frontendPort = Number(process.env.NORIS_E2E_FRONTEND_PORT ?? 8593)
+
 export default defineConfig({
   testDir: './tests/llm',
   outputDir: './test-results/llm',
   workers: 1, retries: 0,
-  use: { baseURL: 'http://127.0.0.1:8593', httpCredentials: { username: 'fixture-user', password: 'fixture-application-password-never-real' }, trace: 'retain-on-failure' },
+  use: { baseURL: `http://127.0.0.1:${frontendPort}`, httpCredentials: { username: 'fixture-user', password: 'fixture-application-password-never-real' }, trace: 'retain-on-failure' },
   projects: [{ name: 'desktop', use: { ...devices['Desktop Chrome'] } }, { name: 'mobile', use: { ...devices['Pixel 7'] } }],
   webServer: [
-    { command: '../backend/.venv/bin/python -m uvicorn --app-dir .. backend.tests.fixtures.llm_http_server:app --host 127.0.0.1 --port 8591', url: 'http://127.0.0.1:8591/fixture/state', reuseExistingServer: false },
+    { command: `../backend/.venv/bin/python -m uvicorn --app-dir .. backend.tests.fixtures.llm_http_server:app --host 127.0.0.1 --port ${providerPort}`, url: `http://127.0.0.1:${providerPort}/fixture/state`, reuseExistingServer: false },
     {
-      command: '../backend/.venv/bin/python -m uvicorn --app-dir ../backend/src noris_ai.main:app --host 127.0.0.1 --port 8592',
-      url: 'http://127.0.0.1:8592/api/v1/health/live', reuseExistingServer: false,
+      command: `../backend/.venv/bin/python -m uvicorn --app-dir ../backend/src noris_ai.main:app --host 127.0.0.1 --port ${backendPort}`,
+      url: `http://127.0.0.1:${backendPort}/api/v1/health/live`, reuseExistingServer: false,
       env: {
-        NORIS_ENVIRONMENT: 'test', NORIS_LLM_PROVIDER: 'openai-compatible', NORIS_LLM_BASE_URL: 'http://127.0.0.1:8591/v1', NORIS_LLM_ALLOWED_HOSTS: '["127.0.0.1"]', NORIS_LLM_API_KEY: 'fixture-provider-key-never-real',
-        NORIS_LLM_ACCESS_USERNAME: 'fixture-user', NORIS_LLM_ACCESS_PASSWORD: 'fixture-application-password-never-real', NORIS_LLM_ALLOWED_ORIGINS: '["http://127.0.0.1:8593"]',
-        NORIS_LLM_MODELS: '[{"id":"fixture-alpha","name":"Fixture Alpha"},{"id":"fixture-beta","name":"Fixture Beta"}]', NORIS_LLM_DEFAULT_MODEL: 'fixture-alpha',
+        NORIS_ENVIRONMENT: 'test', NORIS_LLM_PROVIDER: 'openai-compatible', NORIS_LLM_BASE_URL: `http://127.0.0.1:${providerPort}/v1`, NORIS_LLM_ALLOWED_HOSTS: '["127.0.0.1"]', NORIS_LLM_API_KEY: 'fixture-provider-key-never-real',
+        NORIS_LLM_ACCESS_USERNAME: 'fixture-user', NORIS_LLM_ACCESS_PASSWORD: 'fixture-application-password-never-real', NORIS_LLM_ALLOWED_ORIGINS: JSON.stringify([`http://127.0.0.1:${frontendPort}`]),
+        NORIS_LLM_MODELS: '[{"id":"fixture-alpha","name":"Fixture Alpha","context_window":131072,"provider_context_window":131072,"provider_limit_evidence":"Simulated provider"},{"id":"fixture-beta","name":"Fixture Beta"}]', NORIS_LLM_DEFAULT_MODEL: 'fixture-alpha',
         NORIS_LLM_REQUESTS_PER_MINUTE: '120', NORIS_LLM_TITLE_TIMEOUT_SECONDS: '2',
-        NORIS_LLM_MAX_CONCURRENT: '4', NORIS_LLM_DAILY_TOKEN_BUDGET: '100000', NORIS_LLM_TITLE_MAX_OUTPUT_TOKENS: '96',
+        NORIS_LLM_MAX_CONCURRENT: '4', NORIS_LLM_DAILY_TOKEN_BUDGET: '10000000', NORIS_LLM_TITLE_MAX_OUTPUT_TOKENS: '96',
         NORIS_LLM_READ_TIMEOUT_SECONDS: '30', NORIS_LLM_TOTAL_TIMEOUT_SECONDS: '120', NORIS_LLM_TOKEN_LIMIT_PARAMETER: 'max_tokens',
       },
     },
-    { command: 'node node_modules/nuxt/bin/nuxt.mjs dev --host 127.0.0.1 --port 8593', url: 'http://127.0.0.1:8593', reuseExistingServer: false, timeout: 60_000, env: { NORIS_DEV_API_TARGET: 'http://127.0.0.1:8592', NUXT_PUBLIC_CHAT_TRANSPORT: 'real', NUXT_TELEMETRY_DISABLED: '1' } },
+    {
+      // Validate the shipped client, including reload and streaming cancellation.
+      command: 'node node_modules/nuxt/bin/nuxt.mjs build && node ../scripts/serve-browser-fixture.mjs',
+      url: `http://127.0.0.1:${frontendPort}`, reuseExistingServer: false, timeout: 180_000,
+      env: { NORIS_E2E_BACKEND_PORT: String(backendPort), NORIS_E2E_FRONTEND_PORT: String(frontendPort), NUXT_PUBLIC_CHAT_TRANSPORT: 'real', NUXT_TELEMETRY_DISABLED: '1', NORIS_NUXT_BUILD_DIR: '.nuxt-llm' },
+    },
   ],
 })

@@ -30,7 +30,8 @@ def test_llm_contract_preserves_transport_events_and_requires_authentication() -
         "$ref": "#/components/schemas/ChatRequest"
     }
     events = chat["responses"]["200"]["content"]["text/event-stream"]["schema"]
-    assert len(events["oneOf"]) == 5
+    assert len(events["oneOf"]) == 6
+    assert "response.incomplete" in events["discriminator"]["mapping"]
     assert chat["security"] == [{"HTTPBasic": []}]
 
 

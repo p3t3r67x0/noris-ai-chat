@@ -1,4 +1,4 @@
-import { defineComponent, h } from 'vue'
+import { defineComponent, h, onUnmounted, shallowRef, watch } from 'vue'
 import type { VNode } from 'vue'
 import MarkdownIt from 'markdown-it'
 import CodeBlock from './CodeBlock.vue'
@@ -56,6 +56,18 @@ function renderTokens(tokens: readonly Token[]): (VNode | string)[] {
 
 export default defineComponent({
   name: 'MarkdownContent',
-  props: { content: { type: String, required: true } },
-  setup: props => () => h('div', { class: 'markdown-content' }, renderTokens(markdown.parse(props.content, {}))),
+  props: { content: { type: String, required: true }, streaming: { type: Boolean, default: false } },
+  setup(props) {
+    const rendered = shallowRef(props.content)
+    let timer: ReturnType<typeof setTimeout> | undefined
+    watch(() => [props.content, props.streaming], () => {
+      if (!props.streaming) {
+        clearTimeout(timer); timer = undefined
+        rendered.value = props.content
+      }
+      else timer ??= setTimeout(() => { timer = undefined; rendered.value = props.content }, 50)
+    })
+    onUnmounted(() => clearTimeout(timer))
+    return () => h('div', { class: 'markdown-content' }, renderTokens(markdown.parse(rendered.value, {})))
+  },
 })
