@@ -86,6 +86,10 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
                 title = "Docker DNS-Probleme"
                 if "Rust" in prompt:
                     title = "Rust vs. C++"
+                if "Chat-Titelgenerierung" in prompt:
+                    title = "Automatisierte Chat-Titel Implementierung"
+                if prompt.startswith("/title-wide"):
+                    title = "Docker DNS Troubleshooting Guide"
                 if prompt.startswith("/title-invalid"):
                     title = "x" * 51
                 chunks = [title]

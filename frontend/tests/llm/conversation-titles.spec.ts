@@ -44,6 +44,34 @@ test('real transport starts chat first, posts only the first message and persist
   expect(order).toEqual(['chat', 'title'])
 })
 
+test('the existing provider contract compacts a verbose title without another paid attempt', async ({ page }) => {
+  const results: string[] = []
+  page.on('response', response => { if (response.url().endsWith('/llm/conversation-title')) results.push(response.url()) })
+  await page.setViewportSize({ width: 1280, height: 800 })
+  const response = page.waitForResponse('**/api/v1/llm/conversation-title')
+  await send(page, 'Kannst du mir helfen, eine automatische Chat-Titelgenerierung für Noris AI zu implementieren und dabei die bestehende Architektur zu erhalten?')
+  expect(await (await response).json()).toMatchObject({ title: 'Automatische Chat-Titel' })
+  await sidebar(page)
+  const label = page.getByRole('navigation', { name: 'Gespräche' }).locator('span[data-title-source="generated"]').first()
+  await expect(label).toHaveText('Automatische Chat-Titel')
+  expect(await label.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+  await page.reload()
+  await expect(page.locator('[data-ready="true"]')).toBeVisible()
+  await sidebar(page)
+  await expect(page.getByRole('navigation', { name: 'Gespräche' }).getByRole('button', { name: 'Automatische Chat-Titel', exact: true })).toBeVisible()
+  expect(results).toHaveLength(1)
+})
+
+test('a character-valid provider title is shortened to fit the actual sidebar width', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await send(page, '/title-wide')
+  await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
+  await sidebar(page)
+  const label = page.getByRole('navigation', { name: 'Gespräche' }).locator('span[data-title-source="generated"]').first()
+  await expect(label).toHaveText('Docker DNS Troubleshooting')
+  expect(await label.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+})
+
 test('a late backend title cannot overwrite a manual rename', async ({ page }) => {
   let release!: () => void
   const gate = new Promise<void>(resolve => { release = resolve })
@@ -54,7 +82,7 @@ test('a late backend title cannot overwrite a manual rename', async ({ page }) =
   await pending
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   await sidebar(page)
-  await page.getByRole('button', { name: 'Aktionen für Neuer Chat' }).click()
+  await page.getByRole('button', { name: 'Aktionen für Docker DNS-Probleme' }).click()
   await page.getByRole('menuitem', { name: 'Umbenennen' }).click()
   await page.getByRole('textbox', { name: 'Chat-Titel' }).fill('Meine DNS-Notizen')
   await page.getByRole('textbox', { name: 'Chat-Titel' }).press('Enter')

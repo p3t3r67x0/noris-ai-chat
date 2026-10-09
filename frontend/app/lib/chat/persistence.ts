@@ -1,6 +1,7 @@
 import { parseConversationSnapshot } from './conversations'
 import type { ConversationSnapshot } from './conversations'
-import { NEW_CHAT_DRAFT } from './types'
+import { MAX_MESSAGE_LENGTH, NEW_CHAT_DRAFT, visiblePath } from './types'
+import { FALLBACK_TITLE, normalizeAutomaticTitle } from './titles'
 import type { ChatMessage, MessageRecords } from './types'
 import { MAX_PERSISTED_MESSAGE_CHARS, MAX_SNAPSHOT_CHARS } from './limits'
 
@@ -65,6 +66,11 @@ export function parseChatSnapshot(raw: string): ChatSnapshot | null {
     }
     for (const conversation of Object.values(conversations.conversations)) {
       if (conversation.activeLeafMessageId !== null && own(messages, conversation.activeLeafMessageId)?.conversationId !== conversation.id) return null
+      if (conversation.titleSource !== 'manual' && conversation.title === FALLBACK_TITLE) {
+        // Recover known topics from the existing active branch locally, without another LLM call.
+        const context = visiblePath(messages, conversation.id, conversation.activeLeafMessageId).map(message => message.content).join('\n')
+        conversation.title = normalizeAutomaticTitle(conversation.title, context)
+      }
     }
     const drafts: Record<string, string> = {}
     for (const [id, text] of Object.entries(data.drafts)) {

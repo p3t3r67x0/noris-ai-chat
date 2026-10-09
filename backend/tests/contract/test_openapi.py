@@ -54,7 +54,7 @@ def test_title_contract_is_bounded_and_cannot_supply_system_instructions() -> No
         schema["components"]["schemas"]["ConversationTitleResponse"]["properties"]["title"][
             "maxLength"
         ]
-        == 50
+        == 40
     )
     assert "TitleInstruction" not in schema["components"]["schemas"]
     assert schema["components"]["schemas"]["LLMMessage"]["properties"]["role"]["enum"] == [
