@@ -106,9 +106,12 @@ async def test_server_reasoning_hint_preserves_the_output_token_cap(
     config = llm_config.model_copy(update={"llm_reasoning_effort": "low"})
     provider = OpenAICompatibleProvider(config, transport=httpx.MockTransport(reply))
     try:
-        assert [text async for text in provider.stream(llm_messages, config.llm_models[0])] == [
-            "MCP"
-        ]
+        assert [
+            text
+            async for text in provider.stream(
+                llm_messages, config.llm_models[0].model_copy(update={"reasoning_effort": "low"})
+            )
+        ] == ["MCP"]
         body = json.loads(captured[0].content)
         assert body["reasoning_effort"] == "low"
         assert body["max_tokens"] == config.llm_models[0].max_output_tokens

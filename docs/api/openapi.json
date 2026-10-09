@@ -229,6 +229,14 @@
         "title": "ErrorResponse",
         "type": "object"
       },
+      "Evidence": {
+        "enum": [
+          "DOCUMENTED",
+          "VERIFIED",
+          "UNKNOWN"
+        ],
+        "type": "string"
+      },
       "FailedEvent": {
         "additionalProperties": false,
         "properties": {
@@ -318,6 +326,10 @@
             "title": "Available",
             "type": "boolean"
           },
+          "category": {
+            "$ref": "#/components/schemas/ModelCategory",
+            "default": "UNKNOWN"
+          },
           "context_window": {
             "default": 8192,
             "maximum": 2000000.0,
@@ -325,11 +337,52 @@
             "title": "Context Window",
             "type": "integer"
           },
+          "cost": {
+            "$ref": "#/components/schemas/ModelCost"
+          },
+          "description": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Description",
+            "type": "string"
+          },
+          "documented_context_window": {
+            "anyOf": [
+              {
+                "maximum": 2000000.0,
+                "minimum": 256.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Documented Context Window"
+          },
+          "evidence": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Evidence"
+            },
+            "title": "Evidence",
+            "type": "object"
+          },
           "id": {
             "maxLength": 200,
             "minLength": 1,
             "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._/:-]*$",
             "title": "Id",
+            "type": "string"
+          },
+          "lifecycle": {
+            "default": "UNKNOWN",
+            "enum": [
+              "LTS",
+              "PRODUCTIVE",
+              "EXPERIMENTAL",
+              "DEPRECATED",
+              "UNKNOWN"
+            ],
+            "title": "Lifecycle",
             "type": "string"
           },
           "max_output_tokens": {
@@ -345,10 +398,141 @@
             "title": "Name",
             "type": "string"
           },
+          "provider": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "reasoning": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning"
+          },
+          "reasoning_effort": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Effort"
+          },
+          "reasoning_efforts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasoning Efforts",
+            "type": "array"
+          },
+          "reasoning_parameter": {
+            "anyOf": [
+              {
+                "enum": [
+                  "reasoning_effort",
+                  "chat_template_kwargs"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Parameter"
+          },
+          "released_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Released At"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
           "streaming": {
             "default": true,
             "title": "Streaming",
             "type": "boolean"
+          },
+          "supported_output_tokens": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supported Output Tokens"
+          },
+          "timeout_policy": {
+            "$ref": "#/components/schemas/TimeoutPolicy"
+          },
+          "token_limit_parameter": {
+            "anyOf": [
+              {
+                "enum": [
+                  "max_tokens",
+                  "max_completion_tokens"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Token Limit Parameter"
+          },
+          "tool_calling": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool Calling"
+          },
+          "virtual": {
+            "default": false,
+            "title": "Virtual",
+            "type": "boolean"
+          },
+          "vision": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vision"
           }
         },
         "required": [
@@ -372,12 +556,53 @@
             ],
             "title": "Default Model"
           },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "expires_in_seconds": {
+            "default": 0,
+            "title": "Expires In Seconds",
+            "type": "integer"
+          },
+          "fetched_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fetched At"
+          },
           "models": {
             "items": {
               "$ref": "#/components/schemas/LLMModel"
             },
             "title": "Models",
             "type": "array"
+          },
+          "registry_version": {
+            "default": "1",
+            "title": "Registry Version",
+            "type": "string"
+          },
+          "status": {
+            "default": "fresh",
+            "enum": [
+              "fresh",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
           }
         },
         "required": [
@@ -385,6 +610,80 @@
           "default_model"
         ],
         "title": "ModelCatalog",
+        "type": "object"
+      },
+      "ModelCategory": {
+        "enum": [
+          "CHAT",
+          "REASONING",
+          "VISION",
+          "EMBEDDING",
+          "RERANKING",
+          "UNKNOWN"
+        ],
+        "type": "string"
+      },
+      "ModelCost": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "cached_input_points_per_million": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cached Input Points Per Million"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/Evidence",
+            "default": "UNKNOWN"
+          },
+          "input_points_per_million": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Points Per Million"
+          },
+          "output_points_per_million": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Points Per Million"
+          },
+          "source": {
+            "default": "https://noris.cloud/nai/punkte-rechner/",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "title": "ModelCost",
         "type": "object"
       },
       "ReadinessResponse": {
@@ -419,6 +718,27 @@
           "seq"
         ],
         "title": "StartedEvent",
+        "type": "object"
+      },
+      "TimeoutPolicy": {
+        "additionalProperties": false,
+        "properties": {
+          "read_seconds": {
+            "default": 30,
+            "exclusiveMinimum": 0.0,
+            "maximum": 120.0,
+            "title": "Read Seconds",
+            "type": "number"
+          },
+          "total_seconds": {
+            "default": 120,
+            "exclusiveMinimum": 0.0,
+            "maximum": 600.0,
+            "title": "Total Seconds",
+            "type": "number"
+          }
+        },
+        "title": "TimeoutPolicy",
         "type": "object"
       }
     },
@@ -640,6 +960,16 @@
             },
             "description": "Internal Server Error"
           },
+          "502": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "text/event-stream": {
@@ -649,6 +979,16 @@
               }
             },
             "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
           }
         },
         "security": [
@@ -942,6 +1282,16 @@
             },
             "description": "Internal Server Error"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -951,6 +1301,16 @@
               }
             },
             "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
           }
         },
         "security": [

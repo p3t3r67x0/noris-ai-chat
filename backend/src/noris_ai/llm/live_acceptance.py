@@ -139,6 +139,8 @@ class ObservedTransport(httpx.AsyncBaseTransport):
         )
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        if request.method == "GET":
+            return await self.inner.handle_async_request(request)
         call = self.observation.calls[-1]  # Harness has one worker and one concurrent request.
         response = await self.inner.handle_async_request(request)
         call["provider_http_status"] = response.status_code
@@ -163,6 +165,7 @@ class ObservedProvider:
     def __init__(self, config: Settings, observation: Observation) -> None:
         self.observation = observation
         self.reasoning_effort = config.llm_reasoning_effort
+        self._model_ids = {model.id for model in config.llm_models}
         self.inner = OpenAICompatibleProvider(
             config, transport=ObservedTransport(config, observation)
         )
@@ -208,6 +211,14 @@ class ObservedProvider:
             call["total_ms"] = round((monotonic() - started) * 1000)
             self.observation.save()
             self.observation.finished.set()
+
+    async def discover_models(self) -> list[str]:
+        # The explicitly bounded smoke harness exposes only its approved probe models.
+        return [
+            model_id
+            for model_id in await self.inner.discover_models()
+            if model_id in self._model_ids
+        ]
 
     async def aclose(self) -> None:
         await self.inner.aclose()
@@ -277,7 +288,9 @@ def server(args: argparse.Namespace) -> int:
         llm_access_username=username,
         llm_access_password=SecretStr(password),
         llm_allowed_origins=("http://127.0.0.1:8595",),
-        llm_models=(LLMModel(id=MODEL_ID, name="GPT-OSS 120B", max_output_tokens=256),),
+        llm_models=(
+            LLMModel(id=MODEL_ID, name="GPT-OSS 120B", context_window=8192, max_output_tokens=256),
+        ),
         llm_default_model=MODEL_ID,
         llm_reasoning_effort=args.reasoning_effort,
         llm_max_concurrent=1,

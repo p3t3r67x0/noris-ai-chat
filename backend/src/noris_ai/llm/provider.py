@@ -8,6 +8,8 @@ type ProviderMessage = LLMMessage | TitleInstruction
 
 
 class LLMProvider(Protocol):
+    async def discover_models(self) -> list[str]: ...
+
     def stream(
         self, messages: Sequence[ProviderMessage], model: LLMModel
     ) -> AsyncIterator[str]: ...
