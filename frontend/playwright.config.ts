@@ -10,8 +10,8 @@ export default defineConfig({
   expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.001 } },
   use: { baseURL: 'http://127.0.0.1:3000', trace: 'retain-on-failure' },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile', use: { ...devices['Pixel 7'] } },
+    { name: 'desktop', testIgnore: '**/reference-mobile.spec.ts', use: { ...devices['Desktop Chrome'] } },
+    { name: 'mobile', testIgnore: '**/reference-desktop.spec.ts', use: { ...devices['Pixel 7'] } },
   ],
   webServer: [
     {

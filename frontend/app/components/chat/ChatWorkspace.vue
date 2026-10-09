@@ -10,12 +10,14 @@ import ChatComposer from './ChatComposer.vue'
 import ChatTimeline from './ChatTimeline.vue'
 import { MAX_MESSAGE_LENGTH } from '../../lib/chat/types'
 import { useChatViewport } from '../../composables/useChatViewport'
+import { useSidebarPreference } from '../../composables/useSidebarPreference'
+import ChatRail from './ChatRail.vue'
 
 const chat = useChat(createMockTransport())
 const { conversations, stream } = chat
 const { modelId } = useModelSelection()
 const { draft } = chat.drafts
-const sidebarOpen = ref(true)
+const { sidebarOpen } = useSidebarPreference()
 const sidebar = ref<InstanceType<typeof ChatSidebar> | null>(null)
 const composer = ref<InstanceType<typeof ChatComposer> | null>(null)
 const { viewportStyle } = useChatViewport()
@@ -24,8 +26,9 @@ onMounted(() => { ready.value = true; window.addEventListener('keydown', onShort
 onUnmounted(() => { if (typeof window !== 'undefined') window.removeEventListener('keydown', onShortcut) })
 
 function send(text: string): void {
-  chat.send(text, modelId.value)
+  if (chat.send(text, modelId.value)) composer.value?.focus()
 }
+function stop(): void { stream.stop(); composer.value?.focus() }
 function newChat(): void { chat.newChat(); composer.value?.focus() }
 function selectRunningChat(): void {
   const id = chat.generatingConversationId.value
@@ -39,7 +42,7 @@ function onShortcut(event: KeyboardEvent): void {
   else if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'k') {
     event.preventDefault(); sidebar.value?.openSearch()
   }
-  else if (event.key === 'Escape' && stream.busy.value && !document.querySelector('[role="dialog"]')) stream.stop()
+  else if (event.key === 'Escape' && stream.busy.value && !document.querySelector('[role="dialog"]')) { event.preventDefault(); stop() }
 }
 const editingId = ref<string | null>(null)
 const editText = ref('')
@@ -58,6 +61,7 @@ function saveEdit(): void {
 <template>
   <div class="chat-workspace" :style="viewportStyle" :data-ready="ready" :inert="!ready" :aria-busy="!ready">
     <a href="#chat-main" class="sr-only z-50 rounded-md bg-default p-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Zum Chat springen</a>
+    <ChatRail @home="newChat" @search="sidebar?.openSearch()" @archive="sidebar?.openArchive()" />
     <ChatSidebar
       ref="sidebar"
       v-model:open="sidebarOpen" :conversations="conversations.visible.value" :archived="conversations.archived.value"
@@ -71,10 +75,10 @@ function saveEdit(): void {
         <EmptyChatState v-if="chat.visible.value.length === 0" />
         <ChatTimeline v-show="chat.visible.value.length > 0" :messages="chat.visible.value" :conversation-id="conversations.activeId.value" :busy="stream.busy.value" :variants="chat.variants" @edit="beginEdit" @regenerate="chat.regenerate($event, modelId)" @select-variant="chat.selectVariant" />
         <div class="composer-dock">
-          <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" :busy="stream.busy.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" @send="send" @stop="stream.stop" />
-          <p class="mt-2 text-center text-[11px] text-muted">{{ chat.visible.value.length ? 'noris AI kann Fehler machen. Prüfe wichtige Informationen.' : 'noris AI · Dein Raum für gute Fragen.' }}</p>
+          <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" :busy="stream.busy.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" @send="send" @stop="stop" />
+          <p class="composer-note">noris AI kann Fehler machen. Prüfe wichtige Informationen.</p>
         </div>
-        <div class="chat-status" role="status" aria-live="polite" aria-atomic="true" :data-generation-status="stream.status.value">
+        <div class="chat-status" :data-attention="stream.status.value === 'failed' || (stream.busy.value && chat.generatingConversationId.value !== conversations.activeId.value)" role="status" aria-live="polite" aria-atomic="true" :data-generation-status="stream.status.value">
           <template v-if="stream.busy.value && chat.generatingConversationId.value !== conversations.activeId.value">
             <UButton color="neutral" variant="link" size="xs" label="Antwort läuft in einem anderen Chat" @click="selectRunningChat" />
           </template>

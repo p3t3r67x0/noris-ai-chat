@@ -1,0 +1,152 @@
+{
+  "reference_sha256": "47403b9bd1291b403e0f9e61f609a659eda5b3f624b5ed6834d13a21c24cb0e9",
+  "noris_sha256": "f6de46f0c257a2f6a6eddc00a1ef0dbdb2e63522f0b6f76838580bdb57172a9d",
+  "dimensions": [
+    1920,
+    975
+  ],
+  "source_files_modified": false,
+  "reference_content_masks": [
+    {
+      "rectangle": [
+        86,
+        321,
+        395,
+        344
+      ],
+      "purpose": "private conversation title"
+    },
+    {
+      "rectangle": [
+        86,
+        369,
+        395,
+        392
+      ],
+      "purpose": "private conversation title"
+    },
+    {
+      "rectangle": [
+        86,
+        417,
+        395,
+        440
+      ],
+      "purpose": "private conversation title"
+    },
+    {
+      "rectangle": [
+        86,
+        466,
+        395,
+        488
+      ],
+      "purpose": "private conversation title"
+    },
+    {
+      "rectangle": [
+        86,
+        514,
+        395,
+        537
+      ],
+      "purpose": "private conversation title"
+    },
+    {
+      "rectangle": [
+        86,
+        562,
+        395,
+        585
+      ],
+      "purpose": "private conversation title"
+    },
+    {
+      "rectangle": [
+        86,
+        610,
+        395,
+        633
+      ],
+      "purpose": "private conversation title"
+    },
+    {
+      "rectangle": [
+        86,
+        659,
+        395,
+        681
+      ],
+      "purpose": "private conversation title"
+    },
+    {
+      "rectangle": [
+        86,
+        708,
+        395,
+        730
+      ],
+      "purpose": "private conversation title"
+    },
+    {
+      "rectangle": [
+        86,
+        755,
+        395,
+        778
+      ],
+      "purpose": "private conversation title"
+    },
+    {
+      "rectangle": [
+        86,
+        804,
+        395,
+        826
+      ],
+      "purpose": "private conversation title"
+    },
+    {
+      "rectangle": [
+        86,
+        851,
+        395,
+        874
+      ],
+      "purpose": "private conversation title"
+    },
+    {
+      "rectangle": [
+        86,
+        901,
+        395,
+        923
+      ],
+      "purpose": "private conversation title"
+    },
+    {
+      "rectangle": [
+        86,
+        949,
+        395,
+        971
+      ],
+      "purpose": "private conversation title"
+    },
+    {
+      "rectangle": [
+        23,
+        935,
+        45,
+        949
+      ],
+      "purpose": "account initials"
+    }
+  ],
+  "mean_absolute_rgb_difference": [
+    21.99647863247863,
+    21.929342414529916,
+    21.941818376068376
+  ],
+  "interpretation": "Diagnostic only; private text masks are listed explicitly. No resizing or acceptance threshold."
+}

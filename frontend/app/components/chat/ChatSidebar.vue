@@ -68,37 +68,37 @@ const searchGroups = computed(() => [{
   })),
 }])
 
-defineExpose({ openSearch: showSearch })
+defineExpose({ openSearch: showSearch, openArchive: showArchive })
 </script>
 
 <template>
   <USidebar
     id="chat-sidebar" v-model:open="open" title="Gespräche" description="Deine Chats mit noris AI"
     collapsible="offcanvas" mode="slideover" :aria-hidden="!open" :inert="!open"
-    style="--sidebar-width: 17rem"
-    :menu="{ side: 'left', ui: { content: 'max-w-[min(19rem,90vw)] bg-[var(--noris-sidebar)]' } }"
+    class="conversation-sidebar" style="--sidebar-width: var(--noris-sidebar-width)"
+    :menu="{ side: 'left', ui: { content: 'max-w-[min(23.5rem,90vw)] bg-[var(--noris-sidebar-background)]' } }"
     :ui="{
       container: 'h-[var(--chat-viewport-height,100dvh)] bottom-auto',
-      inner: 'bg-[var(--noris-sidebar)] border-r border-default',
-      header: 'flex-col items-stretch px-3 py-3', body: 'min-h-0 overflow-y-auto px-2', footer: 'border-t border-default p-3',
+      inner: 'bg-[var(--noris-sidebar-background)] divide-transparent',
+      header: 'flex-col items-stretch px-2 py-2', body: 'min-h-0 overflow-y-auto px-2', footer: 'p-3',
     }"
   >
     <template #header>
-      <div class="flex w-full items-center gap-2 px-1">
-        <span aria-hidden="true" class="flex size-8 items-center justify-center rounded-xl bg-inverted text-sm font-bold text-inverted">n</span>
-        <span class="flex-1 text-base font-semibold tracking-tight">noris AI</span>
+      <div class="sidebar-heading">
+        <span class="sidebar-title">Noris AI</span>
+        <UButton icon="i-lucide-search" color="neutral" variant="ghost" class="touch-control hidden lg:inline-flex" aria-label="Suche öffnen" @click="showSearch" />
         <UButton icon="i-lucide-panel-left-close" color="neutral" variant="ghost" class="touch-control" aria-label="Gesprächsliste schließen" @click="open = false" />
       </div>
-      <div class="mt-4 flex w-full flex-col gap-1">
-        <UButton icon="i-lucide-square-pen" color="neutral" variant="ghost" label="Neuer Chat" class="min-h-11 justify-start rounded-lg" @click="newChat" />
-        <UButton icon="i-lucide-search" color="neutral" variant="ghost" label="Chats suchen" class="min-h-11 justify-start rounded-lg" @click="showSearch" />
+      <div class="sidebar-primary-actions">
+        <UButton icon="i-lucide-square-pen" color="neutral" variant="ghost" label="Neuer Chat" class="sidebar-new-chat min-h-11 justify-start rounded-lg" @click="newChat" />
+        <UButton icon="i-lucide-search" color="neutral" variant="ghost" label="Chats suchen" class="min-h-11 justify-start rounded-lg lg:hidden" @click="showSearch" />
       </div>
     </template>
 
     <nav aria-label="Gespräche" class="pb-4">
       <p v-if="groups.length === 0" class="px-3 py-6 text-sm leading-relaxed text-muted">Hier ist Platz für deine Gedanken.<br>Deine Chats erscheinen hier.</p>
       <section v-for="group in groups" :key="group.label" class="mt-5" :aria-label="group.label">
-        <h2 class="px-3 pb-2 text-xs font-medium text-muted">{{ group.label }}</h2>
+        <h2 class="sidebar-group">{{ group.label }}</h2>
         <ul class="space-y-0.5">
           <li v-for="conversation in group.conversations" :key="conversation.id" class="conversation-row" :data-active="activeId === conversation.id">
             <button type="button" :aria-current="activeId === conversation.id ? 'page' : undefined" :title="conversation.title" @click="selectChat(conversation.id)">
@@ -114,9 +114,9 @@ defineExpose({ openSearch: showSearch })
 
     <template #footer>
       <div class="flex flex-col gap-2">
-        <UButton icon="i-lucide-archive" color="neutral" variant="ghost" label="Archivierte Chats" class="min-h-11 justify-start" @click="showArchive" />
+        <UButton icon="i-lucide-archive" color="neutral" variant="ghost" label="Archivierte Chats" class="min-h-11 justify-start lg:hidden" @click="showArchive" />
         <UColorModeSelect aria-label="Darstellung" class="w-full" :ui="{ base: 'min-h-11' }" />
-        <div class="flex items-center gap-3 px-2 pt-2">
+        <div class="flex items-center gap-3 px-2 pt-2 lg:hidden">
           <UAvatar text="N" size="sm" />
           <div class="min-w-0"><p class="text-sm font-medium">Dein Arbeitsbereich</p><p class="text-xs text-muted">Lokale Demo</p></div>
         </div>

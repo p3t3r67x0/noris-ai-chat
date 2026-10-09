@@ -10,6 +10,7 @@ const model = defineModel<ChatModelId>('model', { required: true })
 const emit = defineEmits<{ send: [text: string], stop: [] }>()
 const prompt = ref<{ textareaRef: HTMLTextAreaElement | undefined } | null>(null)
 const tooLong = computed(() => text.value.length > MAX_MESSAGE_LENGTH)
+const models = CHAT_MODELS.map(item => ({ ...item, label: item.label.replace('noris ', '') }))
 function submit(): void {
   if (props.busy || !text.value.trim() || tooLong.value) return
   emit('send', text.value)
@@ -20,18 +21,20 @@ defineExpose({ focus: () => prompt.value?.textareaRef?.focus({ preventScroll: tr
 <template>
   <div class="composer-container">
     <UChatPrompt
-      ref="prompt" v-model="text" aria-label="Nachricht" placeholder="Frag noris AI …" :autofocus="false" :rows="2"
-      :maxrows="8" :maxlength="MAX_MESSAGE_LENGTH * 2" class="chat-composer" :ui="{ base: 'text-base leading-6 max-h-48 overflow-y-auto', footer: 'items-center' }"
+      ref="prompt" v-model="text" aria-label="Nachricht" placeholder="Frag noris AI …" :autofocus="false" :rows="1"
+      variant="naked" color="neutral" :maxrows="8" :maxlength="MAX_MESSAGE_LENGTH * 2" class="chat-composer"
+      :ui="{ root: 'gap-0 p-0', base: 'composer-input overflow-y-auto', footer: 'composer-toolbar' }"
       @submit="submit"
     >
       <template #footer>
-        <UButton disabled icon="i-lucide-plus" color="neutral" variant="ghost" class="touch-control" aria-label="Anhang hinzufügen – demnächst verfügbar" />
-        <USelectMenu v-model="model" :items="[...CHAT_MODELS]" value-key="id" :search-input="false" :disabled="busy" variant="ghost" color="neutral" aria-label="Modell im Eingabefeld auswählen" class="max-w-48" :ui="{ base: 'min-h-11' }" />
+        <UButton disabled icon="i-lucide-plus" color="neutral" variant="ghost" class="composer-attachment touch-control" aria-label="Anhang hinzufügen – demnächst verfügbar" />
         <div class="flex-1" />
+        <USelectMenu v-model="model" :items="models" value-key="id" :search-input="false" :disabled="busy" variant="ghost" color="neutral" aria-label="Modell im Eingabefeld auswählen" class="composer-model" :ui="{ base: 'min-h-11', content: 'min-w-48' }" />
         <UChatPromptSubmit
           :status="busy ? (streaming ? 'streaming' : 'submitted') : 'ready'" :disabled="!text.trim() || tooLong"
+          color="neutral" variant="solid" streaming-color="neutral" streaming-variant="solid" submitted-color="neutral" submitted-variant="solid"
           :aria-label="busy ? (cancellationRequested ? 'Abbruch läuft' : 'Antwort stoppen') : 'Nachricht senden'"
-          :aria-disabled="cancellationRequested" class="touch-control rounded-full" @stop="emit('stop')"
+          :aria-disabled="cancellationRequested" class="composer-submit touch-control rounded-full" @stop="emit('stop')"
         />
       </template>
     </UChatPrompt>

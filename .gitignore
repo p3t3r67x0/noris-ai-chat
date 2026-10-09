@@ -18,3 +18,12 @@ playwright-report/
 test-results/
 *.log
 .DS_Store
+
+# Local agent configuration and credentials
+.agents/
+.codex/
+.aws/
+
+# Personal ChatGPT screenshot used as a local UI reference
+/docs/ui-reference/evidence/reference-chatgpt.png
+/docs/ui-reference/local-comparison/

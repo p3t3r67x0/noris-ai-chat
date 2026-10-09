@@ -21,7 +21,35 @@ export function savedChat(turns = 1): ChatSnapshot {
 }
 export async function seedChat(page: Page, snapshot: ChatSnapshot, theme = 'light') {
   await page.addInitScript(({ key, value, selectedTheme }) => {
-    localStorage.setItem(key, value)
-    localStorage.setItem('noris-ai-theme', selectedTheme)
+    if (localStorage.getItem(key) === null) localStorage.setItem(key, value)
+    if (localStorage.getItem('noris-ai-theme') === null) localStorage.setItem('noris-ai-theme', selectedTheme)
   }, { key: CHAT_STORAGE_KEY, value: JSON.stringify(snapshot), selectedTheme: theme })
+}
+
+export function referenceChat(): ChatSnapshot {
+  const snapshot = savedChat()
+  for (const [index, conversation] of Object.values(snapshot.conversations.conversations).entries()) {
+    conversation.title = index === 0 ? 'Fiktiver Tagesplan' : `Beispiel ${index + 1}`
+  }
+  snapshot.messages['user-0']!.content = 'Erstelle einen frei erfundenen Tagesplan mit drei einfachen Schritten und einem kurzen neutralen Ausblick.'
+  snapshot.messages['assistant-0']!.content = `# Ein fiktiver Tagesplan mit drei einfachen Schritten für eine neutrale Demonstration
+
+Diese Darstellung verwendet ausschließlich **frei erfundene Beispieldaten**. Sie dient zur Prüfung von Lesebreite, Abständen und gut erreichbaren Bedienelementen.
+
+Ein ruhiger Start beginnt mit einer übersichtlichen Auswahl. **Notiere drei neutrale Tätigkeiten, entscheide dich für eine kleine Aufgabe und halte am Ende fest, welche nächsten Schritte sinnvoll erscheinen.** Plane dabei genügend Zeit für Pausen ein und bleibe bei einem einfachen Ablauf.
+
+Am Vormittag entsteht ein kurzer Überblick. Danach folgt eine überschaubare Aufgabe. Zum Abschluss hilft ein kleiner Rückblick, die nächste Auswahl vorzubereiten. Weitere fiktive Angaben stehen auf der [Beispielseite](https://example.com). Diese Verknüpfung bezeichnet keine echte Person, Organisation oder Kundeninformation.
+
+Alle Bezeichnungen und Gesprächsinhalte dieser Ansicht wurden eigens für einen synthetischen Test formuliert. Sie stammen aus keinem persönlichen Gespräch. Der Verlauf enthält weder echte Kontodaten noch private Projekte, Quellenangaben, Kennungen oder Zugangsdaten.
+
+## 1. Drei neutrale Schritte
+
+Erstelle zuerst einen Überblick, plane anschließend eine kurze Aufgabe und notiere zum Schluss einen sachlichen Rückblick. Die [zweite Beispielseite](https://example.com/plan) zeigt weitere erfundene Möglichkeiten für eine neutrale Demonstration ohne persönliche Angaben. Alle Angaben sind fiktiv.`
+  return snapshot
+}
+
+export function codeChat(): ChatSnapshot {
+  const snapshot = savedChat()
+  snapshot.messages['assistant-0']!.content = '## Ein kleines Beispiel\n\nCode lässt sich kopieren und bleibt auch auf kleinen Bildschirmen lesbar.\n\n```python\ndef greet(name: str) -> str:\n    return f"Hallo, {name}!"\n\nprint(greet("Noris"))\n```\n\n| Schritt | Ergebnis |\n| --- | --- |\n| Planen | Eine klare Frage |\n| Umsetzen | Ein erster Entwurf |'
+  return snapshot
 }

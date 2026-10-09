@@ -1,6 +1,6 @@
 export default defineAppConfig({
   ui: {
-    colors: { primary: 'teal', neutral: 'neutral' },
+    colors: { primary: 'neutral', neutral: 'neutral' },
     button: { slots: { base: 'cursor-pointer' } },
   },
 })
