@@ -131,7 +131,7 @@ export function createRealTransport(options: { fetcher?: typeof fetch, timeoutMs
         const response = await fetcher('/api/v1/llm/chat', {
           method: 'POST', credentials: 'same-origin', signal: controller.signal,
           headers: { Accept: 'text/event-stream', 'Content-Type': 'application/json' },
-          body: JSON.stringify(request),
+          body: JSON.stringify({ generationId: request.generationId, conversationId: request.conversationId, inputMessageId: request.inputMessageId, modelId: request.modelId, messages: request.messages, attempt: request.attempt, ...(request.operation === 'continue' ? { operation: 'continue', assistantMessageId: request.assistantMessageId, continuationCount: request.continuationCount } : {}) }),
         })
         if (!response.ok) throw await responseError(response)
         if (!response.body || response.headers.get('Content-Type')?.split(';')[0]?.trim() !== 'text/event-stream') throw new TransportError('INVALID_RESPONSE')

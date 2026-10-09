@@ -13,6 +13,7 @@ import { indexSiblingVariants, siblingVariants, variantLeaf } from '../lib/chat/
 import { CHAT_STORAGE_KEY, parseChatSnapshot } from '../lib/chat/persistence'
 import type { ChatSnapshot } from '../lib/chat/persistence'
 import { CONVERSATIONS_STORAGE_KEY, parseConversationSnapshot } from '../lib/chat/conversations'
+import { useChatBackend } from './useChatBackend'
 
 export function createChatState(transport: ChatTransport, dependencies: ConversationDependencies = {}, conversations = createConversationState(dependencies)) {
   const messages = ref<MessageRecords>({})
@@ -44,10 +45,14 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     const reply = append(input.conversationId, input.id, 'assistant', '')
     reply.modelId = modelId
     generatingConversationId.value = input.conversationId
-    void stream.start({ generationId: id(), conversationId: input.conversationId, inputMessageId: input.id, modelId, messages: history, attempt }, {
+    reply.generationId = id()
+    reply.modelId = modelId
+    void stream.start({ generationId: reply.generationId, conversationId: input.conversationId, inputMessageId: input.id, modelId, messages: history, attempt, input: { ...input }, assistantMessageId: reply.id, conversation: { ...conversations.records.value[input.conversationId]! } }, {
       delta: text => { reply.content += text },
+      replace: text => { reply.content = text },
       status: next => {
         reply.status = next
+        if (next === 'failed' && transport.backend && !reply.content) drafts.records.value[input.conversationId] = input.content
         if (next === 'streaming' && titleRequest) void titles.generate(titleRequest)
         const conversation = conversations.records.value[input.conversationId]
         if (next === 'completed' && messages.value[reply.id] === reply && conversation?.titleSource === 'fallback' && conversation.title === FALLBACK_TITLE) {
@@ -56,6 +61,18 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
         }
       },
       failure: (code, message) => { reply.errorCode = code; reply.errorMessage = message },
+    }).finally(() => { generatingConversationId.value = null })
+  }
+
+  function resume(messageId: string): void {
+    const reply = messages.value[messageId]
+    const input = reply?.parentMessageId ? messages.value[reply.parentMessageId] : undefined
+    const conversation = reply ? conversations.records.value[reply.conversationId] : undefined
+    if (!reply?.generationId || !input || !conversation || stream.busy.value) return
+    generatingConversationId.value = conversation.id
+    reply.content = ''
+    void stream.start({ generationId: reply.generationId, conversationId: conversation.id, inputMessageId: input.id, assistantMessageId: reply.id, input: { ...input }, conversation: { ...conversation }, modelId: reply.modelId ?? '', messages: [], attempt: 1, resume: true }, {
+      delta: text => { reply.content += text }, replace: text => { reply.content = text }, status: next => { reply.status = next },
     }).finally(() => { generatingConversationId.value = null })
   }
 
@@ -125,17 +142,25 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
 
   function continueResponse(messageId: string, fallbackModelId: ChatModelId): boolean {
     if (!canContinue(messageId)) return false
-    const reply = messages.value[messageId]!
+    let reply = messages.value[messageId]!
+    const source = reply
     if (!reply.parentMessageId) return false
     const modelId = reply.modelId ?? fallbackModelId
     const history = visiblePath(messages.value, reply.conversationId, reply.id).map(({ role, content }) => ({ role, content }))
-    const continuationCount = (reply.continuationCount ?? 0) + 1
+    const continuationCount = (source.continuationCount ?? 0) + 1
+    if (transport.backend) {
+      rememberBranch()
+      reply = append(source.conversationId, source.parentMessageId, 'assistant', source.content)
+      reply.modelId = modelId
+      reply.generationId = id()
+    }
     reply.continuationCount = continuationCount
     delete reply.errorCode
     delete reply.errorMessage
     generatingConversationId.value = reply.conversationId
-    void stream.start({ generationId: id(), conversationId: reply.conversationId, inputMessageId: reply.parentMessageId, assistantMessageId: reply.id, modelId, messages: history, attempt: 1, operation: 'continue', continuationCount }, {
+    void stream.start({ generationId: reply.generationId ?? id(), conversationId: reply.conversationId, inputMessageId: source.parentMessageId!, assistantMessageId: reply.id, modelId, messages: history, attempt: 1, operation: 'continue', continuationCount, ...(transport.backend ? { sourceAssistantMessageId: source.id, input: { ...messages.value[source.parentMessageId!]! }, conversation: { ...conversations.records.value[source.conversationId]! } } : {}) }, {
       delta: text => { reply.content += text },
+      replace: text => { reply.content = text },
       status: next => { reply.status = next },
       failure: (code, message) => { reply.errorCode = code; reply.errorMessage = message },
     }).finally(() => { generatingConversationId.value = null })
@@ -160,11 +185,15 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
   }
   const variantIndex = computed(() => indexSiblingVariants(messages.value))
   const variants = (messageId: string): readonly ChatMessage[] => variantIndex.value.get(messageId) ?? []
-  return { conversations, messages, visible, stream, titles, generatingConversationId, drafts, preferredLeaves, send, retry, canContinue, continueResponse, newChat, remove, selectVariant, regenerate, edit, variants, snapshot, hydrate }
+  return { conversations, messages, visible, stream, titles, generatingConversationId, drafts, preferredLeaves, send, retry, canContinue, continueResponse, newChat, remove, selectVariant, regenerate, edit, variants, snapshot, hydrate, resume }
 }
 
 export function useChat(transport: ChatTransport) {
   const state = createChatState(transport)
+  if (transport.backend) {
+    const persistence = useChatBackend(state, transport)
+    return { ...state, ...persistence }
+  }
   const storageWarning = ref<string | null>(null)
   let stopWatching: (() => void) | undefined
   let timer: ReturnType<typeof setTimeout> | undefined
@@ -226,5 +255,5 @@ export function useChat(transport: ChatTransport) {
       window.removeEventListener('storage', externalChange)
     }
   })
-  return { ...state, storageWarning }
+  return { ...state, storageWarning, backendReady: ref(true), importAvailable: ref(false), importBusy: ref(false), importLocalChats: async () => {} }
 }

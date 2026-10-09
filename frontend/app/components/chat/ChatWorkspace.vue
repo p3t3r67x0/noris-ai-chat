@@ -16,7 +16,15 @@ import ChatRail from './ChatRail.vue'
 const { transport, mode } = useChatTransport()
 const chat = useChat(transport)
 const { conversations, stream } = chat
-const { modelId, error: modelError, notice: modelNotice, loading: modelsLoading, canSend, fallbackId, refresh: refreshModels, chooseFallback } = useModelSelection({ mode })
+const { modelId, error: modelError, notice: modelNotice, loading: modelsLoading, canSend: modelCanSend, fallbackId, refresh: refreshModels, chooseFallback } = useModelSelection({ mode })
+const canSend = computed(() => modelCanSend.value && chat.backendReady.value)
+let preferencesRestored = false
+watch([chat.backendReady, modelsLoading], ([loaded, loading]) => {
+  if (!transport.backend || !loaded || loading || preferencesRestored) return
+  preferencesRestored = true
+  if (transport.backend.preferredModelId) modelId.value = transport.backend.preferredModelId
+})
+watch(modelId, value => { if (transport.backend && preferencesRestored && value) void transport.backend.preferences(conversations.activeId.value, value).catch(() => {}) })
 watch(stream.errorCode, (code) => { if (code === 'MODEL_UNAVAILABLE' || code === 'PROVIDER_AUTH_FAILED') void refreshModels() })
 const { draft } = chat.drafts
 const { sidebarOpen } = useSidebarPreference()
@@ -32,6 +40,14 @@ function send(text: string): void {
 }
 function stop(): void { stream.stop(); composer.value?.focus() }
 function newChat(): void { chat.newChat(); composer.value?.focus() }
+async function continueResponse(id: string): Promise<void> {
+  if (modelsLoading.value) await refreshModels()
+  if (canSend.value) chat.continueResponse(id, modelId.value)
+}
+async function regenerateResponse(id: string): Promise<void> {
+  if (modelsLoading.value) await refreshModels()
+  if (canSend.value) chat.regenerate(id, modelId.value)
+}
 function selectRunningChat(): void {
   const id = chat.generatingConversationId.value
   if (id) conversations.select(id)
@@ -64,10 +80,10 @@ function saveEdit(): void {
 <template>
   <div class="chat-workspace" :style="viewportStyle" :data-ready="ready" :inert="!ready" :aria-busy="!ready">
     <a href="#chat-main" class="sr-only z-50 rounded-md bg-default p-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Zum Chat springen</a>
-    <ChatRail @home="newChat" @search="sidebar?.openSearch()" @archive="sidebar?.openArchive()" />
+    <ChatRail :demo="mode === 'mock'" @home="newChat" @search="sidebar?.openSearch()" @archive="sidebar?.openArchive()" />
     <ChatSidebar
       ref="sidebar"
-      v-model:open="sidebarOpen" :conversations="conversations.visible.value" :archived="conversations.archived.value"
+      v-model:open="sidebarOpen" :demo="mode === 'mock'" :conversations="conversations.visible.value" :archived="conversations.archived.value"
       :active-id="conversations.activeId.value" :remove-conversation="chat.remove"
       @new-chat="newChat" @select="conversations.select" @rename="conversations.rename"
       @fit-title="conversations.fitTitle"
@@ -77,7 +93,7 @@ function saveEdit(): void {
       <ChatHeader v-model:model="modelId" :sidebar-open="sidebarOpen" :busy="stream.busy.value" :demo="mode === 'mock'" @toggle-sidebar="sidebarOpen = !sidebarOpen" @new-chat="newChat" />
       <div class="chat-content" :data-empty="chat.visible.value.length === 0">
         <EmptyChatState v-if="chat.visible.value.length === 0" />
-        <ChatTimeline v-show="chat.visible.value.length > 0" :messages="chat.visible.value" :conversation-id="conversations.activeId.value" :busy="stream.busy.value" :variants="chat.variants" :can-continue="chat.canContinue" @continue="canSend && chat.continueResponse($event, modelId)" @edit="beginEdit" @regenerate="canSend && chat.regenerate($event, modelId)" @select-variant="chat.selectVariant" />
+        <ChatTimeline v-show="chat.visible.value.length > 0" :messages="chat.visible.value" :conversation-id="conversations.activeId.value" :busy="stream.busy.value" :variants="chat.variants" :can-continue="chat.canContinue" @continue="continueResponse" @edit="beginEdit" @regenerate="regenerateResponse" @select-variant="chat.selectVariant" />
         <div class="composer-dock">
           <div v-if="modelError || modelNotice" role="status" aria-live="polite" class="px-4 pb-2 text-sm text-muted">
             <p>{{ modelError || modelNotice }}</p>

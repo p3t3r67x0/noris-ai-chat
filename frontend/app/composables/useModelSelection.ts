@@ -15,8 +15,8 @@ export function isChatModelId(value: unknown): value is ChatModelId {
   return CHAT_MODELS.some(model => model.id === value && !model.disabled)
 }
 
-export function useModelSelection(options: { mode?: 'mock' | 'real', fetcher?: typeof fetch } = {}) {
-  const real = options.mode === 'real'
+export function useModelSelection(options: { mode?: 'mock' | 'real' | 'websocket', fetcher?: typeof fetch } = {}) {
+  const real = options.mode === 'real' || options.mode === 'websocket'
   Object.assign(CHAT_LIMITS, DEFAULT_CHAT_LIMITS)
   CHAT_MODELS.splice(0, CHAT_MODELS.length, ...(real ? [] : MOCK_MODELS.map(model => ({ ...model }))))
   const modelId = ref<ChatModelId>(real ? '' : 'balanced')

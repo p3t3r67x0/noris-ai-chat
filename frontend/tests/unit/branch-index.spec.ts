@@ -17,6 +17,14 @@ describe('branch metadata index', () => {
     expect(index.get('unknown')).toBeUndefined()
   })
 
+  it('orders server timezone offsets and optimistic UTC timestamps by actual time', () => {
+    const first = message('server', 'chat', 'question', 'assistant', '2026-10-09T19:00:00+02:00')
+    const later = message('browser', 'chat', 'question', 'assistant', '2026-10-09T17:00:01.000Z')
+    const records = { server: first, browser: later }
+    expect(indexSiblingVariants(records).get('browser')?.map(m => m.id)).toEqual(['server', 'browser'])
+    expect(siblingVariants(records, 'browser').map(m => m.id)).toEqual(['server', 'browser'])
+  })
+
   it('keeps conversation and parent keys unambiguous for arbitrary valid identifiers', () => {
     const nodes = [message('root-one', 'a:b', null, 'user'), message('root-two', 'a', null, 'user'), message('child-one', 'a:b', 'c', 'assistant'), message('child-two', 'a', 'b:c', 'assistant')]
     const index = indexSiblingVariants(Object.fromEntries(nodes.map(node => [node.id, node])))

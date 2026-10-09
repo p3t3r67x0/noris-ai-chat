@@ -54,3 +54,26 @@ test('Stop during continuation preserves the long partial response', async ({ pa
   await expect(reply).not.toContainText('Antwort nicht abgeschlossen')
   await expect(page.locator('.message-assistant')).toHaveCount(1)
 })
+
+test('continuation waits for an in-flight catalog refresh without losing the click', async ({ page }, info) => {
+  await page.getByRole('textbox', { name: 'Nachricht', exact: true }).fill(`/long-stop refresh-${info.project.name}`)
+  await page.getByRole('textbox', { name: 'Nachricht', exact: true }).press('Enter')
+  const reply = page.locator('.message-assistant')
+  await expect(reply).toHaveAttribute('data-status', 'incomplete')
+  let release!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  let entered!: () => void
+  const refreshing = new Promise<void>(resolve => { entered = resolve })
+  await page.route('**/api/v1/llm/models', async route => { entered(); await gate; await route.continue() })
+  try {
+    await refreshing
+    await page.getByRole('button', { name: 'Weiterschreiben', exact: true }).click()
+    await expect(reply).toHaveAttribute('data-status', 'incomplete')
+    release()
+    await expect(reply).toContainText("print('neu')")
+    await page.getByRole('button', { name: 'Antwort stoppen', exact: true }).click()
+    await expect(reply).toHaveAttribute('data-status', 'cancelled')
+    await expect(page.locator('.message-assistant')).toHaveCount(1)
+  }
+  finally { release(); await page.unroute('**/api/v1/llm/models') }
+})

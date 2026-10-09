@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+defineProps<{ demo?: boolean }>()
 defineEmits<{ home: [], search: [], archive: [] }>()
 const accountOpen = ref(false)
 </script>
@@ -20,13 +21,13 @@ const accountOpen = ref(false)
     </UTooltip>
     <div class="flex-1" />
     <UPopover v-model:open="accountOpen" :content="{ side: 'right', align: 'end' }">
-      <UButton color="neutral" variant="ghost" class="touch-control rounded-full" aria-label="Lokaler Arbeitsbereich">
+      <UButton color="neutral" variant="ghost" class="touch-control rounded-full" :aria-label="demo === false ? 'Dein Arbeitsbereich' : 'Lokaler Arbeitsbereich'">
         <UAvatar text="N" size="sm" />
       </UButton>
       <template #content>
         <div class="w-64 space-y-3 p-4">
           <p class="text-sm font-medium">Noris AI Chat</p>
-          <p class="text-xs text-muted">Lokale Demo · Anmeldung noch nicht verfügbar</p>
+          <p class="text-xs text-muted">{{ demo === false ? 'Dein Arbeitsbereich' : 'Lokale Demo · Anmeldung noch nicht verfügbar' }}</p>
           <UColorModeSelect aria-label="Darstellung im Kontomenü" class="w-full" :ui="{ base: 'min-h-11' }" />
         </div>
       </template>
