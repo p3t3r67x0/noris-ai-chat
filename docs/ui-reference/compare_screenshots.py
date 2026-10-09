@@ -32,12 +32,12 @@ def main() -> None:
                       (713, 725), (760, 773), (809, 821), (856, 869),
                       (906, 918), (954, 966)]
         for index, (top, bottom) in enumerate(title_rows):
-            rectangle = [86, top - 2, 395, bottom + 2]
+            rectangle = [86, top - 5, 395, bottom + 5]
             color = "#efefef" if index == 0 else "#fcfcfc"
             draw.rectangle(rectangle, fill=color)
             masks.append({"rectangle": rectangle, "purpose": "private conversation title"})
-        rectangle = [23, 937, 43, 950]
-        draw.rectangle(rectangle, fill="#14b99c")
+        rectangle = [23, 935, 45, 949]
+        draw.rectangle(rectangle, fill=reference.getpixel((25, 932)))
         masks.append({"rectangle": rectangle, "purpose": "account initials"})
     args.output.mkdir(parents=True, exist_ok=True)
     width, height = reference.size

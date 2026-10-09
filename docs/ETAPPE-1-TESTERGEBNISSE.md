@@ -63,16 +63,52 @@ Die Referenzbilder werden unter Linux mit gepinntem Chromium erzeugt. Die Browse
 - Etappe 2 wurde nicht begonnen. Die vier PRs sind in Reihenfolge zu prüfen; Merge nur durch den Repository-Verantwortlichen.
 
 
-## Referenz-Folge-PR18
+## Referenz-Folge-PR #18
 
-[PR18](https://github.com/p3t3r67x0/noris-ai-chat/pull/18) / `feat/chatgpt-ui-fidelity`, Basis `feat/chat-ux-polish`. Lokaler Stand vor Browserprüfung: **PASS**69 Frontend-Unit-Tests (10 Dateien),38 Backend-Unit-/Contract-Tests; ESLint, striktes Nuxt-/Vue-TypeScript einschließlich Testdateien, Ruff/Format24 Dateien, Pyright0 Fehler/Warnungen, API-Drift, Nuxt-Produktionsbuild und Backendwheel/sdist. Die drei PostgreSQL-Fälle werden getrennt behandelt.
+[PR #18](https://github.com/p3t3r67x0/noris-ai-chat/pull/18), `feat/chatgpt-ui-fidelity`, Basis `feat/chat-ux-polish`. Die ursprünglichen vier PRs bleiben als Stack erhalten. #17 ist nach Prüfung seines grünen Heads für Review freigegeben; kein PR wurde gemergt.
 
-**BLOCKED lokal:** Playwright-Testserver kann nicht binden (EPERM); Chromium-Sandboxstart ist untersagt. Der direkte Docker-CLI-Aufruf hat kein Compose-Plugin (`unknown flag: --env-file`). Der vorhandene Compose-Wrapper findet jedoch standalone v2: beide Konfigurationen sind lokal **PASS**. Der lokale Smoke benötigt zusätzlich Daemonzugriff; die CI führt ihn in einem frischen eigenen Stack aus. Es fehlt eine separate `_test`-Datenbank-URL für lokale Integration. Nuxt/UI-MCPs werden in dieser Sitzung nicht exponiert (`unknown MCP server`). Bestehende CI stellt echte PostgreSQL-/Compose-/Chromium-Umgebungen bereit; ihr Folge-PR-Ergebnis ist noch ausstehend.
+### Lokal ausgeführte Prüfungen
 
-**Neue Prüfungen, noch nicht als PASS deklariert:**22 permanente Theme-/Zustandsszenen, zusätzliche1920×975-Referenzszene, sechs weitere Größen je Theme, Fokus nach Stop/Senden, kurze Send-Anker, echtes VisualViewport-Resizeereignis mit simulierter Höhe, Stream-/Chatwechsel, Tastatur-Löschen/Suche/Sidebarpräferenz sowie100/500 Nachrichten mit Code und10 inaktiven Antwortvarianten. Performance-Artefakte messen Navigation-bis-ready, Eingabe-/Scroll-bis-Frame und JS-Heap (Chromium-Schätzung), ohne daraus eine reale Gerätefreigabe abzuleiten. Fehlende/geänderte Screenshotbaselines bleiben FAIL bis zur sichtbaren Prüfung und Übernahme tatsächlicher Browserbilder.
+**PASS:** 74 Frontend-Unit-Tests in zwölf Dateien, 38 Backend-Unit-/Contract-Tests; ESLint, striktes Nuxt-/Vue-TypeScript einschließlich Tests, Ruff/Format (24 Dateien), Pyright (0 Fehler/Warnungen), API-Drift, Nuxt-Produktionsbuild (3,98 MB Serverartefakte, 908 kB gzip), Backend-Wheel/sdist. Beide Compose-Konfigurationen sind über den bestehenden Wrapper erfolgreich validiert.
 
-Das Originalreferenzbild ist unverändert lokal unter `ui-reference/evidence/reference-chatgpt.png` gesichert und im aktuellen Git-Baum ausgeschlossen, SHA256 `47403b9bd1291b403e0f9e61f609a659eda5b3f624b5ed6834d13a21c24cb0e9`. Die zunächst veröffentlichte Kopie wurde mit dem zweiten Commit aus der aktuellen Dateiliste entfernt; alte Git-Objekte werden damit nicht als gelöscht behauptet. Öffentliche Vergleichsansichten maskieren nur persönliche Sidebar-Titel/Kontobuchstaben. Referenzanalyse, Tokens, Interaktionen, Responsive-/Accessibility-Regeln und Vergleichsmethode stehen in [ui-reference](ui-reference/REFERENCE-ANALYSIS.md). DPR/Schrift des Originals sind unbekannt; Dark/Mobile-Vergleich gegen ChatGPT sowie reale Tastaturen/Screenreader bleiben **NOT TESTED**. Kein automatisches Merge, keine Etappe2.
+**BLOCKED lokal:** Playwright-Testserver kann nicht an `127.0.0.1:8000` binden (EPERM), Chromium-Sandboxstart ebenfalls untersagt. Der direkte Docker-Aufruf hat kein Compose-Plugin; der Wrapper findet die vorhandene standalone-v2-Version. Der lokale Smoke benötigt zusätzlich Zugriff auf den Docker-Daemon, der hier verweigert wird. Für lokale DB-Integration fehlt eine separate `NORIS_TEST_DATABASE_URL` mit `_test`; die Fixtures brechen ohne Mutation ab. Nuxt/UI-MCPs sind in dieser Sitzung nicht exponiert (`unknown MCP server`); auch der direkte MCP-Verbindungsversuch scheitert an DNS. Installierte, versionierte Komponenten und offizielle Quellen wurden als API-Ersatz geprüft. Das ist kein erfolgreicher MCP-Aufruf.
 
-**Erster Browserlauf,58d57b2:** [CI37881075409](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37881075409) besteht58/87 Fälle.27 Bildvergleiche schlagen wegen23 fehlender bzw.4 geänderter Goldens fehl. Zwei neue Verwaltungsfälle verwenden einen nicht exakten Locator für „Gedanken1“, der auch10–19 trifft; er ist auf exact:true korrigiert. Bestehende Scrollfälle, Fokus/Stop, VisualViewport,100/500-Nachrichten und alle12 weiteren Größen-/Themeprüfungen bestehen. Keine Assertions wurden abgeschwächt oder Fälle deaktiviert. Compose-Smoke und69/38/3 Unit-/Integrationstests bestehen in diesem Lauf; der Checks-Job bleibt wegen Browserfehlern FAIL.
+### Tatsächliche Browserläufe und Korrekturen
 
-Erste Geometriemessung bei1920×975: Leiste68.0, Sidebar375.984, Hauptbereich1476.016, Inhalt/Composer999.984, x682.0, Composer y876/h70/Unterabstand29, Header68. Kein window-Scroll und kein horizontales Overflow. Der erste Bildvergleich begründet die schmalere Arial-kompatible Schrift und geringeren Abstand nach Überschriften.23 neue und4 bestehende Goldens werden erst nach der nächsten tatsächlichen Aufnahme mit dieser Korrektur übernommen.
+| Head / CI | Ergebnis | Konsequenz |
+| --- | --- | --- |
+| `58d57b2` / [37881075409](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37881075409) | 58/87 Browserfälle PASS; 27 Bildvergleiche FAIL, zwei neue Locator-Fälle FAIL | Exakter Locator für „Gedanken 1“; Schrift und Absatzabstände nach Bildvergleich korrigiert |
+| `dba475b` / [37881928538](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37881928538) | 62/89 Browserfälle PASS; ausschließlich 27 Bildvergleiche FAIL | H1-Umbruch auf 32px bei 42px Zeilenhöhe angepasst; Entwurfsbeobachtung getrennt |
+| `a1e4557` / [37882833762](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37882833762) | 64/91 Browserfälle PASS; ausschließlich 27 Bildvergleiche FAIL | Alle Edit-/Fokusfälle bestätigt; Variantenindex gegen wiederholte Gesamtsuche eingeführt |
+| `eb0ca33` / [37883323319](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37883323319) | 64/91 Browserfälle PASS; ausschließlich 27 Bildvergleiche FAIL; 74/38/3 Unit-/DB-Fälle und Compose-Smoke PASS | 23 neue und vier geänderte Goldens aus echtem Chromium nach visueller Prüfung übernehmen |
+
+Die 27 Bildfehler sind 23 fehlende und vier absichtlich geänderte Baselines. Auch der vom Auftraggeber gemeldete [Push-Job 113667689980](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37883319472/job/113667689980?pr=18) wurde direkt gelesen und hat dieselbe Ursache. Alle 27 Bilder werden nach tatsächlicher visueller Prüfung als reguläre Baselines committet. Bis der nächste normale Lauf sie bestätigt, bleiben diese Bildvergleiche FAIL. Builds/Compose-Validierung im Checks-Job wurden nach diesen Browserfehlern übersprungen; lokale Builds und der unabhängige Compose-Smoke haben eigene tatsächliche Nachweise. Keine Assertions, Pixelgrenzen oder Tests wurden abgeschwächt, deaktiviert oder als Skip versteckt.
+
+Die neue Matrix enthält 22 permanente Zustands-/Theme-Szenen und eine zusätzliche Referenzszene bei 1920 × 975 / DPR 1. Die vier bisherigen leeren Baselines bleiben als Tests erhalten und werden sichtbar begründet aktualisiert. Zusätzliche Größen pro Theme: 1920 × 1080, 1440 × 900, 1280 × 800, 768 × 1024, 390 × 844, 360 × 800. Neue Browserfälle prüfen Send-Anker, denselben Composer-Knoten, Stop-Fokus, simuliertes VisualViewport-Resize, Stream-/Gesprächswechsel, Tastatur-Löschen/Suche, Sidebarpräferenz, Reload, große Codeblöcke/Tabellen/URLs, Editierdialog-Fokus sowie 100/500 Nachrichten mit zehn inaktiven Varianten. Die früheren PR-17-Scroll-/Stop-Timing-Fälle bestehen unverändert.
+
+Die tatsächlichen Referenzszenen prüfen vor jeder Aufnahme Konsolen-/Hydrationfehler, horizontales Overflow, window-Scroll, berechneten Textkontrast (mindestens 4,5:1) und benannte Touch-Kontrollen (mindestens 44 × 44). Kurze Phasenmeldungen statt Token-Announcements bleiben erhalten. Das belegt ausgewählte Accessibility-Eigenschaften, keine vollständige WCAG-Konformität.
+
+### Geometrie und Bildnachweise
+
+Bei 1920 × 975 misst Chromium: Leiste 68,0px, Sidebar 375,984px, Hauptbereich 1476,016px, Inhalt/Composer 999,984px bei x=682,0px, Composer y=876/h=70/Unterabstand=29, Header 68. Mobile bei 390 × 844: Composer x=12, Breite 366, Höhe 60, Unterabstand 29. Kein äußeres Scrollen oder horizontales Seitenoverflow. Messwerte und Unterschiede stehen in [VISUAL-COMPARISON](ui-reference/VISUAL-COMPARISON.md).
+
+Das Original bleibt unverändert lokal und im aktuellen Git-Baum ausgeschlossen, SHA256 `47403b9bd1291b403e0f9e61f609a659eda5b3f624b5ed6834d13a21c24cb0e9`. Die zuerst veröffentlichte Kopie wurde aus dem aktuellen Baum entfernt; frühere Git-Objekte werden damit nicht als gelöscht behauptet. Für die Veröffentlichung vorbereitete Vergleichsansichten maskieren nur persönliche Sidebar-Titel/Kontobuchstaben, mit expliziten Rechtecken in `comparison.json`. **BLOCKED:** Die automatische Freigabeprüfung lehnt den Upload der zusätzlichen Vergleichs-PNGs wegen möglicherweise privater, nicht ausreichend verifizierter Screenshotdaten ab. Diese fünf Bilder bleiben unter `docs/ui-reference/local-comparison/public/` lokal; sie werden nicht über einen alternativen Uploadweg veröffentlicht. Die reinen Noris-Testbaselines verwenden kontrollierte Mock-Daten. Kein geometrisches Element wird zur Verbesserung einer Pixelquote angepasst oder maskiert.
+
+### Performancebeobachtung
+
+Messungen aus den tatsächlichen Chromium-Reports, jeweils ein kalter Dev-Server-Durchlauf mit 100/500 sichtbaren Nachrichten, einem langen Codeblock und zehn inaktiven Varianten. `inputLatencyMs` misst Eingabe bis zum nächsten Frame; `scrollLatencyMs` die Scrollaktion bis zum Frame, kein vollständiges FPS-Profil. Werte sind Beobachtungen, keine Benchmarkgarantie.
+
+| Zustand / Lauf | Nachrichten | Eingabe ms | Scroll ms | JS-Heap MB | DOM-Knoten |
+| --- | --- | --- | --- | --- | --- |
+| Desktop vor Variantenindex, `dba475b` | 500 | 646,2 | 692,2 | 225 | 7704 |
+| Mobile-Emulation vor Variantenindex, `dba475b` | 500 | 713,2 | 793,6 | 225 | 7706 |
+| Desktop nach Variantenindex, `eb0ca33` | 100 | 6,6 | 41,8 | 109 | 2304 |
+| Desktop nach Variantenindex, `eb0ca33` | 500 | 31,9 | 163,9 | 188 | 7704 |
+| Mobile-Emulation nach Variantenindex, `eb0ca33` | 100 | 8,3 | 85,8 | 109 | 2306 |
+| Mobile-Emulation nach Variantenindex, `eb0ca33` | 500 | 12,0 | 145,3 | 212 | 7706 |
+
+Der persistierte Entwurfs-Watch ist vom Nachrichten-Watch getrennt; eine computed Sibling-Metadatenkarte vermeidet Gesamtsuche pro Nachricht auf jedem Token. Der bestehende Nachrichtengraph bleibt erhalten. DOM-Identität wird geprüft, aber kein vollständiges Vue-Profiler-/Langzeit-Leak-Ergebnis behauptet. Die Scrollzeiten bei 500 Nachrichten lassen weitere Performanceabnahme offen; Virtualisierung wurde wegen Scroll-/Accessibility-Risiken ohne ausreichenden Nachweis nicht ergänzt.
+
+### Verbleibende Abnahme
+
+**NOT TESTED:** reale iOS-/Android-Tastaturen und Browserchrome, VoiceOver/TalkBack, Firefox/WebKit, High Contrast/Zoom, manuelle Referenzbestätigung durch den Auftraggeber. Dark/Mobile/Leerzustand sind getestete Noris-Varianten; die einzige gelieferte Referenz zeigt diese Zustände nicht. DPR, Zoom und Originalfont bleiben unbekannt. Kein Pixel-Perfect- oder ChatGPT-Funktionsparitätsversprechen. Keine Etappe 2, kein automatisches Merge.

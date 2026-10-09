@@ -1,8 +1,8 @@
 # Design-Tokens
 
-Quelle: REFERENCE-ANALYSIS.md. Alle Produktwerte werden in `frontend/app/assets/css/main.css` zentral definiert. Geometrie wird bei1920×975 CSS-Pixeln/DPR1 gegen Bildpixel verglichen; Skalierung der Originalaufnahme ist unbekannt.
+Quelle: REFERENCE-ANALYSIS.md. Alle Produktwerte werden in `frontend/app/assets/css/main.css` zentral definiert. Geometrie wird bei 1920×975 CSS-Pixeln/DPR 1 gegen Bildpixel verglichen; Skalierung der Originalaufnahme ist unbekannt.
 
-| Token | Referenzziel bei1920 | Status |
+| Token | Referenzziel bei 1920 | Status |
 | --- | --- | --- |
 | `--noris-rail-width` | 68px | gemessene Kante |
 | `--noris-sidebar-width` | 376px | gemessene Kante |
@@ -25,10 +25,10 @@ Quelle: REFERENCE-ANALYSIS.md. Alle Produktwerte werden in `frontend/app/assets/
 | `--noris-rail-background` | #f9f9f9 | #131313 | Light gemessen; Dark INFERRED |
 | `--noris-composer-background` | #ffffff | #303030 | Light gemessen; Dark INFERRED |
 | `--noris-text-primary` | #0d0d0d | #ececec | Light gemessen; Dark INFERRED |
-| `--noris-text-secondary` | #676767 | #b4b4b4 | abweichend von≈#8f8f8f zugunsten4.5:1 |
+| `--noris-text-secondary` | #676767 | #b4b4b4 | abweichend von≈#8f8f8f zugunsten 4.5:1 |
 | `--noris-border` | #e5e5e5 | #424242 | Kante geschätzt, Dark INFERRED |
 | `--noris-hover-background` / `--noris-active-background` | #efefef | #2b2b2b | aktive Light-Fläche gemessen |
 | `--noris-user-bubble-background` | #000000 | #303030 | Light beobachtet; Dark INFERRED |
 | `--noris-user-bubble-foreground` | #ffffff | #ececec | Light beobachtet; Dark INFERRED |
 
-Schriftstack `Arial, Helvetica, sans-serif` ist rechtmäßig lokal verfügbar; Chromium/Linux nutzt den metrisch kompatiblen Liberation-Sans-Ersatz. Genaue Referenzschrift UNVERIFIED. Keine kopierten Fontdateien. Der erste Browservergleich zeigte zu breite Systemschrift: Die Referenzphrase „Ich würde“ misst≈96 Bildpixel; Liberation Sans22px misst95.38px, DejaVu Sans22px107.61px. Diese Messung begründet die schmalere Auswahl. Header, Sidebar, Body, Überschriften und Composer haben eigene zentral definierte Schriftmaße. Kleinere Viewports bekommen16px Nachrichtenschrift und entsprechend kleinere Geometrie, keine CSS-Transforms. Menüs/Fokus/Disabled sind eigene zugängliche Ausprägungen; ihre Referenzzustände sind nicht sichtbar.
+Schriftstack `Arial, Helvetica, sans-serif` ist rechtmäßig lokal verfügbar; Chromium/Linux nutzt den metrisch kompatiblen Liberation-Sans-Ersatz. Genaue Referenzschrift UNVERIFIED. Keine kopierten Fontdateien. Der erste Browservergleich zeigte zu breite Systemschrift: Die Referenzphrase „Ich würde“ misst ≈96 Bildpixel; Liberation Sans bei 22px misst 95,38px, DejaVu Sans bei 22px 107,61px. Diese Messung begründet die schmalere Auswahl. Header, Sidebar, Body, Überschriften und Composer haben eigene zentral definierte Schriftmaße. Kleinere Viewports bekommen 16px Nachrichtenschrift und entsprechend kleinere Geometrie, keine CSS-Transforms. Menüs/Fokus/Disabled sind eigene zugängliche Ausprägungen; ihre Referenzzustände sind nicht sichtbar.
