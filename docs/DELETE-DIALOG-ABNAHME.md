@@ -81,7 +81,7 @@ generisches `role=alert` ohne interne Fehlerdetails; Retry bleibt möglich.
 
 ## Layout und visuelle Referenz
 
-**BLOCKED: exakter Originalvergleich.** Für diesen Auftrag wurde kein
+**NOT TESTED: exakter Originalvergleich.** Für diesen Auftrag wurde kein
 Löschdialog-Screenshot mit 1701 × 863 Pixeln angehängt oder als Dateipfad benannt.
 Die vorhandene lokale Referenz zeigt eine andere allgemeine Chatansicht bei
 1920 × 975 Pixeln ohne Löschdialog. Sie wurde nicht kopiert oder veröffentlicht.
@@ -178,7 +178,7 @@ Kontrastfälle. Die reguläre Browser-Suite umfasst damit 111 Fälle.
   initialen Start `data-ready=true` nicht innerhalb der bestehenden Testfrist.
   Die reguläre CI besteht beide Fälle; die abschließende Wiederholung am lokalen
   Produktionsserver besteht ebenfalls (2/2). Keine Wartefrist wurde erhöht.
-- **BLOCKED:** Vergleich mit der nicht verfügbaren Löschdialog-Originalreferenz.
+- **NOT TESTED:** Vergleich mit der nicht verfügbaren Löschdialog-Originalreferenz. Der Auftraggeber hat die Integration nach grünen aktuellen Funktions- und synthetischen Screenshot-Tests ausdrücklich freigegeben; dieser Originalvergleich bleibt offen.
 - **NOT TESTED:** manuelle Screenreader-Abnahme und physische Geräte mit Notch.
 
 Reproduktion mit den vorhandenen Repository-Befehlen: `make lint`,
@@ -186,3 +186,9 @@ Reproduktion mit den vorhandenen Repository-Befehlen: `make lint`,
 Gezielt: `pnpm --dir frontend exec vitest run tests/unit/delete-dialog.spec.ts`
 und `pnpm --dir frontend exec playwright test delete-dialog.spec.ts`.
 Kein Noris-Key und keine echten LLM-Aufrufe sind für diese Tests erforderlich.
+
+## Erweiterte Integrationsfreigabe (2026-10-09)
+
+Der Auftraggeber hat ausdrücklich entschieden: „Nach grünen Tests integrieren; Originalvergleich bleibt offen“. Die fehlende Originalreferenz ist damit eine ausstehende manuelle Abnahme (**NOT TESTED**), kein eigenständig aufzuhebender Merge-Blocker. Vor der Integration müssen die aktuellen kombinierten Checks bestehen. Die frühere Draft-/Merge-Sperre in diesem Bericht beschreibt den Stand vor dieser Freigabe. Die Transport-/Modellinitialisierung aus PR #19 und die aktuellen Design-, Scroll- und Referenzänderungen aus PR #18 bleiben bei der Integration erhalten. Eine bestandene Pixel-Abnahme des fehlenden Originals wird weiterhin nicht behauptet.
+
+Die kombinierte Basis enthält die aktuellen Versionen aus main sowie PR #19. Der normale Branch-Merge erhält dessen `initializeChatTransport()` und Modellinitialisierung. Der anschließende Diff zur Transportbasis betrifft weiterhin ausschließlich Dialog-Implementierung, Dialogtests, vier synthetische Baselines und dieses Dokument; die zusätzliche Freigabedokumentation verändert kein Laufzeitverhalten.
