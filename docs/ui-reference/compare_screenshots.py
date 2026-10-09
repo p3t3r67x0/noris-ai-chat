@@ -1,4 +1,4 @@
-"""Compare equally sized screenshots; source files remain unchanged. Requires Pillow."""
+"""Create private local comparisons; partial redaction is not export-safe. Requires Pillow."""
 
 import argparse
 import hashlib
@@ -14,10 +14,29 @@ def main() -> None:
     parser.add_argument("noris", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument(
-        "--redact-reference-sidebar", action="store_true",
-        help="Mask only private title/account text in derived views of the supplied 1920x975 reference.",
+        "--redact-reference-sidebar",
+        action="store_true",
+        help="Partial sidebar masking only; conversation content remains private and is not export-safe.",
     )
     args = parser.parse_args()
+    local_root = (
+        Path(__file__).resolve().parents[2] / "docs/ui-reference/local-comparison"
+    )
+    if not args.output.resolve().is_relative_to(local_root.resolve()):
+        parser.error(
+            "Private comparisons must stay in the Git-excluded local-comparison directory."
+        )
+    output_names = (
+        "reference-layout-redacted.png",
+        "noris-reference.png",
+        "side-by-side.png",
+        "overlay.png",
+        "difference.png",
+        "comparison.json",
+    )
+    output_paths = {(args.output / name).resolve() for name in output_names}
+    if any(source.resolve() in output_paths for source in (args.reference, args.noris)):
+        parser.error("Output must not overwrite an input.")
     reference = Image.open(args.reference).convert("RGB")
     noris = Image.open(args.noris).convert("RGB")
     if reference.size != noris.size:
@@ -25,17 +44,33 @@ def main() -> None:
     masks = []
     if args.redact_reference_sidebar:
         if reference.size != (1920, 975):
-            parser.error("Reference text redaction requires the measured 1920x975 source.")
+            parser.error(
+                "Reference text redaction requires the measured 1920x975 source."
+            )
         draw = ImageDraw.Draw(reference)
-        title_rows = [(326, 339), (374, 387), (422, 435), (471, 483),
-                      (519, 532), (567, 580), (615, 628), (664, 676),
-                      (713, 725), (760, 773), (809, 821), (856, 869),
-                      (906, 918), (954, 966)]
+        title_rows = [
+            (326, 339),
+            (374, 387),
+            (422, 435),
+            (471, 483),
+            (519, 532),
+            (567, 580),
+            (615, 628),
+            (664, 676),
+            (713, 725),
+            (760, 773),
+            (809, 821),
+            (856, 869),
+            (906, 918),
+            (954, 966),
+        ]
         for index, (top, bottom) in enumerate(title_rows):
             rectangle = [86, top - 5, 395, bottom + 5]
             color = "#efefef" if index == 0 else "#fcfcfc"
             draw.rectangle(rectangle, fill=color)
-            masks.append({"rectangle": rectangle, "purpose": "private conversation title"})
+            masks.append(
+                {"rectangle": rectangle, "purpose": "private conversation title"}
+            )
         rectangle = [23, 935, 45, 949]
         draw.rectangle(rectangle, fill=reference.getpixel((25, 932)))
         masks.append({"rectangle": rectangle, "purpose": "account initials"})
