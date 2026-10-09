@@ -229,9 +229,8 @@ async def test_generated_titles_never_overwrite_manual(
     from noris_ai.chat.service import ChatService
 
     conversation = (await client.post("/api/v1/conversations", json={}, auth=AUTH)).json()
-    app = chat_app
-    service = cast(ChatService, app.state.chat_service)
-    owner = cast(EnvironmentSettings, app.state.chat_settings).chat_owner_id
+    service = cast(ChatService, chat_app.state.chat_service)
+    owner = cast(EnvironmentSettings, chat_app.state.chat_settings).chat_owner_id
 
     manual = await client.patch(
         f"/api/v1/conversations/{conversation['id']}",
@@ -251,3 +250,57 @@ async def test_generated_titles_never_overwrite_manual(
     generated = await client.get(f"/api/v1/conversations/{second['id']}", auth=AUTH)
     assert generated.json()["title"] == "KI Titel"
     assert generated.json()["titleSource"] == "generated"
+
+
+async def test_import_detects_same_count_content_conflict_and_keeps_drafts(
+    client: AsyncClient,
+) -> None:
+    payload = _tree_payload(uuid.uuid4())
+    assert (
+        await client.post("/api/v1/conversations/import", json=payload, auth=AUTH)
+    ).status_code == 200
+    messages = cast("list[dict[str, object]]", payload["messages"])
+    messages[1]["content"] = "Andere Antwort bei gleicher Nachrichtenanzahl"
+    response = await client.post("/api/v1/conversations/import", json=payload, auth=AUTH)
+    assert response.json()["conflicts"][0]["reason"] == "exists_with_different_data"
+    assert response.json()["draftsImported"] == 0
+
+
+async def test_patch_preserves_active_leaf_and_preferences_partial_update(
+    client: AsyncClient,
+) -> None:
+    payload = _tree_payload(uuid.uuid4())
+    await client.post("/api/v1/conversations/import", json=payload, auth=AUTH)
+    conversations = cast("list[dict[str, object]]", payload["conversations"])
+    path = f"/api/v1/conversations/{conversations[0]['id']}"
+    current = (await client.get(path, auth=AUTH)).json()
+    renamed = (
+        await client.patch(
+            path, json={"title": "Manuell", "version": current["version"]}, auth=AUTH
+        )
+    ).json()
+    assert renamed["activeLeafMessageId"] == current["activeLeafMessageId"]
+    await client.put(
+        "/api/v1/chat/preferences", json={"activeConversationId": current["id"]}, auth=AUTH
+    )
+    partial = await client.put(
+        "/api/v1/chat/preferences", json={"modelId": "fixture-alpha"}, auth=AUTH
+    )
+    assert partial.status_code == 200
+    assert partial.json()["activeConversationId"] == current["id"]
+    denied = await client.patch(
+        path,
+        json={"title": "Fremd", "version": renamed["version"]},
+        auth=AUTH,
+        headers={"Origin": "https://evil.example"},
+    )
+    assert denied.status_code == 403
+
+
+async def test_import_cycle_rolls_back_everything(client: AsyncClient) -> None:
+    payload = _tree_payload(uuid.uuid4())
+    messages = cast("list[dict[str, object]]", payload["messages"])
+    messages[0]["parentMessageId"] = messages[1]["id"]
+    response = await client.post("/api/v1/conversations/import", json=payload, auth=AUTH)
+    assert response.status_code == 422
+    assert (await client.get("/api/v1/conversations", auth=AUTH)).json()["conversations"] == []

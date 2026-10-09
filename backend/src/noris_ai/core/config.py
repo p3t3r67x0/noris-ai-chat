@@ -56,6 +56,8 @@ class Settings(BaseSettings):
     # Single-owner identity (Option A): server-side, never accepted from clients.
     chat_owner_id: uuid.UUID = Field(default_factory=lambda: uuid.UUID(int=1))
     chat_ws_ticket_ttl_seconds: float = Field(default=60, ge=5, le=300)
+    chat_disconnect_grace_seconds: float = Field(default=60, gt=0, le=300)
+    chat_ws_allowed_hosts: tuple[str, ...] = ()
     chat_ws_queue_size: int = Field(default=256, ge=16, le=4096)
     chat_ws_send_timeout_seconds: float = Field(default=15, gt=0, le=120)
     chat_ws_heartbeat_seconds: float = Field(default=30, ge=5, le=300)

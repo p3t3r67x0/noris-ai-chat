@@ -1,0 +1,1209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "client": {
+      "$defs": {
+        "CancelIncomingMessage": {
+          "additionalProperties": false,
+          "properties": {
+            "generationId": {
+              "format": "uuid",
+              "title": "Generationid",
+              "type": "string"
+            },
+            "type": {
+              "const": "chat.cancel",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "type",
+            "generationId"
+          ],
+          "title": "CancelIncomingMessage",
+          "type": "object"
+        },
+        "GenerateIncomingMessage": {
+          "additionalProperties": false,
+          "properties": {
+            "assistantMessageId": {
+              "format": "uuid",
+              "title": "Assistantmessageid",
+              "type": "string"
+            },
+            "attempt": {
+              "default": 1,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Attempt",
+              "type": "integer"
+            },
+            "content": {
+              "maxLength": 32000,
+              "minLength": 1,
+              "title": "Content",
+              "type": "string"
+            },
+            "conversationId": {
+              "format": "uuid",
+              "title": "Conversationid",
+              "type": "string"
+            },
+            "conversationVersion": {
+              "minimum": 1,
+              "title": "Conversationversion",
+              "type": "integer"
+            },
+            "editedFromMessageId": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Editedfrommessageid"
+            },
+            "inputMessageId": {
+              "format": "uuid",
+              "title": "Inputmessageid",
+              "type": "string"
+            },
+            "modelId": {
+              "maxLength": 200,
+              "title": "Modelid",
+              "type": "string"
+            },
+            "operation": {
+              "default": "generate",
+              "enum": [
+                "generate",
+                "continue"
+              ],
+              "title": "Operation",
+              "type": "string"
+            },
+            "parentMessageId": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Parentmessageid"
+            },
+            "requestId": {
+              "format": "uuid",
+              "title": "Requestid",
+              "type": "string"
+            },
+            "sourceAssistantMessageId": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sourceassistantmessageid"
+            },
+            "type": {
+              "const": "chat.generate",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "type",
+            "requestId",
+            "conversationId",
+            "inputMessageId",
+            "modelId",
+            "assistantMessageId",
+            "conversationVersion",
+            "content"
+          ],
+          "title": "GenerateIncomingMessage",
+          "type": "object"
+        },
+        "PingIncomingMessage": {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "chat.ping",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "type"
+          ],
+          "title": "PingIncomingMessage",
+          "type": "object"
+        },
+        "ResumeIncomingMessage": {
+          "additionalProperties": false,
+          "properties": {
+            "generationId": {
+              "format": "uuid",
+              "title": "Generationid",
+              "type": "string"
+            },
+            "lastReceivedSeq": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Lastreceivedseq",
+              "type": "integer"
+            },
+            "type": {
+              "const": "chat.resume",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "type",
+            "generationId"
+          ],
+          "title": "ResumeIncomingMessage",
+          "type": "object"
+        }
+      },
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GenerateIncomingMessage"
+        },
+        {
+          "$ref": "#/$defs/CancelIncomingMessage"
+        },
+        {
+          "$ref": "#/$defs/ResumeIncomingMessage"
+        },
+        {
+          "$ref": "#/$defs/PingIncomingMessage"
+        }
+      ]
+    },
+    "server": {
+      "$defs": {
+        "ConnectedEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "heartbeatSeconds": {
+              "title": "Heartbeatseconds",
+              "type": "integer"
+            },
+            "type": {
+              "const": "chat.connected",
+              "default": "chat.connected",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "type",
+            "heartbeatSeconds"
+          ],
+          "title": "ConnectedEvent",
+          "type": "object"
+        },
+        "ConversationResponse": {
+          "additionalProperties": false,
+          "properties": {
+            "activeLeafMessageId": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Activeleafmessageid"
+            },
+            "archivedAt": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Archivedat"
+            },
+            "createdAt": {
+              "format": "date-time",
+              "title": "Createdat",
+              "type": "string"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "lastMessageAt": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lastmessageat"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "titleSource": {
+              "enum": [
+                "fallback",
+                "generated",
+                "manual"
+              ],
+              "title": "Titlesource",
+              "type": "string"
+            },
+            "updatedAt": {
+              "format": "date-time",
+              "title": "Updatedat",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "titleSource",
+            "createdAt",
+            "updatedAt",
+            "archivedAt",
+            "version",
+            "lastMessageAt",
+            "activeLeafMessageId"
+          ],
+          "title": "ConversationResponse",
+          "type": "object"
+        },
+        "ConversationUpdatedEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "conversation": {
+              "$ref": "#/$defs/ConversationResponse"
+            },
+            "type": {
+              "const": "chat.conversation.updated",
+              "default": "chat.conversation.updated",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "type",
+            "conversation"
+          ],
+          "title": "ConversationUpdatedEvent",
+          "type": "object"
+        },
+        "ErrorEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "title": "Code",
+              "type": "string"
+            },
+            "message": {
+              "title": "Message",
+              "type": "string"
+            },
+            "requestId": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Requestid"
+            },
+            "type": {
+              "const": "chat.error",
+              "default": "chat.error",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "type",
+            "code",
+            "message",
+            "requestId"
+          ],
+          "title": "ErrorEvent",
+          "type": "object"
+        },
+        "GenerationCancelledEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "content": {
+              "title": "Content",
+              "type": "string"
+            },
+            "conversationId": {
+              "format": "uuid",
+              "title": "Conversationid",
+              "type": "string"
+            },
+            "generationId": {
+              "format": "uuid",
+              "title": "Generationid",
+              "type": "string"
+            },
+            "messageId": {
+              "format": "uuid",
+              "title": "Messageid",
+              "type": "string"
+            },
+            "seq": {
+              "minimum": 1,
+              "title": "Seq",
+              "type": "integer"
+            },
+            "type": {
+              "const": "chat.generation.cancelled",
+              "default": "chat.generation.cancelled",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "generationId",
+            "conversationId",
+            "messageId",
+            "seq",
+            "content",
+            "type"
+          ],
+          "title": "GenerationCancelledEvent",
+          "type": "object"
+        },
+        "GenerationCompletedEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "content": {
+              "title": "Content",
+              "type": "string"
+            },
+            "conversationId": {
+              "format": "uuid",
+              "title": "Conversationid",
+              "type": "string"
+            },
+            "generationId": {
+              "format": "uuid",
+              "title": "Generationid",
+              "type": "string"
+            },
+            "messageId": {
+              "format": "uuid",
+              "title": "Messageid",
+              "type": "string"
+            },
+            "seq": {
+              "minimum": 1,
+              "title": "Seq",
+              "type": "integer"
+            },
+            "type": {
+              "const": "chat.generation.completed",
+              "default": "chat.generation.completed",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "generationId",
+            "conversationId",
+            "messageId",
+            "seq",
+            "content",
+            "type"
+          ],
+          "title": "GenerationCompletedEvent",
+          "type": "object"
+        },
+        "GenerationDeltaEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "conversationId": {
+              "format": "uuid",
+              "title": "Conversationid",
+              "type": "string"
+            },
+            "delta": {
+              "title": "Delta",
+              "type": "string"
+            },
+            "generationId": {
+              "format": "uuid",
+              "title": "Generationid",
+              "type": "string"
+            },
+            "messageId": {
+              "format": "uuid",
+              "title": "Messageid",
+              "type": "string"
+            },
+            "seq": {
+              "minimum": 1,
+              "title": "Seq",
+              "type": "integer"
+            },
+            "type": {
+              "const": "chat.generation.delta",
+              "default": "chat.generation.delta",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "type",
+            "generationId",
+            "conversationId",
+            "messageId",
+            "seq",
+            "delta"
+          ],
+          "title": "GenerationDeltaEvent",
+          "type": "object"
+        },
+        "GenerationFailedEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "title": "Code",
+              "type": "string"
+            },
+            "content": {
+              "title": "Content",
+              "type": "string"
+            },
+            "conversationId": {
+              "format": "uuid",
+              "title": "Conversationid",
+              "type": "string"
+            },
+            "generationId": {
+              "format": "uuid",
+              "title": "Generationid",
+              "type": "string"
+            },
+            "message": {
+              "title": "Message",
+              "type": "string"
+            },
+            "messageId": {
+              "format": "uuid",
+              "title": "Messageid",
+              "type": "string"
+            },
+            "seq": {
+              "minimum": 1,
+              "title": "Seq",
+              "type": "integer"
+            },
+            "type": {
+              "const": "chat.generation.failed",
+              "default": "chat.generation.failed",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "generationId",
+            "conversationId",
+            "messageId",
+            "seq",
+            "content",
+            "type",
+            "code",
+            "message"
+          ],
+          "title": "GenerationFailedEvent",
+          "type": "object"
+        },
+        "GenerationIncompleteEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "content": {
+              "title": "Content",
+              "type": "string"
+            },
+            "conversationId": {
+              "format": "uuid",
+              "title": "Conversationid",
+              "type": "string"
+            },
+            "generationId": {
+              "format": "uuid",
+              "title": "Generationid",
+              "type": "string"
+            },
+            "messageId": {
+              "format": "uuid",
+              "title": "Messageid",
+              "type": "string"
+            },
+            "reason": {
+              "const": "output_limit",
+              "default": "output_limit",
+              "title": "Reason",
+              "type": "string"
+            },
+            "seq": {
+              "minimum": 1,
+              "title": "Seq",
+              "type": "integer"
+            },
+            "type": {
+              "const": "chat.generation.incomplete",
+              "default": "chat.generation.incomplete",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "generationId",
+            "conversationId",
+            "messageId",
+            "seq",
+            "content",
+            "type",
+            "reason"
+          ],
+          "title": "GenerationIncompleteEvent",
+          "type": "object"
+        },
+        "GenerationInterruptedEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "content": {
+              "title": "Content",
+              "type": "string"
+            },
+            "conversationId": {
+              "format": "uuid",
+              "title": "Conversationid",
+              "type": "string"
+            },
+            "generationId": {
+              "format": "uuid",
+              "title": "Generationid",
+              "type": "string"
+            },
+            "messageId": {
+              "format": "uuid",
+              "title": "Messageid",
+              "type": "string"
+            },
+            "seq": {
+              "minimum": 1,
+              "title": "Seq",
+              "type": "integer"
+            },
+            "type": {
+              "const": "chat.generation.interrupted",
+              "default": "chat.generation.interrupted",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "generationId",
+            "conversationId",
+            "messageId",
+            "seq",
+            "content",
+            "type"
+          ],
+          "title": "GenerationInterruptedEvent",
+          "type": "object"
+        },
+        "GenerationStartedEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "conversationId": {
+              "format": "uuid",
+              "title": "Conversationid",
+              "type": "string"
+            },
+            "generationId": {
+              "format": "uuid",
+              "title": "Generationid",
+              "type": "string"
+            },
+            "messageId": {
+              "format": "uuid",
+              "title": "Messageid",
+              "type": "string"
+            },
+            "modelId": {
+              "title": "Modelid",
+              "type": "string"
+            },
+            "seq": {
+              "title": "Seq",
+              "type": "integer"
+            },
+            "type": {
+              "const": "chat.generation.started",
+              "default": "chat.generation.started",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "type",
+            "generationId",
+            "conversationId",
+            "messageId",
+            "modelId",
+            "seq"
+          ],
+          "title": "GenerationStartedEvent",
+          "type": "object"
+        },
+        "HeartbeatEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "chat.heartbeat",
+              "default": "chat.heartbeat",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "type"
+          ],
+          "title": "HeartbeatEvent",
+          "type": "object"
+        },
+        "MessageCreatedEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "conversationId": {
+              "format": "uuid",
+              "title": "Conversationid",
+              "type": "string"
+            },
+            "message": {
+              "$ref": "#/$defs/MessageResponse"
+            },
+            "type": {
+              "const": "chat.message.created",
+              "default": "chat.message.created",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "type",
+            "conversationId",
+            "message"
+          ],
+          "title": "MessageCreatedEvent",
+          "type": "object"
+        },
+        "MessageResponse": {
+          "additionalProperties": false,
+          "properties": {
+            "content": {
+              "title": "Content",
+              "type": "string"
+            },
+            "continuationCount": {
+              "default": 0,
+              "title": "Continuationcount",
+              "type": "integer"
+            },
+            "conversationId": {
+              "format": "uuid",
+              "title": "Conversationid",
+              "type": "string"
+            },
+            "createdAt": {
+              "format": "date-time",
+              "title": "Createdat",
+              "type": "string"
+            },
+            "editedFromMessageId": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Editedfrommessageid"
+            },
+            "errorCode": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Errorcode"
+            },
+            "errorMessage": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Errormessage"
+            },
+            "generationId": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Generationid"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "modelId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Modelid"
+            },
+            "parentMessageId": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Parentmessageid"
+            },
+            "role": {
+              "enum": [
+                "user",
+                "assistant"
+              ],
+              "title": "Role",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "pending",
+                "streaming",
+                "completed",
+                "incomplete",
+                "cancelled",
+                "failed"
+              ],
+              "title": "Status",
+              "type": "string"
+            },
+            "updatedAt": {
+              "format": "date-time",
+              "title": "Updatedat",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "conversationId",
+            "parentMessageId",
+            "role",
+            "content",
+            "modelId",
+            "status",
+            "generationId",
+            "editedFromMessageId",
+            "createdAt",
+            "updatedAt"
+          ],
+          "title": "MessageResponse",
+          "type": "object"
+        },
+        "PongEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "chat.pong",
+              "default": "chat.pong",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "type"
+          ],
+          "title": "PongEvent",
+          "type": "object"
+        },
+        "ResumeAcceptedEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "generationId": {
+              "format": "uuid",
+              "title": "Generationid",
+              "type": "string"
+            },
+            "lastReceivedSeq": {
+              "title": "Lastreceivedseq",
+              "type": "integer"
+            },
+            "type": {
+              "const": "chat.resume.accepted",
+              "default": "chat.resume.accepted",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "type",
+            "generationId",
+            "lastReceivedSeq"
+          ],
+          "title": "ResumeAcceptedEvent",
+          "type": "object"
+        },
+        "ResumeSnapshotEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "content": {
+              "title": "Content",
+              "type": "string"
+            },
+            "conversationId": {
+              "format": "uuid",
+              "title": "Conversationid",
+              "type": "string"
+            },
+            "generationId": {
+              "format": "uuid",
+              "title": "Generationid",
+              "type": "string"
+            },
+            "lastSequence": {
+              "title": "Lastsequence",
+              "type": "integer"
+            },
+            "messageId": {
+              "format": "uuid",
+              "title": "Messageid",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "queued",
+                "running",
+                "completed",
+                "incomplete",
+                "cancelled",
+                "failed",
+                "interrupted"
+              ],
+              "title": "Status",
+              "type": "string"
+            },
+            "type": {
+              "const": "chat.resume.snapshot",
+              "default": "chat.resume.snapshot",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "type",
+            "generationId",
+            "conversationId",
+            "messageId",
+            "status",
+            "content",
+            "lastSequence"
+          ],
+          "title": "ResumeSnapshotEvent",
+          "type": "object"
+        },
+        "TitleUpdatedEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "conversationId": {
+              "format": "uuid",
+              "title": "Conversationid",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "titleSource": {
+              "title": "Titlesource",
+              "type": "string"
+            },
+            "type": {
+              "const": "chat.title.updated",
+              "default": "chat.title.updated",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "type",
+            "conversationId",
+            "title",
+            "titleSource"
+          ],
+          "title": "TitleUpdatedEvent",
+          "type": "object"
+        }
+      },
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ConnectedEvent"
+        },
+        {
+          "$ref": "#/$defs/MessageCreatedEvent"
+        },
+        {
+          "$ref": "#/$defs/GenerationStartedEvent"
+        },
+        {
+          "$ref": "#/$defs/GenerationDeltaEvent"
+        },
+        {
+          "$ref": "#/$defs/GenerationCompletedEvent"
+        },
+        {
+          "$ref": "#/$defs/GenerationIncompleteEvent"
+        },
+        {
+          "$ref": "#/$defs/GenerationFailedEvent"
+        },
+        {
+          "$ref": "#/$defs/GenerationCancelledEvent"
+        },
+        {
+          "$ref": "#/$defs/GenerationInterruptedEvent"
+        },
+        {
+          "$ref": "#/$defs/ConversationUpdatedEvent"
+        },
+        {
+          "$ref": "#/$defs/TitleUpdatedEvent"
+        },
+        {
+          "$ref": "#/$defs/ResumeAcceptedEvent"
+        },
+        {
+          "$ref": "#/$defs/ResumeSnapshotEvent"
+        },
+        {
+          "$ref": "#/$defs/ErrorEvent"
+        },
+        {
+          "$ref": "#/$defs/HeartbeatEvent"
+        },
+        {
+          "$ref": "#/$defs/PongEvent"
+        }
+      ]
+    }
+  },
+  "required": [
+    "client",
+    "server"
+  ],
+  "title": "NorisChatWebSocketV1",
+  "type": "object"
+}

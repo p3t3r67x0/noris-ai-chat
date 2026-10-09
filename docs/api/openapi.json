@@ -270,6 +270,18 @@
       "ConversationCreate": {
         "additionalProperties": false,
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
           "title": {
             "anyOf": [
               {
@@ -666,6 +678,19 @@
         "title": "FailedEvent",
         "type": "object"
       },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
       "HealthResponse": {
         "additionalProperties": false,
         "properties": {
@@ -796,10 +821,16 @@
         "additionalProperties": false,
         "properties": {
           "content": {
-            "maxLength": 32000,
-            "minLength": 1,
+            "maxLength": 1048576,
             "title": "Content",
             "type": "string"
+          },
+          "continuationCount": {
+            "default": 0,
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Continuationcount",
+            "type": "integer"
           },
           "conversationId": {
             "format": "uuid",
@@ -822,6 +853,30 @@
               }
             ],
             "title": "Editedfrommessageid"
+          },
+          "errorCode": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errorcode"
+          },
+          "errorMessage": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errormessage"
           },
           "id": {
             "format": "uuid",
@@ -865,6 +920,7 @@
               "pending",
               "streaming",
               "completed",
+              "incomplete",
               "cancelled",
               "failed"
             ],
@@ -1228,6 +1284,11 @@
             "title": "Content",
             "type": "string"
           },
+          "continuationCount": {
+            "default": 0,
+            "title": "Continuationcount",
+            "type": "integer"
+          },
           "conversationId": {
             "format": "uuid",
             "title": "Conversationid",
@@ -1249,6 +1310,28 @@
               }
             ],
             "title": "Editedfrommessageid"
+          },
+          "errorCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errorcode"
+          },
+          "errorMessage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errormessage"
           },
           "generationId": {
             "anyOf": [
@@ -1303,6 +1386,7 @@
               "pending",
               "streaming",
               "completed",
+              "incomplete",
               "cancelled",
               "failed"
             ],
@@ -1578,6 +1662,25 @@
         "title": "StartedEvent",
         "type": "object"
       },
+      "TicketResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "expiresInSeconds": {
+            "title": "Expiresinseconds",
+            "type": "number"
+          },
+          "ticketId": {
+            "title": "Ticketid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticketId",
+          "expiresInSeconds"
+        ],
+        "title": "TicketResponse",
+        "type": "object"
+      },
       "TimeoutPolicy": {
         "additionalProperties": false,
         "properties": {
@@ -1597,6 +1700,46 @@
           }
         },
         "title": "TimeoutPolicy",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
         "type": "object"
       }
     },
@@ -1724,6 +1867,52 @@
           }
         ],
         "summary": "List Drafts",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/api/v1/chat/drafts/new": {
+      "put": {
+        "operationId": "upsertNewChatDraft",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBasic": []
+          }
+        ],
+        "summary": "Upsert New Draft",
         "tags": [
           "Chat"
         ]
@@ -1964,6 +2153,32 @@
           }
         ],
         "summary": "Update Preferences",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/api/v1/chat/ws-ticket": {
+      "post": {
+        "operationId": "createChatWsTicket",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBasic": []
+          }
+        ],
+        "summary": "Ticket",
         "tags": [
           "Chat"
         ]

@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.security import HTTPBasicCredentials
 
 from noris_ai.chat.errors import ChatError
+from noris_ai.chat.generation import GenerationManager
 from noris_ai.chat.repository import UNCHANGED
 from noris_ai.chat.schemas import (
     ChatImportRequest,
@@ -81,7 +82,7 @@ async def create_conversation(
     access: ChatAccess,
 ) -> ConversationResponse:
     service, owner_id = access
-    return await service.create_conversation(owner_id, payload.title)
+    return await service.create_conversation(owner_id, payload.title, payload.id)
 
 
 @router.get(
@@ -111,6 +112,8 @@ async def update_conversation(
 ) -> ConversationResponse:
     service, owner_id = access
     fields = payload.model_fields_set
+    if len(fields - {"version"}) != 1:
+        raise ChatError("INVALID_INPUT", 422)
     if "title" in fields and payload.title is not None:
         return await service.rename_conversation(
             owner_id, conversation_id, payload.title, payload.version
@@ -135,8 +138,12 @@ async def update_conversation(
 async def delete_conversation(
     conversation_id: UUID,
     access: ChatAccess,
+    request: Request,
 ) -> None:
     service, owner_id = access
+    await cast(GenerationManager, request.app.state.chat_generations).cancel_conversation(
+        conversation_id
+    )
     await service.delete_conversation(owner_id, conversation_id)
 
 
@@ -181,6 +188,12 @@ async def list_drafts(
 ) -> DraftListResponse:
     service, owner_id = access
     return DraftListResponse(drafts=await service.list_drafts(owner_id))
+
+
+@router.put("/chat/drafts/new", operation_id="upsertNewChatDraft", response_model=DraftResponse)
+async def upsert_new_draft(payload: DraftUpdate, access: ChatAccess) -> DraftResponse:
+    service, owner_id = access
+    return await service.set_draft(owner_id, "__new__", payload.content)
 
 
 @router.get(

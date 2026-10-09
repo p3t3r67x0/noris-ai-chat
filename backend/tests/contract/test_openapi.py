@@ -23,6 +23,8 @@ def test_foundation_and_llm_endpoints_are_exposed() -> None:
         "/api/v1/conversations/{conversation_id}/draft",
         "/api/v1/conversations/{conversation_id}/messages",
         "/api/v1/chat/drafts",
+        "/api/v1/chat/drafts/new",
+        "/api/v1/chat/ws-ticket",
         "/api/v1/chat/preferences",
     }
     assert schema["paths"]["/api/v1/health/ready"]["get"]["responses"]["503"]["content"][
