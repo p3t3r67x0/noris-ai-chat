@@ -10,6 +10,7 @@ export interface ChatMessage {
   content: string
   status: MessageStatus
   createdAt: string
+  editedFromMessageId?: string
 }
 export type MessageRecords = Record<string, ChatMessage>
 export interface ChatRequest {
@@ -31,6 +32,7 @@ export interface ChatTransport {
   stream: (request: ChatRequest, signal: AbortSignal) => AsyncIterable<StreamEvent>
 }
 export const MAX_MESSAGE_LENGTH = 32_000
+export const NEW_CHAT_DRAFT = '__new__'
 export const isBusy = (status: GenerationStatus): boolean => status === 'submitting' || status === 'streaming'
 
 export function visiblePath(records: MessageRecords, conversationId: string, leafId: string | null): ChatMessage[] {
