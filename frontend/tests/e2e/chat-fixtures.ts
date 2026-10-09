@@ -31,7 +31,7 @@ export function referenceChat(): ChatSnapshot {
   for (const [index, conversation] of Object.values(snapshot.conversations.conversations).entries()) {
     conversation.title = index === 0 ? 'Fiktiver Tagesplan' : `Beispiel ${index + 1}`
   }
-  snapshot.messages['user-0']!.content = 'Erstelle einen frei erfundenen Tagesplan mit drei einfachen Schritten.'
+  snapshot.messages['user-0']!.content = 'Erstelle einen frei erfundenen Tagesplan mit drei einfachen Schritten und einem kurzen neutralen Ausblick.'
   snapshot.messages['assistant-0']!.content = `# Ein fiktiver Tagesplan mit drei einfachen Schritten für eine neutrale Demonstration
 
 Diese Darstellung verwendet ausschließlich **frei erfundene Beispieldaten**. Sie dient zur Prüfung von Lesebreite, Abständen und gut erreichbaren Bedienelementen.
@@ -44,9 +44,7 @@ Alle Bezeichnungen und Gesprächsinhalte dieser Ansicht wurden eigens für einen
 
 ## 1. Drei neutrale Schritte
 
-1. Erstelle einen Überblick über frei gewählte Tätigkeiten.
-2. Plane einen kurzen Zeitraum für eine kleine Aufgabe.
-3. Notiere einen sachlichen Rückblick und eine nächste Möglichkeit.`
+Erstelle zuerst einen Überblick, plane anschließend eine kurze Aufgabe und notiere zum Schluss einen sachlichen Rückblick. Die [zweite Beispielseite](https://example.com/plan) zeigt weitere erfundene Möglichkeiten für eine neutrale Demonstration ohne persönliche Angaben. Alle Angaben sind fiktiv.`
   return snapshot
 }
 
