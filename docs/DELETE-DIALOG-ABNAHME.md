@@ -1,5 +1,110 @@
 # Löschdialog: Implementierung und Abnahme
 
+## Aktuelle Finalisierung: 2026-10-09
+
+**Technische Abnahme: PASS. Vollständige Referenz-/Datenschutzabnahme: BLOCKED.**
+Die älteren Abschnitte unten dokumentieren frühere Stände; für den aktuellen
+Auftrag sind die folgenden Ergebnisse maßgeblich.
+
+### Tatsächliche GitHub-Abhängigkeiten und PR-Status
+
+Die benötigten Änderungen sind auf `main` vorhanden: PR #18 als
+`458c828315b2302fd2541679b0443817b7a9abb7`, PR #19 als
+`019617581258dac1ed9f028638ee4f5f702ca973`. PR #20 wurde auf `main` umgestellt.
+
+GitHub meldet PR #20 seit **2026-10-09, 09:06:55 UTC als MERGED**, durch
+`p3t3r67x0`, Merge-Commit `d10a1d5a4a914a900eae24349aedf6a79bb15a2f`.
+Dieser Merge erfolgte während der Prüfung extern. Die Finalisierungsrunde hat
+keinen PR-Merge ausgelöst. Der aktuelle Auftrag verlangte ausdrücklich keinen
+Merge und keine neue Merge-Freigabe wird aus früheren Integrationsnotizen abgeleitet.
+Ein geschlossener PR kann nicht mehr Ready for Review werden; der separate
+Berichts-Folge-PR bleibt Draft. Kein weiterer Merge ohne ausdrückliche Freigabe.
+
+### Visueller Vergleich
+
+**BLOCKED:** Der Auftraggeber meldet die Originalreferenz als verfügbar; in
+dieser Sitzung fehlen weiterhin deren lokaler Dateipfad beziehungsweise die
+tatsächliche Bildanlage. Der Pfad wurde abgefragt. Die überprüfte neuere lokale
+ChatGPT-Abbildung zeigt Einstellungen und keinen Löschdialog. Sie wurde nicht
+kopiert oder veröffentlicht und nicht als Löschdialogreferenz verwendet.
+
+Die Implementierungsmaße aus der Tabelle unten sind im aktuellen Produktionsbuild
+mit synthetischen Daten geprüft: 1701 × 863 Desktop-Viewport, 485 px Dialogbreite,
+26 px Radius, 24 px Padding, zentrierte Position, neutrale 35-Prozent-Abdunklung,
+24/30-px-Titel, 18/26-px-Beschreibung, rechte Pill-Buttons und weicher Schatten.
+Mobile bei 390 × 844: 358 px Breite; auch 320 px und lange HTML-artige Namen
+erzeugen keinen horizontalen Überlauf. Light/Dark und alle vier vorhandenen
+synthetischen Dialog-Goldens bestehen. Diese Prüfung ersetzt keinen Originalvergleich.
+
+### Mobile Sidebar: Ursache und behobene Abweichung
+
+**PASS: keine von PR #20 verursachte Regression.** Der unveränderte Basisstand
+`458c828` und PR #20 vor der Footer-Korrektur (`5b5b7d1`) wurden getrennt mit
+ihren gesperrten Abhängigkeiten gebaut. Ihre beiden mobilen Produktionsaufnahmen
+sind untereinander pixelgleich: **0 unterschiedliche Pixel** in beiden Themes.
+Gegen die bestehenden Goldens unterscheiden sich jeweils **545 / 446 Pixel**.
+Der Fehler besteht damit bereits im Basisstand.
+
+Das minifizierte CSS rundet die dimensionslosen Zeilenhöhen auf `1.42857` und
+`1.33333`. Dadurch entstehen andere Textpositionen/Rasterungen im Footer als bei
+den exakten Entwicklungswerten. Commit `0e04099` verwendet für Avatar/Kontolabel
+und Caption explizite zentrale Zeilenhöhen **20 / 16 px** bei den vorhandenen
+Schriftgrößen **14 / 12 px**. Die vorhandene Darstellung bleibt erhalten.
+**Keine Baseline, Assertion, Testauswahl oder Toleranz wurde geändert.**
+
+Lokal bestehen danach alle 20 Dialogfälle und beide vormals fehlerhaften
+Drawer-Goldens: **22/22**. Die vollständige Compose-Produktionssuite besteht
+**111/111**. Die früheren beiden FAIL-Ergebnisse bleiben historische Befunde;
+der neue Lauf belegt die Korrektur.
+
+### Vollständige Tests
+
+Geprüfter Laufzeitstand: `0e0409960f2a2414b8d49c2f5a959021e2c3b9c5`.
+[CI 37908234299](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37908234299)
+ist mit beiden Jobs `checks` und `compose-smoke` erfolgreich. Die Zahlen stammen
+aus den Jobprotokollen. Der Berichts-Folgecommit verändert nur dieses Dokument.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Frontend-Unit | **PASS**, 108 Tests |
+| Backend-Unit, Contracts und simulierte HTTP-Integration | **PASS**, 102 Tests |
+| PostgreSQL-Integration / Migrationen | **PASS**, 3 Tests und Migration |
+| Reguläre Desktop-/Mobile-Playwright-Suite | **PASS**, 111 Tests |
+| RealTransport mit lokalem LLM-Simulator | **PASS**, 6 Browserfälle |
+| Vollständige Playwright-/Screenshot-Suite über Compose/Caddy-Produktion | **PASS**, 111 Tests |
+| Dialog/Drawer zusätzlich am isolierten lokalen Produktionsbuild | **PASS**, 22 Tests |
+| Ruff, Formatprüfung und ESLint | **PASS** |
+| Python-, Vue-, Test- und Tools-Typecheck | **PASS** |
+| API-Drift | **PASS**, Verträge aktuell |
+| Backend-Paket und Nuxt-Produktionsbuild | **PASS** |
+| Docker-Smoke, Same-Origin-Routing und DB-Berechtigungen | **PASS** |
+| Originalvergleich des Löschdialogs | **BLOCKED**, Referenzpfad fehlt |
+| Manuelle Screenreader-/Notch-Geräte-Abnahme | **NOT TESTED** |
+| Neue echte kostenpflichtige Provider-Aufrufe | **NOT TESTED**, für diese UI-Prüfung nicht erforderlich |
+
+330 reguläre CI-Testausführungen und 111 zusätzliche Produktionsausführungen
+werden getrennt ausgewiesen; die 22 lokalen Fälle sind zusätzliche Wiederholungen.
+Mock-Tests bleiben erhalten. Die aktuelle Reproduktion umfasst zusätzlich
+`make python-typecheck` und nach Start eines isolierten Mock-Compose-Stacks
+`make test-e2e-production`. Alle Testdaten und Fixture-Zugangsdaten sind synthetisch.
+
+### Datenschutz und verbleibende Einschränkungen
+
+**BLOCKED, bestätigter Altbestand:** Der in
+[HISTORIENBEREINIGUNG.md](ui-reference/HISTORIENBEREINIGUNG.md) beschriebene alte
+private Referenz-Blob antwortet auch bei einer anonymen HTTP-HEAD-Prüfung weiterhin
+mit **200**. Dabei wurden keine Bilddaten heruntergeladen. Die Bereinigung der
+aktuellen Dateien ersetzt nicht den offenen GitHub-Support-Takedown des Altbestands.
+
+Diese Runde hat keine privaten Originale committet, keine privaten Vergleichsbilder
+veröffentlicht, keine History-Rewrites ausgeführt und keinen Support-Kontakt
+versendet. Die Originalreferenz muss lokal benannt und bei identischer Auflösung
+geprüft werden; ein abgeschlossener Support-Takedown benötigt einen eigenen Nachweis.
+Die frühere Integrationsfreigabe bei offenem Originalvergleich ersetzt nicht die
+Pflichtprüfungen des aktuellen Finalisierungsauftrags.
+
+## Historischer Implementierungsbericht
+
 Stand: 2026-10-09. Branch: `feat/delete-dialog-fidelity`.
 
 ## Bestand und Abhängigkeiten
