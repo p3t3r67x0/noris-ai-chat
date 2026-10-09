@@ -52,6 +52,8 @@ test('destructive hover and active states retain AA text contrast in both themes
     await start(page, theme)
     await page.evaluate(selected => { localStorage.setItem('noris-ai-theme', selected) }, theme)
     await page.reload()
+    await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+    await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /dark/ : /light/)
     const dialog = await openDelete(page)
     const remove = dialog.getByRole('button', { name: 'Chat löschen', exact: true })
     const assertContrast = async () => {
