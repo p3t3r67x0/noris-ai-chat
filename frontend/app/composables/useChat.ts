@@ -6,7 +6,7 @@ import { MAX_MESSAGE_LENGTH, visiblePath } from '../lib/chat/types'
 import type { ChatMessage, ChatTransport, MessageRecords } from '../lib/chat/types'
 import type { ChatModelId } from './useModelSelection'
 import { useChatDrafts } from './useChatDrafts'
-import { siblingVariants, variantLeaf } from '../lib/chat/branches'
+import { indexSiblingVariants, siblingVariants, variantLeaf } from '../lib/chat/branches'
 import { CHAT_STORAGE_KEY, parseChatSnapshot } from '../lib/chat/persistence'
 import type { ChatSnapshot } from '../lib/chat/persistence'
 import { CONVERSATIONS_STORAGE_KEY, parseConversationSnapshot } from '../lib/chat/conversations'
@@ -111,7 +111,8 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     drafts.records.value = saved.drafts
     preferredLeaves.value = saved.preferredLeaves
   }
-  const variants = (messageId: string) => siblingVariants(messages.value, messageId)
+  const variantIndex = computed(() => indexSiblingVariants(messages.value))
+  const variants = (messageId: string): readonly ChatMessage[] => variantIndex.value.get(messageId) ?? []
   return { conversations, messages, visible, stream, generatingConversationId, drafts, preferredLeaves, send, retry, newChat, remove, selectVariant, regenerate, edit, variants, snapshot, hydrate }
 }
 

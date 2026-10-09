@@ -1,6 +1,23 @@
 import { visiblePath } from './types'
 import type { ChatMessage, MessageRecords } from './types'
 
+/** Index only branch metadata; streamed content does not invalidate membership. */
+export function indexSiblingVariants(records: MessageRecords): ReadonlyMap<string, readonly ChatMessage[]> {
+  const groups = new Map<string, ChatMessage[]>()
+  for (const message of Object.values(records)) {
+    const key = JSON.stringify([message.conversationId, message.parentMessageId, message.role])
+    const siblings = groups.get(key) ?? []
+    siblings.push(message)
+    groups.set(key, siblings)
+  }
+  const index = new Map<string, readonly ChatMessage[]>()
+  for (const siblings of groups.values()) {
+    siblings.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    for (const message of siblings) index.set(message.id, siblings)
+  }
+  return index
+}
+
 export function siblingVariants(records: MessageRecords, messageId: string): ChatMessage[] {
   const selected = Object.hasOwn(records, messageId) ? records[messageId] : undefined
   if (!selected) return []

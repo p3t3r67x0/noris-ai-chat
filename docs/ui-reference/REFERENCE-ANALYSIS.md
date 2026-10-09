@@ -22,7 +22,7 @@ Stand: 2026-10-09. Verbindliche visuelle Quelle ist der vom Auftraggeber bereitg
 | Chatlistenzeile | ≈48 hoch, aktive Fläche x76–436 | OBSERVED |
 | Nutzernachricht | rechts, x≈982–1682, schwarz/weiß, Radius ≈28 | OBSERVED; obere Kante abgeschnitten |
 | Fließtext | ≈22, Zeilenabstand ≈34 | INFERRED aus Raster/Glyphen |
-| H1 | ≈30, Zeilenabstand ≈42, fett | INFERRED |
+| H1 | ≈32, Zeilenabstand ≈42, fett | INFERRED; nach Glyphen-/Umbruchvergleich korrigiert |
 | Sidebartext / Composertext | ≈20 / ≈22 | INFERRED |
 
 RGB-Häufigkeiten in unverdeckten Flächen: Leiste `(0,0,68,975)` → **#f9f9f9**, Sidebar `(68,0,443,975)` → **#fcfcfc**, Arbeitsfläche `(445,65,1919,875)` → **#fcfcfc**, Composer `(690,890,1600,930)` → **#ffffff**. Sichtbarer Haupttext **#0d0d0d**, Sidebartext **#313131**, aktive Fläche **#efefef**; sekundärer Text **#8f8f8f** ist gemessen, wird aus Kontrastgründen für lesbare UI-Texte dunkler umgesetzt. Weitere Farben siehe DESIGN-TOKENS.md.
@@ -44,7 +44,7 @@ Auditiert: README, PLAN, Etappe-0/1-Berichte, Nuxt-Konfiguration, Paketmanifest,
 | Vier leere Screenshot-Baselines, kein Vergleich1920×975 | hoch | Zustands-/Theme-Matrix, Referenzszene, Overlay/Differenz, Browsergeometrie |
 | Kein100/500-Nachrichtenprofil | mittel | Deterministische Fixtures und Browser-Performance-Artefakt |
 
-Reihenfolge: (1) Tokens/Layout, (2) Sidebar/Header, (3) Composer/Typografie, (4) Fokus/Scroll, (5) Browser/visuelle Nachweise, (6) Korrektur und Dokumentation. Dedizierter Folge-PR `feat/chatgpt-ui-fidelity` auf `feat/chat-ux-polish`; keine Umverteilung auf die ursprünglichen PRs und kein automatisches Merge.
+Reihenfolge: (1) Tokens/Layout, (2) Sidebar/Header, (3) Composer/Typografie, (4) Fokus/Scroll, (5) Browser/visuelle Nachweise, (6) Korrektur und Dokumentation. Dedizierter Folge-PR `feat/chatgpt-ui-fidelity` auf `feat/chat-ux-polish`; keine Umverteilung auf die ursprünglichen PRs und kein automatisches Merge. PR #17 wurde nach Prüfung seines grünen Heads und der Browserbilder für Review freigegeben; er bleibt ungemergt. Die neue Referenzabnahme liegt in PR #18.
 
 ## APIs und Primärquellen
 
