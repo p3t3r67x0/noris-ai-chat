@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import cast
@@ -6,13 +7,18 @@ from uuid import UUID, uuid4
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from starlette.exceptions import HTTPException
 
 from noris_ai import __version__
+from noris_ai.api.v1.conversations import router as conversations_router
 from noris_ai.api.v1.health import router as health_router
 from noris_ai.api.v1.llm import llm_error
 from noris_ai.api.v1.llm import router as llm_router
+from noris_ai.chat.errors import ChatError
+from noris_ai.chat.repository import ChatRepository
+from noris_ai.chat.service import ChatService
 from noris_ai.core.config import Settings
 from noris_ai.core.middleware import RequestContextMiddleware
 from noris_ai.core.schemas import ErrorDetail, ErrorResponse
@@ -22,6 +28,8 @@ from noris_ai.llm.gateway import LLMGateway
 from noris_ai.llm.limits import LLMRequestLimitMiddleware
 from noris_ai.llm.openai_compatible import OpenAICompatibleProvider
 from noris_ai.llm.provider import LLMProvider
+
+logger = logging.getLogger(__name__)
 
 
 def create_app(
@@ -45,6 +53,18 @@ def create_app(
         if llm_provider is None and config.llm_provider != "disabled":
             llm_provider = OpenAICompatibleProvider(config)
         application.state.llm_gateway = LLMGateway(config, llm_provider)
+        database = async_sessionmaker(engine, expire_on_commit=False)
+        repository = ChatRepository(database)
+        application.state.chat_settings = config
+        application.state.chat_database = database
+        application.state.chat_repository = repository
+        application.state.chat_service = ChatService(repository)
+        # Startup recovery: generations orphaned by a restart are never
+        # reported as completed.
+        try:
+            await repository.mark_running_generations_interrupted(config.chat_owner_id)
+        except SQLAlchemyError:
+            logger.warning("Could not mark interrupted generations at startup")
         try:
             yield
         finally:
@@ -85,12 +105,29 @@ def create_app(
     async def internal_error(request: Request, exc: Exception) -> JSONResponse:
         return error_response(request, 500, "INTERNAL_ERROR", "An internal error occurred")
 
+    async def chat_error(request: Request, exc: Exception) -> JSONResponse:
+        error = cast(ChatError, exc)
+        headers = {"WWW-Authenticate": 'Basic realm="noris-ai-chat"'} if error.status == 401 else {}
+        return JSONResponse(
+            status_code=error.status,
+            headers=headers,
+            content=ErrorResponse(
+                error=ErrorDetail(
+                    code=error.code,
+                    message=error.message,
+                    request_id=cast(UUID, request.state.request_id),
+                )
+            ).model_dump(mode="json"),
+        )
+
     application.add_exception_handler(HTTPException, http_error)
     application.add_exception_handler(RequestValidationError, validation_error)
     application.add_exception_handler(Exception, internal_error)
     application.add_exception_handler(LLMError, llm_error)
+    application.add_exception_handler(ChatError, chat_error)
     application.include_router(health_router, prefix="/api/v1")
     application.include_router(llm_router, prefix="/api/v1")
+    application.include_router(conversations_router, prefix="/api/v1")
     return application
 
 
