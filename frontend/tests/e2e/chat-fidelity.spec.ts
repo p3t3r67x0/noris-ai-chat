@@ -83,7 +83,7 @@ test('search, deletion and persisted navigation remain keyboard usable', async (
   await page.getByRole('menuitem', { name: 'Löschen', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Chat löschen?', exact: true })
   await expect(dialog).toBeVisible()
-  await dialog.getByRole('button', { name: 'Löschen', exact: true }).focus()
+  await dialog.getByRole('button', { name: 'Chat löschen', exact: true }).focus()
   await page.keyboard.press('Enter')
   await expect(dialog).not.toBeVisible()
   await page.keyboard.press('Control+k')
