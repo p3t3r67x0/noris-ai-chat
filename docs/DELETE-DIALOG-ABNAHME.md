@@ -4,8 +4,12 @@ Stand: 2026-10-09. Branch: `feat/delete-dialog-fidelity`.
 
 ## Bestand und Abhängigkeiten
 
-Basis ist der offene UI-PR #18 (`feat/chatgpt-ui-fidelity`), Commit
-`6a81a48a272d919afd894654f26d50751b3fc5e3`. Dieser enthält das bestehende
+Review-Basis ist der offene UI-PR #18 (`feat/chatgpt-ui-fidelity`), zuletzt geprüft
+bei `b9cf41c54c6b1ed4b8379ff860bfd3c1ce214326`. Die Dialogarbeit begann auf
+`6a81a48a272d919afd894654f26d50751b3fc5e3`. Während der Abnahme wurde der
+Dialog-Branch extern aktualisiert und übernahm die bereinigten Referenz-Fixtures
+samt synthetischem Golden aus PR #18. Die Dialogimplementierung blieb dabei
+identisch. Dieser UI-Stand enthält das bestehende
 Sidebar-Kontextmenü, Archiv und die lokale Konversationsverwaltung und basiert
 auf PR #17, dahinter #16, #15 und #14. PR #19 mit der LLM-Anbindung ist unabhängig.
 Dieser Branch verändert weder Provider noch Nachrichtenmodell, Persistenzformat,
@@ -18,6 +22,12 @@ Hintergrund-Shortcuts während des Dialogs. `tests/unit/delete-dialog.spec.ts` u
 `tests/e2e/delete-dialog.spec.ts` ergänzen die Abnahme. Im vorhandenen
 `chat-fidelity.spec.ts` ändert sich nur der Buttonname von „Löschen“ zu „Chat löschen“.
 Hinzu kommen vier synthetische PNG-Baselines und dieses Dokument, insgesamt elf Dateien.
+Im GitHub-PR-Diff erscheint zusätzlich das bereits in PR #18 bereinigte
+`reference-reference-light.png`; sein Inhalt ist identisch mit der Datei in der
+aktuellen Review-Basis. Dieses Bild stammt aus der parallelen Referenzbereinigung,
+nicht aus dem fehlenden Löschdialog-Original. Ein vorgeschlagener lokaler
+Branch-Merge wurde von der automatischen Freigabeprüfung unter Bezug auf
+„Keine eigenmächtigen Merges“ abgelehnt und nicht ausgeführt.
 
 Vorher öffnete `ChatSidebar` ein generisches `UModal`, zeigte den Chatnamen in
 einem separaten Body und emittierte `delete`. `ChatWorkspace` leitete das Ereignis
@@ -137,6 +147,8 @@ Produktionsbuild mit allen 18 Dialog-Browserfällen geprüft.
 
 - **PASS:** Nuxt-UI-MCP-Abfrage und Abgleich mit 4.11.3.
 - **PASS:** 83 Frontend-Unit-Tests, darunter neun neue Dialogfälle.
+- **PASS:** auf dem aktualisierten Branch insgesamt 85 Frontend-Unit-Tests;
+  zwei weitere Fälle stammen aus der parallelen synthetischen Referenzbereinigung.
 - **PASS:** 38 Backend-Unit-/Contract-Tests; drei DB-Integrationstests separat.
 - **PASS:** elf bestehende Prüfungen des Referenz-Bereinigungstools, synthetische Fixtures.
 - **PASS:** 18 neue Playwright-Fälle auf dem Produktionsbuild, einschließlich
