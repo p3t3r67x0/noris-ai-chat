@@ -22,6 +22,10 @@ In Umsetzung. Lokal sind ESLint, striktes Nuxt-/Vue-TypeScript und der Nuxt-Prod
 
 Lokales Playwright: **BLOCKED**, da der Sandbox-Prozess nicht an `127.0.0.1:8000` binden kann. Lokale PostgreSQL-Integration: **BLOCKED**, da keine separate `NORIS_TEST_DATABASE_URL` mit `_test` bereitgestellt ist; die drei Fixtures brechen ohne Datenbankmutation ab. Die CI führt beide Prüfungen mit eigener Testdatenbank aus.
 
-## PR 3–4
+## PR 3: Verzweigungen und Entwürfe
 
-Noch nicht begonnen. Ergebnisse, Screenshot-Artefakte und offene Risiken folgen jeweils mit dem tatsächlich geprüften Stand.
+Implementiert: unveränderliches Editieren, Antwortvarianten, Wiederherstellung alter Fortsetzungen, Entwürfe und validierte gemeinsame lokale Persistenz. Zusätzliche Unit-Fälle prüfen Transporthistorien, Isolation, Abbruch beim Reload sowie beschädigte, zyklische und fremde Parent-Referenzen. Drei neue Browserfälle laufen auf Desktop und Mobilgerät. Remote-Nachweise werden nach dem tatsächlichen Lauf ergänzt.
+
+## PR 4: UX und visuelle Nachweise
+
+Folgt nach PR 3. Das gewünschte Positionieren der gesendeten Frage unter dem Header gehört zu dieser Etappe des Frontends.

@@ -21,7 +21,7 @@ defineExpose({ focus: () => prompt.value?.textareaRef?.focus({ preventScroll: tr
   <div class="composer-container">
     <UChatPrompt
       ref="prompt" v-model="text" aria-label="Nachricht" placeholder="Frag noris AI …" :autofocus="false" :rows="2"
-      :maxrows="8" class="chat-composer" :ui="{ base: 'text-base leading-6 max-h-48 overflow-y-auto', footer: 'items-center' }"
+      :maxrows="8" :maxlength="MAX_MESSAGE_LENGTH * 2" class="chat-composer" :ui="{ base: 'text-base leading-6 max-h-48 overflow-y-auto', footer: 'items-center' }"
       @submit="submit"
     >
       <template #footer>
