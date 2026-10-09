@@ -5,7 +5,8 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-BASELINE_REVISION = "0001_foundation"
+# The application requires the chat persistence schema; readiness follows head.
+LATEST_REVISION = "0002_chat_persistence"
 
 
 class ReadinessProbe(Protocol):
@@ -26,7 +27,7 @@ class DatabaseReadinessProbe:
                     .scalars()
                     .all()
                 )
-                return list(revisions) == [BASELINE_REVISION]
+                return list(revisions) == [LATEST_REVISION]
         except (SQLAlchemyError, OSError, TimeoutError):
             # Database exceptions can contain credentials or infrastructure details.
             return False

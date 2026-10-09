@@ -8,6 +8,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from noris_ai.core.config import Settings
+from noris_ai.db.readiness import LATEST_REVISION
 from noris_ai.main import create_app
 
 pytestmark = pytest.mark.integration
@@ -74,4 +75,4 @@ def test_unexpected_migration_revision_fails_readiness(migration_config: Config)
     try:
         assert health_status("/api/v1/health/ready") == 503
     finally:
-        asyncio.run(modify_revision("0001_foundation"))
+        asyncio.run(modify_revision(LATEST_REVISION))
