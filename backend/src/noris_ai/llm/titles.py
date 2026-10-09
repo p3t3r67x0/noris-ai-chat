@@ -52,7 +52,7 @@ def validate_title(raw: str) -> str:
         or re.match(
             r"^(?:wie|warum|was|welche|how|why|what|hello|hallo|hi|here|hier)\b", title, re.I
         )
-        or title.casefold()
+        or " ".join(title.split()).casefold()
         in {
             "unterhaltung",
             "neue unterhaltung",

@@ -64,6 +64,7 @@ class TitleProvider:
         ("Wie Docker eingerichtet wird", None),
         ("Hello Docker", None),
         ("Neue Unterhaltung", None),
+        ("Neue  Unterhaltung", None),
         ("Docker 😀", None),
         ("Docker\u202eDNS", None),
         ("Docker https://example.com/private", None),
