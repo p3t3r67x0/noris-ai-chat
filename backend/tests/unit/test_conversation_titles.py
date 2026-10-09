@@ -231,7 +231,7 @@ def chat_request() -> ChatRequest:
     "limit", ["llm_max_concurrent", "llm_requests_per_minute", "llm_daily_token_budget"]
 )
 async def test_titles_share_chat_admission_and_budget(llm_config: Settings, limit: str) -> None:
-    config = llm_config.model_copy(update={limit: 1 if limit != "llm_daily_token_budget" else 1200})
+    config = llm_config.model_copy(update={limit: 1 if limit != "llm_daily_token_budget" else 1800})
     provider = TitleProvider()
     gateway = LLMGateway(config, provider)
     chat = chat_request()

@@ -15,6 +15,8 @@ from noris_ai.llm.titles import TitleInstruction
 class ProviderDelta(BaseModel):
     model_config = ConfigDict(strict=True)
     content: str | None = None
+    reasoning_content: str | None = None
+    reasoning: str | None = None
     role: Literal["assistant"] | None = None
     tool_calls: list[object] | None = None
     function_call: dict[str, object] | None = None
@@ -124,7 +126,7 @@ class OpenAICompatibleProvider:
                         delta = choice.delta.content
                         if delta:
                             text_length += len(delta.encode("utf-16-le")) // 2
-                            if text_length > 32_000:
+                            if text_length > self._config.llm_max_response_chars:
                                 raise LLMError("OUTPUT_LIMIT")
                             yield delta
                         if choice.finish_reason == "length":

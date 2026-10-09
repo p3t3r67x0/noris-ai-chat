@@ -1,8 +1,10 @@
 import asyncio
 from collections import deque
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncGenerator, AsyncIterator, Sequence
 from datetime import UTC, datetime
 from time import monotonic
+
+import anyio
 
 from noris_ai.core.config import Settings
 from noris_ai.llm.errors import LLMError
@@ -34,6 +36,14 @@ class LLMGateway:
         self._title_attempts: set[str] = set()
 
     def reserve(self, request: ChatRequest) -> None:
+        for message in request.messages:
+            limit = (
+                self.config.llm_max_message_chars
+                if message.role == "user"
+                else self.config.llm_max_response_chars
+            )
+            if len(message.content.encode("utf-16-le")) // 2 > limit:
+                raise LLMError("REQUEST_TOO_LARGE", 413)
         self._reserve(request.generationId, request.modelId, request.messages)
 
     def _reserve(
@@ -53,7 +63,13 @@ class LLMGateway:
             model = model.model_copy(
                 update={"max_output_tokens": min(output_limit, model.max_output_tokens)}
             )
-        estimate = sum(len(m.content.encode("utf-8")) + 32 for m in messages) + 64
+        estimate = (
+            sum(len(m.content.encode("utf-8")) + 32 for m in messages)
+            + 64
+            + self.config.llm_context_safety_tokens
+        )
+        # Charge the full generated-token cap, including invisible reasoning, even
+        # on Stop, length, failure or retry. Never refund based on visible text.
         reservation = estimate + model.max_output_tokens
         if reservation > model.context_window:
             raise LLMError("CONTEXT_LIMIT", 413)
@@ -128,9 +144,10 @@ class LLMGateway:
     def release(self, generation_id: str) -> None:
         self._active.discard(generation_id)
 
-    async def stream(self, request: ChatRequest) -> AsyncIterator[bytes]:
+    async def stream(self, request: ChatRequest) -> AsyncGenerator[bytes]:
         seq = 1
-        yield self._encode(StartedEvent(seq=seq))
+        started = self._encode(StartedEvent(seq=seq))
+        yield started
         provider = self.provider
         if provider is None:
             yield self._encode(
@@ -140,16 +157,37 @@ class LLMGateway:
         model = next(m for m in self.config.llm_models if m.id == request.modelId)
         iterator = provider.stream(request.messages, model)
         text_length = 0
+        stream_bytes = len(started)
         has_text = False
+        pending: asyncio.Future[str] | None = None
         try:
             async with asyncio.timeout(self.config.llm_total_timeout_seconds):
-                async for delta in iterator:
+                while True:
+                    pending = asyncio.ensure_future(anext(iterator))
+                    while not pending.done():
+                        done, _ = await asyncio.wait(
+                            {pending}, timeout=self.config.llm_heartbeat_seconds
+                        )
+                        if not done:
+                            heartbeat = b": keepalive\n\n"
+                            stream_bytes += len(heartbeat)
+                            if stream_bytes + 512 > self.config.llm_max_stream_bytes:
+                                raise LLMError("OUTPUT_LIMIT")
+                            yield heartbeat
+                    try:
+                        delta = pending.result()
+                    except StopAsyncIteration:
+                        break
                     text_length += len(delta.encode("utf-16-le")) // 2
                     has_text = has_text or bool(delta.strip())
-                    if text_length > 32_000:
+                    if text_length > self.config.llm_max_response_chars:
+                        raise LLMError("OUTPUT_LIMIT")
+                    encoded = self._encode(DeltaEvent(seq=seq + 1, delta=delta))
+                    stream_bytes += len(encoded)
+                    if stream_bytes + 512 > self.config.llm_max_stream_bytes:
                         raise LLMError("OUTPUT_LIMIT")
                     seq += 1
-                    yield self._encode(DeltaEvent(seq=seq, delta=delta))
+                    yield encoded
             if not has_text:
                 raise LLMError("INVALID_RESPONSE")
             yield self._encode(CompletedEvent(seq=seq + 1))
@@ -162,11 +200,18 @@ class LLMGateway:
             error = LLMError("INTERNAL_ERROR", 500)
             yield self._encode(FailedEvent(seq=seq + 1, code=error.code, message=error.message))
         finally:
-            # Closing the iterator closes the upstream HTTP response even after disconnect.
-            close = getattr(iterator, "aclose", None)
-            if close is not None:
-                await close()
-            self.release(request.generationId)
+            # ASGI disconnect uses level cancellation; cleanup must finish even
+            # while the response task group is cancelled.
+            with anyio.CancelScope(shield=True):
+                try:
+                    if pending is not None:
+                        pending.cancel()
+                        await asyncio.gather(pending, return_exceptions=True)
+                    close = getattr(iterator, "aclose", None)
+                    if close is not None:
+                        await close()
+                finally:
+                    self.release(request.generationId)
 
     @staticmethod
     def _encode(event: StartedEvent | DeltaEvent | CompletedEvent | FailedEvent) -> bytes:

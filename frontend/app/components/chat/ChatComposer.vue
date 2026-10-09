@@ -1,15 +1,15 @@
 <script setup lang="ts">
+import { CHAT_LIMITS } from '../../lib/chat/limits'
 import { computed, ref } from 'vue'
 import { CHAT_MODELS } from '../../composables/useModelSelection'
 import type { ChatModelId } from '../../composables/useModelSelection'
-import { MAX_MESSAGE_LENGTH } from '../../lib/chat/types'
 
 const props = defineProps<{ busy: boolean, streaming: boolean, cancellationRequested: boolean }>()
 const text = defineModel<string>({ required: true })
 const model = defineModel<ChatModelId>('model', { required: true })
 const emit = defineEmits<{ send: [text: string], stop: [] }>()
 const prompt = ref<{ textareaRef: HTMLTextAreaElement | undefined } | null>(null)
-const tooLong = computed(() => text.value.length > MAX_MESSAGE_LENGTH)
+const tooLong = computed(() => text.value.length > CHAT_LIMITS.max_message_chars)
 const models = CHAT_MODELS.map(item => ({ ...item, label: item.label.replace('noris ', '') }))
 function submit(): void {
   if (props.busy || !text.value.trim() || tooLong.value) return
@@ -22,7 +22,7 @@ defineExpose({ focus: () => prompt.value?.textareaRef?.focus({ preventScroll: tr
   <div class="composer-container">
     <UChatPrompt
       ref="prompt" v-model="text" aria-label="Nachricht" placeholder="Frag noris AI …" :autofocus="false" :rows="1"
-      variant="naked" color="neutral" :maxrows="8" :maxlength="MAX_MESSAGE_LENGTH * 2" class="chat-composer"
+      variant="naked" color="neutral" :maxrows="8" :maxlength="CHAT_LIMITS.max_message_chars * 2" class="chat-composer"
       :ui="{ root: 'gap-0 p-0', base: 'composer-input overflow-y-auto', footer: 'composer-toolbar' }"
       @submit="submit"
     >
@@ -38,6 +38,6 @@ defineExpose({ focus: () => prompt.value?.textareaRef?.focus({ preventScroll: tr
         />
       </template>
     </UChatPrompt>
-    <p v-if="tooLong" role="status" class="mt-2 text-center text-xs text-error">Die Nachricht darf höchstens {{ MAX_MESSAGE_LENGTH.toLocaleString('de-DE') }} Zeichen enthalten.</p>
+    <p v-if="tooLong" role="status" class="mt-2 text-center text-xs text-error">Die Nachricht darf höchstens {{ CHAT_LIMITS.max_message_chars.toLocaleString('de-DE') }} Zeichen enthalten.</p>
   </div>
 </template>

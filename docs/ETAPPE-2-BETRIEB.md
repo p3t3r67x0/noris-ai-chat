@@ -50,17 +50,17 @@ Alle Backend-Werte tragen das bestehende Präfix `NORIS_`. JSON-Listen müssen g
 | `NORIS_LLM_TOKEN_LIMIT_PARAMETER` | `max_tokens`; alternativ `max_completion_tokens` für passende Provider |
 | `NORIS_LLM_REASONING_EFFORT` | Unset/leer: Provider-Standard; optional `low`, `medium`, `high` ausschließlich serverseitig für kompatible Modelle |
 | `NORIS_LLM_CONNECT_TIMEOUT_SECONDS` | `5`; auch Write-/Pool-Timeout |
-| `NORIS_LLM_READ_TIMEOUT_SECONDS` | `30`; maximale Stille zwischen Netzwerkdaten |
-| `NORIS_LLM_TOTAL_TIMEOUT_SECONDS` | `120`; gesamte Generierung, höchstens 600 |
+| `NORIS_LLM_READ_TIMEOUT_SECONDS` | `120`; maximale Stille zwischen Netzwerkdaten |
+| `NORIS_LLM_TOTAL_TIMEOUT_SECONDS` | `1800`; gesamte Generierung, höchstens 3600 |
 | `NORIS_LLM_TITLE_TIMEOUT_SECONDS` | `6`; eigener Titel-Timeout, höchstens 30 |
 | `NORIS_LLM_TITLE_MAX_OUTPUT_TOKENS` | `96`; Titel-Ausgabe, höchstens 256 und höchstens Modelllimit |
 | `NORIS_LLM_MAX_CONCURRENT` | `4`; aktive Anfragen und HTTP-Verbindungen, höchstens 32 |
 | `NORIS_LLM_REQUESTS_PER_MINUTE` | `20`; gemeinsame Anfragefrequenz pro Backend-Prozess |
 | `NORIS_LLM_DAILY_TOKEN_BUDGET` | `100000`; konservative Input-/Outputreservation, UTC-Tageswechsel |
-| `NORIS_LLM_MAX_REQUEST_BYTES` | `524288`; vollständiger JSON-Body, höchstens 1 MiB |
-| `NORIS_LLM_MAX_UPSTREAM_BYTES` | `1048576`; SSE-Daten einschließlich Metadaten, höchstens 10 MiB |
+| `NORIS_LLM_MAX_REQUEST_BYTES` | `1048576`; vollständiger JSON-Body, höchstens 8 MiB |
+| `NORIS_LLM_MAX_UPSTREAM_BYTES` | `16777216`; SSE-Daten einschließlich Metadaten, höchstens 64 MiB |
 
-Weitere feste Grenzen: Body-Empfang 10 Sekunden; 100 Nachrichten; 32000 Zeichen pro Nachricht; 32000 UTF-16-Codeeinheiten Ausgabe wie im bisherigen Frontend; 64 KiB pro SSE-Zeile/Event; 4 MiB eingehende SSE-Daten im Browser; Browser-Gesamttimeout 135 Sekunden. Bei bewusst erhöhtem Backend-Gesamttimeout muss auch `createRealTransport({timeoutMs})` angepasst werden. Keine automatischen Modell-Retries und keine automatische Kontextkürzung.
+Weitere feste Grenzen: Body-Empfang 10 Sekunden; 100 Nachrichten; 64 KiB pro SSE-Zeile/Event. Zeichen-, Stream- und Timeoutgrenzen sind jetzt konfigurierbar und werden über den Modellkatalog mit dem Browser abgestimmt. Details, Provider-Nachweis und ein bedingtes 32768/131072-Profil stehen in [LLM-OUTPUT-LIMITS.md](LLM-OUTPUT-LIMITS.md). Keine automatischen Modell-Retries und keine automatische Kontextkürzung.
 
 Das Kontextmanagement prüft den aktiven Gesprächspfad mit UTF-8-Bytes plus Nachrichten- und Outputreserve gegen das **lokale** Modelllimit. Das Beispiel setzt absichtlich 8192 statt des dokumentierten 128K-Fensters. Eine Überschreitung wird vor Provider-Aufruf abgelehnt. Ungewählte Antwortvarianten und privilegierte System-/Developer-Rollen gelangen nicht in den Request. Der Backend-Vertrag akzeptiert nur abwechselnde user-/assistant-Nachrichten mit abschließender User-Nachricht.
 

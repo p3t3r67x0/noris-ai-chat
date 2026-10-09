@@ -7,7 +7,8 @@ from noris_ai.core.schemas import ApiSchema
 
 class LLMMessage(ApiSchema):
     role: Literal["user", "assistant"]
-    content: str = Field(max_length=32_000)
+    # Absolute structural bound; configured per-role UTF-16 limits apply at admission.
+    content: str = Field(max_length=1_048_576)
 
     @model_validator(mode="after")
     def user_has_text(self) -> Self:
@@ -32,18 +33,36 @@ class LLMModel(ApiSchema):
     available: bool = True
     streaming: bool = True
     context_window: int = Field(default=8192, ge=256, le=2_000_000)
-    max_output_tokens: int = Field(default=1024, ge=1, le=8192)
+    # Total generated tokens, including reasoning, rather than visible text only.
+    max_output_tokens: int = Field(default=1024, ge=1, le=131_072)
+    provider_max_output_tokens: int = Field(default=8192, ge=1, le=131_072)
+    provider_limit_evidence: str | None = Field(default=None, min_length=1, max_length=500)
 
     @model_validator(mode="after")
     def output_fits_context(self) -> Self:
         if self.max_output_tokens >= self.context_window:
             raise ValueError("Output token limit must be below the model context window")
+        if self.max_output_tokens > self.provider_max_output_tokens:
+            raise ValueError("Output exceeds the configured provider capacity")
+        if self.provider_max_output_tokens > 8192 and (
+            not self.provider_limit_evidence or not self.provider_limit_evidence.strip()
+        ):
+            raise ValueError("Expanded provider output requires verification evidence")
         return self
+
+
+class ChatLimits(ApiSchema):
+    max_message_chars: int = Field(ge=1, le=1_048_576)
+    max_response_chars: int = Field(ge=1, le=1_048_576)
+    max_stream_bytes: int = Field(ge=1024, le=67_108_864)
+    stream_timeout_ms: int = Field(ge=1000, le=3_615_000)
+    stream_idle_timeout_ms: int = Field(ge=1000, le=615_000)
 
 
 class ModelCatalog(ApiSchema):
     models: list[LLMModel]
     default_model: str | None
+    limits: ChatLimits
 
 
 class ChatRequest(ApiSchema):

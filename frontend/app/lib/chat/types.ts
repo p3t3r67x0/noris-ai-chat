@@ -36,7 +36,6 @@ export interface ChatTransport {
   stream: (request: ChatRequest, signal: AbortSignal) => AsyncIterable<StreamEvent>
   generateTitle?: (request: ConversationTitleRequest, signal: AbortSignal) => Promise<ConversationTitleResponse>
 }
-export const MAX_MESSAGE_LENGTH = 32_000
 export const NEW_CHAT_DRAFT = '__new__'
 export const isBusy = (status: GenerationStatus): boolean => status === 'submitting' || status === 'streaming'
 

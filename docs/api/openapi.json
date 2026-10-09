@@ -22,6 +22,50 @@
         "title": "CancelledEvent",
         "type": "object"
       },
+      "ChatLimits": {
+        "additionalProperties": false,
+        "properties": {
+          "max_message_chars": {
+            "maximum": 1048576.0,
+            "minimum": 1.0,
+            "title": "Max Message Chars",
+            "type": "integer"
+          },
+          "max_response_chars": {
+            "maximum": 1048576.0,
+            "minimum": 1.0,
+            "title": "Max Response Chars",
+            "type": "integer"
+          },
+          "max_stream_bytes": {
+            "maximum": 67108864.0,
+            "minimum": 1024.0,
+            "title": "Max Stream Bytes",
+            "type": "integer"
+          },
+          "stream_idle_timeout_ms": {
+            "maximum": 615000.0,
+            "minimum": 1000.0,
+            "title": "Stream Idle Timeout Ms",
+            "type": "integer"
+          },
+          "stream_timeout_ms": {
+            "maximum": 3615000.0,
+            "minimum": 1000.0,
+            "title": "Stream Timeout Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "max_message_chars",
+          "max_response_chars",
+          "max_stream_bytes",
+          "stream_timeout_ms",
+          "stream_idle_timeout_ms"
+        ],
+        "title": "ChatLimits",
+        "type": "object"
+      },
       "ChatRequest": {
         "additionalProperties": false,
         "properties": {
@@ -290,7 +334,7 @@
         "additionalProperties": false,
         "properties": {
           "content": {
-            "maxLength": 32000,
+            "maxLength": 1048576,
             "title": "Content",
             "type": "string"
           },
@@ -334,7 +378,7 @@
           },
           "max_output_tokens": {
             "default": 1024,
-            "maximum": 8192.0,
+            "maximum": 131072.0,
             "minimum": 1.0,
             "title": "Max Output Tokens",
             "type": "integer"
@@ -344,6 +388,26 @@
             "minLength": 1,
             "title": "Name",
             "type": "string"
+          },
+          "provider_limit_evidence": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Limit Evidence"
+          },
+          "provider_max_output_tokens": {
+            "default": 8192,
+            "maximum": 131072.0,
+            "minimum": 1.0,
+            "title": "Provider Max Output Tokens",
+            "type": "integer"
           },
           "streaming": {
             "default": true,
@@ -372,6 +436,9 @@
             ],
             "title": "Default Model"
           },
+          "limits": {
+            "$ref": "#/components/schemas/ChatLimits"
+          },
           "models": {
             "items": {
               "$ref": "#/components/schemas/LLMModel"
@@ -382,7 +449,8 @@
         },
         "required": [
           "models",
-          "default_model"
+          "default_model",
+          "limits"
         ],
         "title": "ModelCatalog",
         "type": "object"

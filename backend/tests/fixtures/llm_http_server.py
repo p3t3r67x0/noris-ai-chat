@@ -60,6 +60,9 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
                 ]
             if prompt == "Zähle die Zahlen von 1 bis 100, jede Zahl in einer eigenen Zeile.":
                 chunks = [f"{number}\n" for number in range(1, 101)]
+            if prompt.startswith(("/long", "/length")):
+                # 9000 simulated visible tokens; batch deltas for a fast local test.
+                chunks = [" token" * 100] * 90
             if prompt.startswith("/slow"):
                 chunks += [" weiterer Text"] * 100
             if is_title:
@@ -85,8 +88,11 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
                 ).encode()
                 for index in range(0, len(data), 7):
                     yield data[index : index + 7]
-                await asyncio.sleep(0.08)
-            yield b'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n'
+                await asyncio.sleep(0 if prompt.startswith(("/long", "/length")) else 0.08)
+            if not is_title and prompt.startswith("/length"):
+                yield b'data: {"choices":[{"index":0,"delta":{},"finish_reason":"length"}]}\n\n'
+            else:
+                yield b'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n'
             yield b"data: [DONE]\n\n"
             completed = True
         finally:

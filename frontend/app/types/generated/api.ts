@@ -1,6 +1,11 @@
 /* Generated from backend OpenAPI. Run pnpm api:generate. Do not edit. */
 export type Seq = number
 export type Type = "response.cancelled"
+export type MaxMessageChars = number
+export type MaxResponseChars = number
+export type MaxStreamBytes = number
+export type StreamIdleTimeoutMs = number
+export type StreamTimeoutMs = number
 export type Attempt = number
 export type Conversationid = string
 export type Generationid = string
@@ -40,6 +45,8 @@ export type ContextWindow = number
 export type Id = string
 export type MaxOutputTokens = number
 export type Name = string
+export type ProviderLimitEvidence = (string | null)
+export type ProviderMaxOutputTokens = number
 export type Streaming = boolean
 export type DefaultModel = (string | null)
 export type Models = LLMModel[]
@@ -49,6 +56,7 @@ export type Type4 = "response.started"
 
 export interface ApiSchemas {
   CancelledEvent: CancelledEvent
+  ChatLimits: ChatLimits
   ChatRequest: ChatRequest
   CompletedEvent: CompletedEvent
   ConversationTitleRequest: ConversationTitleRequest
@@ -67,6 +75,13 @@ export interface ApiSchemas {
 export interface CancelledEvent {
   seq: Seq
   type?: Type
+}
+export interface ChatLimits {
+  max_message_chars: MaxMessageChars
+  max_response_chars: MaxResponseChars
+  max_stream_bytes: MaxStreamBytes
+  stream_idle_timeout_ms: StreamIdleTimeoutMs
+  stream_timeout_ms: StreamTimeoutMs
 }
 export interface ChatRequest {
   attempt: Attempt
@@ -125,10 +140,13 @@ export interface LLMModel {
   id: Id
   max_output_tokens?: MaxOutputTokens
   name: Name
+  provider_limit_evidence?: ProviderLimitEvidence
+  provider_max_output_tokens?: ProviderMaxOutputTokens
   streaming?: Streaming
 }
 export interface ModelCatalog {
   default_model: DefaultModel
+  limits: ChatLimits
   models: Models
 }
 export interface ReadinessResponse {
