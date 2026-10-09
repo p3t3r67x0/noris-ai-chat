@@ -1,6 +1,8 @@
 # UI-Referenz: Analyse und Abweichungsplan
 
-Stand: 2026-10-09. Verbindliche visuelle Quelle ist der vom Auftraggeber bereitgestellte Screenshot die lokale Desktopreferenz (1920 × 975). Das Original bleibt unverändert als lokale persönliche Referenz; die bestehende Git-Ausschlussregel wird respektiert. Die erste reine Titel-/Initialenmaskierung war unvollständig. Die fünf neuen, ausdrücklich freigegebenen Vergleichsbilder ersetzen sämtliche Gesprächsinhalte durch synthetische Daten; die drei abgeleiteten Ansichten werden nur aus diesen bereinigten Quellen erzeugt. Sie sind bearbeitete Derivate und kein Ersatz für unveränderte Pixelmessungen. Freigabe, Hashes, Ersetzungen und offener historischer Originalbestand in Git stehen im [Bereinigungsbericht](BEREINIGUNGSBERICHT.md). Keine private Sitzung wurde aufgerufen. Die nachträgliche pixelorientierte Aufgabenstellung konkretisiert das frühere allgemeine UX-Ziel der PLAN.md; Etappe 2 bleibt ausgeschlossen.
+Aktueller Integrationsstand: #14 bis #17 sind gemergt; #18 wurde nach gesonderter Freigabe einschließlich seiner aktiven Historie bereinigt. Die aktuelle Referenz-Fixture und Browser-Golden enthalten synthetische Inhalte. Der offene GitHub-Support-Takedown und die erteilte Freigabe zur Integration der bereinigten PRs stehen in [HISTORIENBEREINIGUNG](HISTORIENBEREINIGUNG.md). Frühere Ausgangsbefunde unten beschreiben den damaligen Auditzeitpunkt.
+
+Stand: 2026-10-09. Verbindliche visuelle Quelle ist der vom Auftraggeber bereitgestellte Screenshot als lokale Desktopreferenz (1920 × 975). Das Original bleibt unverändert als lokale persönliche Referenz; die bestehende Git-Ausschlussregel wird respektiert. Die erste reine Titel-/Initialenmaskierung war unvollständig. Die fünf neuen, ausdrücklich freigegebenen Vergleichsbilder ersetzen sämtliche Gesprächsinhalte durch synthetische Daten; die drei abgeleiteten Ansichten werden nur aus diesen bereinigten Quellen erzeugt. Sie sind bearbeitete Derivate und kein Ersatz für unveränderte Pixelmessungen. Freigabe, Hashes, Ersetzungen und offener historischer Originalbestand in Git stehen im [Bereinigungsbericht](BEREINIGUNGSBERICHT.md). Keine private Sitzung wurde aufgerufen. Die nachträgliche pixelorientierte Aufgabenstellung konkretisiert das frühere allgemeine UX-Ziel der PLAN.md; Etappe 2 bleibt ausgeschlossen.
 
 ## Methode und Aussagegrenzen
 
@@ -29,7 +31,7 @@ RGB-Häufigkeiten in unverdeckten Flächen: Leiste `(0,0,68,975)` → **#f9f9f9*
 
 Nicht aus diesem Bild ableitbar: Dark Mode, Mobile, leerer Chat, Hover/Fokus, Animationen, Tastatur, zeitlicher Scrollverlauf, genaue Schriftfamilie, komplette User-Blase. Diese Eigenschaften bleiben UNVERIFIED als Referenz; ihre Noris-Implementierung wird separat geprüft. Die sichtbaren Projekte, Benachrichtigungen, Quellen, Sprach-/Sharingfunktionen und Denkzeit sind keine Etappe-1-Funktionen und werden nicht als funktionierende Elemente nachgebildet.
 
-## Bestehender Zustand und konkreter Plan
+## Historischer Ausgangszustand und konkreter Plan
 
 Auditiert: README, PLAN, Etappe-0/1-Berichte, Nuxt-Konfiguration, Paketmanifest, alle Chat-Komponenten/Composables und Unit-/E2E-Tests, Foundation-Workflow. PRs #14 → #15 → #16 → #17 sind offen, konfliktfrei, ohne eingereichte Reviews. #17 ist zunächst Draft. Sein Head `2d258f1` besteht [CI 37879178881](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37879178881): 66 Frontend-, 38 Backend-, 3 PostgreSQL- und 40 Browsertests, Builds, Compose. Browser-Artefakte dieses Heads wurden geprüft. Der Zugriff auf klassische Branch-Protection-Details liefert 403; das ist keine Merge-Freigabe.
 
