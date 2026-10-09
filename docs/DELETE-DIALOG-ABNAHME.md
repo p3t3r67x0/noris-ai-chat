@@ -5,7 +5,7 @@ Stand: 2026-10-09. Branch: `feat/delete-dialog-fidelity`.
 ## Bestand und Abhängigkeiten
 
 Review-Basis ist der offene UI-PR #18 (`feat/chatgpt-ui-fidelity`), zuletzt geprüft
-bei `b9cf41c54c6b1ed4b8379ff860bfd3c1ce214326`. Die Dialogarbeit begann auf
+bei `526a706917ecf72026dfa9c2e75fb542c40958eb`. Die Dialogarbeit begann auf
 `6a81a48a272d919afd894654f26d50751b3fc5e3`. Während der Abnahme wurde der
 Dialog-Branch extern aktualisiert und übernahm die bereinigten Referenz-Fixtures
 samt synthetischem Golden aus PR #18. Die Dialogimplementierung blieb dabei
@@ -141,23 +141,24 @@ Dialog-Fehlerbehandlung greift.
 
 Unit-Tests prüfen die Dialog-Anwendungsgrenze mit UI-Stubs; Playwright prüft die
 tatsächlich installierten Nuxt-UI-Komponenten. Der vollständige reguläre
-GitHub-CI-Lauf für `2767771` ist bestanden:
-[Run 37897054297](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37897054297),
-Jobs `checks` und `compose-smoke`. Nach der abschließenden Ergänzung der
-Hintergrund-Shortcut-Sperre sind die aktuellen [PR-20-Checks](https://github.com/p3t3r67x0/noris-ai-chat/pull/20/checks)
-für den finalen Branchstand maßgeblich. Der finale Produktionsbuild ist zusätzlich
+GitHub-CI-Lauf für `a9941e6c14c5965db317f63cefb8413c85c8d8c7` ist bestanden:
+[Run 37901418428](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37901418428),
+Jobs `checks` und `compose-smoke`. Er prüft die Hintergrund-Shortcut-Sperre,
+die Hover-Kontrastkorrektur und den korrigierten Testablauf nach dem Theme-Reload:
+Vor der Sidebar-Interaktion werden Hydrierung und tatsächlich gesetztes Theme
+abgewartet. Die aktuellen [PR-20-Checks](https://github.com/p3t3r67x0/noris-ai-chat/pull/20/checks)
+bleiben für spätere Branchänderungen maßgeblich. Der finale Produktionsbuild ist zusätzlich
 lokal mit allen 20 Dialog-Browserfällen geprüft, einschließlich der beiden neuen
 Kontrastfälle. Die reguläre Browser-Suite umfasst damit 111 Fälle.
 
 - **PASS:** Nuxt-UI-MCP-Abfrage und Abgleich mit 4.11.3.
-- **PASS:** 83 Frontend-Unit-Tests, darunter neun neue Dialogfälle.
-- **PASS:** auf dem aktualisierten Branch insgesamt 85 Frontend-Unit-Tests;
+- **PASS:** insgesamt 85 Frontend-Unit-Tests, darunter neun neue Dialogfälle;
   zwei weitere Fälle stammen aus der parallelen synthetischen Referenzbereinigung.
 - **PASS:** 38 Backend-Unit-/Contract-Tests; drei DB-Integrationstests separat.
 - **PASS:** elf bestehende Prüfungen des Referenz-Bereinigungstools, synthetische Fixtures.
 - **PASS:** 20 neue Playwright-Fälle auf dem Produktionsbuild, einschließlich
   vier Screenshot-Baselines, Desktop/Mobile und Light/Dark; unveränderte Toleranz.
-- **PASS:** vollständige reguläre CI-Browser-Suite, 109 Fälle, sowie drei
+- **PASS:** vollständige reguläre CI-Browser-Suite, 111 Fälle, sowie drei
   PostgreSQL-Integrationstests, Migrationen und Docker-Smoke im genannten Lauf.
 - **PASS:** Frontend-ESLint, strenge Vue-/Test-Typprüfung, Backend-Ruff,
   Tools-Typecheck, API-Drift-Check, Produktionsbuild und Compose-Konfigurationsprüfung.
@@ -170,6 +171,11 @@ Kontrastfälle. Die reguläre Browser-Suite umfasst damit 111 Fälle.
   Es wurden weder Sidebar-Styles noch die bestehenden Baselines/Toleranzen geändert.
   Der reguläre CI-Testmodus verwendet weiterhin den vorhandenen Nuxt-Dev-Server;
   dessen Ergebnis wird separat ausgewiesen.
+- **FAIL, lokaler Dev-Testaufbau:** Ein zusätzlicher lokaler Lauf der zwei
+  Kontrastfälle mit verlinktem Dependency-Verzeichnis erreichte bereits beim
+  initialen Start `data-ready=true` nicht innerhalb der bestehenden Testfrist.
+  Die reguläre CI besteht beide Fälle; die abschließende Wiederholung am lokalen
+  Produktionsserver besteht ebenfalls (2/2). Keine Wartefrist wurde erhöht.
 - **BLOCKED:** Vergleich mit der nicht verfügbaren Löschdialog-Originalreferenz.
 - **NOT TESTED:** manuelle Screenreader-Abnahme und physische Geräte mit Notch.
 
