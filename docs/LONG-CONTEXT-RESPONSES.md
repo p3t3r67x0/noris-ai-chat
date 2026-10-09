@@ -185,7 +185,9 @@ offenen Verbindungen; Abbruch schließt auch einen stillen Upstream.
 
 Markdown wird bei laufenden Antworten höchstens alle 50 ms neu gerendert;
 bei einem terminalen Zustand wird sofort der letzte volle Inhalt angezeigt.
-Der gespeicherte Rohtext bleibt stets aktuell. Bestehende Zeilenumbrüche,
+Der gespeicherte Rohtext bleibt stets aktuell. Scrollnachführung wird nach dem
+tatsächlichen Markdown-DOM-Update abgeglichen und respektiert weiterhin manuelles Lesen.
+Bestehende Zeilenumbrüche,
 Tabellen-/Codeüberlaufregeln, sichere Link-/HTML-Behandlung und Scrollregeln bleiben
 erhalten. Fortsetzung ändert keine Turn-ID und erzwingt keinen Scrollsprung.
 

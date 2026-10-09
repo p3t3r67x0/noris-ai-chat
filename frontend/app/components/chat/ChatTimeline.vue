@@ -26,7 +26,7 @@ watch(() => props.messages.at(-1)?.content, scroll.contentChanged, { flush: 'pos
     <div ref="scroller" class="chat-scroll" role="region" aria-label="Nachrichtenverlauf" tabindex="0" @scroll.passive="scroll.onScroll" @wheel.passive="scroll.onWheel" @keydown="scroll.onKeydown" @touchstart.passive="scroll.onTouchstart" @touchmove.passive="scroll.onTouchmove">
       <div ref="content" class="chat-timeline">
         <div v-for="(turn, index) in turns" :key="turn[0]?.id" class="chat-turn" :class="{ 'last-chat-turn': index === turns.length - 1 }">
-          <ChatMessageView v-for="message in turn" :key="message.id" :message="message" :busy="busy" :variants="variants(message.id)" :can-continue="canContinue?.(message.id) ?? false" @edit="emit('edit', message.id)" @regenerate="emit('regenerate', message.id)" @continue="emit('continue', message.id)" @select-variant="emit('selectVariant', $event)" />
+          <ChatMessageView v-for="message in turn" :key="message.id" :message="message" :busy="busy" :variants="variants(message.id)" :can-continue="canContinue?.(message.id) ?? false" @rendered="scroll.contentRendered" @edit="emit('edit', message.id)" @regenerate="emit('regenerate', message.id)" @continue="emit('continue', message.id)" @select-variant="emit('selectVariant', $event)" />
         </div>
       </div>
     </div>

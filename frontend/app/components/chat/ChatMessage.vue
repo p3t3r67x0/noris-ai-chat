@@ -6,7 +6,7 @@ import MessageVariants from './MessageVariants.vue'
 import { chatLimits } from '../../lib/chat/limits'
 
 withDefaults(defineProps<{ message: ChatMessage, variants?: readonly ChatMessage[], busy?: boolean, canContinue?: boolean }>(), { variants: () => [], busy: false, canContinue: false })
-const emit = defineEmits<{ edit: [], regenerate: [], continue: [], selectVariant: [id: string] }>()
+const emit = defineEmits<{ edit: [], regenerate: [], continue: [], rendered: [], selectVariant: [id: string] }>()
 const { copy, copied, copyError } = useCopy()
 </script>
 
@@ -14,7 +14,7 @@ const { copy, copied, copyError } = useCopy()
   <article :class="['chat-message', `message-${message.role}`]" :data-message-id="message.id" :data-status="message.status" :aria-label="message.role === 'user' ? 'Deine Nachricht' : 'Antwort von noris AI'">
     <p v-if="message.role === 'user'" class="user-bubble">{{ message.content }}</p>
     <div v-else class="assistant-content">
-      <MarkdownContent v-if="message.content" :content="message.content" :streaming="message.status === 'streaming'" />
+      <MarkdownContent v-if="message.content" :content="message.content" :streaming="message.status === 'streaming'" @rendered="emit('rendered')" />
       <div v-else-if="message.status === 'submitting' || message.status === 'streaming'" class="thinking-dot" aria-hidden="true" />
       <p v-if="message.status === 'cancelled'" class="mt-3 text-xs text-muted">Antwort gestoppt.</p>
       <p v-else-if="message.status === 'incomplete'" class="mt-3 text-xs text-muted">Ausgabelimit erreicht{{ canContinue ? ' – weiterschreiben' : '' }}</p>
