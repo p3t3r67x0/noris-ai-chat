@@ -1,7 +1,8 @@
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import type { createChatState } from './useChat'
 import type { ChatTransport } from '../lib/chat/types'
-import { conversationFromServer } from '../lib/chat/backend'
+import { conversationFromServer, messageFromServer } from '../lib/chat/backend'
+import type { ApiSchemas } from '../types/generated/api'
 import { CHAT_STORAGE_KEY, parseChatSnapshot } from '../lib/chat/persistence'
 
 export const CHAT_CACHE_KEY = 'noris-ai:chat-cache:v1'
@@ -26,7 +27,18 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
 
   backend.onConversation = (value) => {
     const existing = state.conversations.records.value[value.id]
-    if (existing) Object.assign(existing, conversationFromServer(value))
+    const apply = () => {
+      state.conversations.records.value[value.id] = conversationFromServer(value)
+    }
+    if (value.activeLeafMessageId && !state.messages.value[value.activeLeafMessageId]) {
+      void backend.request<ApiSchemas['MessageListResponse']>(`/conversations/${value.id}/messages`).then(result => {
+        if (disposed) return
+        for (const message of result.messages) state.messages.value[message.id] = messageFromServer(message)
+        apply()
+      }).catch(() => { storageWarning.value = 'Ein anderer Tab hat diesen Chat geändert. Lade ihn neu.' })
+    }
+    else if (existing) Object.assign(existing, conversationFromServer(value))
+    else apply()
   }
   async function refresh(): Promise<void> {
     const snapshot = await backend.load()
@@ -87,7 +99,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       if (!snapshot) throw new Error('Der lokale Bestand ist ungültig und wurde erhalten.')
       const result = await backend.request<{ conflicts: unknown[], imported: string[], skipped: string[] }>('/conversations/import', 'POST', {
         conversations: Object.values(snapshot.conversations.conversations).map(({ titleGenerationAttempted: _attempted, ...c }) => c),
-        messages: Object.values(snapshot.messages).map(m => ({ ...m, status: m.status === 'submitting' || m.status === 'streaming' ? 'cancelled' : m.status, updatedAt: m.createdAt })),
+        messages: Object.values(snapshot.messages).map(m => ({ id: m.id, conversationId: m.conversationId, parentMessageId: m.parentMessageId, role: m.role, content: m.content, modelId: m.modelId ?? null, continuationCount: m.continuationCount ?? 0, errorCode: m.errorCode ?? null, errorMessage: m.errorMessage ?? null, editedFromMessageId: m.editedFromMessageId ?? null, status: m.status === 'submitting' || m.status === 'streaming' ? 'cancelled' : m.status, createdAt: m.createdAt, updatedAt: m.createdAt })),
         drafts: snapshot.drafts, activeConversationId: snapshot.conversations.activeConversationId,
       })
       if (result.conflicts.length) throw new Error('Der Import enthält Konflikte. Es wurden keine neuen Chats übernommen; der lokale Bestand bleibt erhalten.')
@@ -101,6 +113,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     try {
       importAvailable.value = Boolean(localStorage.getItem(CHAT_STORAGE_KEY))
       await refresh()
+      await transport.connect?.()
       // Only variant-view preferences are read from cache. Message content and
       // active conversation always come from the database.
       const cached = localStorage.getItem(CHAT_CACHE_KEY)

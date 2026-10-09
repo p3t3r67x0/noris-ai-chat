@@ -65,6 +65,7 @@ function onShortcut(event: KeyboardEvent): void {
 }
 const editingId = ref<string | null>(null)
 const editText = ref('')
+const importOpen = ref(false)
 const editOpen = computed({ get: () => editingId.value !== null, set: (open: boolean) => { if (!open) editingId.value = null } })
 function beginEdit(id: string): void {
   const message = chat.messages.value[id]
@@ -118,6 +119,9 @@ function saveEdit(): void {
           <span v-else-if="stream.status.value === 'completed'" class="sr-only">Antwort abgeschlossen.</span>
         </div>
         <p v-if="chat.storageWarning.value" role="alert" class="px-4 pb-3 text-center text-xs text-warning">{{ chat.storageWarning.value }}</p>
+        <div v-if="chat.importAvailable.value" class="px-4 pb-2 text-center">
+          <UButton color="neutral" variant="link" label="Lokale Chats importieren" @click="importOpen = true" />
+        </div>
       </div>
     </main>
     <UModal v-model:open="editOpen" title="Nachricht bearbeiten" description="Deine ursprüngliche Frage und ihre Antworten bleiben als Variante erhalten.">
@@ -132,6 +136,12 @@ function saveEdit(): void {
           <UButton color="neutral" variant="ghost" label="Abbrechen" @click="editingId = null" />
           <UButton type="submit" form="edit-message-form" label="Speichern und senden" :disabled="stream.busy.value || !canSend || !editText.trim() || editText.length > CHAT_LIMITS.max_message_chars" />
         </div>
+      </template>
+    </UModal>
+    <UModal v-model:open="importOpen" title="Lokale Chats importieren" description="Überträgt die bisherigen Browser-Chats einschließlich Varianten, Titeln und Entwürfen in die Datenbank. Die lokale Sicherung bleibt erhalten. Bei Konflikten wird der Import abgebrochen.">
+      <template #footer>
+        <UButton color="neutral" variant="ghost" label="Abbrechen" @click="importOpen = false" />
+        <UButton label="Import ausdrücklich starten" :loading="chat.importBusy.value" @click="chat.importLocalChats().finally(() => { importOpen = false })" />
       </template>
     </UModal>
   </div>
