@@ -9,6 +9,7 @@ for (const theme of ['light', 'dark']) {
     const snapshot = savedChat(0)
     snapshot.conversations.activeConversationId = null
     await seedChat(page, snapshot, theme)
+    await page.clock.setFixedTime(new Date('2026-10-09T12:00:00Z'))
     await page.goto('/')
     await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true', { timeout: 15_000 })
     await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /dark/ : /light/)
@@ -21,6 +22,7 @@ for (const theme of ['light', 'dark']) {
 
 test('active conversation and streaming screenshot artifacts', async ({ page }, testInfo) => {
   await seedChat(page, savedChat())
+  await page.clock.setFixedTime(new Date('2026-10-09T12:00:00Z'))
   await page.goto('/')
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true', { timeout: 15_000 })
   await page.screenshot({ path: testInfo.outputPath(`${testInfo.project.name}-active.png`), animations: 'disabled' })

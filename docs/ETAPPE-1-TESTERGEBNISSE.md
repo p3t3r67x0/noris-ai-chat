@@ -26,7 +26,9 @@ Lokales Playwright: **BLOCKED**, da der Sandbox-Prozess nicht an `127.0.0.1:8000
 
 ## PR 3: Verzweigungen und Entwürfe
 
-Implementiert: unveränderliches Editieren, Antwortvarianten, Wiederherstellung alter Fortsetzungen, Entwürfe und validierte gemeinsame lokale Persistenz. Zusätzliche Unit-Fälle prüfen Transporthistorien, Isolation, Abbruch beim Reload sowie beschädigte, zyklische und fremde Parent-Referenzen. Drei neue Browserfälle laufen auf Desktop und Mobilgerät. Remote-Nachweise werden nach dem tatsächlichen Lauf ergänzt.
+**Bestanden:** [CI 37877634130](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37877634130) auf `74b6478`: ESLint, striktes TypeScript/Pyright, API-Drift, 60 Frontend-Unit-, 38 Backend-Unit-/Contract-, 3 PostgreSQL-Integrations- und 28 Playwright-Tests. Beide Produktionsbuilds, Compose-Validierung und frischer Compose-Smoke-Test bestanden. PR: [#16](https://github.com/p3t3r67x0/noris-ai-chat/pull/16).
+
+Zusätzliche Unit-Fälle prüfen unveränderliches Editieren, Transporthistorien, Isolation, alte Fortsetzungen, Entwürfe, Abbruch beim Reload und beschädigte, zyklische oder fremde Parent-Referenzen. Drei Browserfälle laufen auf beiden Viewports. Der erste Lauf erkannte einen Test, der auf Desktop den nur bei geschlossener Sidebar sichtbaren Header-Button suchte; er bedient jetzt zuerst den sichtbaren Sidebar-Schalter.
 
 ## PR 4: UX und visuelle Nachweise
 

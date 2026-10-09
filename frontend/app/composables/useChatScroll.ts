@@ -63,6 +63,7 @@ export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HT
     if (nextY > touchY + 2) pause()
     touchY = nextY
   }
+  function contentChanged(): void { measure(); follow() }
   const stopWatching = watch([conversationId, turnId], async ([id, turn], [previousId, previousTurn]) => {
     if (typeof window === 'undefined') return
     cancelFrame()
@@ -86,5 +87,5 @@ export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HT
     measure(); follow()
   })
   onUnmounted(() => { ++revision; stopWatching(); observer?.disconnect(); cancelFrame() })
-  return { following, showScrollButton, scrollToBottom, onScroll, onWheel, onKeydown, onTouchstart, onTouchmove }
+  return { following, showScrollButton, scrollToBottom, contentChanged, onScroll, onWheel, onKeydown, onTouchstart, onTouchmove }
 }

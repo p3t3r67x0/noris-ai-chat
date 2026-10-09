@@ -17,7 +17,7 @@ Vor Abschluss jedes PR laufen ESLint, strikte TypeScript-Prüfungen, Vitest, Pla
 
 ## Komponenten und Zustand
 
-`ChatWorkspace` koordiniert anwendungsbezogene Komponenten: `ChatSidebar`, `ChatHeader`, `EmptyChatState`, später `ChatComposer`, `ChatMessage`, `ChatTimeline` und `MarkdownContent`. Buttons, Dialoge, Dropdowns, Suche, Textarea, Theme und mobile Overlays verwenden die entsprechenden Nuxt-UI-Komponenten. Das bestehende `ServiceStatus` bleibt unter `/status` mit allen Foundation-Tests erreichbar.
+`ChatWorkspace` koordiniert `ChatSidebar`, `ChatHeader`, `EmptyChatState`, `ChatComposer`, `ChatMessage`, `MessageVariants`, `ChatTimeline` und `MarkdownContent`/`CodeBlock`. Buttons, Dialoge, Dropdowns, Suche, Textarea, Theme und mobile Overlays verwenden die entsprechenden Nuxt-UI-Komponenten. Das bestehende `ServiceStatus` bleibt unter `/status` mit allen Foundation-Tests erreichbar.
 
 Gesprächsdaten und ihre Invarianten liegen in typisierten Modulen unter `app/lib/chat`. Vue-Composables verbinden diese Daten mit der Darstellung. Transportereignisse, Gesprächszustand, flüchtiger UI-Zustand und persistierte Einstellungen bleiben getrennt. Der Workspace besitzt den gemeinsamen Zustand; es gibt keinen prozessweiten Singleton und keinen zusätzlichen Pinia-Store. Browser-Speicher wird erst nach dem Mount gelesen. SSR und erster Client-Render beginnen mit derselben leeren Struktur.
 
@@ -51,8 +51,18 @@ Nachrichten liegen einmalig in einem nach ID normalisierten Record. `parentMessa
 
 Die Laufzeitvalidierung prüft Version, Größen, eigene Schlüssel, IDs, Rollen, Parents, Zyklen, Herkunft und Gesprächszugehörigkeit vor Hydration. Beschädigte Daten werden nicht überschrieben. Ein beim Reload unterbrochener Mock-Stream wird als abgebrochen dargestellt. Browser-Speicher beginnt erst nach Mount; der Server kennt keine privaten lokalen Daten. Bei konkurrierenden Änderungen in einem anderen Tab werden weitere Schreibvorgänge gestoppt und ein Neuladen empfohlen. Die Demo synchronisiert keine Chats zwischen Geräten und enthält keine PostgreSQL-Domänentabellen.
 
-## Scrollmanagement (PR 4)
+## Scrollmanagement und Eingabefokus
 
-Scroll-Follow richtet sich nach Position und Nutzerabsicht vor einem Layout-Update. Konkrete Umsetzung und Nachweise werden mit PR 4 ergänzt.
+`ChatTimeline` hat einen Scrollcontainer; Fragen und Antworten werden zur Darstellung in Gesprächsschritte gruppiert, bleiben im Datenmodell einzelne normalisierte Nachrichten. Der letzte Schritt bekommt mindestens die Höhe des sichtbaren Verlaufs abzüglich seiner Innenabstände. Beim Senden liegt deshalb die neue Frage direkt unter dem Header. Solange ihre Antwort in diesen Platz passt, bleibt die Frage dort; wächst der Schritt weiter, folgt der Scrollbereich seinem Ende.
 
-Ergänzte UX-Vorgabe: Beim Senden mit Enter wird die neue Nutzernachricht am oberen Rand des Verlaufs unter dem Header positioniert. Der letzte Gesprächsschritt reserviert dafür genug Höhe. Während die Antwort wächst, folgt der Viewport ihrem Ende; manuelles Hochscrollen pausiert dieses Folgen. Dies wird in PR 4 implementiert und mit langen Streams auf Desktop/Mobile geprüft.
+`useChatScroll` beobachtet Verlauf und Viewport mit `ResizeObserver`, bündelt Folgebewegungen über `requestAnimationFrame` und hält die Nutzerabsicht getrennt von der neuen Inhaltshöhe. Hochscrollen, PageUp/Home und entsprechende Touch-Gesten pausieren vor dem nächsten Layout-Update. Ein Zurückscrollen bis auf 64 px ans Ende oder „Zum Ende scrollen“ aktiviert das Folgen. Während einer Lesepause verschiebt wachsender Markdown-Inhalt die Position nicht. Gesprächswechsel sichern und restaurieren Position und Follow-Zustand im aktuellen Workspace. Reload beginnt am Ende; Positionen sind bewusst flüchtiger UI-Zustand.
+
+Automatische Bewegungen verwenden kein zeitlich nachlaufendes Smooth-Scrolling; einzelne Chunks verursachen keine konkurrierenden Animationen. CSS-Scroll-Anchoring ist im Verlauf deaktiviert. Shiki verändert Farben, nicht Zeilenhöhe oder Text; Codeblöcke und Tabellen begrenzen ihr eigenes horizontales Scrollen. Der reservierte letzte Schritt bleibt nach Abschluss erhalten, damit eine kurze Antwort nicht plötzlich zurückspringt.
+
+Der Composer bleibt dieselbe Vue-Instanz und dieselbe Textarea in leerer und aktiver Ansicht. Enter verliert daher weder Fokus noch die Bildschirmtastatur durch einen Komponentenwechsel. `useChatViewport` verarbeitet `visualViewport.height`/`offsetTop`, Resize und Safe-Area-Abstände erst nach Mount. Pinch-Zoom behält sein natürliches Verhalten. Die Sidebar verwendet den Nuxt-UI-Drawer unterhalb des Desktop-Breakpoints.
+
+Shortcuts: `Ctrl/Cmd+Shift+O` erzeugt einen Chat und fokussiert die Eingabe; `Ctrl/Cmd+K` öffnet die Suche; Escape stoppt eine laufende Antwort, wenn kein Dialog offen ist. IME und wiederholte Tastenevents werden geschützt. Aktionen sind dauerhaft für Touch erreichbar, Fokus sichtbar und mindestens 44 px groß. Statusmeldungen werden als kurze Texte angekündigt; Tokens werden nicht einzeln vorgelesen. Reduced Motion deaktiviert dekorative Animationen.
+
+## Visuelle Regression
+
+Playwright prüft Desktop und Pixel-7-Viewport mit derselben Chromium-Version. Vier Linux-Referenzen decken die leere Light-/Dark-Ansicht ab. Die Uhr ist für die Referenzbilder fixiert; Animationen und Caret werden ausgeblendet. Zusätzlich entstehen Screenshots des aktiven Gesprächs und Streams. Referenzen werden nur nach sichtbarer Prüfung übernommen; normale CI akzeptiert neue Bilder nicht automatisch. Reale iOS-/Android-Bildschirmtastaturen und andere Browserengines bleiben gesonderte manuelle Abnahmefälle.

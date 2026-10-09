@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ChatMessage } from '../../lib/chat/types'
-import { computed, ref, toRef } from 'vue'
+import { computed, ref, toRef, watch } from 'vue'
 import { useChatScroll } from '../../composables/useChatScroll'
 import ChatMessageView from './ChatMessage.vue'
 
@@ -18,6 +18,7 @@ const turns = computed(() => {
 })
 const turnId = computed(() => turns.value.at(-1)?.[0]?.id ?? null)
 const scroll = useChatScroll(scroller, content, toRef(props, 'conversationId'), turnId)
+watch(() => props.messages.at(-1)?.content, scroll.contentChanged, { flush: 'post' })
 </script>
 
 <template>
