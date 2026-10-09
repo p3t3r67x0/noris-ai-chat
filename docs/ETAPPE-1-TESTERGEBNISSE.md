@@ -10,8 +10,18 @@ Der lokale Git-Metadatenbereich ist für den Agenten schreibgeschützt. Veröffe
 
 ## PR 1: Shell
 
-Lokaler Vitest-Lauf: **18 Tests in drei Dateien bestanden**. Die vorhandenen Foundation-Tests bleiben erhalten; acht zusätzliche Desktop-/Mobilfälle prüfen Shell, Sidebar, Suche, Chat-Verwaltung und Theme. Lokale Nuxt-UI-Typ-, Build- und Browserprüfungen sind zunächst **BLOCKED**, da die neuen Pakete in der Sandbox nicht heruntergeladen werden können. Die vollständigen GitHub-Actions-Ergebnisse werden nach dem tatsächlichen Lauf ergänzt.
+**Bestanden:** [CI 37875571609](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37875571609) auf `ad19dcb`: ESLint, striktes TypeScript/Pyright, API-Drift, 18 Frontend-Unit-, 38 Backend-Unit-/Contract-, 3 PostgreSQL-Integrations- und 14 Playwright-Tests. Nuxt-Produktionsbuild, Backend-Paketbuild, Compose-Validierung und frischer Compose-Smoke-Test ebenfalls erfolgreich. PR: [#14](https://github.com/p3t3r67x0/noris-ai-chat/pull/14).
 
-## PR 2–4
+Die acht Shell-Browserfälle ergänzen die sechs erhaltenen Foundation-Fälle. Erste Läufe erkannten frühe Klicks vor Hydration und einen vom mobilen Drawer überlagerten Archivdialog. Die Korrekturen sichern den Startzustand und schließen den Drawer vor Dialogen. Ein aus dem Trace extrahierter Desktop-Screenshot wurde visuell geprüft.
+
+Die anfängliche lokale Paketsperre ist inzwischen aufgehoben: Nuxt UI, Markdown und Shiki sind nun lokal verfügbar. Frühere BLOCKED-Ergebnisse werden durch neue tatsächliche Läufe ersetzt, nicht rückwirkend als erfolgreich bezeichnet.
+
+## PR 2: Composer und Transport
+
+In Umsetzung. Lokal sind ESLint, striktes Nuxt-/Vue-TypeScript und der Nuxt-Produktionsbuild erfolgreich. Der PR ergänzt echte Nuxt-UI-Composer-Interaktionen sowie acht Desktop-/Mobilfälle für Send, Markdown, Clipboard, IME, Stop und Fehler/Retry. Unit-Ergebnisse werden nach dem fertigen Lauf ergänzt.
+
+Lokales Playwright: **BLOCKED**, da der Sandbox-Prozess nicht an `127.0.0.1:8000` binden kann. Lokale PostgreSQL-Integration: **BLOCKED**, da keine separate `NORIS_TEST_DATABASE_URL` mit `_test` bereitgestellt ist; die drei Fixtures brechen ohne Datenbankmutation ab. Die CI führt beide Prüfungen mit eigener Testdatenbank aus.
+
+## PR 3–4
 
 Noch nicht begonnen. Ergebnisse, Screenshot-Artefakte und offene Risiken folgen jeweils mit dem tatsächlich geprüften Stand.

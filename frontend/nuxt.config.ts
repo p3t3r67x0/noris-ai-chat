@@ -5,6 +5,16 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   ui: { fonts: false },
   colorMode: { preference: 'system', fallback: 'light', storageKey: 'noris-ai-theme' },
+  vite: {
+    optimizeDeps: {
+      // Prebundle lazy grammars too: discovering them after send would reload the dev page.
+      include: [
+        'markdown-it', 'shiki/core', 'shiki/engine/javascript',
+        'shiki/themes/github-light.mjs', 'shiki/themes/github-dark.mjs',
+        ...['python', 'javascript', 'typescript', 'json', 'bash', 'sql', 'css', 'html'].map(language => `shiki/langs/${language}.mjs`),
+      ],
+    },
+  },
   icon: {
     provider: 'none',
     fallbackToApi: false,
