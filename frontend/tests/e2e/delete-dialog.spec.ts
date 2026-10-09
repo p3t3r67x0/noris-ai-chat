@@ -36,6 +36,45 @@ async function snapshot(page: Page) {
   return page.evaluate(key => JSON.parse(localStorage.getItem(key)!), CHAT_STORAGE_KEY)
 }
 
+function contrast(text: string, background: string, brightness: number): number {
+  const luminance = (color: string) => {
+    const channels = color.match(/[\d.]+/g)!.slice(0, 3).map(value => Number(value) * brightness / 255)
+    const linear = channels.map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4)
+    return linear[0]! * 0.2126 + linear[1]! * 0.7152 + linear[2]! * 0.0722
+  }
+  const a = luminance(text), b = luminance(background)
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+}
+
+test('destructive hover and active states retain AA text contrast in both themes', async ({ page }) => {
+  for (const theme of ['light', 'dark']) {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await start(page, theme)
+    await page.evaluate(selected => { localStorage.setItem('noris-ai-theme', selected) }, theme)
+    await page.reload()
+    await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+    await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /dark/ : /light/)
+    const dialog = await openDelete(page)
+    const remove = dialog.getByRole('button', { name: 'Chat löschen', exact: true })
+    const assertContrast = async () => {
+      const colors = await remove.evaluate(element => {
+        const style = getComputedStyle(element)
+        return { text: style.color, background: style.backgroundColor, brightness: Number(style.filter.match(/brightness\(([\d.]+)\)/)?.[1] ?? 1) }
+      })
+      expect(contrast(colors.text, colors.background, colors.brightness)).toBeGreaterThanOrEqual(4.5)
+    }
+    await remove.hover()
+    await assertContrast()
+    await page.mouse.down()
+    await assertContrast()
+    // Release away from the button so this visual-state check never deletes.
+    await page.mouse.move(4, 4)
+    await page.mouse.up()
+    await expect(dialog).toBeVisible()
+    await page.keyboard.press('Escape')
+  }
+})
+
 for (const theme of ['light', 'dark']) {
   test(`delete dialog geometry, overlay, keyboard and screenshot ${theme}`, async ({ page }, testInfo) => {
     const mobile = testInfo.project.name === 'mobile'

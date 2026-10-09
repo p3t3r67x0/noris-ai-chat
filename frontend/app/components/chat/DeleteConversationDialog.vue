@@ -87,7 +87,7 @@ async function confirmDelete(): Promise<void> {
   --delete-cancel-bg: #f4f4f4;
   --delete-cancel-hover: #eaeaea;
   --delete-danger-bg: #fce8e8;
-  --delete-danger-hover: #f9dada;
+  --delete-danger-hover: #fae0e0;
   --delete-danger-text: #c52222;
   position: fixed;
   z-index: 70;

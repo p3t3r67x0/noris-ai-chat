@@ -105,10 +105,13 @@ Farben, Rundungen und Typografie sind deshalb noch nicht quantifizierbar.
 | Schatten | `0 8px 32px #00000014`, kein Rahmen |
 | Overlay | neutrales Schwarz mit 35 % Deckkraft, keine Unschärfe |
 | Stacking | Overlay 60, Dialog 70, Portal über dem gesamten Workspace |
-| Light | weiße Fläche; Abbrechen `#f4f4f4`; Löschen `#fce8e8` / `#c52222` |
+| Light | weiße Fläche; Abbrechen `#f4f4f4`; Löschen `#fce8e8` / `#c52222`; Hover `#fae0e0` |
 | Dark | Fläche `#303030`; Abbrechen `#3d3d3d`; Löschen `#512c2c` / `#ffaaaa` |
 
-Die roten Textfarben wurden für lesbaren Kontrast gewählt. Alle zusätzlichen
+Die roten Textfarben wurden für lesbaren Kontrast gewählt. Hover und Active
+werden zusätzlich im echten Browser in beiden Themes auf mindestens 4,5:1
+Textkontrast geprüft, einschließlich des Active-Brightness-Filters. Der helle
+Hoverton ist deshalb `#fae0e0`. Alle zusätzlichen
 Farbtokens gelten ausschließlich für `.delete-dialog`. Vorhandene zentrale
 Text-/Border-Tokens werden weiterverwendet. Die Struktur bleibt in beiden Themes
 gleich. Footer-Buttons dürfen auf sehr kleinen Viewports umbrechen. Bewegungen
@@ -142,8 +145,9 @@ GitHub-CI-Lauf für `2767771` ist bestanden:
 [Run 37897054297](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37897054297),
 Jobs `checks` und `compose-smoke`. Nach der abschließenden Ergänzung der
 Hintergrund-Shortcut-Sperre sind die aktuellen [PR-20-Checks](https://github.com/p3t3r67x0/noris-ai-chat/pull/20/checks)
-für den finalen Branchstand maßgeblich. Diese Ergänzung ist zusätzlich lokal im
-Produktionsbuild mit allen 18 Dialog-Browserfällen geprüft.
+für den finalen Branchstand maßgeblich. Der finale Produktionsbuild ist zusätzlich
+lokal mit allen 20 Dialog-Browserfällen geprüft, einschließlich der beiden neuen
+Kontrastfälle. Die reguläre Browser-Suite umfasst damit 111 Fälle.
 
 - **PASS:** Nuxt-UI-MCP-Abfrage und Abgleich mit 4.11.3.
 - **PASS:** 83 Frontend-Unit-Tests, darunter neun neue Dialogfälle.
@@ -151,7 +155,7 @@ Produktionsbuild mit allen 18 Dialog-Browserfällen geprüft.
   zwei weitere Fälle stammen aus der parallelen synthetischen Referenzbereinigung.
 - **PASS:** 38 Backend-Unit-/Contract-Tests; drei DB-Integrationstests separat.
 - **PASS:** elf bestehende Prüfungen des Referenz-Bereinigungstools, synthetische Fixtures.
-- **PASS:** 18 neue Playwright-Fälle auf dem Produktionsbuild, einschließlich
+- **PASS:** 20 neue Playwright-Fälle auf dem Produktionsbuild, einschließlich
   vier Screenshot-Baselines, Desktop/Mobile und Light/Dark; unveränderte Toleranz.
 - **PASS:** vollständige reguläre CI-Browser-Suite, 109 Fälle, sowie drei
   PostgreSQL-Integrationstests, Migrationen und Docker-Smoke im genannten Lauf.
