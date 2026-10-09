@@ -22,10 +22,12 @@ Hintergrund-Shortcuts während des Dialogs. `tests/unit/delete-dialog.spec.ts` u
 `tests/e2e/delete-dialog.spec.ts` ergänzen die Abnahme. Im vorhandenen
 `chat-fidelity.spec.ts` ändert sich nur der Buttonname von „Löschen“ zu „Chat löschen“.
 Hinzu kommen vier synthetische PNG-Baselines und dieses Dokument, insgesamt elf Dateien.
-Im GitHub-PR-Diff erscheint zusätzlich das bereits in PR #18 bereinigte
-`reference-reference-light.png`; sein Inhalt ist identisch mit der Datei in der
-aktuellen Review-Basis. Dieses Bild stammt aus der parallelen Referenzbereinigung,
-nicht aus dem fehlenden Löschdialog-Original. Ein vorgeschlagener lokaler
+Zwischenzeitlich erschien im GitHub-PR-Diff zusätzlich das bereits in PR #18
+bereinigte `reference-reference-light.png`. Nach der externen Integration der
+aktuellen Review-Basis zeigt der PR ausschließlich die elf Dialog-Dateien.
+Die dabei übernommenen Abhängigkeits- und Referenzänderungen stammen aus der
+parallelen Basisarbeit; die Dialogimplementierung blieb identisch.
+Ein vorgeschlagener lokaler
 Branch-Merge wurde von der automatischen Freigabeprüfung unter Bezug auf
 „Keine eigenmächtigen Merges“ abgelehnt und nicht ausgeführt.
 
