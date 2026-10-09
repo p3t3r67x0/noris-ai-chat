@@ -30,6 +30,6 @@
     "typescript": "5.9.3",
     "vitest": "5.0.0",
     "vue-tsc": "3.3.11",
-    "@vitejs/plugin-vue": "6.0.8"
+    "@vitejs/plugin-vue": "6.0.9"
   }
 }
