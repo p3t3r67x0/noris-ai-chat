@@ -7,6 +7,8 @@ from collections.abc import AsyncIterator
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from noris_ai.llm.titles import TITLE_INSTRUCTION
+
 app = FastAPI()
 calls: list[dict[str, object]] = []
 title_calls: list[dict[str, object]] = []
@@ -32,9 +34,10 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
             {"error": {"message": "fixture authentication failed"}}, status_code=401
         )
     body = await request.json()
-    is_title = body["messages"][0]["role"] == "system" and str(
-        body["messages"][0]["content"]
-    ).startswith("You generate concise conversation titles")
+    is_title = (
+        body["messages"][0]["role"] == "system"
+        and body["messages"][0]["content"] == TITLE_INSTRUCTION
+    )
     is_continuation = body["messages"][0]["role"] == "system" and not is_title
     (title_calls if is_title else calls).append(body)
     prompt = str(body["messages"][-1]["content"])

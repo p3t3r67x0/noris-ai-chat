@@ -32,6 +32,7 @@ test('real transport starts chat first, posts only the first message and persist
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   await sidebar(page)
   await expect(page.getByRole('navigation', { name: 'Gespräche' }).getByRole('button', { name: 'Rust vs. C++', exact: true })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Gespräche' }).locator('span[data-title-source="generated"]')).toHaveText('Rust vs. C++')
   expect(order).toEqual(['chat', 'title'])
   expect(payload).toMatchObject({ firstMessage: 'Welche Vorteile bietet Rust gegenüber C++?', modelId: 'fixture-alpha' })
   expect(Object.keys(payload!).sort()).toEqual(['conversationId', 'firstMessage', 'inputMessageId', 'modelId'])
