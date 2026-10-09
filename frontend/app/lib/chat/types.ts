@@ -1,4 +1,8 @@
 import type { ChatModelId } from '../../composables/useModelSelection'
+import type { ApiPaths } from '../../types/generated/api'
+
+export type ConversationTitleRequest = ApiPaths['/api/v1/llm/conversation-title']['post']['requestBody']
+export type ConversationTitleResponse = ApiPaths['/api/v1/llm/conversation-title']['post']['responses'][200]
 
 export type GenerationStatus = 'idle' | 'submitting' | 'streaming' | 'completed' | 'cancelled' | 'failed'
 export type MessageStatus = Exclude<GenerationStatus, 'idle'>
@@ -30,6 +34,7 @@ export type StreamEvent = { seq: number } & (
 )
 export interface ChatTransport {
   stream: (request: ChatRequest, signal: AbortSignal) => AsyncIterable<StreamEvent>
+  generateTitle?: (request: ConversationTitleRequest, signal: AbortSignal) => Promise<ConversationTitleResponse>
 }
 export const MAX_MESSAGE_LENGTH = 32_000
 export const NEW_CHAT_DRAFT = '__new__'

@@ -1,3 +1,5 @@
+import asyncio
+import logging
 from collections.abc import AsyncIterator
 from secrets import compare_digest
 from typing import Annotated, Any, cast
@@ -13,10 +15,17 @@ from starlette.types import Receive, Scope, Send
 from noris_ai.core.schemas import ErrorDetail, ErrorResponse
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.gateway import LLMGateway
-from noris_ai.llm.schemas import ChatRequest, ModelCatalog, StreamEvent
+from noris_ai.llm.schemas import (
+    ChatRequest,
+    ConversationTitleRequest,
+    ConversationTitleResponse,
+    ModelCatalog,
+    StreamEvent,
+)
 
 router = APIRouter(prefix="/llm", tags=["LLM"])
 security = HTTPBasic(auto_error=False, realm="noris-ai-chat")
+logger = logging.getLogger(__name__)
 
 
 async def access(
@@ -81,6 +90,38 @@ async def models(gateway: Annotated[LLMGateway, Depends(access)]) -> ModelCatalo
         ],
         default_model=gateway.config.llm_default_model,
     )
+
+
+@router.post(
+    "/conversation-title",
+    operation_id="generateConversationTitle",
+    response_model=ConversationTitleResponse,
+    responses=ERROR_RESPONSES | {502: {"model": ErrorResponse}, 504: {"model": ErrorResponse}},
+)
+async def conversation_title(
+    payload: ConversationTitleRequest,
+    request: Request,
+    gateway: Annotated[LLMGateway, Depends(access)],
+) -> ConversationTitleResponse:
+    async def disconnected() -> None:
+        while (await request.receive())["type"] != "http.disconnect":
+            pass
+
+    generation = asyncio.create_task(gateway.conversation_title(payload))
+    disconnect = asyncio.create_task(disconnected())
+    try:
+        done, _ = await asyncio.wait({generation, disconnect}, return_when=asyncio.FIRST_COMPLETED)
+        if generation in done:
+            return await generation
+        raise LLMError("STREAM_INTERRUPTED")
+    except LLMError as error:
+        # Fixed diagnostic code only: no prompt, title, identifiers or exception body.
+        logger.info("Conversation title generation failed: %s", error.code)
+        raise
+    finally:
+        generation.cancel()
+        disconnect.cancel()
+        await asyncio.gather(generation, disconnect, return_exceptions=True)
 
 
 class SSEStreamingResponse(StreamingResponse):

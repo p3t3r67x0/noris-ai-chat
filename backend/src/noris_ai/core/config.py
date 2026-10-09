@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     llm_connect_timeout_seconds: float = Field(default=5, gt=0, le=30)
     llm_read_timeout_seconds: float = Field(default=30, gt=0, le=120)
     llm_total_timeout_seconds: float = Field(default=120, gt=0, le=600)
+    llm_title_timeout_seconds: float = Field(default=6, gt=0, le=30)
+    llm_title_max_output_tokens: int = Field(default=96, ge=1, le=256)
     llm_max_concurrent: int = Field(default=4, ge=1, le=32)
     llm_requests_per_minute: int = Field(default=20, ge=1, le=120)
     llm_daily_token_budget: int = Field(default=100_000, ge=1, le=10_000_000)

@@ -19,7 +19,7 @@ const Button = defineComponent({
   props: ['label', 'disabled', 'loading'],
   setup: (props, { attrs }) => () => h('button', { ...attrs, disabled: props.disabled }, props.label),
 })
-const conversation: Conversation = { id: 'delete-me', title: 'Synthetische Statusübersicht', createdAt: '2026-10-09T12:00:00.000Z', updatedAt: '2026-10-09T12:00:00.000Z', archivedAt: null, activeLeafMessageId: null }
+const conversation: Conversation = { id: 'delete-me', title: 'Synthetische Statusübersicht', titleSource: 'manual', titleGenerationAttempted: true, createdAt: '2026-10-09T12:00:00.000Z', updatedAt: '2026-10-09T12:00:00.000Z', archivedAt: null, activeLeafMessageId: null }
 const wrappers: ReturnType<typeof mount>[] = []
 afterEach(() => { wrappers.splice(0).forEach(wrapper => wrapper.unmount()); document.body.innerHTML = '' })
 function dialog(removeConversation: (id: string) => void | Promise<void> = vi.fn(), target: Conversation | null = conversation, returnFocus?: HTMLElement) {

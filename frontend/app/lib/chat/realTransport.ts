@@ -1,4 +1,5 @@
-import type { ChatTransport, StreamEvent } from './types'
+import type { ChatTransport, StreamEvent, ConversationTitleResponse } from './types'
+import { validGeneratedTitle } from './titles'
 
 const messages: Record<string, string> = {
   ACCESS_DENIED: 'Bitte öffne /api/v1/llm/models und melde dich für den Modellzugriff an.',
@@ -93,6 +94,18 @@ export function parseStreamEvent(frame: SSEFrame): StreamEvent {
 export function createRealTransport(options: { fetcher?: typeof fetch, timeoutMs?: number } = {}): ChatTransport {
   const fetcher = options.fetcher ?? globalThis.fetch
   return {
+    async generateTitle(request, signal) {
+      const response = await fetcher('/api/v1/llm/conversation-title', {
+        method: 'POST', credentials: 'same-origin', signal,
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+      })
+      if (!response.ok) throw await responseError(response)
+      if (response.headers.get('Content-Type')?.split(';')[0]?.trim() !== 'application/json') throw new TransportError('INVALID_RESPONSE')
+      const result: unknown = await response.json()
+      if (!result || typeof result !== 'object' || !('title' in result) || !('conversationId' in result) || !('inputMessageId' in result) || result.conversationId !== request.conversationId || result.inputMessageId !== request.inputMessageId || !validGeneratedTitle(result.title)) throw new TransportError('INVALID_RESPONSE')
+      return result as ConversationTitleResponse
+    },
     async *stream(request, signal) {
       const controller = new AbortController()
       const abort = () => controller.abort()

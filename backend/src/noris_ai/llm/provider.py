@@ -2,9 +2,14 @@ from collections.abc import AsyncIterator, Sequence
 from typing import Protocol
 
 from noris_ai.llm.schemas import LLMMessage, LLMModel
+from noris_ai.llm.titles import TitleInstruction
+
+type ProviderMessage = LLMMessage | TitleInstruction
 
 
 class LLMProvider(Protocol):
-    def stream(self, messages: Sequence[LLMMessage], model: LLMModel) -> AsyncIterator[str]: ...
+    def stream(
+        self, messages: Sequence[ProviderMessage], model: LLMModel
+    ) -> AsyncIterator[str]: ...
 
     async def aclose(self) -> None: ...

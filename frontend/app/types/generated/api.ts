@@ -15,6 +15,13 @@ export type Role = ("user" | "assistant")
 export type Modelid = string
 export type Seq1 = number
 export type Type1 = "response.completed"
+export type Conversationid1 = string
+export type Firstmessage = string
+export type Inputmessageid1 = string
+export type Modelid1 = string
+export type Conversationid2 = string
+export type Inputmessageid2 = string
+export type Title = string
 export type Delta = string
 export type Seq2 = number
 export type Type2 = "response.output_text.delta"
@@ -44,6 +51,8 @@ export interface ApiSchemas {
   CancelledEvent: CancelledEvent
   ChatRequest: ChatRequest
   CompletedEvent: CompletedEvent
+  ConversationTitleRequest: ConversationTitleRequest
+  ConversationTitleResponse: ConversationTitleResponse
   DeltaEvent: DeltaEvent
   ErrorDetail: ErrorDetail
   ErrorResponse: ErrorResponse
@@ -74,6 +83,17 @@ export interface LLMMessage {
 export interface CompletedEvent {
   seq: Seq1
   type?: Type1
+}
+export interface ConversationTitleRequest {
+  conversationId: Conversationid1
+  firstMessage: Firstmessage
+  inputMessageId: Inputmessageid1
+  modelId: Modelid1
+}
+export interface ConversationTitleResponse {
+  conversationId: Conversationid2
+  inputMessageId: Inputmessageid2
+  title: Title
 }
 export interface DeltaEvent {
   delta: Delta
@@ -149,6 +169,26 @@ export interface ApiPaths {
       429: ApiSchemas["ErrorResponse"]
       500: ApiSchemas["ErrorResponse"]
       503: ApiSchemas["ErrorResponse"]
+    } }
+  }
+  "/api/v1/llm/conversation-title": {
+    post: {
+      requestBody: ApiSchemas["ConversationTitleRequest"]
+      responses: {
+      200: ApiSchemas["ConversationTitleResponse"]
+      400: ApiSchemas["ErrorResponse"]
+      401: ApiSchemas["ErrorResponse"]
+      403: ApiSchemas["ErrorResponse"]
+      408: ApiSchemas["ErrorResponse"]
+      409: ApiSchemas["ErrorResponse"]
+      413: ApiSchemas["ErrorResponse"]
+      415: ApiSchemas["ErrorResponse"]
+      422: ApiSchemas["ErrorResponse"]
+      429: ApiSchemas["ErrorResponse"]
+      500: ApiSchemas["ErrorResponse"]
+      502: ApiSchemas["ErrorResponse"]
+      503: ApiSchemas["ErrorResponse"]
+      504: ApiSchemas["ErrorResponse"]
     } }
   }
   "/api/v1/llm/models": {

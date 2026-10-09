@@ -6,8 +6,10 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 
 from noris_ai.core.config import Settings
 from noris_ai.llm.errors import LLMError
-from noris_ai.llm.schemas import LLMMessage, LLMModel
+from noris_ai.llm.provider import ProviderMessage
+from noris_ai.llm.schemas import LLMModel
 from noris_ai.llm.sse import SSEDecoder
+from noris_ai.llm.titles import TitleInstruction
 
 
 class ProviderDelta(BaseModel):
@@ -58,7 +60,9 @@ class OpenAICompatibleProvider:
     async def aclose(self) -> None:
         await self._client.aclose()
 
-    async def stream(self, messages: Sequence[LLMMessage], model: LLMModel) -> AsyncIterator[str]:
+    async def stream(
+        self, messages: Sequence[ProviderMessage], model: LLMModel
+    ) -> AsyncIterator[str]:
         key = self._config.llm_api_key
         base = self._config.llm_base_url
         if key is None or base is None:
@@ -70,7 +74,11 @@ class OpenAICompatibleProvider:
             self._config.llm_token_limit_parameter: model.max_output_tokens,
         }
         if self._config.llm_reasoning_effort is not None:
-            body["reasoning_effort"] = self._config.llm_reasoning_effort
+            body["reasoning_effort"] = (
+                "low"
+                if any(isinstance(message, TitleInstruction) for message in messages)
+                else self._config.llm_reasoning_effort
+            )
         try:
             async with self._client.stream(
                 "POST",

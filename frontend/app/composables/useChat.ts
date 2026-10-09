@@ -3,7 +3,9 @@ import { createConversationState } from './useConversations'
 import type { ConversationDependencies } from './useConversations'
 import { useChatStream } from './useChatStream'
 import { MAX_MESSAGE_LENGTH, visiblePath } from '../lib/chat/types'
-import type { ChatMessage, ChatTransport, MessageRecords } from '../lib/chat/types'
+import type { ChatMessage, ChatTransport, MessageRecords, ConversationTitleRequest } from '../lib/chat/types'
+import { FALLBACK_TITLE, TITLE_INPUT_LIMIT } from '../lib/chat/titles'
+import { createConversationTitles } from './useConversationTitles'
 import type { ChatModelId } from './useModelSelection'
 import { useChatDrafts } from './useChatDrafts'
 import { indexSiblingVariants, siblingVariants, variantLeaf } from '../lib/chat/branches'
@@ -20,6 +22,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
   const generatingConversationId = ref<string | null>(null)
   const drafts = useChatDrafts(conversations.activeId)
   const preferredLeaves = ref<Record<string, string>>({})
+  const titles = createConversationTitles(transport, conversationId => Object.hasOwn(conversations.records.value, conversationId) ? conversations.records.value[conversationId] : undefined)
 
   function rememberBranch(): void {
     const leaf = conversations.active.value?.activeLeafMessageId
@@ -35,13 +38,16 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     return messages.value[message.id] ?? message
   }
 
-  function generate(input: ChatMessage, modelId: ChatModelId, attempt = 1): void {
+  function generate(input: ChatMessage, modelId: ChatModelId, attempt = 1, titleRequest?: ConversationTitleRequest): void {
     const history = visiblePath(messages.value, input.conversationId, input.id).map(({ role, content }) => ({ role, content }))
     const reply = append(input.conversationId, input.id, 'assistant', '')
     generatingConversationId.value = input.conversationId
     void stream.start({ generationId: id(), conversationId: input.conversationId, inputMessageId: input.id, modelId, messages: history, attempt }, {
       delta: text => { reply.content += text },
-      status: next => { reply.status = next },
+      status: next => {
+        reply.status = next
+        if (next === 'streaming' && titleRequest) void titles.generate(titleRequest)
+      },
     }).finally(() => { generatingConversationId.value = null })
   }
 
@@ -49,12 +55,13 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     const content = text.trim()
     if (stream.busy.value || !content || content.length > MAX_MESSAGE_LENGTH) return false
     const draftConversationId = conversations.activeId.value
-    const conversation = conversations.active.value ?? conversations.create(content.slice(0, 70))
+    const conversation = conversations.active.value ?? conversations.create()
     const parent = visible.value.at(-1)
     if (parent?.role === 'user') return false
-    if (conversation.activeLeafMessageId === null && conversation.title === 'Neuer Chat') conversations.rename(conversation.id, content.slice(0, 70))
+    const needsTitle = conversation.activeLeafMessageId === null && !conversation.titleGenerationAttempted && conversation.titleSource === 'fallback'
+    if (needsTitle) { conversation.title = FALLBACK_TITLE; conversation.titleGenerationAttempted = true }
     const input = append(conversation.id, conversation.activeLeafMessageId, 'user', content)
-    generate(input, modelId)
+    generate(input, modelId, 1, needsTitle ? { conversationId: conversation.id, inputMessageId: input.id, modelId, firstMessage: Array.from(content).slice(0, TITLE_INPUT_LIMIT).join('') } : undefined)
     drafts.clear(draftConversationId)
     return true
   }
@@ -97,6 +104,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     regenerate(last.id, modelId)
   }
   function remove(conversationId: string): void {
+    titles.cancel(conversationId)
     if (generatingConversationId.value === conversationId) stream.stop()
     messages.value = Object.fromEntries(Object.entries(messages.value).filter(([, message]) => message.conversationId !== conversationId))
     drafts.remove(conversationId)
@@ -106,6 +114,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
 
   function snapshot(): ChatSnapshot { return { version: 1, conversations: conversations.snapshot(), messages: messages.value, drafts: drafts.records.value, preferredLeaves: preferredLeaves.value } }
   function hydrate(saved: ChatSnapshot): void {
+    titles.cancelAll()
     conversations.hydrate(saved.conversations)
     messages.value = saved.messages
     drafts.records.value = saved.drafts
@@ -113,7 +122,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
   }
   const variantIndex = computed(() => indexSiblingVariants(messages.value))
   const variants = (messageId: string): readonly ChatMessage[] => variantIndex.value.get(messageId) ?? []
-  return { conversations, messages, visible, stream, generatingConversationId, drafts, preferredLeaves, send, retry, newChat, remove, selectVariant, regenerate, edit, variants, snapshot, hydrate }
+  return { conversations, messages, visible, stream, titles, generatingConversationId, drafts, preferredLeaves, send, retry, newChat, remove, selectVariant, regenerate, edit, variants, snapshot, hydrate }
 }
 
 export function useChat(transport: ChatTransport) {
@@ -132,8 +141,10 @@ export function useChat(transport: ChatTransport) {
   function externalChange(event: StorageEvent): void {
     if (event.key !== CHAT_STORAGE_KEY) return
     persistenceAllowed = false
+    state.titles.dispose()
     storageWarning.value = 'Chats wurden in einem anderen Tab geändert. Lade diese Seite neu, um den aktuellen Stand zu verwenden.'
   }
+  function pageHidden(): void { state.titles.cancelAll(); flush() }
   onMounted(() => {
     try {
       const raw = window.localStorage.getItem(CHAT_STORAGE_KEY)
@@ -160,15 +171,16 @@ export function useChat(transport: ChatTransport) {
     const stopData = watch([state.conversations.records, state.conversations.activeId, state.messages, state.preferredLeaves], schedule, { deep: true, flush: 'sync' })
     const stopDrafts = watch(state.drafts.records, schedule, { deep: true, flush: 'sync' })
     stopWatching = () => { stopData(); stopDrafts() }
-    window.addEventListener('pagehide', flush)
+    window.addEventListener('pagehide', pageHidden)
     window.addEventListener('storage', externalChange)
   })
   onUnmounted(() => {
     state.stream.stop()
+    state.titles.dispose()
     stopWatching?.()
     if (typeof window !== 'undefined') {
       if (timer !== undefined) flush()
-      window.removeEventListener('pagehide', flush)
+      window.removeEventListener('pagehide', pageHidden)
       window.removeEventListener('storage', externalChange)
     }
   })

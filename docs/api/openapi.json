@@ -100,6 +100,71 @@
         "title": "CompletedEvent",
         "type": "object"
       },
+      "ConversationTitleRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "conversationId": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "title": "Conversationid",
+            "type": "string"
+          },
+          "firstMessage": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Firstmessage",
+            "type": "string"
+          },
+          "inputMessageId": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "title": "Inputmessageid",
+            "type": "string"
+          },
+          "modelId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Modelid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversationId",
+          "inputMessageId",
+          "modelId",
+          "firstMessage"
+        ],
+        "title": "ConversationTitleRequest",
+        "type": "object"
+      },
+      "ConversationTitleResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "conversationId": {
+            "title": "Conversationid",
+            "type": "string"
+          },
+          "inputMessageId": {
+            "title": "Inputmessageid",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversationId",
+          "inputMessageId",
+          "title"
+        ],
+        "title": "ConversationTitleResponse",
+        "type": "object"
+      },
       "DeltaEvent": {
         "additionalProperties": false,
         "properties": {
@@ -592,6 +657,172 @@
           }
         ],
         "summary": "Chat",
+        "tags": [
+          "LLM"
+        ]
+      }
+    },
+    "/api/v1/llm/conversation-title": {
+      "post": {
+        "operationId": "generateConversationTitle",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConversationTitleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationTitleResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Timeout"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unsupported Media Type"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "security": [
+          {
+            "HTTPBasic": []
+          }
+        ],
+        "summary": "Conversation Title",
         "tags": [
           "LLM"
         ]

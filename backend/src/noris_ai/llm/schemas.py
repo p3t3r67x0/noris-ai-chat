@@ -63,6 +63,25 @@ class ChatRequest(ApiSchema):
         return self
 
 
+class ConversationTitleRequest(ApiSchema):
+    conversationId: str = Field(min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_-]+$")
+    inputMessageId: str = Field(min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_-]+$")
+    modelId: str = Field(min_length=1, max_length=200)
+    firstMessage: str = Field(min_length=1, max_length=1024)
+
+    @field_validator("firstMessage")
+    @classmethod
+    def valid_first_message(cls, value: str) -> str:
+        LLMMessage(role="user", content=value)
+        return value
+
+
+class ConversationTitleResponse(ApiSchema):
+    conversationId: str
+    inputMessageId: str
+    title: str = Field(min_length=1, max_length=50)
+
+
 class StartedEvent(ApiSchema):
     seq: int = Field(ge=1)
     type: Literal["response.started"] = "response.started"

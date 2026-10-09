@@ -20,7 +20,8 @@ from pydantic_settings import SettingsConfigDict
 from noris_ai.core.config import EnvironmentSettings, Settings
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.openai_compatible import OpenAICompatibleProvider, ProviderChunk
-from noris_ai.llm.schemas import LLMMessage, LLMModel, StreamEvent
+from noris_ai.llm.provider import ProviderMessage
+from noris_ai.llm.schemas import LLMModel, StreamEvent
 from noris_ai.llm.sse import SSEDecoder
 from noris_ai.main import create_app
 
@@ -166,7 +167,9 @@ class ObservedProvider:
             config, transport=ObservedTransport(config, observation)
         )
 
-    async def stream(self, messages: Sequence[LLMMessage], model: LLMModel) -> AsyncIterator[str]:
+    async def stream(
+        self, messages: Sequence[ProviderMessage], model: LLMModel
+    ) -> AsyncIterator[str]:
         if len(self.observation.calls) >= self.observation.limit:
             raise LLMError("BUDGET_LIMIT", 429)
         started = monotonic()

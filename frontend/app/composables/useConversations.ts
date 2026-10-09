@@ -22,9 +22,9 @@ export function createConversationState(dependencies: ConversationDependencies =
     if (conversation?.archivedAt === null) activeId.value = conversationId
   }
 
-  function create(title = 'Neuer Chat'): Conversation {
+  function create(title?: string): Conversation {
     const time = now()
-    const conversation: Conversation = { id: id(), title: normalizeTitle(title), createdAt: time, updatedAt: time, archivedAt: null, activeLeafMessageId: null }
+    const conversation: Conversation = { id: id(), title: normalizeTitle(title ?? 'Neuer Chat'), titleSource: title === undefined ? 'fallback' : 'manual', titleGenerationAttempted: title !== undefined, createdAt: time, updatedAt: time, archivedAt: null, activeLeafMessageId: null }
     records.value = { ...records.value, [conversation.id]: conversation }
     activeId.value = conversation.id
     return conversation
@@ -32,7 +32,7 @@ export function createConversationState(dependencies: ConversationDependencies =
 
   function rename(conversationId: string, title: string): void {
     const conversation = get(conversationId)
-    if (conversation) conversation.title = normalizeTitle(title)
+    if (conversation) { conversation.title = normalizeTitle(title); conversation.titleSource = 'manual'; conversation.titleGenerationAttempted = true }
   }
 
   function archive(conversationId: string): void {

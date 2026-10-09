@@ -9,13 +9,20 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 app = FastAPI()
 calls: list[dict[str, object]] = []
+title_calls: list[dict[str, object]] = []
 cancelled = 0
+title_cancelled = 0
 attempts: dict[str, int] = {}
 
 
 @app.get("/fixture/state")
 async def state() -> dict[str, object]:
-    return {"calls": calls, "cancelled": cancelled}
+    return {
+        "calls": calls,
+        "cancelled": cancelled,
+        "title_calls": title_calls,
+        "title_cancelled": title_cancelled,
+    }
 
 
 @app.post("/v1/chat/completions", response_model=None)
@@ -25,17 +32,23 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
             {"error": {"message": "fixture authentication failed"}}, status_code=401
         )
     body = await request.json()
-    calls.append(body)
+    is_title = body["messages"][0]["role"] == "system"
+    (title_calls if is_title else calls).append(body)
     prompt = str(body["messages"][-1]["content"])
-    attempts[prompt] = attempts.get(prompt, 0) + 1
-    if prompt.startswith("/retry") and attempts[prompt] == 1:
+    if not is_title:
+        attempts[prompt] = attempts.get(prompt, 0) + 1
+    if (not is_title and prompt.startswith("/retry") and attempts[prompt] == 1) or (
+        is_title and prompt.startswith("/title-error")
+    ):
         return JSONResponse({"error": {"message": "fixture rate limit"}}, status_code=429)
 
     async def stream() -> AsyncIterator[bytes]:
-        global cancelled
+        global cancelled, title_cancelled
         completed = False
         try:
-            if prompt.startswith("/quiet"):
+            if (not is_title and prompt.startswith("/quiet")) or (
+                is_title and prompt.startswith("/title-timeout")
+            ):
                 yield b": waiting\n\n"
                 await asyncio.Event().wait()
             chunks = ["Echte ", "HTTP-Antwort ", "mit Grüße 🌍."]
@@ -49,6 +62,14 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
                 chunks = [f"{number}\n" for number in range(1, 101)]
             if prompt.startswith("/slow"):
                 chunks += [" weiterer Text"] * 100
+            if is_title:
+                await asyncio.sleep(0.4)
+                title = "Docker DNS-Probleme"
+                if "Rust" in prompt:
+                    title = "Rust vs. C++"
+                if prompt.startswith("/title-invalid"):
+                    title = "x" * 51
+                chunks = [title]
             for text in chunks:
                 data = (
                     "data: "
@@ -70,6 +91,9 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
             completed = True
         finally:
             if not completed:
-                cancelled += 1
+                if is_title:
+                    title_cancelled += 1
+                else:
+                    cancelled += 1
 
     return StreamingResponse(stream(), media_type="text/event-stream")
