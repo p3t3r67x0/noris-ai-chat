@@ -1,25 +1,25 @@
 # noris AI Chat
 
-Das Monorepo enthält die Foundation aus **Etappe 0**, die Chat-Oberfläche aus **Etappe 1** und die ausdrücklich beauftragte **Etappe 2: LLM-Anbindung**. Unter `/` läuft standardmäßig die lokale Chat-Demo; der konfigurierbare Real-Transport streamt über ein zugriffsgeschütztes FastAPI-Gateway. `/status` prüft weiterhin Nuxt, API und PostgreSQL. Die neue Aufgabenstellung erweitert den ursprünglichen [PLAN.md](PLAN.md); Domain-/OIDC-Migration und Chat-Datenbanktabellen sind weiterhin offen. Die Live-Verbindung zu Noris ist ohne Provider-Zugangsdaten noch nicht verifiziert.
+Das Monorepo enthält die Foundation aus **Etappe 0**, die Chat-Oberfläche aus **Etappe 1** und die ausdrücklich beauftragte **Etappe 2: LLM-Anbindung**. Unter `/` läuft standardmäßig die lokale Chat-Demo; der konfigurierbare Real-Transport streamt über ein zugriffsgeschütztes FastAPI-Gateway. `/status` prüft weiterhin Nuxt, API und PostgreSQL. Die neue Aufgabenstellung erweitert den ursprünglichen [PLAN.md](PLAN.md); Domain-/OIDC-Migration und Chat-Datenbanktabellen sind weiterhin offen. Die frühere Live-Abnahme ist separat dokumentiert; diese Integrationsrunde führt keine neuen Live-Provider-Aufrufe aus.
 
 ## Voraussetzungen und Versionen
 
-Für den vollständigen Containerstart: Docker Engine und Docker Compose v2 mit `--wait`. Für Entwicklung auf dem Host zusätzlich Python 3.13, uv 0.12.5, Node.js 24 LTS und pnpm 11.1.3. Node 22 ab 22.22.3 wird ebenfalls unterstützt. `.python-version` und `.nvmrc` legen die empfohlenen Laufzeiten fest.
+Für den vollständigen Containerstart: Docker Engine und Docker Compose v2 mit `--wait`. Für Entwicklung auf dem Host zusätzlich Python 3.13, uv ab 0.12.5 (Container: 0.12.23), Node.js 24 LTS und pnpm 11.1.3. Node 22 ab 22.22.3 wird ebenfalls unterstützt. `.python-version` und `.nvmrc` legen die empfohlenen Laufzeiten fest.
 
 Die Make-Ziele verwenden das Compose-Plugin (`docker compose`) oder automatisch das eigenständige `docker-compose` v2. Damit funktionieren die Startbefehle auch ohne installiertes Docker-CLI-Plugin.
 
 | Komponente | Version |
 | --- | --- |
-| Nuxt / Vue | 4.5.2 / 3.5.42 |
+| Nuxt / Vue | 4.5.2 / 3.5.43 |
 | Nuxt UI | 4.11.3 |
 | Tailwind CSS | 4.3.3 |
 | FastAPI / Pydantic | 0.142.2 / 2.13.5 |
-| Pydantic AI | 1.107.6 (`pydantic-ai-slim`) |
-| SQLAlchemy / Alembic / psycopg | 2.0.54 / 1.20.0 / 3.3.6 |
+| Pydantic AI | 2.54.0 (`pydantic-ai-slim`) |
+| SQLAlchemy / Alembic / psycopg | 2.1.3 / 1.20.0 / 3.3.6 |
 | PostgreSQL | 18.6 |
-| ESLint / TypeScript | 10.10.0 / 5.9.3 |
+| ESLint / TypeScript | 10.12.0 / 5.9.3 |
 
-`backend/uv.lock` und `pnpm-lock.yaml` fixieren auch die transitiven Abhängigkeiten. pnpm 11 erhält dafür explizit `lockfile: true` im Workspace; `optimisticRepeatInstall: false` stellt sicher, dass Installationsbefehle ihre Lockfile-Prüfung ausführen. Die Vue-Compiler und Laufzeitpakete bleiben über Overrides auf derselben Version. Der ESLint-Konfigurationsinspektor ist auf 3.4.0, `enhanced-resolve` auf 5.24.5 und `vue-component-type-helpers` passend zu den Vue-Typwerkzeugen auf 3.3.11 fixiert; diese kompatiblen Versionen waren in der eingeschränkten Entwicklungsumgebung verfügbar. Updates dieser Overrides sollen gemeinsam mit den Lint-, Typ- und Buildprüfungen erfolgen.
+`backend/uv.lock` und `pnpm-lock.yaml` fixieren auch die transitiven Abhängigkeiten. pnpm 11 erhält dafür explizit `lockfile: true` im Workspace; `optimisticRepeatInstall: false` stellt sicher, dass Installationsbefehle ihre Lockfile-Prüfung ausführen. Die Vue-Compiler und Laufzeitpakete bleiben über Overrides auf derselben Version. Der ESLint-Konfigurationsinspektor ist auf 3.4.0, `enhanced-resolve` auf 5.24.5 und `vue-component-type-helpers` auf 3.3.11 fixiert (vue-tsc 3.3.12); die aktuelle Kombination wird durch Lint-, Typ- und Buildprüfungen abgesichert. Updates dieser Overrides sollen gemeinsam mit den Lint-, Typ- und Buildprüfungen erfolgen.
 
 Pydantic AI ist als schlanke Basis ohne Provider-Extras installiert. Das neue `LLMProvider`-Protokoll und der OpenAI-kompatible HTTPX-Adapter verwenden den bestehenden Chat-Transportvertrag. Nuxt UI und Tailwind bilden das Chat-Designsystem. Die native Statuskomponente aus Etappe 0 bleibt unter `/status` verfügbar.
 
