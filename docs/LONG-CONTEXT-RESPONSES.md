@@ -40,7 +40,7 @@ mit Noris geklärt werden. Ein gelistetes Modell beweist keine bestimmte Quota.
 | 4 parallele Generierungen, 20 Requests/min, 100000 Tokens/Tag | Kosten-/Lastkontrolle; jede Fortsetzung und Titelanfrage nutzt dieselbe Admission. |
 | Titel 6 s, 96 Ausgabetokens, 256 Zeichen, 1 Versuch/Chat | Separates kleines Titelbudget; unverändert. |
 | Titelerzeugung im Browser 8 s; Quelle 1024 Unicode-Zeichen, serverseitig bereinigt | Begrenzter, separater Titelaufruf; beeinflusst weder Antworttext noch Gesprächskontext. |
-| Titel höchstens 50 Zeichen generiert / 120 manuell; Metadatensnapshot 2 Mio. Zeichen | Begrenzte Navigation und Metadatenspeicherung; unverändert. |
+| Titel zuvor höchstens 50 Zeichen generiert / 120 manuell; Metadatensnapshot 2 Mio. Zeichen | Aktueller main-Titelgrenzwert nach PR #24: 40 Zeichen generiert. Manuelle Titel und Metadatengrenze unverändert. |
 | 10000 Titelversuche pro Prozess | Begrenzter Duplikatspeicher; unverändert. Zusätzlich maximal 10000 Fortsetzungs-IDs, ohne unsichere Verdrängung. |
 | Snapshot 6 Mio. UTF-16-Zeichen; 10000 Nachrichten | Begrenzte lokale Speicherung; unverändert. Schreibseite prüft jetzt dieselbe Gesamtgrenze wie der Reader. |
 | Syntaxhervorhebung nur bis 16000 Zeichen/Codeblock | Schützt vor teurem Highlighting; lange Codeblöcke bleiben vollständig als Text lesbar. |

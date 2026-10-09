@@ -268,8 +268,11 @@ async def test_titles_charge_budget_even_when_invalid_and_limit_output(
     llm_config: Settings,
 ) -> None:
     provider = TitleProvider("x" * 257)
+    # Preserve the first-title allowance with the added system/context reserves;
+    # the remaining budget still cannot admit another chat request.
+    budget = 1500 + llm_config.llm_context_safety_tokens + llm_config.llm_system_reserved_tokens
     gateway = LLMGateway(
-        llm_config.model_copy(update={"llm_max_concurrent": 1, "llm_daily_token_budget": 1500}),
+        llm_config.model_copy(update={"llm_max_concurrent": 1, "llm_daily_token_budget": budget}),
         provider,
     )
     with pytest.raises(LLMError) as raised:

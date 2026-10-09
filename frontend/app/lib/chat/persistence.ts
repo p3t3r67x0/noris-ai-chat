@@ -1,6 +1,6 @@
 import { parseConversationSnapshot } from './conversations'
 import type { ConversationSnapshot } from './conversations'
-import { MAX_MESSAGE_LENGTH, NEW_CHAT_DRAFT, visiblePath } from './types'
+import { NEW_CHAT_DRAFT, visiblePath } from './types'
 import { FALLBACK_TITLE, normalizeAutomaticTitle } from './titles'
 import type { ChatMessage, MessageRecords } from './types'
 import { MAX_PERSISTED_MESSAGE_CHARS, MAX_SNAPSHOT_CHARS } from './limits'
