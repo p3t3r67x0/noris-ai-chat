@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from noris_ai.llm.schemas import LLMModel, ModelCategory, TimeoutPolicy
 
-REGISTRY_VERSION = "2026-10-09.1"
+REGISTRY_VERSION = "2026-10-09.2"
 API_SOURCE = "https://noris.cloud/nai/api/chat-completions/"
 
 
@@ -111,12 +111,50 @@ _glm = _glm.model_copy(
         "evidence": {**_glm.evidence, "reasoning_parameter": "DOCUMENTED"},
     }
 )
+# GLM 5.3 Flash: live catalog verification via GET /v1/models on 2026-10-09
+# (is_ready, 1,048,576-token context, max_tokens output parameter, streaming).
+# No reasoning parameter is documented for this model; none is configured.
+_glm_flash = chat_model(
+    "vllm/qsu/glm-5-3-flash",
+    "GLM 5.3 Flash",
+    "Z.AI (Zhipu)",
+    "CHAT",
+    "Schnelles Chatmodell mit großem Kontext · Experimental",
+    1048576,
+    8192,
+    API_SOURCE,
+    reasoning=False,
+    vision=False,
+    lifecycle="EXPERIMENTAL",
+)
+_glm_flash = _glm_flash.model_copy(
+    update={
+        "reasoning": None,
+        "supported_output_tokens": 1_048_576,
+        "provider_context_window": 1_048_576,
+        "provider_limit_evidence": (
+            "Noris GET /v1/models, 2026-10-09: context_length 1048576; "
+            "max_tokens max 1048576; streaming true"
+        ),
+        "sources": [
+            API_SOURCE,
+            "live:GET /v1/models 2026-10-09",
+        ],
+        "evidence": {
+            **_glm_flash.evidence,
+            "reasoning": "UNKNOWN",
+            "supported_output_tokens": "DOCUMENTED",
+            "released_at": "UNKNOWN",
+        },
+    }
+)
 
 REGISTRY: dict[str, LLMModel] = {
     model.id: model
     for model in [
         _gpt,
         _glm,
+        _glm_flash,
         chat_model(
             "vllm/release/gemma-4-31b-it",
             "Gemma 4 31B",

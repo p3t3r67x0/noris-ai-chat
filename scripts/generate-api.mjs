@@ -8,7 +8,8 @@ import { compile } from 'json-schema-to-typescript-lite'
 
 /** @typedef {import('json-schema-to-typescript-lite').JSONSchema} JSONSchema */
 /** @typedef {{$ref?: string, oneOf?: ContractSchema[], anyOf?: ContractSchema[]}} ContractSchema */
-/** @typedef {{operationId: string, parameters?: unknown[], requestBody?: {content: Record<string, {schema: ContractSchema}>}, responses: Record<string, {content?: Record<string, {schema: ContractSchema}>}>}} Operation */
+/** @typedef {{in: string, schema?: {type?: string}}} Parameter */
+/** @typedef {{operationId: string, parameters?: Parameter[], requestBody?: {content: Record<string, {schema: ContractSchema}>}, responses: Record<string, {content?: Record<string, {schema: ContractSchema}>}>}} Operation */
 /** @typedef {{components: {schemas: Record<string, JSONSchema>}, paths: Record<string, Record<string, Operation>>}} ApiDocument */
 
 const root = fileURLToPath(new URL('../', import.meta.url))
@@ -48,10 +49,19 @@ try {
   for (const [path, methods] of Object.entries(document.paths)) {
     lines.push(`  ${JSON.stringify(path)}: {`)
     for (const [method, operation] of Object.entries(methods)) {
-      if (!['get', 'post'].includes(method) || operation.parameters?.length) {
+      if (!['get', 'post', 'put', 'patch', 'delete'].includes(method) || (operation.parameters?.length ?? 0) > 1) {
         throw new Error(`Unsupported contract shape at ${method.toUpperCase()} ${path}; extend generation explicitly`)
       }
+      const parameters = operation.parameters ?? []
+      if (parameters.some(parameter => !['path', 'query'].includes(parameter.in))) {
+        throw new Error(`Unsupported parameter at ${method.toUpperCase()} ${path}; extend generation explicitly`)
+      }
       lines.push(`    ${method}: {`)
+      const queryParameter = parameters.find(parameter => parameter.in === 'query')
+      if (queryParameter) {
+        const union = queryParameter.schema?.type === 'boolean' ? 'boolean' : 'string'
+        lines.push(`      parameters: { query: Record<string, ${union}> }`)
+      }
       if (operation.requestBody) {
         const body = operation.requestBody.content['application/json']?.schema
         if (!body) throw new Error(`Unsupported request body at ${method} ${path}`)
@@ -60,7 +70,11 @@ try {
       lines.push('      responses: {')
       for (const [status, response] of Object.entries(operation.responses)) {
         const content = response.content
-        const schema = content?.['application/json']?.schema ?? content?.['text/event-stream']?.schema
+        const schema = content?.['application/json']?.schema ?? content?.['text/event-stream']?.schema ?? null
+        if (status === '204' && !content) {
+          lines.push(`      ${status}: void`)
+          continue
+        }
         if (!schema || !/^\d{3}$/.test(status) || Object.keys(content ?? {}).some(type => !['application/json', 'text/event-stream'].includes(type))) {
           throw new Error(`Unsupported response schema at ${method.toUpperCase()} ${path} ${status}`)
         }

@@ -23,7 +23,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from noris_ai.db.base import Base
 
@@ -87,10 +87,6 @@ class ChatConversation(Base):
     last_message_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     active_leaf_message_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
 
-    messages: Mapped[list["ChatMessage"]] = relationship(
-        back_populates="conversation", cascade="all, delete-orphan"
-    )
-
 
 class ChatMessage(Base):
     __tablename__ = "chat_message"
@@ -128,8 +124,6 @@ class ChatMessage(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
-
-    conversation: Mapped[ChatConversation] = relationship(back_populates="messages")
 
 
 class ChatGeneration(Base):
