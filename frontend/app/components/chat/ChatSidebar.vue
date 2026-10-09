@@ -4,10 +4,11 @@ import type { DropdownMenuItem } from '@nuxt/ui'
 import type { Conversation } from '../../lib/chat/conversations'
 import { groupConversations } from '../../lib/chat/conversations'
 import DeleteConversationDialog from './DeleteConversationDialog.vue'
+import ConversationTitle from './ConversationTitle.vue'
 
 const props = defineProps<{ conversations: readonly Conversation[], archived: readonly Conversation[], activeId: string | null, removeConversation: (id: string) => void | Promise<void> }>()
 const open = defineModel<boolean>('open', { required: true })
-const emit = defineEmits<{ newChat: [], select: [id: string], rename: [id: string, title: string], archive: [id: string], restore: [id: string] }>()
+const emit = defineEmits<{ newChat: [], select: [id: string], rename: [id: string, title: string], fitTitle: [id: string, expected: string, title: string], archive: [id: string], restore: [id: string] }>()
 const groups = computed(() => groupConversations(props.conversations))
 const searchOpen = ref(false)
 const archiveOpen = ref(false)
@@ -106,7 +107,7 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
         <ul class="space-y-0.5">
           <li v-for="conversation in group.conversations" :key="conversation.id" class="conversation-row" :data-conversation-id="conversation.id" :data-active="activeId === conversation.id">
             <button type="button" :aria-current="activeId === conversation.id ? 'page' : undefined" :title="conversation.title" @click="selectChat(conversation.id)">
-              <span>{{ conversation.title }}</span>
+              <ConversationTitle :title="conversation.title" :source="conversation.titleSource" @fit="(expected, title) => emit('fitTitle', conversation.id, expected, title)" />
             </button>
             <UDropdownMenu :items="actions(conversation)" :content="{ align: 'start', side: 'right' }">
               <UButton icon="i-lucide-ellipsis" color="neutral" variant="ghost" class="touch-control shrink-0" :aria-label="`Aktionen für ${conversation.title}`" @focus="actionsTrigger = $event.currentTarget as HTMLElement" @click="actionsTrigger = $event.currentTarget as HTMLElement" />

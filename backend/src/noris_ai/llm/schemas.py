@@ -98,7 +98,7 @@ class ConversationTitleRequest(ApiSchema):
 class ConversationTitleResponse(ApiSchema):
     conversationId: str
     inputMessageId: str
-    title: str = Field(min_length=1, max_length=50)
+    title: str = Field(min_length=1, max_length=40)
 
 
 class StartedEvent(ApiSchema):

@@ -1,3 +1,5 @@
+import { FALLBACK_TITLE, normalizeAutomaticTitle } from './titles'
+
 export interface Conversation {
   id: string
   title: string
@@ -55,7 +57,11 @@ export function parseConversationSnapshot(raw: string): ConversationSnapshot | n
       if (!isConversation(item) || item.id !== id) return null
       // Legacy names may be manual: preserve them and never generate retroactively.
       const conversation: Conversation = { ...item, titleSource: item.titleSource ?? 'manual', titleGenerationAttempted: item.titleGenerationAttempted ?? true }
-      if (conversation.titleSource !== 'fallback') conversation.titleGenerationAttempted = true
+      if (conversation.titleSource !== 'manual') {
+        conversation.title = normalizeAutomaticTitle(conversation.title)
+        if (conversation.title === FALLBACK_TITLE) conversation.titleSource = 'fallback'
+      }
+      if (item.titleSource === 'generated' || conversation.titleSource !== 'fallback') conversation.titleGenerationAttempted = true
       Object.defineProperty(conversations, id, { value: conversation, enumerable: true, writable: true, configurable: true })
     }
     if (value.activeConversationId !== null && typeof value.activeConversationId !== 'string') return null
