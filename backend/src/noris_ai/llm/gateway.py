@@ -7,6 +7,7 @@ from time import monotonic
 import anyio
 
 from noris_ai.core.config import Settings
+from noris_ai.llm.catalog import ModelCatalogService
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.provider import LLMProvider, ProviderMessage
 from noris_ai.llm.schemas import (
@@ -29,13 +30,15 @@ class LLMGateway:
     def __init__(self, config: Settings, provider: LLMProvider | None) -> None:
         self.config = config
         self.provider = provider
+        self.catalog = ModelCatalogService(config, provider)
+        self._admitted: dict[str, LLMModel] = {}
         self._active: set[str] = set()
         self._recent: deque[float] = deque()
         self._budget_day = datetime.now(UTC).date()
         self._reserved_tokens = 0
         self._title_attempts: set[str] = set()
 
-    def reserve(self, request: ChatRequest) -> None:
+    async def reserve(self, request: ChatRequest) -> None:
         for message in request.messages:
             limit = (
                 self.config.llm_max_message_chars
@@ -44,20 +47,18 @@ class LLMGateway:
             )
             if len(message.content.encode("utf-16-le")) // 2 > limit:
                 raise LLMError("REQUEST_TOO_LARGE", 413)
-        self._reserve(request.generationId, request.modelId, request.messages)
+        model = await self.catalog.require(request.modelId)
+        self._reserve(request.generationId, model, request.messages)
 
     def _reserve(
         self,
         generation_id: str,
-        model_id: str,
+        model: LLMModel,
         messages: Sequence[ProviderMessage],
         output_limit: int | None = None,
     ) -> LLMModel:
         if self.provider is None:
             raise LLMError("LLM_DISABLED", 503)
-        model = next((m for m in self.config.llm_models if m.id == model_id), None)
-        if model is None or not model.available or not model.streaming:
-            raise LLMError("MODEL_UNAVAILABLE", 400)
         # UTF-8 byte count is a deliberately conservative bound, not a tokenizer claim.
         if output_limit is not None:
             model = model.model_copy(
@@ -89,6 +90,7 @@ class LLMGateway:
         if self._reserved_tokens + reservation > self.config.llm_daily_token_budget:
             raise LLMError("BUDGET_LIMIT", 429)
         self._active.add(generation_id)
+        self._admitted[generation_id] = model
         self._recent.append(now)
         self._reserved_tokens += reservation
         return model
@@ -110,7 +112,10 @@ class LLMGateway:
             LLMMessage(role="user", content=title_source(request.firstMessage)),
         ]
         model = self._reserve(
-            generation_id, request.modelId, messages, self.config.llm_title_max_output_tokens
+            generation_id,
+            await self.catalog.require(request.modelId),
+            messages,
+            self.config.llm_title_max_output_tokens,
         )
         self._title_attempts.add(generation_id)
         iterator: AsyncIterator[str] | None = None
@@ -129,7 +134,9 @@ class LLMGateway:
             )
         except TimeoutError:
             raise LLMError("TIMEOUT", 504) from None
-        except LLMError:
+        except LLMError as error:
+            if error.code in ("MODEL_UNAVAILABLE", "PROVIDER_AUTH_FAILED"):
+                self.catalog.invalidate()
             raise
         except Exception:
             raise LLMError("INTERNAL_ERROR", 500) from None
@@ -143,6 +150,7 @@ class LLMGateway:
 
     def release(self, generation_id: str) -> None:
         self._active.discard(generation_id)
+        self._admitted.pop(generation_id, None)
 
     async def stream(self, request: ChatRequest) -> AsyncGenerator[bytes]:
         seq = 1
@@ -154,14 +162,16 @@ class LLMGateway:
                 FailedEvent(seq=2, code="LLM_DISABLED", message=LLMError("LLM_DISABLED").message)
             )
             return
-        model = next(m for m in self.config.llm_models if m.id == request.modelId)
+        model = self._admitted[request.generationId]
         iterator = provider.stream(request.messages, model)
         text_length = 0
         stream_bytes = len(started)
         has_text = False
         pending: asyncio.Future[str] | None = None
         try:
-            async with asyncio.timeout(self.config.llm_total_timeout_seconds):
+            async with asyncio.timeout(
+                min(model.timeout_policy.total_seconds, self.config.llm_total_timeout_seconds)
+            ):
                 while True:
                     pending = asyncio.ensure_future(anext(iterator))
                     while not pending.done():
@@ -195,6 +205,8 @@ class LLMGateway:
             error = LLMError("TIMEOUT", 504)
             yield self._encode(FailedEvent(seq=seq + 1, code=error.code, message=error.message))
         except LLMError as error:
+            if error.code in ("MODEL_UNAVAILABLE", "PROVIDER_AUTH_FAILED"):
+                self.catalog.invalidate()
             yield self._encode(FailedEvent(seq=seq + 1, code=error.code, message=error.message))
         except Exception:
             error = LLMError("INTERNAL_ERROR", 500)

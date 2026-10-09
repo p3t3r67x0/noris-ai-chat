@@ -25,6 +25,29 @@ async def state() -> dict[str, object]:
     }
 
 
+catalog_ids = ["fixture-alpha", "fixture-beta", "fixture-long"]
+catalog_status = 200
+
+
+@app.get("/v1/models")
+async def models(request: Request) -> JSONResponse:
+    if request.headers.get("authorization") != "Bearer fixture-provider-key-never-real":
+        return JSONResponse({}, status_code=401)
+    return JSONResponse(
+        {"object": "list", "data": [{"id": value} for value in catalog_ids]},
+        status_code=catalog_status,
+    )
+
+
+@app.post("/fixture/catalog")
+async def configure_catalog(request: Request) -> dict[str, str]:
+    global catalog_ids, catalog_status
+    body = await request.json()
+    catalog_ids = body["ids"]
+    catalog_status = body.get("status", 200)
+    return {"status": "ok"}
+
+
 @app.post("/v1/chat/completions", response_model=None)
 async def completion(request: Request) -> StreamingResponse | JSONResponse:
     if request.headers.get("authorization") != "Bearer fixture-provider-key-never-real":

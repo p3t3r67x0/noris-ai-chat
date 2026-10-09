@@ -14,8 +14,8 @@ export default defineConfig({
       env: {
         NORIS_ENVIRONMENT: 'test', NORIS_LLM_PROVIDER: 'openai-compatible', NORIS_LLM_BASE_URL: 'http://127.0.0.1:8591/v1', NORIS_LLM_ALLOWED_HOSTS: '["127.0.0.1"]', NORIS_LLM_API_KEY: 'fixture-provider-key-never-real',
         NORIS_LLM_ACCESS_USERNAME: 'fixture-user', NORIS_LLM_ACCESS_PASSWORD: 'fixture-application-password-never-real', NORIS_LLM_ALLOWED_ORIGINS: '["http://127.0.0.1:8593"]',
-        NORIS_LLM_MODELS: '[{"id":"fixture-alpha","name":"Fixture Alpha"},{"id":"fixture-beta","name":"Fixture Beta"},{"id":"fixture-long","name":"Fixture Long","context_window":131072,"max_output_tokens":32768,"provider_max_output_tokens":32768,"provider_limit_evidence":"Local simulator only"}]', NORIS_LLM_DEFAULT_MODEL: 'fixture-alpha',
-        NORIS_LLM_REQUESTS_PER_MINUTE: '120', NORIS_LLM_TITLE_TIMEOUT_SECONDS: '2',
+        NORIS_LLM_MODELS: JSON.stringify(['fixture-alpha', 'fixture-beta', 'fixture-long'].map((id, index) => ({ id, name: ['Fixture Alpha', 'Fixture Beta', 'Fixture Long'][index], category: 'CHAT', token_limit_parameter: 'max_tokens', sources: ['fixture:local'], evidence: { category: 'VERIFIED', streaming: 'VERIFIED', token_limit_parameter: 'VERIFIED' }, ...(id === 'fixture-long' ? { context_window: 131072, max_output_tokens: 32768, provider_max_output_tokens: 32768, provider_limit_evidence: 'Local simulator only' } : {}) }))), NORIS_LLM_DEFAULT_MODEL: 'fixture-alpha',
+        NORIS_LLM_CATALOG_TTL_SECONDS: '1', NORIS_LLM_DISCOVERY_RETRY_AFTER_SECONDS: '1', NORIS_LLM_REQUESTS_PER_MINUTE: '120', NORIS_LLM_TITLE_TIMEOUT_SECONDS: '2',
         NORIS_LLM_MAX_CONCURRENT: '4', NORIS_LLM_DAILY_TOKEN_BUDGET: '2000000', NORIS_LLM_MAX_OUTPUT_TOKENS: '32768', NORIS_LLM_TITLE_MAX_OUTPUT_TOKENS: '96',
         NORIS_LLM_READ_TIMEOUT_SECONDS: '30', NORIS_LLM_TOTAL_TIMEOUT_SECONDS: '120', NORIS_LLM_TOKEN_LIMIT_PARAMETER: 'max_tokens',
       },

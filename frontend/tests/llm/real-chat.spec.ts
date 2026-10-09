@@ -1,7 +1,12 @@
 import { expect, test } from '@playwright/test'
 import { CHAT_STORAGE_KEY } from '../../app/lib/chat/persistence'
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page, request }) => {
+  await request.post(`${process.env.NORIS_FIXTURE_BASE_URL ?? 'http://127.0.0.1:8591'}/fixture/catalog`, { data: { ids: ['fixture-alpha', 'fixture-beta', 'fixture-long'] } })
+  await expect.poll(async () => {
+    const response = await request.get('/api/v1/llm/models')
+    return (await response.json() as { models: { id: string }[] }).models.map(model => model.id)
+  }).toEqual(['fixture-alpha', 'fixture-beta', 'fixture-long'])
   await page.goto('/api/v1/llm/models')
   await page.goto('/')
   await expect(page.locator('[data-ready="true"]')).toBeVisible({ timeout: 20_000 })

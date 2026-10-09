@@ -27,6 +27,24 @@ class LLMMessage(ApiSchema):
         return value
 
 
+type Evidence = Literal["DOCUMENTED", "VERIFIED", "UNKNOWN"]
+type ModelCategory = Literal["CHAT", "REASONING", "VISION", "EMBEDDING", "RERANKING", "UNKNOWN"]
+
+
+class TimeoutPolicy(ApiSchema):
+    read_seconds: float = Field(default=30, gt=0, le=600)
+    total_seconds: float = Field(default=120, gt=0, le=3600)
+
+
+class ModelCost(ApiSchema):
+    evidence: Evidence = "UNKNOWN"
+    source: str = "https://noris.cloud/nai/punkte-rechner/"
+    as_of: str | None = None
+    input_points_per_million: float | None = Field(default=None, ge=0)
+    cached_input_points_per_million: float | None = Field(default=None, ge=0)
+    output_points_per_million: float | None = Field(default=None, ge=0)
+
+
 class LLMModel(ApiSchema):
     id: str = Field(min_length=1, max_length=200, pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._/:-]*$")
     name: str = Field(min_length=1, max_length=120)
@@ -37,6 +55,26 @@ class LLMModel(ApiSchema):
     max_output_tokens: int = Field(default=1024, ge=1, le=131_072)
     provider_max_output_tokens: int = Field(default=8192, ge=1, le=131_072)
     provider_limit_evidence: str | None = Field(default=None, min_length=1, max_length=500)
+    provider: str | None = Field(default=None, max_length=120)
+    category: ModelCategory = "UNKNOWN"
+    description: str = Field(default="", max_length=500)
+    virtual: bool = False
+    reasoning: bool | None = None
+    vision: bool | None = None
+    tool_calling: bool | None = None
+    lifecycle: Literal["LTS", "PRODUCTIVE", "EXPERIMENTAL", "DEPRECATED", "UNKNOWN"] = "UNKNOWN"
+    released_at: str | None = None
+    # Effective policy limits above are distinct from documented provider maxima.
+    documented_context_window: int | None = Field(default=None, ge=256, le=2_000_000)
+    supported_output_tokens: int | None = Field(default=None, ge=1)
+    token_limit_parameter: Literal["max_tokens", "max_completion_tokens"] | None = None
+    reasoning_parameter: Literal["reasoning_effort", "chat_template_kwargs"] | None = None
+    reasoning_efforts: list[str] = Field(default_factory=list)
+    reasoning_effort: str | None = None
+    timeout_policy: TimeoutPolicy = Field(default_factory=TimeoutPolicy)
+    evidence: dict[str, Evidence] = Field(default_factory=dict)
+    sources: list[str] = Field(default_factory=list)
+    cost: ModelCost = Field(default_factory=ModelCost)
 
     @model_validator(mode="after")
     def output_fits_context(self) -> Self:
@@ -48,6 +86,16 @@ class LLMModel(ApiSchema):
             not self.provider_limit_evidence or not self.provider_limit_evidence.strip()
         ):
             raise ValueError("Expanded provider output requires verification evidence")
+        if self.documented_context_window and self.context_window > self.documented_context_window:
+            raise ValueError("Policy context must not exceed documented context")
+        if self.supported_output_tokens and self.max_output_tokens > self.supported_output_tokens:
+            raise ValueError("Policy output must not exceed supported output")
+        if self.reasoning_effort is not None and (
+            not self.reasoning
+            or not self.reasoning_parameter
+            or self.reasoning_effort not in self.reasoning_efforts
+        ):
+            raise ValueError("Reasoning effort must be explicitly supported by this model")
         return self
 
 
@@ -63,6 +111,11 @@ class ModelCatalog(ApiSchema):
     models: list[LLMModel]
     default_model: str | None
     limits: ChatLimits
+    status: Literal["fresh", "stale"] = "fresh"
+    fetched_at: str | None = None
+    expires_in_seconds: int = 0
+    registry_version: str = "1"
+    error_code: str | None = None
 
 
 class ChatRequest(ApiSchema):

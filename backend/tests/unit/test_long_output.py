@@ -23,6 +23,15 @@ def long_model(**updates: object) -> LLMModel:
             "max_output_tokens": 32_768,
             "provider_max_output_tokens": 32_768,
             "provider_limit_evidence": "Local simulator only; no Noris capacity claim",
+            "timeout_policy": {"read_seconds": 120, "total_seconds": 1800},
+            "category": "CHAT",
+            "token_limit_parameter": "max_tokens",
+            "sources": ["fixture:local"],
+            "evidence": {
+                "category": "VERIFIED",
+                "streaming": "VERIFIED",
+                "token_limit_parameter": "VERIFIED",
+            },
         }
         | updates
     )
@@ -62,12 +71,14 @@ async def test_over_8192_output_tokens_preserve_stream_and_length_failure(
     captured: list[httpx.Request] = []
 
     def handler(upstream: httpx.Request) -> httpx.Response:
+        if upstream.method == "GET":
+            return httpx.Response(200, json={"data": [{"id": "fixture-alpha"}]})
         captured.append(upstream)
         return httpx.Response(200, headers={"Content-Type": "text/event-stream"}, content=data)
 
     config = llm_config.model_copy(
         update={
-            "llm_models": (long_model(),),
+            "llm_models": (long_model(token_limit_parameter=token_parameter),),
             "llm_max_output_tokens": 32_768,
             "llm_daily_token_budget": 33_381,
             "llm_token_limit_parameter": token_parameter,
@@ -76,7 +87,7 @@ async def test_over_8192_output_tokens_preserve_stream_and_length_failure(
     provider = OpenAICompatibleProvider(config, transport=httpx.MockTransport(handler))
     gateway = LLMGateway(config, provider)
     payload = request()
-    gateway.reserve(payload)
+    await gateway.reserve(payload)
     try:
         events = [chunk async for chunk in gateway.stream(payload)]
     finally:
@@ -93,7 +104,7 @@ async def test_over_8192_output_tokens_preserve_stream_and_length_failure(
     assert b"private reasoning" not in b"".join(events)
     # Same ID proves the slot was released; retained full reservation blocks a retry.
     with pytest.raises(LLMError) as budget:
-        gateway.reserve(payload)
+        await gateway.reserve(payload)
     assert budget.value.code == "BUDGET_LIMIT"
 
 
@@ -122,6 +133,9 @@ def test_application_ceiling_and_timeout_configuration() -> None:
 
 
 class QuietProvider:
+    async def discover_models(self) -> list[str]:
+        return ["fixture-alpha"]
+
     def __init__(self) -> None:
         self.closed = False
 
@@ -145,19 +159,19 @@ async def test_heartbeat_does_not_cancel_upstream_and_stop_releases_slot(
     config = llm_config.model_copy(update={"llm_heartbeat_seconds": 0.01})
     gateway = LLMGateway(config, provider)
     payload = request()
-    gateway.reserve(payload)
+    await gateway.reserve(payload)
     iterator = gateway.stream(payload)
     assert b"response.started" in await anext(iterator)
     assert await anext(iterator) == b": keepalive\n\n"
     assert not provider.closed
     await iterator.aclose()
     assert provider.closed
-    gateway.reserve(payload)
+    await gateway.reserve(payload)
     gateway.release(payload.generationId)
 
 
 @pytest.mark.parametrize("role", ["user", "assistant"])
-def test_configured_input_limits_use_utf16_and_assistant_has_separate_limit(
+async def test_configured_input_limits_use_utf16_and_assistant_has_separate_limit(
     llm_config: Settings, role: str
 ) -> None:
     config = llm_config.model_copy(
@@ -171,32 +185,38 @@ def test_configured_input_limits_use_utf16_and_assistant_has_separate_limit(
         messages += [{"role": "assistant", "content": "🌍" * 11}, {"role": "user", "content": "x"}]
     payload = ChatRequest.model_validate(request().model_dump() | {"messages": messages})
     with pytest.raises(LLMError) as raised:
-        gateway.reserve(payload)
+        await gateway.reserve(payload)
     assert raised.value.code == "REQUEST_TOO_LARGE"
-    gateway.reserve(request())
+    await gateway.reserve(request())
     gateway.release("long-output")
 
 
-def test_full_output_reservation_rejects_context_and_retry_budget(llm_config: Settings) -> None:
+async def test_full_output_reservation_rejects_context_and_retry_budget(
+    llm_config: Settings,
+) -> None:
     config = llm_config.model_copy(
         update={
             "llm_models": (long_model(),),
             "llm_daily_token_budget": 40_000,
+            "llm_max_output_tokens": 32_768,
             "llm_max_message_chars": 131_072,
         }
     )
     gateway = LLMGateway(config, QuietProvider())
     with pytest.raises(LLMError) as context:
-        gateway.reserve(request("x" * 98_000))
+        await gateway.reserve(request("x" * 98_000))
     assert context.value.code == "CONTEXT_LIMIT"
-    gateway.reserve(request())
+    await gateway.reserve(request())
     gateway.release("long-output")
     with pytest.raises(LLMError) as budget:
-        gateway.reserve(request(generation_id="manual-retry"))
+        await gateway.reserve(request(generation_id="manual-retry"))
     assert budget.value.code == "BUDGET_LIMIT"
 
 
 class TextProvider:
+    async def discover_models(self) -> list[str]:
+        return ["fixture-alpha"]
+
     async def stream(
         self, messages: Sequence[ProviderMessage], model: LLMModel
     ) -> AsyncIterator[str]:
@@ -213,7 +233,7 @@ async def test_gateway_configured_utf16_response_limit_preserves_accepted_text(
     gateway = LLMGateway(
         llm_config.model_copy(update={"llm_max_response_chars": 3}), TextProvider()
     )
-    gateway.reserve(request())
+    await gateway.reserve(request())
     events = b"".join([chunk async for chunk in gateway.stream(request())])
     assert events.decode().count('"delta":"🌍"') == 1
     assert b"OUTPUT_LIMIT" in events and b"response.completed" not in events
@@ -228,16 +248,18 @@ async def test_gateway_stream_byte_limit_includes_terminal_overhead(llm_config: 
 
     config = llm_config.model_copy(update={"llm_max_stream_bytes": 1024})
     gateway = LLMGateway(config, LargeProvider())
-    gateway.reserve(request())
+    await gateway.reserve(request())
     events = b"".join([chunk async for chunk in gateway.stream(request())])
     assert len(events) <= 1024
     assert b"OUTPUT_LIMIT" in events and b'"delta"' not in events
 
 
-def test_long_assistant_history_is_accepted_without_expanding_user_limit(
+async def test_long_assistant_history_is_accepted_without_expanding_user_limit(
     llm_config: Settings,
 ) -> None:
-    config = llm_config.model_copy(update={"llm_models": (long_model(),)})
+    config = llm_config.model_copy(
+        update={"llm_models": (long_model(),), "llm_max_output_tokens": 32_768}
+    )
     gateway = LLMGateway(config, QuietProvider())
     payload = ChatRequest.model_validate(
         request().model_dump()
@@ -249,7 +271,7 @@ def test_long_assistant_history_is_accepted_without_expanding_user_limit(
             ]
         }
     )
-    gateway.reserve(payload)
+    await gateway.reserve(payload)
     gateway.release(payload.generationId)
 
 

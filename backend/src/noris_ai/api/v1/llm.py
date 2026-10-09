@@ -16,7 +16,6 @@ from noris_ai.core.schemas import ErrorDetail, ErrorResponse
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.gateway import LLMGateway
 from noris_ai.llm.schemas import (
-    ChatLimits,
     ChatRequest,
     ConversationTitleRequest,
     ConversationTitleResponse,
@@ -75,7 +74,7 @@ async def llm_error(request: Request, exc: Exception) -> JSONResponse:
 
 ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     code: {"model": ErrorResponse}
-    for code in (400, 401, 403, 408, 409, 413, 415, 422, 429, 500, 503)
+    for code in (400, 401, 403, 408, 409, 413, 415, 422, 429, 500, 502, 503, 504)
 }
 EVENT_SCHEMA = TypeAdapter(StreamEvent).json_schema(ref_template="#/components/schemas/{model}")
 EVENT_SCHEMA.pop("$defs", None)  # FastAPI collects these from response_model.
@@ -85,23 +84,7 @@ EVENT_SCHEMA.pop("$defs", None)  # FastAPI collects these from response_model.
     "/models", operation_id="getLLMModels", response_model=ModelCatalog, responses=ERROR_RESPONSES
 )
 async def models(gateway: Annotated[LLMGateway, Depends(access)]) -> ModelCatalog:
-    return ModelCatalog(
-        models=[
-            model for model in gateway.config.llm_models if model.available and model.streaming
-        ],
-        default_model=gateway.config.llm_default_model,
-        limits=ChatLimits(
-            max_message_chars=gateway.config.llm_max_message_chars,
-            max_response_chars=gateway.config.llm_max_response_chars,
-            max_stream_bytes=gateway.config.llm_max_stream_bytes,
-            stream_timeout_ms=int(gateway.config.llm_total_timeout_seconds * 1000) + 15_000,
-            stream_idle_timeout_ms=int(
-                max(gateway.config.llm_read_timeout_seconds, gateway.config.llm_heartbeat_seconds)
-                * 1000
-            )
-            + 15_000,
-        ),
-    )
+    return await gateway.catalog.get()
 
 
 @router.post(
@@ -180,5 +163,5 @@ class SSEStreamingResponse(StreamingResponse):
 async def chat(
     payload: ChatRequest, gateway: Annotated[LLMGateway, Depends(access)]
 ) -> SSEStreamingResponse:
-    gateway.reserve(payload)
+    await gateway.reserve(payload)
     return SSEStreamingResponse(gateway.stream(payload), gateway, payload.generationId)
