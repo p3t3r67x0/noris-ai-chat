@@ -19,9 +19,10 @@ test.beforeEach(async ({ page }) => {
   if (!process.env.NORIS_LIVE_APP_ORIGIN) throw new Error('Application origin missing.')
   const catalog = await page.goto('/api/v1/llm/models')
   expect(catalog?.status()).toBe(200)
-  const data = await catalog?.json() as { default_model: string, models: { id: string }[] }
+  const data = await catalog?.json() as { default_model: string, models: { id: string, max_output_tokens: number }[] }
   expect(data.models.map(item => item.id)).toEqual([model])
   expect(data.default_model).toBe(model)
+  expect(data.models[0]?.max_output_tokens).toBe(256) // Reject excess cost before sending.
   await page.addInitScript(() => {
     const original = window.fetch
     window.fetch = (input, init) => {

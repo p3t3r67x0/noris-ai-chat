@@ -18,6 +18,8 @@ Am 2026-10-09 wurden tatsächliche Noris-Modellberechtigung, Browser-End-to-End-
 
 Die bisherigen Etappe-2-Ergebnisse unten bleiben als historischer Stand erhalten. Deren fehlende Zugangsdaten sind kein aktueller Blocker mehr. Die eigenständige HTTP-Probe nach Umschaltung auf `low` ist **NOT TESTED**; der komplette HTTP-/SSE-Pfad dieser Konfiguration ist durch den erfolgreichen Browser-Lauf nachgewiesen. Öffentlicher TLS-/Ingress-Betrieb, Provider-Quotas und Lasttests sind **NOT TESTED**.
 
+**Vollständige CI: PASS** auf Implementierungscommit `b0f7ad0ae75bac0426d636637544613ce8ccad3e`: [PR-Lauf](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37889407015), einschließlich `checks` und `compose-smoke`. 102 Backend-/Contract-/HTTP-, 89 Frontend-, 40 Mock-/UI-Browser-, 6 RealTransport-Browser- und 3 PostgreSQL-Tests: insgesamt 240 automatisierte Tests. Lint, strikte Typprüfung, API-Drift, Migrationen, Produktionsbuilds und frischer Docker-Smoke ebenfalls bestanden. Eine anschließend ergänzte Live-Vorprüfung des 256-Token-Kataloglimits und diese Nachweisdokumentation werden erneut durch die Checks des aktuellen PR-Heads geprüft.
+
 ## Ursprüngliche Etappe-2-Prüfung
 
 Prüfdatum: 2026-10-09. Branch `feat/noris-ai-integration`, Basis PR #17 / `2d258f1b7c6312058c18047cc10ddb6df711181d`. Alle hier aufgeführten lokalen Modellaufrufe nutzen deterministische Fixtures; keine echten Provider-Zugangsdaten und keine kostenpflichtigen Calls. Die Tabelle beschreibt die lokalen Läufe. GitHub Actions führt auf dem PR zusätzlich die vollständigen Foundation-/Mock-Browser-, PostgreSQL- und Compose-Prüfungen aus; maßgeblich ist der aktuelle Check-Stand des PRs.

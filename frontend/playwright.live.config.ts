@@ -2,8 +2,9 @@ import { defineConfig } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const session = process.env.NORIS_LIVE_SESSION
-const credentials: unknown = session ? JSON.parse(readFileSync(join(session, 'access.json'), 'utf8')) : {
+const enabled = process.env.NORIS_RUN_LIVE_LLM_SMOKE === '1'
+const session = enabled ? process.env.NORIS_LIVE_SESSION : undefined
+const credentials: unknown = !enabled ? { username: '', password: '' } : session ? JSON.parse(readFileSync(join(session, 'access.json'), 'utf8')) : {
   username: process.env.NORIS_LLM_ACCESS_USERNAME ?? '', password: process.env.NORIS_LLM_ACCESS_PASSWORD ?? '',
 }
 if (!credentials || typeof credentials !== 'object' || !('username' in credentials) || typeof credentials.username !== 'string' || !('password' in credentials) || typeof credentials.password !== 'string') throw new Error('Application access credentials are missing.')

@@ -61,10 +61,10 @@ Das lokale Hilfsmodul `noris_ai.llm.live_acceptance` wird niemals von der Produk
 Nur nach ausdrücklicher Kostenfreigabe, mit vorhandener serverseitiger Key-Konfiguration:
 
 ```sh
-# Terminal 1; <private-session> muss außerhalb von Git liegen.
+# Terminal 1; Session-Verzeichnis außerhalb von Git, vorhandene serverseitige .env.
 NORIS_RUN_LIVE_LLM_SMOKE=1 PYTHONPATH=backend/src \
 uv run --project backend --locked python -m noris_ai.llm.live_acceptance server \
-  --session /tmp/<private-session> --env-file /absoluter/pfad/.env \
+  --session /tmp/noris-live-acceptance --env-file .env \
   --allow-paid-calls 3 --reasoning-effort low
 
 # Terminal 2; Nuxt erhält keinen Provider-Key.
@@ -74,14 +74,16 @@ env -u NORIS_LLM_API_KEY NORIS_DEV_API_TARGET=http://127.0.0.1:8594 \
 # Terminal 3; ein HTTP-Aufruf, danach zwei Browser-Aufrufe (MCP und Stop).
 env -u NORIS_LLM_API_KEY NORIS_RUN_LIVE_LLM_SMOKE=1 PYTHONPATH=backend/src \
 uv run --project backend --locked python -m noris_ai.llm.live_acceptance http \
-  --session /tmp/<private-session> --allow-paid-calls 3
+  --session /tmp/noris-live-acceptance --allow-paid-calls 3
 
 env -u NORIS_LLM_API_KEY NORIS_RUN_LIVE_LLM_SMOKE=1 NORIS_LIVE_TEST_STOP=1 \
-  NORIS_LIVE_APP_ORIGIN=http://127.0.0.1:8595 NORIS_LIVE_SESSION=/tmp/<private-session> \
+  NORIS_LIVE_APP_ORIGIN=http://127.0.0.1:8595 NORIS_LIVE_SESSION=/tmp/noris-live-acceptance \
   pnpm --dir frontend test:e2e:live
 ```
 
 Ein neues Session-Verzeichnis bedeutet einen neuen Zähler und benötigt eine entsprechende Kostenfreigabe. Eine Erhöhung auf fünf erfolgt ebenfalls nur nach neuer ausdrücklicher Freigabe. Playwright verwendet keine Retries, Screenshots, Videos oder Traces. Ohne `NORIS_RUN_LIVE_LLM_SMOKE=1` werden beide Live-Tests vor Browser-/Netzwerkstart übersprungen.
+
+Die abschließende Browser-Vorprüfung verlangt außerdem ein Kataloglimit von genau 256 Ausgabetokens, bevor eine Nachricht gesendet wird. Gegen den Simulator bestehen beide Live-Testfälle; ein auf 1024 gesetzter Katalog wird bereits vor der Generierung abgelehnt, mit unverändertem Upstream-Zähler. Ohne Opt-in wird auch bei einem nicht mehr existierenden Session-Zugangspfad keine Zugangsdaten-Datei gelesen.
 
 ## Merge und Parallelentwicklung
 
