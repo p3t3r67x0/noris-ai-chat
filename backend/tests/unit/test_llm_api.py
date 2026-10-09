@@ -40,6 +40,9 @@ class FixtureProvider:
         if self.failure:
             raise LLMError(self.failure)
 
+    async def discover_models(self) -> list[str]:
+        return ["fixture-alpha", "fixture-beta"]
+
     async def aclose(self) -> None:
         self.closed = True
 
@@ -209,32 +212,32 @@ async def test_total_timeout_and_slot_release(llm_config: Settings) -> None:
     )
     gateway = LLMGateway(config, FixtureProvider(wait=True))
     request = ChatRequest.model_validate(PAYLOAD)
-    gateway.reserve(request)
+    await gateway.reserve(request)
     events = [data async for data in gateway.stream(request)]
     assert b"TIMEOUT" in events[-1]
-    gateway.reserve(request)  # The timed-out stream released its slot.
+    await gateway.reserve(request)  # The timed-out stream released its slot.
     gateway.release(request.generationId)
 
 
-def test_admission_limits_duplicates_budget_and_rate(llm_config: Settings) -> None:
+async def test_admission_limits_duplicates_budget_and_rate(llm_config: Settings) -> None:
     request = ChatRequest.model_validate(PAYLOAD)
     gateway = LLMGateway(llm_config, FixtureProvider())
-    gateway.reserve(request)
+    await gateway.reserve(request)
     with pytest.raises(LLMError, match="bereits"):
-        gateway.reserve(request)
+        await gateway.reserve(request)
     budget = LLMGateway(
         llm_config.model_copy(update={"llm_daily_token_budget": 1}), FixtureProvider()
     )
     with pytest.raises(LLMError) as caught:
-        budget.reserve(request)
+        await budget.reserve(request)
     assert caught.value.code == "BUDGET_LIMIT"
     rate = LLMGateway(
         llm_config.model_copy(update={"llm_requests_per_minute": 1}), FixtureProvider()
     )
-    rate.reserve(request)
+    await rate.reserve(request)
     rate.release(request.generationId)
     with pytest.raises(LLMError) as caught:
-        rate.reserve(request)
+        await rate.reserve(request)
     assert caught.value.code == "RATE_LIMIT"
 
 

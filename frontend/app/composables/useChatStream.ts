@@ -10,6 +10,7 @@ export interface StreamCallbacks {
 export function useChatStream(transport: ChatTransport) {
   const status = ref<GenerationStatus>('idle')
   const error = ref<string | null>(null)
+  const errorCode = ref<string | null>(null)
   const cancellationRequested = ref(false)
   const running = ref(false)
   const busy = computed(() => running.value)
@@ -23,6 +24,7 @@ export function useChatStream(transport: ChatTransport) {
     const signal = controller.signal
     status.value = 'submitting'
     error.value = null
+    errorCode.value = null
     cancellationRequested.value = false
     callbacks.status('submitting')
     let sequence = 0
@@ -49,7 +51,7 @@ export function useChatStream(transport: ChatTransport) {
             break
           case 'response.completed': transition('completed'); break
           case 'response.cancelled': transition('cancelled'); break
-          case 'response.failed': error.value = event.message; transition('failed'); break
+          case 'response.failed': error.value = event.message; errorCode.value = event.code; transition('failed'); break
         }
         if (!isBusy(status.value)) break
       }
@@ -76,5 +78,5 @@ export function useChatStream(transport: ChatTransport) {
     controller.abort()
   }
 
-  return { status, error, busy, cancellationRequested, start, stop }
+  return { status, error, errorCode, busy, cancellationRequested, start, stop }
 }

@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     llm_allowed_origins: tuple[str, ...] = ()
     llm_models: tuple[LLMModel, ...] = ()
     llm_default_model: str | None = None
+    llm_catalog_ttl_seconds: float = Field(default=300, ge=1, le=3600)
+    llm_catalog_stale_seconds: float = Field(default=0, ge=0, le=3600)
+    llm_discovery_timeout_seconds: float = Field(default=10, gt=0, le=30)
+    llm_discovery_retry_after_seconds: float = Field(default=10, ge=1, le=60)
     llm_token_limit_parameter: Literal["max_tokens", "max_completion_tokens"] = Field(
         default="max_tokens"
     )
@@ -111,14 +115,14 @@ class Settings(BaseSettings):
             if self.environment == "production" and parsed.scheme != "https":
                 raise ValueError("Production browser origins require HTTPS")
         ids = [model.id for model in self.llm_models]
-        usable = [model.id for model in self.llm_models if model.available and model.streaming]
-        if not usable or len(set(ids)) != len(ids):
-            raise ValueError(
-                "Configure unique model IDs and at least one available streaming model"
-            )
-        if self.llm_default_model not in usable:
-            raise ValueError("Default model must be a configured available streaming model")
+        if len(set(ids)) != len(ids):
+            raise ValueError("Configure unique metadata override IDs")
         return self
+
+    @field_validator("llm_default_model", mode="before")
+    @classmethod
+    def empty_default_model(cls, value: object) -> object:
+        return None if value == "" else value
 
     @field_validator("database_url", "migration_database_url")
     @classmethod
