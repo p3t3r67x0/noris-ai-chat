@@ -27,8 +27,8 @@ mit Noris geklärt werden. Ein gelistetes Modell beweist keine bestimmte Quota.
 
 | Grenze vorher | Zweck und neue Behandlung |
 |---|---|
-| Modellkontext 8192 als Standard; Schema bis 2 Mio. | Lokale Kontextpolitik. 131072 nur mit expliziter Providergrenze und Nachweis. |
-| Ausgabe standardmäßig 1024, Schema maximal 8192 Tokens | Pro-Aufruf-Kostenlimit. Globaler konfigurierbarer Deckel plus separate bestätigte Providergrenze. Standardausgabe bleibt 1024. |
+| Modellkontext 8192 als Standard; Schema bis 2 Mio. | Dokumentierte Fenster aus der Registry; zusätzliche bestätigte Providergrenzen sind optional und verlangen bei Erweiterung einen Nachweis. |
+| Ausgabe standardmäßig 1024, Schema maximal 8192 Tokens | Pro-Aufruf-Kostenlimit. Globaler konfigurierbarer Deckel plus separate bestätigte Providergrenze. Die Registry liefert modellabhängige Ausgabepolitiken; der Schema-Default bleibt 1024. |
 | 32000 Zeichen in API, Provider, Gateway, Frontend und Persistenz | Speicher-/Renderinggrenze. Durch synchronisierte konfigurierbare Eingabe-/Antwortlimits ersetzt; Backend zählt UTF-16 wie JavaScript. |
 | UTF-8-Bytes + 32/Nachricht + 64 + Antwortreserve | Konservative Kontext- und Tagesbudgetschätzung. Jetzt optional lokaler Modelltokenizer plus ausdrücklich reserviertes System-/Reasoning-/Sicherheitsbudget. |
 | 100 Nachrichten, abwechselnd user/assistant | Begrenzter aktiver Pfad; unverändert. Fortsetzung endet mit bestehendem Assistant; vertrauenswürdige Fortsetzungsanweisung wird nur serverseitig ergänzt. |
