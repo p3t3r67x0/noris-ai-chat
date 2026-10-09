@@ -38,7 +38,7 @@ geprüft. Der Bericht enthält keine behauptete öffentliche Produktivfreigabe.
 | WebSocket Desktop/Mobile | PASS | 12 Fälle: Streaming während Generierung, Stop/Retry, Reload/Resume, Import, Titel, Modellwahl, Fortsetzung/Varianten, Archivieren/Restore/Löschen, Overflow |
 | Caddy/Compose WebSocket Desktop/Mobile | PASS | Dieselben 12 Fälle gegen isolierten Produktionsstack auf Port 8089; echtes Upgrade über Caddy und PostgreSQL-App-Rolle |
 | Bisherige UI-/Screenshot-Suite | PASS | 147 Desktop-/Mobile-Fälle mit unveränderten Assertions und Screenshot-Baselines |
-| SSE-Kompatibilitäts-Browser | PASS | 38 Desktop-/Mobile-Fälle gegen den lokalen HTTP-Simulator, einschließlich langer Antworten und Fortsetzung |
+| SSE-Kompatibilitäts-Browser | PASS | 40 Desktop-/Mobile-Fälle gegen den lokalen HTTP-Simulator, einschließlich langer Antworten, Fortsetzung und Katalog-Refresh-Race |
 | Compose-Konfigurationen | PASS | production, dev und ausdrücklicher lokaler Testoverride validiert |
 | PR A eigenständig | PASS | 6 PostgreSQL-/Schema-/Migrationsfälle im separaten Checkout |
 | PR B eigenständig | PASS | 11 PostgreSQL-/REST-/Migrationsfälle und strikte Python-Typprüfung im separaten Checkout |
