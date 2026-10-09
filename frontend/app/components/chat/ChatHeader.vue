@@ -27,10 +27,7 @@ defineEmits<{ toggleSidebar: [], newChat: [] }>()
         <span class="block">{{ item.label }}<span class="block text-xs font-normal text-muted">{{ item.description }}</span></span>
       </template>
     </USelectMenu>
-    <span class="hidden rounded-full border border-default px-2 py-0.5 text-[11px] text-muted sm:inline">Demo</span>
     <div class="flex-1" />
-    <UButton disabled color="neutral" variant="ghost" class="touch-control" aria-label="Profil – lokale Demo">
-      <UAvatar text="N" size="sm" />
-    </UButton>
+    <span class="header-demo">Lokale Demo</span>
   </header>
 </template>
