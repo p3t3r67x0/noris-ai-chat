@@ -28,7 +28,7 @@
     "eslint": "10.10.0",
     "happy-dom": "20.9.0",
     "typescript": "5.9.3",
-    "vitest": "5.0.0",
+    "vitest": "5.0.3",
     "vue-tsc": "3.3.11",
     "@vitejs/plugin-vue": "6.0.9"
   }
