@@ -152,7 +152,11 @@ async def test_dynamic_catalog_respects_application_output_and_stream_limits(
 ) -> None:
     provider = CatalogProvider()
     config = llm_config.model_copy(
-        update={"llm_max_output_tokens": 512, "llm_max_response_chars": 100_000}
+        update={
+            "llm_max_output_tokens": 512,
+            "llm_max_response_chars": 100_000,
+            "llm_max_continuations": 2,
+        }
     )
     gateway = LLMGateway(config, provider)
     catalog = await gateway.catalog.get()
@@ -160,10 +164,71 @@ async def test_dynamic_catalog_respects_application_output_and_stream_limits(
     assert catalog.limits.max_message_chars == config.llm_max_message_chars
     assert catalog.limits.max_response_chars == 100_000
     assert catalog.limits.max_stream_bytes == config.llm_max_stream_bytes
+    assert catalog.limits.max_continuations == 2
     assert catalog.limits.stream_timeout_ms == int(config.llm_total_timeout_seconds * 1000) + 15_000
     await gateway.reserve(request(GPT))
     _ = [event async for event in gateway.stream(request(GPT))]
     assert provider.generations[0].max_output_tokens == 512
+
+
+async def test_continuation_obeys_dynamic_model_admission_and_revocation(
+    llm_config: Settings,
+) -> None:
+    provider = CatalogProvider()
+    gateway = LLMGateway(llm_config, provider)
+    payload = ChatRequest.model_validate(
+        request(GPT).model_dump()
+        | {
+            "operation": "continue",
+            "assistantMessageId": "existing-answer",
+            "continuationCount": 1,
+            "messages": [
+                {"role": "user", "content": "Hallo"},
+                {"role": "assistant", "content": "Bestehende Antwort"},
+            ],
+        }
+    )
+    await gateway.reserve(payload)
+    events = b"".join([event async for event in gateway.stream(payload)])
+    assert b"response.completed" in events
+    assert provider.generations[0].id == GPT
+    gateway.catalog.invalidate()
+    provider.ids = []
+    with pytest.raises(LLMError) as revoked:
+        await gateway.reserve(payload.model_copy(update={"generationId": "next-continuation"}))
+    assert revoked.value.code == "MODEL_UNAVAILABLE"
+    assert len(provider.generations) == 1
+
+
+async def test_concurrent_continuations_lock_the_answer_after_catalog_discovery(
+    llm_config: Settings,
+) -> None:
+    provider = CatalogProvider()
+    gateway = LLMGateway(llm_config, provider)
+    payload = ChatRequest.model_validate(
+        request(GPT).model_dump()
+        | {
+            "operation": "continue",
+            "assistantMessageId": "existing-answer",
+            "continuationCount": 1,
+            "messages": [
+                {"role": "user", "content": "Hallo"},
+                {"role": "assistant", "content": "Bestehende Antwort"},
+            ],
+        }
+    )
+    results = await asyncio.gather(
+        gateway.reserve(payload),
+        gateway.reserve(payload.model_copy(update={"generationId": "parallel-continuation"})),
+        return_exceptions=True,
+    )
+    assert sum(result is None for result in results) == 1
+    assert [result.code for result in results if isinstance(result, LLMError)] == [
+        "GENERATION_ACTIVE"
+    ]
+    assert provider.discovery_calls == 1
+    gateway.release(payload.generationId)
+    gateway.release("parallel-continuation")
 
 
 @pytest.mark.parametrize(

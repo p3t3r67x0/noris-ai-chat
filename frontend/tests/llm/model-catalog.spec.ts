@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-const fixtureOrigin = 'http://127.0.0.1:8591'
+const fixtureOrigin = `http://127.0.0.1:${Number(process.env.NORIS_E2E_PROVIDER_PORT ?? 8591)}`
 const ids = ['fixture-alpha', 'fixture-beta']
 
 test.beforeEach(async ({ page, request }) => {

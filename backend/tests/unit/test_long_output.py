@@ -80,7 +80,7 @@ async def test_over_8192_output_tokens_preserve_stream_and_length_failure(
         update={
             "llm_models": (long_model(token_limit_parameter=token_parameter),),
             "llm_max_output_tokens": 32_768,
-            "llm_daily_token_budget": 33_381,
+            "llm_daily_token_budget": 33_381 + llm_config.llm_system_reserved_tokens,
             "llm_token_limit_parameter": token_parameter,
         }
     )
@@ -95,9 +95,11 @@ async def test_over_8192_output_tokens_preserve_stream_and_length_failure(
     values = [json.loads(chunk.decode().split("data: ", 1)[1]) for chunk in events]
     deltas = [value["delta"] for value in values if value["type"] == "response.output_text.delta"]
     assert len(deltas) == 9000 and "".join(deltas) == " token" * 9000
-    assert values[-1]["type"] == ("response.completed" if finish == "stop" else "response.failed")
+    assert values[-1]["type"] == (
+        "response.completed" if finish == "stop" else "response.incomplete"
+    )
     if finish == "length":
-        assert values[-1]["code"] == "OUTPUT_LIMIT"
+        assert values[-1]["reason"] == "output_limit"
     assert [value["seq"] for value in values] == list(range(1, len(values) + 1))
     assert len(captured) == 1
     assert json.loads(captured[0].content)[token_parameter] == 32_768
@@ -236,7 +238,7 @@ async def test_gateway_configured_utf16_response_limit_preserves_accepted_text(
     await gateway.reserve(request())
     events = b"".join([chunk async for chunk in gateway.stream(request())])
     assert events.decode().count('"delta":"🌍"') == 1
-    assert b"OUTPUT_LIMIT" in events and b"response.completed" not in events
+    assert b"RESPONSE_SIZE_LIMIT" in events and b"response.completed" not in events
 
 
 async def test_gateway_stream_byte_limit_includes_terminal_overhead(llm_config: Settings) -> None:
@@ -251,7 +253,7 @@ async def test_gateway_stream_byte_limit_includes_terminal_overhead(llm_config: 
     await gateway.reserve(request())
     events = b"".join([chunk async for chunk in gateway.stream(request())])
     assert len(events) <= 1024
-    assert b"OUTPUT_LIMIT" in events and b'"delta"' not in events
+    assert b"STREAM_SIZE_LIMIT" in events and b'"delta"' not in events
 
 
 async def test_long_assistant_history_is_accepted_without_expanding_user_limit(
@@ -296,6 +298,6 @@ async def test_reasoning_only_length_is_failure_and_reasoning_bytes_are_bounded(
                 delta
                 async for delta in provider.stream(request().messages, llm_config.llm_models[0])
             ]
-        assert error.value.code == "OUTPUT_LIMIT"
+        assert error.value.code == ("STREAM_SIZE_LIMIT" if oversized else "OUTPUT_LIMIT")
     finally:
         await provider.aclose()

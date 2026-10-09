@@ -1,10 +1,11 @@
 from collections.abc import AsyncIterator, Sequence
 from typing import Protocol
 
+from noris_ai.llm.continuation import ContinuationInstruction
 from noris_ai.llm.schemas import LLMMessage, LLMModel
 from noris_ai.llm.titles import TitleInstruction
 
-type ProviderMessage = LLMMessage | TitleInstruction
+type ProviderMessage = LLMMessage | TitleInstruction | ContinuationInstruction
 
 
 class LLMProvider(Protocol):

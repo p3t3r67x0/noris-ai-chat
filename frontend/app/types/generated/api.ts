@@ -1,12 +1,15 @@
 /* Generated from backend OpenAPI. Run pnpm api:generate. Do not edit. */
 export type Seq = number
 export type Type = "response.cancelled"
+export type MaxContinuations = number
 export type MaxMessageChars = number
 export type MaxResponseChars = number
 export type MaxStreamBytes = number
 export type StreamIdleTimeoutMs = number
 export type StreamTimeoutMs = number
+export type Assistantmessageid = (string | null)
 export type Attempt = number
+export type Continuationcount = number
 export type Conversationid = string
 export type Generationid = string
 export type Inputmessageid = string
@@ -18,6 +21,7 @@ export type Messages = [LLMMessage, ...(LLMMessage)[]]
 export type Content = string
 export type Role = ("user" | "assistant")
 export type Modelid = string
+export type Operation = ("generate" | "continue")
 export type Seq1 = number
 export type Type1 = "response.completed"
 export type Conversationid1 = string
@@ -41,6 +45,9 @@ export type Type3 = "response.failed"
 export type Service = "noris-ai"
 export type Status = "ok"
 export type Version = string
+export type Reason = "output_limit"
+export type Seq4 = number
+export type Type4 = "response.incomplete"
 export type Available = boolean
 export type ContextWindow = number
 export type AsOf = (string | null)
@@ -55,12 +62,14 @@ export type Lifecycle = ("LTS" | "PRODUCTIVE" | "EXPERIMENTAL" | "DEPRECATED" | 
 export type MaxOutputTokens = number
 export type Name = string
 export type Provider = (string | null)
+export type ProviderContextWindow = (number | null)
 export type ProviderLimitEvidence = (string | null)
 export type ProviderMaxOutputTokens = number
 export type Reasoning = (boolean | null)
 export type ReasoningEffort = (string | null)
 export type ReasoningEfforts = string[]
 export type ReasoningParameter = (("reasoning_effort" | "chat_template_kwargs") | null)
+export type ReasoningReserveTokens = number
 export type ReleasedAt = (string | null)
 export type Sources = string[]
 export type Streaming = boolean
@@ -80,8 +89,8 @@ export type RegistryVersion = string
 export type Status1 = ("fresh" | "stale")
 export type ModelCategory = ("CHAT" | "REASONING" | "VISION" | "EMBEDDING" | "RERANKING" | "UNKNOWN")
 export type Status2 = "ready"
-export type Seq4 = number
-export type Type4 = "response.started"
+export type Seq5 = number
+export type Type5 = "response.started"
 
 export interface ApiSchemas {
   CancelledEvent: CancelledEvent
@@ -96,6 +105,7 @@ export interface ApiSchemas {
   Evidence: Evidence
   FailedEvent: FailedEvent
   HealthResponse: HealthResponse
+  IncompleteEvent: IncompleteEvent
   LLMMessage: LLMMessage
   LLMModel: LLMModel
   ModelCatalog: ModelCatalog
@@ -110,6 +120,7 @@ export interface CancelledEvent {
   type?: Type
 }
 export interface ChatLimits {
+  max_continuations: MaxContinuations
   max_message_chars: MaxMessageChars
   max_response_chars: MaxResponseChars
   max_stream_bytes: MaxStreamBytes
@@ -117,12 +128,15 @@ export interface ChatLimits {
   stream_timeout_ms: StreamTimeoutMs
 }
 export interface ChatRequest {
+  assistantMessageId?: Assistantmessageid
   attempt: Attempt
+  continuationCount?: Continuationcount
   conversationId: Conversationid
   generationId: Generationid
   inputMessageId: Inputmessageid
   messages: Messages
   modelId: Modelid
+  operation?: Operation
 }
 export interface LLMMessage {
   content: Content
@@ -167,6 +181,11 @@ export interface HealthResponse {
   status?: Status
   version: Version
 }
+export interface IncompleteEvent {
+  reason?: Reason
+  seq: Seq4
+  type?: Type4
+}
 export interface LLMModel {
   available?: Available
   category?: ("CHAT" | "REASONING" | "VISION" | "EMBEDDING" | "RERANKING" | "UNKNOWN")
@@ -180,12 +199,14 @@ export interface LLMModel {
   max_output_tokens?: MaxOutputTokens
   name: Name
   provider?: Provider
+  provider_context_window?: ProviderContextWindow
   provider_limit_evidence?: ProviderLimitEvidence
   provider_max_output_tokens?: ProviderMaxOutputTokens
   reasoning?: Reasoning
   reasoning_effort?: ReasoningEffort
   reasoning_efforts?: ReasoningEfforts
   reasoning_parameter?: ReasoningParameter
+  reasoning_reserve_tokens?: ReasoningReserveTokens
   released_at?: ReleasedAt
   sources?: Sources
   streaming?: Streaming
@@ -225,8 +246,8 @@ export interface ReadinessResponse {
   status?: Status2
 }
 export interface StartedEvent {
-  seq: Seq4
-  type?: Type4
+  seq: Seq5
+  type?: Type5
 }
 
 export interface ApiPaths {
@@ -247,7 +268,7 @@ export interface ApiPaths {
     post: {
       requestBody: ApiSchemas["ChatRequest"]
       responses: {
-      200: ApiSchemas["StartedEvent"] | ApiSchemas["DeltaEvent"] | ApiSchemas["CompletedEvent"] | ApiSchemas["CancelledEvent"] | ApiSchemas["FailedEvent"]
+      200: ApiSchemas["StartedEvent"] | ApiSchemas["DeltaEvent"] | ApiSchemas["CompletedEvent"] | ApiSchemas["CancelledEvent"] | ApiSchemas["IncompleteEvent"] | ApiSchemas["FailedEvent"]
       400: ApiSchemas["ErrorResponse"]
       401: ApiSchemas["ErrorResponse"]
       403: ApiSchemas["ErrorResponse"]

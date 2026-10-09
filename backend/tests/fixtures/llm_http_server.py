@@ -7,6 +7,8 @@ from collections.abc import AsyncIterator
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from noris_ai.llm.titles import TITLE_INSTRUCTION
+
 app = FastAPI()
 calls: list[dict[str, object]] = []
 title_calls: list[dict[str, object]] = []
@@ -55,7 +57,11 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
             {"error": {"message": "fixture authentication failed"}}, status_code=401
         )
     body = await request.json()
-    is_title = body["messages"][0]["role"] == "system"
+    is_title = (
+        body["messages"][0]["role"] == "system"
+        and body["messages"][0]["content"] == TITLE_INSTRUCTION
+    )
+    is_continuation = body["messages"][0]["role"] == "system" and not is_title
     (title_calls if is_title else calls).append(body)
     prompt = str(body["messages"][-1]["content"])
     if not is_title:
@@ -75,6 +81,22 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
                 yield b": waiting\n\n"
                 await asyncio.Event().wait()
             chunks = ["Echte ", "HTTP-Antwort ", "mit Grüße 🌍."]
+            finish = "stop"
+            if not is_title and prompt.startswith("/long"):
+                content = "# Lange Antwort\n\n```python\n" + "print('alt')\n" * 3000
+                chunks = [content[index : index + 4096] for index in range(0, len(content), 4096)]
+                finish = "length"
+            if is_continuation:
+                previous = str(body["messages"][-2]["content"])
+                chunks = [
+                    previous[-80:],
+                    "print('neu')\n```\n\n| A | B |\n|---|---|\n| 1 | 2 |\n\n",
+                    "- Punkt\n\n> Zitat\n\n" + "Langer Absatz. " * 1000,
+                ]
+                if any(
+                    str(message["content"]).startswith("/long-stop") for message in body["messages"]
+                ):
+                    chunks += [" weiterer Text"] * 100
             if prompt == "Erkläre in zwei Sätzen, was ein MCP-Server ist.":
                 chunks = [
                     "Ein MCP-Server stellt ",
@@ -83,9 +105,10 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
                 ]
             if prompt == "Zähle die Zahlen von 1 bis 100, jede Zahl in einer eigenen Zeile.":
                 chunks = [f"{number}\n" for number in range(1, 101)]
-            if prompt.startswith(("/long", "/length")):
+            if prompt.startswith(("/tokens-long", "/length")):
                 # 9000 simulated visible tokens; batch deltas for a fast local test.
                 chunks = [" token" * 100] * 90
+                finish = "length" if prompt.startswith("/length") else "stop"
             if prompt.startswith("/slow"):
                 chunks += [" weiterer Text"] * 100
             if is_title:
@@ -113,13 +136,19 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
                     )
                     + "\r\n\r\n"
                 ).encode()
-                for index in range(0, len(data), 7):
-                    yield data[index : index + 7]
-                await asyncio.sleep(0 if prompt.startswith(("/long", "/length")) else 0.08)
-            if not is_title and prompt.startswith("/length"):
-                yield b'data: {"choices":[{"index":0,"delta":{},"finish_reason":"length"}]}\n\n'
-            else:
-                yield b'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n'
+                # Long fixtures still fragment events, without thousands of tiny
+                # HTTP writes dominating the browser's generation time.
+                fragment_size = (
+                    512
+                    if is_continuation or prompt.startswith(("/long", "/tokens-long", "/length"))
+                    else 7
+                )
+                for index in range(0, len(data), fragment_size):
+                    yield data[index : index + fragment_size]
+                await asyncio.sleep(0 if prompt.startswith(("/tokens-long", "/length")) else 0.08)
+            yield (
+                'data: {"choices":[{"index":0,"delta":{},"finish_reason":"' + finish + '"}]}\n\n'
+            ).encode()
             yield b"data: [DONE]\n\n"
             completed = True
         finally:

@@ -25,6 +25,12 @@
       "ChatLimits": {
         "additionalProperties": false,
         "properties": {
+          "max_continuations": {
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Max Continuations",
+            "type": "integer"
+          },
           "max_message_chars": {
             "maximum": 1048576.0,
             "minimum": 1.0,
@@ -61,7 +67,8 @@
           "max_response_chars",
           "max_stream_bytes",
           "stream_timeout_ms",
-          "stream_idle_timeout_ms"
+          "stream_idle_timeout_ms",
+          "max_continuations"
         ],
         "title": "ChatLimits",
         "type": "object"
@@ -69,10 +76,31 @@
       "ChatRequest": {
         "additionalProperties": false,
         "properties": {
+          "assistantMessageId": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "pattern": "^[a-zA-Z0-9_-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assistantmessageid"
+          },
           "attempt": {
             "maximum": 1000.0,
             "minimum": 1.0,
             "title": "Attempt",
+            "type": "integer"
+          },
+          "continuationCount": {
+            "default": 0,
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Continuationcount",
             "type": "integer"
           },
           "conversationId": {
@@ -109,6 +137,15 @@
             "maxLength": 200,
             "minLength": 1,
             "title": "Modelid",
+            "type": "string"
+          },
+          "operation": {
+            "default": "generate",
+            "enum": [
+              "generate",
+              "continue"
+            ],
+            "title": "Operation",
             "type": "string"
           }
         },
@@ -338,6 +375,33 @@
         "title": "HealthResponse",
         "type": "object"
       },
+      "IncompleteEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "const": "output_limit",
+            "default": "output_limit",
+            "title": "Reason",
+            "type": "string"
+          },
+          "seq": {
+            "minimum": 1.0,
+            "title": "Seq",
+            "type": "integer"
+          },
+          "type": {
+            "const": "response.incomplete",
+            "default": "response.incomplete",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "seq"
+        ],
+        "title": "IncompleteEvent",
+        "type": "object"
+      },
       "LLMMessage": {
         "additionalProperties": false,
         "properties": {
@@ -454,6 +518,19 @@
             ],
             "title": "Provider"
           },
+          "provider_context_window": {
+            "anyOf": [
+              {
+                "maximum": 2000000.0,
+                "minimum": 256.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Context Window"
+          },
           "provider_limit_evidence": {
             "anyOf": [
               {
@@ -517,6 +594,13 @@
               }
             ],
             "title": "Reasoning Parameter"
+          },
+          "reasoning_reserve_tokens": {
+            "default": 0,
+            "maximum": 65536.0,
+            "minimum": 0.0,
+            "title": "Reasoning Reserve Tokens",
+            "type": "integer"
           },
           "released_at": {
             "anyOf": [
@@ -900,6 +984,7 @@
                       "response.cancelled": "#/components/schemas/CancelledEvent",
                       "response.completed": "#/components/schemas/CompletedEvent",
                       "response.failed": "#/components/schemas/FailedEvent",
+                      "response.incomplete": "#/components/schemas/IncompleteEvent",
                       "response.output_text.delta": "#/components/schemas/DeltaEvent",
                       "response.started": "#/components/schemas/StartedEvent"
                     },
@@ -917,6 +1002,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/CancelledEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/IncompleteEvent"
                     },
                     {
                       "$ref": "#/components/schemas/FailedEvent"

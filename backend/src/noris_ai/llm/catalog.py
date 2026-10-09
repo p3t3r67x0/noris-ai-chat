@@ -78,6 +78,7 @@ class ModelCatalogService:
                         models=models,
                         default_model=default,
                         limits=ChatLimits(
+                            max_continuations=self.config.llm_max_continuations,
                             max_message_chars=self.config.llm_max_message_chars,
                             max_response_chars=self.config.llm_max_response_chars,
                             max_stream_bytes=self.config.llm_max_stream_bytes,

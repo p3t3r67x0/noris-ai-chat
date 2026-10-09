@@ -8,6 +8,7 @@ import anyio
 
 from noris_ai.core.config import Settings
 from noris_ai.llm.catalog import ModelCatalogService
+from noris_ai.llm.continuation import ContinuationFilter, continuation_messages, utf16_length
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.provider import LLMProvider, ProviderMessage
 from noris_ai.llm.schemas import (
@@ -17,11 +18,13 @@ from noris_ai.llm.schemas import (
     ConversationTitleResponse,
     DeltaEvent,
     FailedEvent,
+    IncompleteEvent,
     LLMMessage,
     LLMModel,
     StartedEvent,
 )
 from noris_ai.llm.titles import TitleInstruction, title_source, validate_title
+from noris_ai.llm.tokens import TokenCounter
 
 
 class LLMGateway:
@@ -37,6 +40,9 @@ class LLMGateway:
         self._budget_day = datetime.now(UTC).date()
         self._reserved_tokens = 0
         self._title_attempts: set[str] = set()
+        self._counter = TokenCounter(config)
+        self._answer_targets: dict[str, tuple[str, str]] = {}
+        self._continuation_ids: set[str] = set()
 
     async def reserve(self, request: ChatRequest) -> None:
         for message in request.messages:
@@ -45,10 +51,25 @@ class LLMGateway:
                 if message.role == "user"
                 else self.config.llm_max_response_chars
             )
-            if len(message.content.encode("utf-16-le")) // 2 > limit:
+            if utf16_length(message.content) > limit:
                 raise LLMError("REQUEST_TOO_LARGE", 413)
         model = await self.catalog.require(request.modelId)
-        self._reserve(request.generationId, model, request.messages)
+        target = (request.conversationId, request.assistantMessageId or request.generationId)
+        if target in self._answer_targets.values():
+            raise LLMError("GENERATION_ACTIVE", 409)
+        if request.operation == "continue":
+            if request.continuationCount > self.config.llm_max_continuations:
+                raise LLMError("CONTINUATION_LIMIT", 400)
+            if utf16_length(request.messages[-1].content) >= self.config.llm_max_response_chars:
+                raise LLMError("RESPONSE_SIZE_LIMIT", 413)
+            if request.generationId in self._continuation_ids:
+                raise LLMError("GENERATION_ACTIVE", 409)
+            if len(self._continuation_ids) >= 10_000:
+                raise LLMError("RATE_LIMIT", 429)
+        self._reserve(request.generationId, model, continuation_messages(request))
+        self._answer_targets[request.generationId] = target
+        if request.operation == "continue":
+            self._continuation_ids.add(request.generationId)
 
     def _reserve(
         self,
@@ -64,14 +85,8 @@ class LLMGateway:
             model = model.model_copy(
                 update={"max_output_tokens": min(output_limit, model.max_output_tokens)}
             )
-        estimate = (
-            sum(len(m.content.encode("utf-8")) + 32 for m in messages)
-            + 64
-            + self.config.llm_context_safety_tokens
-        )
-        # Charge the full generated-token cap, including invisible reasoning, even
-        # on Stop, length, failure or retry. Never refund based on visible text.
-        reservation = estimate + model.max_output_tokens
+        estimate = self._counter.estimate(messages, model.id)
+        reservation = estimate + model.max_output_tokens + model.reasoning_reserve_tokens
         if reservation > model.context_window:
             raise LLMError("CONTEXT_LIMIT", 413)
         if generation_id in self._active:
@@ -150,6 +165,7 @@ class LLMGateway:
 
     def release(self, generation_id: str) -> None:
         self._active.discard(generation_id)
+        self._answer_targets.pop(generation_id, None)
         self._admitted.pop(generation_id, None)
 
     async def stream(self, request: ChatRequest) -> AsyncGenerator[bytes]:
@@ -163,11 +179,46 @@ class LLMGateway:
             )
             return
         model = self._admitted[request.generationId]
-        iterator = provider.stream(request.messages, model)
-        text_length = 0
-        stream_bytes = len(started)
+        iterator = provider.stream(continuation_messages(request), model)
+        previous = request.messages[-1].content if request.operation == "continue" else ""
+        filter_ = ContinuationFilter(previous)
+        text_length = utf16_length(previous)
         has_text = False
+        received = len(started)
         pending: asyncio.Future[str] | None = None
+
+        def output(delta: str) -> list[bytes]:
+            nonlocal seq, text_length, has_text, received
+            events: list[bytes] = []
+            for offset in range(0, len(delta), 512):
+                fragment = delta[offset : offset + 512]
+                # Keep all text that fits, including the valid prefix of a boundary chunk.
+                available = self.config.llm_max_response_chars - text_length
+                if utf16_length(fragment) > available:
+                    fragment = fragment.encode("utf-16-le")[: available * 2].decode(
+                        "utf-16-le", errors="ignore"
+                    )
+                if not fragment:
+                    break
+                encoded = self._encode(DeltaEvent(seq=seq + 1, delta=fragment))
+                if received + len(encoded) > self.config.llm_max_stream_bytes - 512:
+                    break
+                received += len(encoded)
+                text_length += utf16_length(fragment)
+                has_text = has_text or bool(fragment.strip())
+                seq += 1
+                events.append(encoded)
+            return events
+
+        def check_limits(delta: str, before: int) -> None:
+            if text_length - before < utf16_length(delta):
+                code = (
+                    "RESPONSE_SIZE_LIMIT"
+                    if text_length >= self.config.llm_max_response_chars - 1
+                    else "STREAM_SIZE_LIMIT"
+                )
+                raise LLMError(code)
+
         try:
             async with asyncio.timeout(
                 min(model.timeout_policy.total_seconds, self.config.llm_total_timeout_seconds)
@@ -180,31 +231,43 @@ class LLMGateway:
                         )
                         if not done:
                             heartbeat = b": keepalive\n\n"
-                            stream_bytes += len(heartbeat)
-                            if stream_bytes + 512 > self.config.llm_max_stream_bytes:
-                                raise LLMError("OUTPUT_LIMIT")
+                            received += len(heartbeat)
+                            if received > self.config.llm_max_stream_bytes - 512:
+                                raise LLMError("STREAM_SIZE_LIMIT")
                             yield heartbeat
                     try:
                         delta = pending.result()
                     except StopAsyncIteration:
                         break
-                    text_length += len(delta.encode("utf-16-le")) // 2
-                    has_text = has_text or bool(delta.strip())
-                    if text_length > self.config.llm_max_response_chars:
-                        raise LLMError("OUTPUT_LIMIT")
-                    encoded = self._encode(DeltaEvent(seq=seq + 1, delta=delta))
-                    stream_bytes += len(encoded)
-                    if stream_bytes + 512 > self.config.llm_max_stream_bytes:
-                        raise LLMError("OUTPUT_LIMIT")
-                    seq += 1
-                    yield encoded
+                    delta = filter_.feed(delta)
+                    before = text_length
+                    for event in output(delta):
+                        yield event
+                    check_limits(delta, before)
+                delta = filter_.feed("", final=True)
+                before = text_length
+                for event in output(delta):
+                    yield event
+                check_limits(delta, before)
             if not has_text:
-                raise LLMError("INVALID_RESPONSE")
+                raise LLMError("DUPLICATE_CONTINUATION" if previous else "INVALID_RESPONSE")
             yield self._encode(CompletedEvent(seq=seq + 1))
-        except TimeoutError:
-            error = LLMError("TIMEOUT", 504)
-            yield self._encode(FailedEvent(seq=seq + 1, code=error.code, message=error.message))
-        except LLMError as error:
+        except (TimeoutError, LLMError) as cause:
+            error = cause if isinstance(cause, LLMError) else LLMError("TIMEOUT", 504)
+            try:
+                delta = filter_.feed("", final=True)
+                before = text_length
+                for event in output(delta):
+                    yield event
+                check_limits(delta, before)
+            except LLMError as filter_error:
+                error = filter_error
+            if error.code == "OUTPUT_LIMIT":
+                if previous and not has_text:
+                    error = LLMError("DUPLICATE_CONTINUATION")
+                else:
+                    yield self._encode(IncompleteEvent(seq=seq + 1))
+                    return
             if error.code in ("MODEL_UNAVAILABLE", "PROVIDER_AUTH_FAILED"):
                 self.catalog.invalidate()
             yield self._encode(FailedEvent(seq=seq + 1, code=error.code, message=error.message))
@@ -226,5 +289,7 @@ class LLMGateway:
                     self.release(request.generationId)
 
     @staticmethod
-    def _encode(event: StartedEvent | DeltaEvent | CompletedEvent | FailedEvent) -> bytes:
+    def _encode(
+        event: StartedEvent | DeltaEvent | CompletedEvent | IncompleteEvent | FailedEvent,
+    ) -> bytes:
         return f"event: {event.type}\ndata: {event.model_dump_json()}\n\n".encode()

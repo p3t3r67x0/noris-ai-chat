@@ -58,16 +58,28 @@ class Settings(BaseSettings):
     llm_max_output_tokens: int = Field(default=8192, ge=1, le=131_072)
     llm_context_safety_tokens: int = Field(default=512, ge=64, le=16_384)
 
+    llm_max_continuations: int = Field(default=8, ge=1, le=20)
+    llm_system_reserved_tokens: int = Field(default=256, ge=64, le=16_384)
+    llm_tokenizer_path: Path | None = None
+    llm_tokenizer_model_id: str | None = None
+
     @model_validator(mode="after")
     def validate_llm_configuration(self) -> Self:
         if max(self.llm_connect_timeout_seconds, self.llm_read_timeout_seconds) > (
             self.llm_total_timeout_seconds
         ):
             raise ValueError("Connection and idle timeouts must fit within total time")
+        if bool(self.llm_tokenizer_path) != bool(self.llm_tokenizer_model_id):
+            raise ValueError("Local tokenizer requires both path and matching model ID")
         if any(model.max_output_tokens > self.llm_max_output_tokens for model in self.llm_models):
             raise ValueError("Model output exceeds the application token ceiling")
         if any(
-            model.max_output_tokens + self.llm_context_safety_tokens + 96 >= model.context_window
+            model.max_output_tokens
+            + model.reasoning_reserve_tokens
+            + self.llm_context_safety_tokens
+            + self.llm_system_reserved_tokens
+            + 96
+            >= model.context_window
             for model in self.llm_models
         ):
             raise ValueError("Context must leave room for prompt and safety reserve")

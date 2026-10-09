@@ -48,7 +48,7 @@ describe('Long output and safe configurable limits', () => {
     CHAT_LIMITS.max_stream_bytes = 1024
     const received = []
     for await (const event of createRealTransport({ fetcher: async () => response('stop') }).stream(request, new AbortController().signal)) received.push(event)
-    expect(received.at(-1)).toMatchObject({ type: 'response.failed', code: 'INVALID_RESPONSE' })
+    expect(received.at(-1)).toMatchObject({ type: 'response.failed', code: 'STREAM_SIZE_LIMIT' })
   })
   it('honors the catalog total timeout beyond the old 135 seconds', async () => {
     vi.useFakeTimers()

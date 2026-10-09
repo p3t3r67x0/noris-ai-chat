@@ -77,14 +77,15 @@ function saveEdit(): void {
       <ChatHeader v-model:model="modelId" :sidebar-open="sidebarOpen" :busy="stream.busy.value" :demo="mode === 'mock'" @toggle-sidebar="sidebarOpen = !sidebarOpen" @new-chat="newChat" />
       <div class="chat-content" :data-empty="chat.visible.value.length === 0">
         <EmptyChatState v-if="chat.visible.value.length === 0" />
-        <ChatTimeline v-show="chat.visible.value.length > 0" :messages="chat.visible.value" :conversation-id="conversations.activeId.value" :busy="stream.busy.value" :variants="chat.variants" @edit="beginEdit" @regenerate="canSend && chat.regenerate($event, modelId)" @select-variant="chat.selectVariant" />
+        <ChatTimeline v-show="chat.visible.value.length > 0" :messages="chat.visible.value" :conversation-id="conversations.activeId.value" :busy="stream.busy.value" :variants="chat.variants" :can-continue="chat.canContinue" @continue="canSend && chat.continueResponse($event, modelId)" @edit="beginEdit" @regenerate="canSend && chat.regenerate($event, modelId)" @select-variant="chat.selectVariant" />
         <div class="composer-dock">
           <div v-if="modelError || modelNotice" role="status" aria-live="polite" class="px-4 pb-2 text-sm text-muted">
             <p>{{ modelError || modelNotice }}</p>
             <UButton v-if="fallbackId && !canSend" color="neutral" variant="link" label="Verfügbares Modell auswählen" @click="chooseFallback" />
             <UButton color="neutral" variant="link" label="Modelle neu laden" :loading="modelsLoading" @click="refreshModels" />
           </div>
-          <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" :busy="stream.busy.value" :model-unavailable="!canSend" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" @send="send" @stop="stop" />
+          <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" :busy="stream.busy.value" :model-unavailable="!canSend" :input-error="chat.drafts.error.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" @send="send" @stop="stop" />
+          <p v-if="chat.drafts.error.value" role="alert" class="mt-2 text-center text-xs text-error">{{ chat.drafts.error.value }}</p>
           <p class="composer-note">noris AI kann Fehler machen. Prüfe wichtige Informationen.</p>
         </div>
         <div class="chat-status" :data-attention="stream.status.value === 'failed' || (stream.busy.value && chat.generatingConversationId.value !== conversations.activeId.value)" role="status" aria-live="polite" aria-atomic="true" :data-generation-status="stream.status.value">
@@ -106,13 +107,14 @@ function saveEdit(): void {
     <UModal v-model:open="editOpen" title="Nachricht bearbeiten" description="Deine ursprüngliche Frage und ihre Antworten bleiben als Variante erhalten.">
       <template #body>
         <form id="edit-message-form" @submit.prevent="saveEdit">
-          <UTextarea v-model="editText" aria-label="Nachricht bearbeiten" autofocus autoresize :rows="4" :maxrows="12" :maxlength="CHAT_LIMITS.max_message_chars" class="w-full" />
+          <UTextarea v-model="editText" aria-label="Nachricht bearbeiten" autofocus autoresize :rows="4" :maxrows="12" class="w-full" />
+          <p v-if="editText.length > CHAT_LIMITS.max_message_chars" role="alert" class="mt-2 text-xs text-error">Die Nachricht darf höchstens {{ CHAT_LIMITS.max_message_chars.toLocaleString('de-DE') }} Zeichen enthalten.</p>
         </form>
       </template>
       <template #footer>
         <div class="flex w-full justify-end gap-2">
           <UButton color="neutral" variant="ghost" label="Abbrechen" @click="editingId = null" />
-          <UButton type="submit" form="edit-message-form" label="Speichern und senden" :disabled="stream.busy.value || !canSend || !editText.trim()" />
+          <UButton type="submit" form="edit-message-form" label="Speichern und senden" :disabled="stream.busy.value || !canSend || !editText.trim() || editText.length > CHAT_LIMITS.max_message_chars" />
         </div>
       </template>
     </UModal>

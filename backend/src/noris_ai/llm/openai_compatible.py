@@ -1,4 +1,5 @@
 import asyncio
+import json
 import re
 from collections.abc import AsyncIterator, Sequence
 from typing import Literal, cast
@@ -163,7 +164,7 @@ class OpenAICompatibleProvider:
                     connect=self._config.llm_connect_timeout_seconds,
                 ),
             ) as response:
-                self._validate_status(response.status_code)
+                await self._validate_response(response)
                 if (
                     response.headers.get("content-type", "").split(";", 1)[0].strip()
                     != "text/event-stream"
@@ -176,7 +177,7 @@ class OpenAICompatibleProvider:
                 async for chunk in response.aiter_bytes():
                     received += len(chunk)
                     if received > self._config.llm_max_upstream_bytes:
-                        raise LLMError("OUTPUT_LIMIT")
+                        raise LLMError("STREAM_SIZE_LIMIT")
                     for data in decoder.feed(chunk):
                         if data == "[DONE]":
                             if not finished or not text_length:
@@ -197,9 +198,16 @@ class OpenAICompatibleProvider:
                             raise LLMError("INVALID_RESPONSE")
                         delta = choice.delta.content
                         if delta:
+                            previous_length = text_length
                             text_length += len(delta.encode("utf-16-le")) // 2
                             if text_length > self._config.llm_max_response_chars:
-                                raise LLMError("OUTPUT_LIMIT")
+                                available = self._config.llm_max_response_chars - previous_length
+                                prefix = delta.encode("utf-16-le")[: available * 2].decode(
+                                    "utf-16-le", errors="ignore"
+                                )
+                                if prefix:
+                                    yield prefix
+                                raise LLMError("RESPONSE_SIZE_LIMIT")
                             yield delta
                         if choice.finish_reason == "length":
                             raise LLMError("OUTPUT_LIMIT")
@@ -218,6 +226,32 @@ class OpenAICompatibleProvider:
             raise LLMError("STREAM_INTERRUPTED") from None
         except (UnicodeError, ValueError):
             raise LLMError("INVALID_RESPONSE") from None
+
+    @classmethod
+    async def _validate_response(cls, response: httpx.Response) -> None:
+        if response.status_code in (400, 413):
+            # Read a bounded error envelope only to recognize fixed context codes.
+            # Never expose provider messages, request echoes, URLs or exception text.
+            body = bytearray()
+            async for chunk in response.aiter_bytes():
+                if len(body) + len(chunk) > 4096:
+                    break
+                body.extend(chunk)
+            try:
+                payload = json.loads(body)
+                error = (
+                    cast(dict[str, object], payload).get("error")
+                    if isinstance(payload, dict)
+                    else None
+                )
+                if isinstance(error, dict) and any(
+                    cast(dict[str, object], error).get(field) == "context_length_exceeded"
+                    for field in ("code", "type")
+                ):
+                    raise LLMError("CONTEXT_LIMIT", 413)
+            except (ValueError, UnicodeError):
+                pass
+        cls._validate_status(response.status_code)
 
     @staticmethod
     def _validate_status(status: int) -> None:

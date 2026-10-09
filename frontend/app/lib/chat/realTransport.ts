@@ -81,6 +81,9 @@ export function parseStreamEvent(frame: SSEFrame): StreamEvent {
   if (!value || typeof value !== 'object' || !('seq' in value) || !Number.isSafeInteger(value.seq) || Number(value.seq) < 1 || !('type' in value) || typeof value.type !== 'string' || (frame.event !== null && frame.event !== value.type)) throw new TransportError('INVALID_RESPONSE')
   switch (value.type) {
     case 'response.started': case 'response.completed': case 'response.cancelled': break
+    case 'response.incomplete':
+      if (!('reason' in value) || value.reason !== 'output_limit') throw new TransportError('INVALID_RESPONSE')
+      break
     case 'response.output_text.delta':
       if (!('delta' in value) || typeof value.delta !== 'string') throw new TransportError('INVALID_RESPONSE')
       break
@@ -110,15 +113,19 @@ export function createRealTransport(options: { fetcher?: typeof fetch, timeoutMs
     async *stream(request, signal) {
       const controller = new AbortController()
       const abort = () => controller.abort()
+      const maxStreamBytes = CHAT_LIMITS.max_stream_bytes
+      const idleTimeoutMs = options.idleTimeoutMs ?? CHAT_LIMITS.stream_idle_timeout_ms
       let timedOut = false
       let sequence = 0
       let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
+      let idleTimer: ReturnType<typeof setTimeout> | undefined
+      const resetIdle = () => {
+        clearTimeout(idleTimer)
+        idleTimer = setTimeout(() => { timedOut = true; controller.abort() }, idleTimeoutMs)
+      }
       signal.addEventListener('abort', abort, { once: true })
       if (signal.aborted) controller.abort()
-      const timeout = () => { timedOut = true; controller.abort() }
-      const timer = setTimeout(timeout, options.timeoutMs ?? CHAT_LIMITS.stream_timeout_ms)
-      let idleTimer = setTimeout(timeout, options.idleTimeoutMs ?? CHAT_LIMITS.stream_idle_timeout_ms)
-      const maxStreamBytes = CHAT_LIMITS.max_stream_bytes
+      const timer = setTimeout(() => { timedOut = true; controller.abort() }, options.timeoutMs ?? CHAT_LIMITS.stream_timeout_ms)
       try {
         if (signal.aborted) { yield { seq: 1, type: 'response.cancelled' }; return }
         const response = await fetcher('/api/v1/llm/chat', {
@@ -129,26 +136,26 @@ export function createRealTransport(options: { fetcher?: typeof fetch, timeoutMs
         if (!response.ok) throw await responseError(response)
         if (!response.body || response.headers.get('Content-Type')?.split(';')[0]?.trim() !== 'text/event-stream') throw new TransportError('INVALID_RESPONSE')
         reader = response.body.getReader()
+        resetIdle()
         const decoder = new TextDecoder('utf-8', { fatal: true })
         const frames = new SSEFrames()
         let received = 0
         while (true) {
           const { value, done } = await reader.read()
-          clearTimeout(idleTimer)
-          idleTimer = setTimeout(timeout, options.idleTimeoutMs ?? CHAT_LIMITS.stream_idle_timeout_ms)
+          resetIdle()
           if (signal.aborted) { yield { seq: sequence + 1, type: 'response.cancelled' }; return }
           if (done) {
             frames.feed(decoder.decode())
             throw new TransportError(frames.incomplete ? 'INVALID_RESPONSE' : 'STREAM_INTERRUPTED')
           }
           received += value.byteLength
-          if (received > maxStreamBytes) throw new TransportError('INVALID_RESPONSE')
+          if (received > maxStreamBytes) throw new TransportError('STREAM_SIZE_LIMIT', 'Die Übertragung hat die konfigurierte Größenbegrenzung erreicht.')
           for (const frame of frames.feed(decoder.decode(value, { stream: true }))) {
             const event = parseStreamEvent(frame)
             if (event.seq !== sequence + 1) throw new TransportError('INVALID_RESPONSE')
             sequence = event.seq
             yield event
-            if (['response.completed', 'response.cancelled', 'response.failed'].includes(event.type)) return
+            if (['response.completed', 'response.incomplete', 'response.cancelled', 'response.failed'].includes(event.type)) return
           }
         }
       }

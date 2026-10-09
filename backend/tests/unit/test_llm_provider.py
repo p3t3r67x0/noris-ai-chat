@@ -165,13 +165,14 @@ async def test_status_mapping_never_echoes_upstream_secrets(
         (event(finish="stop") + b"data: [DONE]\n\n", "INVALID_RESPONSE"),
         (event("partial", "length"), "OUTPUT_LIMIT"),
         (event(finish="content_filter"), "CONTENT_FILTERED"),
-        (event("🌍" * 16001), "OUTPUT_LIMIT"),
+        (event("🌍" * 16001), "RESPONSE_SIZE_LIMIT"),
         (b"data: \xff\n\n", "INVALID_RESPONSE"),
     ],
 )
 async def test_invalid_empty_and_truncated_responses(
     llm_config: Settings, llm_messages: list[LLMMessage], data: bytes, code: str
 ) -> None:
+    llm_config = llm_config.model_copy(update={"llm_max_response_chars": 32_000})
     stream = Fragments(data, 128)
     provider = OpenAICompatibleProvider(
         llm_config.model_copy(update={"llm_max_response_chars": 32_000}),

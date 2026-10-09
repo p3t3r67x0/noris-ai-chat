@@ -1,4 +1,4 @@
-import { CHAT_LIMITS } from '../lib/chat/limits'
+import { CHAT_LIMITS, MAX_SNAPSHOT_CHARS } from '../lib/chat/limits'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { createConversationState } from './useConversations'
 import type { ConversationDependencies } from './useConversations'
@@ -42,6 +42,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
   function generate(input: ChatMessage, modelId: ChatModelId, attempt = 1, titleRequest?: ConversationTitleRequest): void {
     const history = visiblePath(messages.value, input.conversationId, input.id).map(({ role, content }) => ({ role, content }))
     const reply = append(input.conversationId, input.id, 'assistant', '')
+    reply.modelId = modelId
     generatingConversationId.value = input.conversationId
     void stream.start({ generationId: id(), conversationId: input.conversationId, inputMessageId: input.id, modelId, messages: history, attempt }, {
       delta: text => { reply.content += text },
@@ -54,6 +55,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
           conversation.title = fallbackConversationTitle(context)
         }
       },
+      failure: (code, message) => { reply.errorCode = code; reply.errorMessage = message },
     }).finally(() => { generatingConversationId.value = null })
   }
 
@@ -107,7 +109,37 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     if (stream.busy.value) return
     const last = visible.value.at(-1)
     if (last?.role !== 'assistant' || last.status !== 'failed' || !last.parentMessageId) return
-    regenerate(last.id, modelId)
+    if (last.continuationCount) continueResponse(last.id, modelId)
+    else regenerate(last.id, modelId)
+  }
+
+  function canContinue(messageId: string): boolean {
+    const reply = Object.hasOwn(messages.value, messageId) ? messages.value[messageId] : undefined
+    return !stream.busy.value && reply?.role === 'assistant'
+      && reply.id === visible.value.at(-1)?.id && Boolean(reply.content)
+      && ['incomplete', 'cancelled', 'failed'].includes(reply.status)
+      && (reply.continuationCount ?? 0) < CHAT_LIMITS.max_continuations
+      && reply.content.length < CHAT_LIMITS.max_response_chars
+      && !['RESPONSE_SIZE_LIMIT', 'STREAM_SIZE_LIMIT', 'DUPLICATE_CONTINUATION'].includes(reply.errorCode ?? '')
+  }
+
+  function continueResponse(messageId: string, fallbackModelId: ChatModelId): boolean {
+    if (!canContinue(messageId)) return false
+    const reply = messages.value[messageId]!
+    if (!reply.parentMessageId) return false
+    const modelId = reply.modelId ?? fallbackModelId
+    const history = visiblePath(messages.value, reply.conversationId, reply.id).map(({ role, content }) => ({ role, content }))
+    const continuationCount = (reply.continuationCount ?? 0) + 1
+    reply.continuationCount = continuationCount
+    delete reply.errorCode
+    delete reply.errorMessage
+    generatingConversationId.value = reply.conversationId
+    void stream.start({ generationId: id(), conversationId: reply.conversationId, inputMessageId: reply.parentMessageId, assistantMessageId: reply.id, modelId, messages: history, attempt: 1, operation: 'continue', continuationCount }, {
+      delta: text => { reply.content += text },
+      status: next => { reply.status = next },
+      failure: (code, message) => { reply.errorCode = code; reply.errorMessage = message },
+    }).finally(() => { generatingConversationId.value = null })
+    return true
   }
   function remove(conversationId: string): void {
     titles.cancel(conversationId)
@@ -128,7 +160,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
   }
   const variantIndex = computed(() => indexSiblingVariants(messages.value))
   const variants = (messageId: string): readonly ChatMessage[] => variantIndex.value.get(messageId) ?? []
-  return { conversations, messages, visible, stream, titles, generatingConversationId, drafts, preferredLeaves, send, retry, newChat, remove, selectVariant, regenerate, edit, variants, snapshot, hydrate }
+  return { conversations, messages, visible, stream, titles, generatingConversationId, drafts, preferredLeaves, send, retry, canContinue, continueResponse, newChat, remove, selectVariant, regenerate, edit, variants, snapshot, hydrate }
 }
 
 export function useChat(transport: ChatTransport) {
@@ -141,7 +173,11 @@ export function useChat(transport: ChatTransport) {
     clearTimeout(timer)
     timer = undefined
     if (!persistenceAllowed) return
-    try { window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(state.snapshot())) }
+    try {
+      const serialized = JSON.stringify(state.snapshot())
+      if (serialized.length > MAX_SNAPSHOT_CHARS) throw new Error('Speichergrenze erreicht')
+      window.localStorage.setItem(CHAT_STORAGE_KEY, serialized)
+    }
     catch { storageWarning.value = 'Änderungen können gerade nicht lokal gespeichert werden.' }
   }
   function externalChange(event: StorageEvent): void {

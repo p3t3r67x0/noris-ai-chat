@@ -238,6 +238,7 @@ Die Nachweise der Foundation stehen in [docs/ETAPPE-0-TESTERGEBNISSE.md](docs/ET
 
 Nach `make up` führt `make test-e2e-production` dieselben Desktop-/Mobile-Interaktions- und Screenshot-Tests über Caddy auf `http://127.0.0.1:8080` aus. Die bestehenden Baselines und die Toleranz bleiben unverändert. Der Compose-CI-Job startet den Stack aus einem frischen Checkout und führt diese Prüfung automatisch aus; die zusätzlichen Artefakte heißen `production-browser-test-results`. Die regulären Entwicklungs- und RealTransport-Tests bleiben erhalten. Beide Transport-Testmodi verwenden synthetische Daten und einen lokalen Simulator; Live-Aufrufe erfolgen ausschließlich mit gesondertem Opt-in und Freigabe.
 
+Lange Antworten, bestätigte 128K-Kontextkonfiguration, manuelle Fortsetzung und die vollständige Limit-/Kostenpolitik: [LONG-CONTEXT-RESPONSES.md](docs/LONG-CONTEXT-RESPONSES.md).
 ## Dynamische Noris-Modellauswahl
 
 Im Real-Modus lädt der bestehende Backend-Provider automatisch `GET /v1/models` über die konfigurierte, validierte URL und den serverseitigen Key. Keine Pflege sämtlicher IDs in `NORIS_LLM_MODELS` nötig: Die versionierte Registry filtert den berechtigten Katalog auf dokumentierte Streaming-Chatmodelle. Embeddings, Reranker und unbekannte IDs bleiben gesperrt. `smart_router` erscheint nur bei bestätigter Listung als „Automatisch“.

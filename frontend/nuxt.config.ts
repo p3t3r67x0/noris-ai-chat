@@ -1,4 +1,5 @@
 export default defineNuxtConfig({
+  ...(process.env.NORIS_NUXT_BUILD_DIR ? { buildDir: process.env.NORIS_NUXT_BUILD_DIR } : {}),
   compatibilityDate: '2026-10-08',
   devtools: { enabled: false },
   runtimeConfig: { public: { chatTransport: 'mock' } },
@@ -7,6 +8,7 @@ export default defineNuxtConfig({
   ui: { fonts: false },
   colorMode: { preference: 'system', fallback: 'light', storageKey: 'noris-ai-theme' },
   vite: {
+    ...(process.env.NORIS_NUXT_BUILD_DIR ? { cacheDir: `${process.env.NORIS_NUXT_BUILD_DIR}/cache/vite` } : {}),
     optimizeDeps: {
       // Prebundle lazy grammars too: discovering them after send would reload the dev page.
       include: [

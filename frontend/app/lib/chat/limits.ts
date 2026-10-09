@@ -8,6 +8,7 @@ export const DEFAULT_CHAT_LIMITS: ChatLimits = {
   max_stream_bytes: 16_777_216,
   stream_timeout_ms: 1_815_000,
   stream_idle_timeout_ms: 135_000,
+  max_continuations: 8,
 }
 export const CHAT_LIMITS = reactive<ChatLimits>({ ...DEFAULT_CHAT_LIMITS })
 export const ABSOLUTE_MESSAGE_CHARS = 1_048_576
@@ -20,6 +21,7 @@ export function parseChatLimits(value: unknown): ChatLimits {
     max_stream_bytes: [1024, 67_108_864],
     stream_timeout_ms: [1000, 3_615_000],
     stream_idle_timeout_ms: [1000, 615_000],
+    max_continuations: [1, 20],
   }
   for (const key of Object.keys(ranges) as (keyof ChatLimits)[]) {
     const candidate: unknown = Reflect.get(value, key)
@@ -29,3 +31,6 @@ export function parseChatLimits(value: unknown): ChatLimits {
   const result = value as ChatLimits
   return Object.fromEntries(Object.keys(ranges).map(key => [key, Reflect.get(result, key)])) as unknown as ChatLimits
 }
+
+export const MAX_SNAPSHOT_CHARS = 6_000_000
+export function applyChatLimits(value: unknown): void { Object.assign(CHAT_LIMITS, parseChatLimits(value)) }

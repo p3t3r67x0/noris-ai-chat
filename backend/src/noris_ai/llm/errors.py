@@ -27,6 +27,14 @@ MESSAGES = {
     "STREAM_INTERRUPTED": "Die Verbindung endete vor dem Abschluss der Antwort.",
     "INVALID_RESPONSE": "Der Modelldienst hat eine ungültige Antwort geliefert.",
     "OUTPUT_LIMIT": "Die Antwort überschreitet das konfigurierte Ausgabelimit.",
+    "RESPONSE_SIZE_LIMIT": (
+        "Die gespeicherte Antwort hat die konfigurierte Größenbegrenzung erreicht."
+    ),
+    "STREAM_SIZE_LIMIT": "Die Übertragung hat die konfigurierte Größenbegrenzung erreicht.",
+    "CONTINUATION_LIMIT": "Die maximale Anzahl Fortsetzungen ist erreicht.",
+    "DUPLICATE_CONTINUATION": (
+        "Das Modell hat vorhandenen Text wiederholt. Die bisherige Antwort bleibt erhalten."
+    ),
     "CONTENT_FILTERED": "Der Modelldienst hat die Antwort blockiert.",
     "INTERNAL_ERROR": "Die Modellantwort konnte nicht verarbeitet werden.",
 }

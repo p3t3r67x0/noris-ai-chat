@@ -6,6 +6,7 @@ import type { ChatRequest, ChatTransport, GenerationStatus } from '../lib/chat/t
 export interface StreamCallbacks {
   delta: (text: string) => void
   status: (status: Exclude<GenerationStatus, 'idle'>) => void
+  failure?: (code: string, message: string) => void
 }
 
 export function useChatStream(transport: ChatTransport) {
@@ -29,7 +30,7 @@ export function useChatStream(transport: ChatTransport) {
     cancellationRequested.value = false
     callbacks.status('submitting')
     let sequence = 0
-    let length = 0
+    let length = request.operation === 'continue' ? (request.messages.at(-1)?.content.length ?? 0) : 0
     const maxResponseChars = CHAT_LIMITS.max_response_chars
     const transition = (next: Exclude<GenerationStatus, 'idle'>) => { status.value = next; callbacks.status(next) }
     try {
@@ -48,12 +49,19 @@ export function useChatStream(transport: ChatTransport) {
           case 'response.output_text.delta':
             if (currentStatus() !== 'streaming') throw new Error('Text ohne gestartete Antwort')
             length += event.delta.length
-            if (length > maxResponseChars) throw new Error('Die Antwort überschreitet die zulässige Länge.')
+            if (length > maxResponseChars) {
+              errorCode.value = 'RESPONSE_SIZE_LIMIT'
+              throw new Error('Die Antwort hat die konfigurierte Größenbegrenzung erreicht.')
+            }
             callbacks.delta(event.delta)
             break
           case 'response.completed': transition('completed'); break
+          case 'response.incomplete': transition('incomplete'); break
           case 'response.cancelled': transition('cancelled'); break
-          case 'response.failed': error.value = event.message; errorCode.value = event.code; transition('failed'); break
+          case 'response.failed':
+            error.value = event.message; errorCode.value = event.code
+            callbacks.failure?.(event.code, event.message)
+            transition('failed'); break
         }
         if (!isBusy(status.value)) break
       }
@@ -67,6 +75,8 @@ export function useChatStream(transport: ChatTransport) {
       if (signal.aborted) transition('cancelled')
       else {
         error.value = cause instanceof Error ? cause.message : 'Die Antwort konnte nicht geladen werden.'
+        errorCode.value ??= 'STREAM_INTERRUPTED'
+        callbacks.failure?.(errorCode.value, error.value)
         transition('failed')
       }
     }

@@ -2,13 +2,17 @@
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 from noris_ai.core.config import EnvironmentSettings
-from noris_ai.main import create_app
 
 
 def main() -> None:
+    os.environ["NORIS_LLM_PROVIDER"] = "disabled"
+    os.environ["NORIS_LLM_MODELS"] = "[]"
+    from noris_ai.main import create_app
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
     args = parser.parse_args()

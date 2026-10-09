@@ -67,6 +67,13 @@ export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HT
     touchY = nextY
   }
   function contentChanged(): void { measure(); follow() }
+  function contentRendered(): void {
+    measure()
+    if (following.value && !changing) {
+      cancelFrame()
+      setTop(scroller.value?.scrollHeight ?? 0)
+    }
+  }
   const stopWatching = watch([conversationId, turnId], async ([id, turn], [previousId, previousTurn]) => {
     if (typeof window === 'undefined') return
     cancelFrame()
@@ -90,5 +97,5 @@ export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HT
     measure(); follow()
   })
   onUnmounted(() => { ++revision; stopWatching(); observer?.disconnect(); cancelFrame() })
-  return { following, showScrollButton, scrollToBottom, contentChanged, onScroll, onWheel, onKeydown, onTouchstart, onTouchmove }
+  return { following, showScrollButton, scrollToBottom, contentChanged, contentRendered, onScroll, onWheel, onKeydown, onTouchstart, onTouchmove }
 }

@@ -1,8 +1,15 @@
+import os
+
 import pytest
 from pydantic import SecretStr
 
 from noris_ai.core.config import EnvironmentSettings, Settings
 from noris_ai.llm.schemas import LLMMessage, LLMModel
+
+# Test discovery must not instantiate a live provider or inherit local model limits.
+# Explicit Settings passed by provider tests still override these environment defaults.
+os.environ["NORIS_LLM_PROVIDER"] = "disabled"
+os.environ["NORIS_LLM_MODELS"] = "[]"
 
 
 @pytest.fixture
