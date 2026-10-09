@@ -1,6 +1,11 @@
 /* Generated from backend OpenAPI. Run pnpm api:generate. Do not edit. */
 export type Seq = number
 export type Type = "response.cancelled"
+export type MaxMessageChars = number
+export type MaxResponseChars = number
+export type MaxStreamBytes = number
+export type StreamIdleTimeoutMs = number
+export type StreamTimeoutMs = number
 export type Attempt = number
 export type Conversationid = string
 export type Generationid = string
@@ -50,6 +55,8 @@ export type Lifecycle = ("LTS" | "PRODUCTIVE" | "EXPERIMENTAL" | "DEPRECATED" | 
 export type MaxOutputTokens = number
 export type Name = string
 export type Provider = (string | null)
+export type ProviderLimitEvidence = (string | null)
+export type ProviderMaxOutputTokens = number
 export type Reasoning = (boolean | null)
 export type ReasoningEffort = (string | null)
 export type ReasoningEfforts = string[]
@@ -78,6 +85,7 @@ export type Type4 = "response.started"
 
 export interface ApiSchemas {
   CancelledEvent: CancelledEvent
+  ChatLimits: ChatLimits
   ChatRequest: ChatRequest
   CompletedEvent: CompletedEvent
   ConversationTitleRequest: ConversationTitleRequest
@@ -100,6 +108,13 @@ export interface ApiSchemas {
 export interface CancelledEvent {
   seq: Seq
   type?: Type
+}
+export interface ChatLimits {
+  max_message_chars: MaxMessageChars
+  max_response_chars: MaxResponseChars
+  max_stream_bytes: MaxStreamBytes
+  stream_idle_timeout_ms: StreamIdleTimeoutMs
+  stream_timeout_ms: StreamTimeoutMs
 }
 export interface ChatRequest {
   attempt: Attempt
@@ -165,6 +180,8 @@ export interface LLMModel {
   max_output_tokens?: MaxOutputTokens
   name: Name
   provider?: Provider
+  provider_limit_evidence?: ProviderLimitEvidence
+  provider_max_output_tokens?: ProviderMaxOutputTokens
   reasoning?: Reasoning
   reasoning_effort?: ReasoningEffort
   reasoning_efforts?: ReasoningEfforts
@@ -199,6 +216,7 @@ export interface ModelCatalog {
   error_code?: ErrorCode
   expires_in_seconds?: ExpiresInSeconds
   fetched_at?: FetchedAt
+  limits: ChatLimits
   models: Models
   registry_version?: RegistryVersion
   status?: Status1

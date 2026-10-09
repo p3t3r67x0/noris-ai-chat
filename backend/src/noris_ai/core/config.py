@@ -42,18 +42,35 @@ class Settings(BaseSettings):
     )
     llm_reasoning_effort: Literal["low", "medium", "high"] | None = None
     llm_connect_timeout_seconds: float = Field(default=5, gt=0, le=30)
-    llm_read_timeout_seconds: float = Field(default=30, gt=0, le=120)
-    llm_total_timeout_seconds: float = Field(default=120, gt=0, le=600)
+    llm_read_timeout_seconds: float = Field(default=120, ge=1, le=600)
+    llm_total_timeout_seconds: float = Field(default=1800, ge=1, le=3600)
+    llm_heartbeat_seconds: float = Field(default=10, ge=1, le=30)
     llm_title_timeout_seconds: float = Field(default=6, gt=0, le=30)
     llm_title_max_output_tokens: int = Field(default=96, ge=1, le=256)
     llm_max_concurrent: int = Field(default=4, ge=1, le=32)
     llm_requests_per_minute: int = Field(default=20, ge=1, le=120)
     llm_daily_token_budget: int = Field(default=100_000, ge=1, le=10_000_000)
-    llm_max_request_bytes: int = Field(default=524_288, ge=1024, le=1_048_576)
-    llm_max_upstream_bytes: int = Field(default=1_048_576, ge=1024, le=10_485_760)
+    llm_max_request_bytes: int = Field(default=1_048_576, ge=1024, le=8_388_608)
+    llm_max_upstream_bytes: int = Field(default=16_777_216, ge=1024, le=67_108_864)
+    llm_max_stream_bytes: int = Field(default=16_777_216, ge=1024, le=67_108_864)
+    llm_max_message_chars: int = Field(default=32_000, ge=1, le=1_048_576)
+    llm_max_response_chars: int = Field(default=262_144, ge=1, le=1_048_576)
+    llm_max_output_tokens: int = Field(default=8192, ge=1, le=131_072)
+    llm_context_safety_tokens: int = Field(default=512, ge=64, le=16_384)
 
     @model_validator(mode="after")
     def validate_llm_configuration(self) -> Self:
+        if max(self.llm_connect_timeout_seconds, self.llm_read_timeout_seconds) > (
+            self.llm_total_timeout_seconds
+        ):
+            raise ValueError("Connection and idle timeouts must fit within total time")
+        if any(model.max_output_tokens > self.llm_max_output_tokens for model in self.llm_models):
+            raise ValueError("Model output exceeds the application token ceiling")
+        if any(
+            model.max_output_tokens + self.llm_context_safety_tokens + 96 >= model.context_window
+            for model in self.llm_models
+        ):
+            raise ValueError("Context must leave room for prompt and safety reserve")
         if self.llm_provider == "disabled":
             return self
         key, password = self.llm_api_key, self.llm_access_password

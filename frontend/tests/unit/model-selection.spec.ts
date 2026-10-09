@@ -2,12 +2,13 @@ import { defineComponent } from 'vue'
 import { mount, flushPromises } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CHAT_MODELS, useModelSelection } from '../../app/composables/useModelSelection'
+import { DEFAULT_CHAT_LIMITS } from '../../app/lib/chat/limits'
 
 describe('Configured model catalog', () => {
   it('reuses the existing reactive model list and restores only configured IDs', async () => {
     const identity = CHAT_MODELS
     localStorage.setItem('noris-ai:model', 'fixture-beta')
-    const component = defineComponent({ setup: () => useModelSelection({ mode: 'real', fetcher: async () => Response.json({ models: [{ id: 'fixture-alpha', name: 'Alpha', available: true, streaming: true }, { id: 'fixture-beta', name: 'Beta', available: true, streaming: true }, { id: 'offline', name: 'Offline', available: false, streaming: true }], default_model: 'fixture-alpha' }) }), template: '<div>{{ modelId }}</div>' })
+    const component = defineComponent({ setup: () => useModelSelection({ mode: 'real', fetcher: async () => Response.json({ models: [{ id: 'fixture-alpha', name: 'Alpha', available: true, streaming: true }, { id: 'fixture-beta', name: 'Beta', available: true, streaming: true }, { id: 'offline', name: 'Offline', available: false, streaming: true }], default_model: 'fixture-alpha', limits: DEFAULT_CHAT_LIMITS }) }), template: '<div>{{ modelId }}</div>' })
     const wrapper = mount(component)
     await flushPromises()
     expect(CHAT_MODELS).toBe(identity)
@@ -43,7 +44,7 @@ describe('Dynamic model permissions', () => {
 
   it('preserves a revoked preference and requires an explicit fallback selection', async () => {
     localStorage.setItem('noris-ai:model', 'alpha')
-    const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json({ models: [alpha, beta], default_model: 'alpha' })).mockResolvedValueOnce(Response.json({ models: [beta], default_model: 'beta' }))
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json({ models: [alpha, beta], default_model: 'alpha', limits: DEFAULT_CHAT_LIMITS })).mockResolvedValueOnce(Response.json({ models: [beta], default_model: 'beta', limits: DEFAULT_CHAT_LIMITS }))
     const wrapper = mountCatalog(fetcher)
     await flushPromises()
     expect(wrapper.vm.canSend).toBe(true)
@@ -61,7 +62,7 @@ describe('Dynamic model permissions', () => {
   })
 
   it('accepts empty catalogs without fictional defaults', async () => {
-    const wrapper = mountCatalog(async () => Response.json({ models: [], default_model: null }))
+    const wrapper = mountCatalog(async () => Response.json({ models: [], default_model: null, limits: DEFAULT_CHAT_LIMITS }))
     await flushPromises()
     expect(wrapper.vm.error).toBeNull()
     expect(wrapper.vm.canSend).toBe(false)
@@ -71,7 +72,7 @@ describe('Dynamic model permissions', () => {
   })
 
   it('marks stale metadata clearly and blocks generation', async () => {
-    const wrapper = mountCatalog(async () => Response.json({ models: [{ ...alpha, available: false }], default_model: null, status: 'stale' }))
+    const wrapper = mountCatalog(async () => Response.json({ models: [{ ...alpha, available: false }], default_model: null, status: 'stale', limits: DEFAULT_CHAT_LIMITS }))
     await flushPromises()
     expect(wrapper.vm.stale).toBe(true)
     expect(wrapper.vm.canSend).toBe(false)

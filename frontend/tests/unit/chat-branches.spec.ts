@@ -137,7 +137,7 @@ describe('drafts and validated local persistence', () => {
     if (kind === 'cycle') user.parentMessageId = assistant.id
     if (kind === 'leaf') snapshot.conversations.conversations[user.conversationId]!.activeLeafMessageId = 'missing'
     if (kind === 'edit') user.editedFromMessageId = assistant.id
-    if (kind === 'oversize') assistant.content = 'x'.repeat(32_001)
+    if (kind === 'oversize') assistant.content = 'x'.repeat(1_048_577)
     if (kind === 'role') assistant.role = 'user'
     if (kind === 'draft') snapshot.drafts.missing = 'Lost draft'
     expect(parseChatSnapshot(JSON.stringify(snapshot))).toBeNull()

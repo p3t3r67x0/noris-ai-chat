@@ -1,5 +1,6 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { responseError } from '../lib/chat/realTransport'
+import { CHAT_LIMITS, DEFAULT_CHAT_LIMITS, parseChatLimits } from '../lib/chat/limits'
 
 const MOCK_MODELS = [
   { id: 'balanced', label: 'noris Balanced', description: 'Für den Alltag' },
@@ -16,6 +17,7 @@ export function isChatModelId(value: unknown): value is ChatModelId {
 
 export function useModelSelection(options: { mode?: 'mock' | 'real', fetcher?: typeof fetch } = {}) {
   const real = options.mode === 'real'
+  Object.assign(CHAT_LIMITS, DEFAULT_CHAT_LIMITS)
   CHAT_MODELS.splice(0, CHAT_MODELS.length, ...(real ? [] : MOCK_MODELS.map(model => ({ ...model }))))
   const modelId = ref<ChatModelId>(real ? '' : 'balanced')
   const error = ref<string | null>(null)
@@ -49,6 +51,8 @@ export function useModelSelection(options: { mode?: 'mock' | 'real', fetcher?: t
       }
       if ((catalog.default_model !== null && !models.some(model => model.id === catalog.default_model)) || new Set(models.map(model => model.id)).size !== models.length) throw new Error('Ungültige Modellkonfiguration')
       if (controller.signal.aborted) return
+      if (!('limits' in catalog)) throw new Error('Ungültige Größenlimits')
+      Object.assign(CHAT_LIMITS, parseChatLimits(catalog.limits))
       CHAT_MODELS.splice(0, CHAT_MODELS.length, ...models)
       error.value = null
       stale.value = isStale

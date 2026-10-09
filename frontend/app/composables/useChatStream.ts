@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
-import { isBusy, MAX_MESSAGE_LENGTH } from '../lib/chat/types'
+import { isBusy } from '../lib/chat/types'
+import { CHAT_LIMITS } from '../lib/chat/limits'
 import type { ChatRequest, ChatTransport, GenerationStatus } from '../lib/chat/types'
 
 export interface StreamCallbacks {
@@ -29,6 +30,7 @@ export function useChatStream(transport: ChatTransport) {
     callbacks.status('submitting')
     let sequence = 0
     let length = 0
+    const maxResponseChars = CHAT_LIMITS.max_response_chars
     const transition = (next: Exclude<GenerationStatus, 'idle'>) => { status.value = next; callbacks.status(next) }
     try {
       for await (const event of transport.stream(request, signal)) {
@@ -46,7 +48,7 @@ export function useChatStream(transport: ChatTransport) {
           case 'response.output_text.delta':
             if (currentStatus() !== 'streaming') throw new Error('Text ohne gestartete Antwort')
             length += event.delta.length
-            if (length > MAX_MESSAGE_LENGTH) throw new Error('Die Antwort überschreitet die zulässige Länge.')
+            if (length > maxResponseChars) throw new Error('Die Antwort überschreitet die zulässige Länge.')
             callbacks.delta(event.delta)
             break
           case 'response.completed': transition('completed'); break

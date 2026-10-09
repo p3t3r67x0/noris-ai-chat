@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CHAT_LIMITS } from '../../lib/chat/limits'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useChat } from '../../composables/useChat'
 import { useChatTransport } from '../../composables/useChatTransport'
@@ -8,7 +9,6 @@ import ChatSidebar from './ChatSidebar.vue'
 import EmptyChatState from './EmptyChatState.vue'
 import ChatComposer from './ChatComposer.vue'
 import ChatTimeline from './ChatTimeline.vue'
-import { MAX_MESSAGE_LENGTH } from '../../lib/chat/types'
 import { useChatViewport } from '../../composables/useChatViewport'
 import { useSidebarPreference } from '../../composables/useSidebarPreference'
 import ChatRail from './ChatRail.vue'
@@ -106,7 +106,7 @@ function saveEdit(): void {
     <UModal v-model:open="editOpen" title="Nachricht bearbeiten" description="Deine ursprüngliche Frage und ihre Antworten bleiben als Variante erhalten.">
       <template #body>
         <form id="edit-message-form" @submit.prevent="saveEdit">
-          <UTextarea v-model="editText" aria-label="Nachricht bearbeiten" autofocus autoresize :rows="4" :maxrows="12" :maxlength="MAX_MESSAGE_LENGTH" class="w-full" />
+          <UTextarea v-model="editText" aria-label="Nachricht bearbeiten" autofocus autoresize :rows="4" :maxrows="12" :maxlength="CHAT_LIMITS.max_message_chars" class="w-full" />
         </form>
       </template>
       <template #footer>

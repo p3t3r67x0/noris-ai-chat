@@ -147,6 +147,25 @@ async def test_default_stale_policy_is_closed(llm_config: Settings) -> None:
         await catalog.get()
 
 
+async def test_dynamic_catalog_respects_application_output_and_stream_limits(
+    llm_config: Settings,
+) -> None:
+    provider = CatalogProvider()
+    config = llm_config.model_copy(
+        update={"llm_max_output_tokens": 512, "llm_max_response_chars": 100_000}
+    )
+    gateway = LLMGateway(config, provider)
+    catalog = await gateway.catalog.get()
+    assert all(model.max_output_tokens == 512 for model in catalog.models)
+    assert catalog.limits.max_message_chars == config.llm_max_message_chars
+    assert catalog.limits.max_response_chars == 100_000
+    assert catalog.limits.max_stream_bytes == config.llm_max_stream_bytes
+    assert catalog.limits.stream_timeout_ms == int(config.llm_total_timeout_seconds * 1000) + 15_000
+    await gateway.reserve(request(GPT))
+    _ = [event async for event in gateway.stream(request(GPT))]
+    assert provider.generations[0].max_output_tokens == 512
+
+
 @pytest.mark.parametrize(
     "data,expected",
     [

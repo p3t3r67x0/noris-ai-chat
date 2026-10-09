@@ -174,7 +174,7 @@ async def test_invalid_empty_and_truncated_responses(
 ) -> None:
     stream = Fragments(data, 128)
     provider = OpenAICompatibleProvider(
-        llm_config,
+        llm_config.model_copy(update={"llm_max_response_chars": 32_000}),
         transport=httpx.MockTransport(
             lambda _: httpx.Response(
                 200, headers={"Content-Type": "text/event-stream"}, stream=stream

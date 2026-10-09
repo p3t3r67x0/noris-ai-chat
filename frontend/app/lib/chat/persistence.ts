@@ -1,6 +1,8 @@
 import { parseConversationSnapshot } from './conversations'
 import type { ConversationSnapshot } from './conversations'
-import { MAX_MESSAGE_LENGTH, NEW_CHAT_DRAFT, visiblePath } from './types'
+
+import { ABSOLUTE_MESSAGE_CHARS } from './limits'
+import { NEW_CHAT_DRAFT, visiblePath } from './types'
 import { FALLBACK_TITLE, normalizeAutomaticTitle } from './titles'
 import type { ChatMessage, MessageRecords } from './types'
 
@@ -18,7 +20,7 @@ function validMessage(value: unknown): value is ChatMessage {
   return typeof value.id === 'string' && value.id.length > 0 && typeof value.conversationId === 'string'
     && (value.parentMessageId === null || typeof value.parentMessageId === 'string')
     && (value.role === 'user' || value.role === 'assistant')
-    && typeof value.content === 'string' && value.content.length <= MAX_MESSAGE_LENGTH
+    && typeof value.content === 'string' && value.content.length <= ABSOLUTE_MESSAGE_CHARS
     && typeof value.createdAt === 'string' && Number.isFinite(Date.parse(value.createdAt))
     && ['completed', 'cancelled', 'failed', 'submitting', 'streaming'].includes(String(value.status))
     && (value.role !== 'user' || value.status === 'completed')
@@ -69,7 +71,7 @@ export function parseChatSnapshot(raw: string): ChatSnapshot | null {
     }
     const drafts: Record<string, string> = {}
     for (const [id, text] of Object.entries(data.drafts)) {
-      if ((id !== NEW_CHAT_DRAFT && !own(conversations.conversations, id)) || typeof text !== 'string' || text.length > MAX_MESSAGE_LENGTH * 2) return null
+      if ((id !== NEW_CHAT_DRAFT && !own(conversations.conversations, id)) || typeof text !== 'string' || text.length > ABSOLUTE_MESSAGE_CHARS * 2) return null
       insert(drafts, id, text)
     }
     const preferredLeaves: Record<string, string> = {}

@@ -1,5 +1,6 @@
 import type { ChatTransport, StreamEvent, ConversationTitleResponse } from './types'
 import { validGeneratedTitle } from './titles'
+import { CHAT_LIMITS } from './limits'
 
 const messages: Record<string, string> = {
   ACCESS_DENIED: 'Bitte öffne /api/v1/llm/models und melde dich für den Modellzugriff an.',
@@ -91,7 +92,7 @@ export function parseStreamEvent(frame: SSEFrame): StreamEvent {
   return value as StreamEvent
 }
 
-export function createRealTransport(options: { fetcher?: typeof fetch, timeoutMs?: number } = {}): ChatTransport {
+export function createRealTransport(options: { fetcher?: typeof fetch, timeoutMs?: number, idleTimeoutMs?: number } = {}): ChatTransport {
   const fetcher = options.fetcher ?? globalThis.fetch
   return {
     async generateTitle(request, signal) {
@@ -114,7 +115,10 @@ export function createRealTransport(options: { fetcher?: typeof fetch, timeoutMs
       let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
       signal.addEventListener('abort', abort, { once: true })
       if (signal.aborted) controller.abort()
-      const timer = setTimeout(() => { timedOut = true; controller.abort() }, options.timeoutMs ?? 135_000)
+      const timeout = () => { timedOut = true; controller.abort() }
+      const timer = setTimeout(timeout, options.timeoutMs ?? CHAT_LIMITS.stream_timeout_ms)
+      let idleTimer = setTimeout(timeout, options.idleTimeoutMs ?? CHAT_LIMITS.stream_idle_timeout_ms)
+      const maxStreamBytes = CHAT_LIMITS.max_stream_bytes
       try {
         if (signal.aborted) { yield { seq: 1, type: 'response.cancelled' }; return }
         const response = await fetcher('/api/v1/llm/chat', {
@@ -130,13 +134,15 @@ export function createRealTransport(options: { fetcher?: typeof fetch, timeoutMs
         let received = 0
         while (true) {
           const { value, done } = await reader.read()
+          clearTimeout(idleTimer)
+          idleTimer = setTimeout(timeout, options.idleTimeoutMs ?? CHAT_LIMITS.stream_idle_timeout_ms)
           if (signal.aborted) { yield { seq: sequence + 1, type: 'response.cancelled' }; return }
           if (done) {
             frames.feed(decoder.decode())
             throw new TransportError(frames.incomplete ? 'INVALID_RESPONSE' : 'STREAM_INTERRUPTED')
           }
           received += value.byteLength
-          if (received > 4_194_304) throw new TransportError('INVALID_RESPONSE')
+          if (received > maxStreamBytes) throw new TransportError('INVALID_RESPONSE')
           for (const frame of frames.feed(decoder.decode(value, { stream: true }))) {
             const event = parseStreamEvent(frame)
             if (event.seq !== sequence + 1) throw new TransportError('INVALID_RESPONSE')
@@ -155,6 +161,7 @@ export function createRealTransport(options: { fetcher?: typeof fetch, timeoutMs
       }
       finally {
         clearTimeout(timer)
+        clearTimeout(idleTimer)
         signal.removeEventListener('abort', abort)
         controller.abort()
         try { await reader?.cancel() }

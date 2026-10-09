@@ -7,7 +7,7 @@ from noris_ai.core.config import Settings
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.provider import LLMProvider
 from noris_ai.llm.registry import REGISTRY_VERSION, chat_compatible, classify
-from noris_ai.llm.schemas import LLMModel, ModelCatalog
+from noris_ai.llm.schemas import ChatLimits, LLMModel, ModelCatalog
 
 
 class ModelCatalogService:
@@ -49,6 +49,16 @@ class ModelCatalogService:
                         ids = await self.provider.discover_models()
                     models = [classify(model_id, self.config.llm_models) for model_id in ids]
                     models = [model for model in models if chat_compatible(model)]
+                    models = [
+                        model.model_copy(
+                            update={
+                                "max_output_tokens": min(
+                                    model.max_output_tokens, self.config.llm_max_output_tokens
+                                )
+                            }
+                        )
+                        for model in models
+                    ]
                     models.sort(key=lambda model: (not model.virtual, model.name.casefold()))
                     # The legacy reasoning option applies ONLY to exact GPT-OSS metadata.
                     configured_effort = self.config.llm_reasoning_effort
@@ -67,6 +77,21 @@ class ModelCatalogService:
                     self._last = ModelCatalog(
                         models=models,
                         default_model=default,
+                        limits=ChatLimits(
+                            max_message_chars=self.config.llm_max_message_chars,
+                            max_response_chars=self.config.llm_max_response_chars,
+                            max_stream_bytes=self.config.llm_max_stream_bytes,
+                            stream_timeout_ms=int(self.config.llm_total_timeout_seconds * 1000)
+                            + 15_000,
+                            stream_idle_timeout_ms=int(
+                                max(
+                                    self.config.llm_read_timeout_seconds,
+                                    self.config.llm_heartbeat_seconds,
+                                )
+                                * 1000
+                            )
+                            + 15_000,
+                        ),
                         fetched_at=datetime.now(UTC).isoformat(),
                         registry_version=REGISTRY_VERSION,
                     )

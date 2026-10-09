@@ -94,7 +94,7 @@ describe('chat transport lifecycle', () => {
   })
 
   it('rejects oversized output before adding it to the message', async () => {
-    const stream = useChatStream(scripted([{ seq: 1, type: 'response.started' }, { seq: 2, type: 'response.output_text.delta', delta: 'a'.repeat(32_001) }]))
+    const stream = useChatStream(scripted([{ seq: 1, type: 'response.started' }, { seq: 2, type: 'response.output_text.delta', delta: 'a'.repeat(262_145) }]))
     const calls = callbacks()
     await stream.start(request, calls)
     expect(stream.status.value).toBe('failed')
