@@ -231,3 +231,7 @@ Konfiguration, Anmeldung für Real-Modus, Sicherheitsgrenzen und lokale HTTP-/Br
 GitHub Actions führt Lint, strikte Typprüfung, API-Drift-Check, Unit-, DB- und Browser-Tests sowie Produktionsbuilds aus. Ein zweiter Job baut den vollständigen Compose-Stack aus einem frischen Checkout und prüft Proxy-Routing und DB-Rollenrechte. Browserläufe liefern Reports und Screenshots als Artefakt; fehlgeschlagene Fälle ergänzen Traces.
 
 Die Nachweise der Foundation stehen in [docs/ETAPPE-0-TESTERGEBNISSE.md](docs/ETAPPE-0-TESTERGEBNISSE.md). Aufbau und Prüfstand der Chat-Oberfläche: [Etappe-1-Architektur](docs/ETAPPE-1-ARCHITEKTUR.md), [Etappe-1-Tests](docs/ETAPPE-1-TESTERGEBNISSE.md). Die ausdrücklich beauftragte Integration ist in [Etappe-2-Architektur](docs/ETAPPE-2-ARCHITEKTUR.md), [Betrieb](docs/ETAPPE-2-BETRIEB.md) und [Testergebnissen](docs/ETAPPE-2-TESTERGEBNISSE.md) beschrieben.
+
+### Browserprüfung des Produktionsstacks
+
+Nach `make up` führt `make test-e2e-production` dieselben Desktop-/Mobile-Interaktions- und Screenshot-Tests über Caddy auf `http://127.0.0.1:8080` aus. Die bestehenden Baselines und die Toleranz bleiben unverändert. Der Compose-CI-Job startet den Stack aus einem frischen Checkout und führt diese Prüfung automatisch aus; die zusätzlichen Artefakte heißen `production-browser-test-results`. Die regulären Entwicklungs- und RealTransport-Tests bleiben erhalten. Beide Transport-Testmodi verwenden synthetische Daten und einen lokalen Simulator; Live-Aufrufe erfolgen ausschließlich mit gesondertem Opt-in und Freigabe.

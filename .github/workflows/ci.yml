@@ -117,6 +117,26 @@ jobs:
               row = connection.execute('SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user').fetchone()
               assert row == (False, False), row
           PY
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - name: Install production browser test dependencies
+        run: |
+          npm install --global pnpm@11.1.3
+          pnpm install --frozen-lockfile
+          pnpm --dir frontend exec playwright install --with-deps chromium
+      - name: Desktop and mobile browsers against Compose production
+        run: make test-e2e-production
+      - name: Upload production browser evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2, Node 24
+        with:
+          name: production-browser-test-results
+          path: |
+            frontend/playwright-report/production
+            frontend/test-results/production
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Show service logs on failure
         if: failure()
         run: docker compose logs --no-color
