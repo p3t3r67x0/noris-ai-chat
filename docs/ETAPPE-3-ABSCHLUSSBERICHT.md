@@ -21,8 +21,8 @@ geprüft. Der Bericht enthält keine behauptete öffentliche Produktivfreigabe.
 | 10. Browser-Migration | PASS | Expliziter Dialog/Start, Vorabvalidierung, IDs/Bäume/Titel/Entwürfe erhalten, identischer Import übersprungen, Konflikt ohne Teilimport; alte lokale Sicherung unverändert |
 | 11. GLM 5.3 | PASS | Katalog-GET bestätigt `vllm/qsu/glm-5-3-flash`; kein erfundener Modellname oder Reasoning-Parameter; Anzeige nur bei aktueller Listung/Freigabe |
 | 12. Tests | PASS | Lokale Unit-, Provider-, PostgreSQL-, WS- und persistente Desktop-/Mobile-Browserprüfungen; Details unten |
-| 13. CI | NOT TESTED | REST/WS-Drift, PostgreSQL 18, lokale Provider, Produktionsbuilds und Caddy-WebSocket-Browserlauf im Workflow ergänzt; Remote-Run wird separat geprüft |
-| 14. Pull Requests | NOT TESTED | Sechs abhängige PRs A–F werden vor Abschluss erstellt, ohne Merge; Links unten |
+| 13. CI | NOT TESTED | REST/WS-Drift, PostgreSQL 18, lokale Provider, Produktionsbuilds und Caddy-WebSocket-Browserlauf im Workflow ergänzt; GitHub-Läufe gestartet, Abschlussprüfung läuft |
+| 14. Pull Requests | PASS | Sechs abhängige, konfliktfrei reviewbare PRs A–F erstellt, ohne Merge; Links unten |
 | 15. Betriebsgrenzen | PASS | Single-Owner/Single-Worker und fehlende öffentliche TLS-/OIDC-Abnahme ausdrücklich dokumentiert |
 
 ## Ausgeführte Qualitätsgates
@@ -95,4 +95,12 @@ committed. Eine abgebrochene Generierung wird niemals als completed ausgegeben.
 ## Pull Requests
 
 Abhängigkeiten: A → B → C → D → E → F. Keine eigenmächtigen Merges.
-Die finalen Links und der Remote-CI-Status werden nach Erstellung eingetragen.
+
+| PR | Inhalt | Basis |
+| --- | --- | --- |
+| [A – #28](https://github.com/p3t3r67x0/noris-ai-chat/pull/28) | PostgreSQL-Schema und Migrationen | main |
+| [B – #29](https://github.com/p3t3r67x0/noris-ai-chat/pull/29) | Repository, REST und GLM-5.3-Flash-Registry | A |
+| [C – #30](https://github.com/p3t3r67x0/noris-ai-chat/pull/30) | Persistentes WebSocket-Gateway und Replay | B |
+| [D – #31](https://github.com/p3t3r67x0/noris-ai-chat/pull/31) | Frontendtransport und Backend-Synchronisierung | C |
+| [E – #32](https://github.com/p3t3r67x0/noris-ai-chat/pull/32) | Ausdrücklicher Browser-Import | D |
+| [F – #33](https://github.com/p3t3r67x0/noris-ai-chat/pull/33) | Browser/Compose/CI und Abschlussdokumentation | E |
