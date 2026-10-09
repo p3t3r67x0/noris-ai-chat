@@ -1,6 +1,7 @@
 export default defineNuxtConfig({
   compatibilityDate: '2026-10-08',
   devtools: { enabled: false },
+  runtimeConfig: { public: { chatTransport: 'mock' } },
   modules: ['@nuxt/eslint', '@nuxt/ui'],
   css: ['~/assets/css/main.css'],
   ui: { fonts: false },

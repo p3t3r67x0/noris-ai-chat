@@ -1,6 +1,6 @@
 # noris AI Chat
 
-Das Monorepo enthält die Foundation aus **Etappe 0** und die freigegebene Chat-Oberfläche aus **Etappe 1** der verbindlichen [PLAN.md](PLAN.md). Unter `/` entsteht die lokale Chat-Demo; `/status` prüft weiterhin die Verbindung von Nuxt über die API zu PostgreSQL. Authentifizierung, echte Modellaufrufe und Chat-Datenbanktabellen folgen in späteren Etappen.
+Das Monorepo enthält die Foundation aus **Etappe 0**, die Chat-Oberfläche aus **Etappe 1** und die ausdrücklich beauftragte **Etappe 2: LLM-Anbindung**. Unter `/` läuft standardmäßig die lokale Chat-Demo; der konfigurierbare Real-Transport streamt über ein zugriffsgeschütztes FastAPI-Gateway. `/status` prüft weiterhin Nuxt, API und PostgreSQL. Die neue Aufgabenstellung erweitert den ursprünglichen [PLAN.md](PLAN.md); Domain-/OIDC-Migration und Chat-Datenbanktabellen sind weiterhin offen. Die Live-Verbindung zu Noris ist ohne Provider-Zugangsdaten noch nicht verifiziert.
 
 ## Voraussetzungen und Versionen
 
@@ -21,7 +21,7 @@ Die Make-Ziele verwenden das Compose-Plugin (`docker compose`) oder automatisch 
 
 `backend/uv.lock` und `pnpm-lock.yaml` fixieren auch die transitiven Abhängigkeiten. pnpm 11 erhält dafür explizit `lockfile: true` im Workspace; `optimisticRepeatInstall: false` stellt sicher, dass Installationsbefehle ihre Lockfile-Prüfung ausführen. Die Vue-Compiler und Laufzeitpakete bleiben über Overrides auf derselben Version. Der ESLint-Konfigurationsinspektor ist auf 3.4.0, `enhanced-resolve` auf 5.24.5 und `vue-component-type-helpers` passend zu den Vue-Typwerkzeugen auf 3.3.11 fixiert; diese kompatiblen Versionen waren in der eingeschränkten Entwicklungsumgebung verfügbar. Updates dieser Overrides sollen gemeinsam mit den Lint-, Typ- und Buildprüfungen erfolgen.
 
-Pydantic AI ist als schlanke Basis ohne Provider-Extras installiert. Der eigene Model Gateway und Provider-Konfiguration folgen in Etappe 3. Nuxt UI und Tailwind bilden das Chat-Designsystem. Die native Statuskomponente aus Etappe 0 bleibt unter `/status` verfügbar.
+Pydantic AI ist als schlanke Basis ohne Provider-Extras installiert. Das neue `LLMProvider`-Protokoll und der OpenAI-kompatible HTTPX-Adapter verwenden den bestehenden Chat-Transportvertrag. Nuxt UI und Tailwind bilden das Chat-Designsystem. Die native Statuskomponente aus Etappe 0 bleibt unter `/status` verfügbar.
 
 ## Vollständiger Start mit Docker
 
@@ -173,13 +173,15 @@ infrastructure/      Dockerfiles, Datenbank-Initialisierung und Reverse Proxy
 .github/             CI und Dependency-Updates
 ```
 
-Die Backend-Konfiguration ist unveränderlich und typisiert. Die DB-URL bleibt ein `SecretStr`. Der App-Lifecycle verwaltet den asynchronen SQLAlchemy-Pool; ein austauschbarer Readiness-Probe erlaubt Unit-Tests ohne Datenbank. Reine ASGI-Middleware ergänzt Request-IDs ohne Antwortpufferung. Fachliche Module entstehen erst in den späteren Etappen.
+Die Backend-Konfiguration ist unveränderlich und typisiert. DB-URL und Provider-Zugangsdaten bleiben `SecretStr`. Der App-Lifecycle verwaltet den asynchronen SQLAlchemy-Pool und den optionalen HTTPX-Provider; ein austauschbarer Readiness-Probe erlaubt Unit-Tests ohne Datenbank. Reine ASGI-Middleware ergänzt Request-IDs ohne Streaming-Antworten zu puffern; LLM-Anfragen werden vor der Validierung begrenzt.
 
 | Endpoint | Verhalten |
 | --- | --- |
 | `GET /api/v1/health/live` | 200, wenn der API-Prozess antwortet; unabhängig von der DB |
 | `GET /api/v1/health/ready` | 200 nach erfolgreichem DB-Check und erwarteter Baseline; sonst 503 |
 | `GET /api/v1/openapi.json` | Versionierter API-Vertrag |
+| `GET /api/v1/llm/models` | Zugriffsgeschützter, serverseitig konfigurierter Modellkatalog |
+| `POST /api/v1/llm/chat` | Zugriffsgeschützte Chat-Anfrage mit Etappe-1-Ereignissen als SSE |
 
 Fehler verwenden `{ "error": { "code", "message", "request_id" } }`. Antworten tragen `X-Request-ID` und `Cache-Control: no-store`. Interne Ausnahmen und Validierungseingaben werden nicht in Fehlerantworten ausgegeben. Das Frontend nutzt relative API-URLs und benötigt keine Provider-Zugangsdaten.
 
@@ -188,7 +190,7 @@ make generate-api
 make check-api
 ```
 
-Die Generierung exportiert OpenAPI direkt aus der FastAPI-App, ohne laufenden Server oder DB-Verbindung. Daraus entstehen `docs/api/openapi.json` und `frontend/app/types/generated/api.ts`; die HTTP-Funktionen verwenden diese Typen. `check-api` verhindert Drift in beiden Dateien. Der Generator unterstützt die GET-/JSON-Verträge der Foundation und bricht bei unbekannten Vertragsformen ab. Bei späteren Schreib- oder Streaming-Endpunkten ist er ausdrücklich zu erweitern.
+Die Generierung exportiert OpenAPI direkt aus der FastAPI-App, ohne laufenden Server oder DB-Verbindung. Daraus entstehen `docs/api/openapi.json` und `frontend/app/types/generated/api.ts`; die HTTP-Funktionen verwenden diese Typen. `check-api` verhindert Drift in beiden Dateien. Der Generator unterstützt GET/POST, JSON und SSE-Verträge und bricht bei unbekannten Vertragsformen ab.
 
 ## Checks und Tests
 
@@ -222,8 +224,10 @@ make test-e2e
 
 Die sechs Foundation-Playwright-Fälle bleiben unter `/status` erhalten. Die Chat-Tests prüfen Desktop und Mobile, Markdown/Clipboard, IME, Streaming/Stop/Fehler, Verzweigungen, Entwürfe, lange Verläufe, Shortcuts, Fokus und Light/Dark-Screenshots. Referenzen liegen unter `frontend/tests/e2e/__screenshots__/linux`. Nach einer beabsichtigten Designänderung können sie mit `pnpm --dir frontend test:e2e chat-visual.spec.ts --update-snapshots` neu erzeugt werden; neue Bilder vor dem Commit visuell prüfen.
 
-Unter `/` läuft die lokale Chat-Demo ohne Provider-Schlüssel. `/lang` erzeugt einen langen Stream, `/fehler` einen reproduzierbaren Fehler mit Teilantwort. Chats und Entwürfe werden im Browser gespeichert; die Modelle, Anhänge und der Benutzerbereich sind vorbereitete Demo-Funktionen. Enter sendet, Shift+Enter fügt einen Zeilenumbruch ein. Neue Fragen rücken unter den Header; manuelles Hochscrollen pausiert das Folgen. `Ctrl/Cmd+Shift+O` startet einen Chat, `Ctrl/Cmd+K` öffnet die Suche und Escape stoppt außerhalb von Dialogen eine Antwort.
+Unter `/` läuft standardmäßig die lokale Chat-Demo ohne Provider-Schlüssel. Im Mock-Modus erzeugen `/lang` und `/fehler` deterministische Fixtures. Im Real-Modus werden normale Nachrichten an den konfigurierten Provider übertragen; verfügbare Modelle kommen ausschließlich aus dem Backend. Chats und Entwürfe bleiben im Browser gespeichert. Anhänge und Benutzerbereich sind vorbereitete Demo-Funktionen. Enter sendet, Shift+Enter fügt einen Zeilenumbruch ein. Neue Fragen rücken unter den Header; manuelles Hochscrollen pausiert das Folgen. `Ctrl/Cmd+Shift+O` startet einen Chat, `Ctrl/Cmd+K` öffnet die Suche und Escape stoppt außerhalb von Dialogen eine Antwort.
+
+Konfiguration, Anmeldung für Real-Modus, Sicherheitsgrenzen und lokale HTTP-/Browser-Tests: [Etappe-2-Betrieb](docs/ETAPPE-2-BETRIEB.md). Der Provider ist standardmäßig deaktiviert; es gibt keine implizite externe Zieladresse. Echte Provider-Smoke-Tests verlangen einen ausdrücklichen Opt-in und Zugangsdaten außerhalb des Repositories.
 
 GitHub Actions führt Lint, strikte Typprüfung, API-Drift-Check, Unit-, DB- und Browser-Tests sowie Produktionsbuilds aus. Ein zweiter Job baut den vollständigen Compose-Stack aus einem frischen Checkout und prüft Proxy-Routing und DB-Rollenrechte. Browserläufe liefern Reports und Screenshots als Artefakt; fehlgeschlagene Fälle ergänzen Traces.
 
-Die Nachweise der Foundation stehen in [docs/ETAPPE-0-TESTERGEBNISSE.md](docs/ETAPPE-0-TESTERGEBNISSE.md). Aufbau und aktueller Prüfstand der Chat-Oberfläche stehen in [docs/ETAPPE-1-ARCHITEKTUR.md](docs/ETAPPE-1-ARCHITEKTUR.md) und [docs/ETAPPE-1-TESTERGEBNISSE.md](docs/ETAPPE-1-TESTERGEBNISSE.md). Etappe 2 benötigt eine neue ausdrückliche Freigabe.
+Die Nachweise der Foundation stehen in [docs/ETAPPE-0-TESTERGEBNISSE.md](docs/ETAPPE-0-TESTERGEBNISSE.md). Aufbau und Prüfstand der Chat-Oberfläche: [Etappe-1-Architektur](docs/ETAPPE-1-ARCHITEKTUR.md), [Etappe-1-Tests](docs/ETAPPE-1-TESTERGEBNISSE.md). Die ausdrücklich beauftragte Integration ist in [Etappe-2-Architektur](docs/ETAPPE-2-ARCHITEKTUR.md), [Betrieb](docs/ETAPPE-2-BETRIEB.md) und [Testergebnissen](docs/ETAPPE-2-TESTERGEBNISSE.md) beschrieben.

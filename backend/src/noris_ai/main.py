@@ -11,13 +11,24 @@ from starlette.exceptions import HTTPException
 
 from noris_ai import __version__
 from noris_ai.api.v1.health import router as health_router
+from noris_ai.api.v1.llm import llm_error
+from noris_ai.api.v1.llm import router as llm_router
 from noris_ai.core.config import Settings
 from noris_ai.core.middleware import RequestContextMiddleware
 from noris_ai.core.schemas import ErrorDetail, ErrorResponse
 from noris_ai.db.readiness import DatabaseReadinessProbe, ReadinessProbe
+from noris_ai.llm.errors import LLMError
+from noris_ai.llm.gateway import LLMGateway
+from noris_ai.llm.limits import LLMRequestLimitMiddleware
+from noris_ai.llm.openai_compatible import OpenAICompatibleProvider
+from noris_ai.llm.provider import LLMProvider
 
 
-def create_app(settings: Settings | None = None, probe: ReadinessProbe | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    probe: ReadinessProbe | None = None,
+    provider: LLMProvider | None = None,
+) -> FastAPI:
     config = settings if settings is not None else Settings()
 
     @asynccontextmanager
@@ -30,9 +41,15 @@ def create_app(settings: Settings | None = None, probe: ReadinessProbe | None = 
             if probe is not None
             else DatabaseReadinessProbe(engine, config.readiness_timeout_seconds)
         )
+        llm_provider = provider
+        if llm_provider is None and config.llm_provider != "disabled":
+            llm_provider = OpenAICompatibleProvider(config)
+        application.state.llm_gateway = LLMGateway(config, llm_provider)
         try:
             yield
         finally:
+            if llm_provider is not None:
+                await llm_provider.aclose()
             await engine.dispose()
 
     application = FastAPI(
@@ -44,6 +61,7 @@ def create_app(settings: Settings | None = None, probe: ReadinessProbe | None = 
         openapi_url="/api/v1/openapi.json",
     )
 
+    application.add_middleware(LLMRequestLimitMiddleware, max_bytes=config.llm_max_request_bytes)
     application.add_middleware(RequestContextMiddleware)
 
     def error_response(request: Request, status: int, code: str, message: str) -> JSONResponse:
@@ -70,7 +88,9 @@ def create_app(settings: Settings | None = None, probe: ReadinessProbe | None = 
     application.add_exception_handler(HTTPException, http_error)
     application.add_exception_handler(RequestValidationError, validation_error)
     application.add_exception_handler(Exception, internal_error)
+    application.add_exception_handler(LLMError, llm_error)
     application.include_router(health_router, prefix="/api/v1")
+    application.include_router(llm_router, prefix="/api/v1")
     return application
 
 
