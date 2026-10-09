@@ -1,0 +1,55 @@
+name: Reviewable synthetic reference candidate
+on:
+  push:
+    branches: [integration/synthetic-baseline-capture]
+    paths: [.github/workflows/synthetic-baseline-capture.yml]
+permissions:
+  actions: read
+  contents: write
+jobs:
+  capture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Extract only the actual synthetic browser screenshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/p3t3r67x0/noris-ai-chat/actions/artifacts/11600534320 > "$RUNNER_TEMP/artifact.json"
+          gh api repos/p3t3r67x0/noris-ai-chat/actions/artifacts/11600534320/zip > "$RUNNER_TEMP/evidence.zip"
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import struct
+          import zipfile
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          metadata = json.loads((root / 'artifact.json').read_text())
+          assert metadata['id'] == 11600534320
+          assert metadata['name'] == 'browser-test-results'
+          assert metadata['workflow_run']['head_sha'] == '925809fa9b815b8f97506e912c3feda49bde90ca'
+          archive = (root / 'evidence.zip').read_bytes()
+          assert hashlib.sha256(archive).hexdigest() == '7b56015071ad94809e328bf6e9f5df61bb6a72b4faffe793c3418d9b252a722b'
+          with zipfile.ZipFile(root / 'evidence.zip') as z:
+              matches = [n for n in z.namelist() if n.endswith('/reference-light.png') and n.startswith('test-results/')]
+              assert matches, 'Actual reference scene screenshot missing'
+              images = [z.read(n) for n in matches]
+          assert all(data == images[0] for data in images)
+          image = images[0]
+          assert image[:8] == b'\x89PNG\r\n\x1a\n'
+          assert struct.unpack('>II', image[16:24]) == (1920, 975)
+          path = Path('docs/ui-reference/evidence/synthetic-reference-candidate.png')
+          path.parent.mkdir(parents=True, exist_ok=True)
+          path.write_bytes(image)
+          print('Synthetic candidate SHA256:', hashlib.sha256(image).hexdigest())
+          print('Candidate only; the production golden baseline is unchanged.')
+          PY
+      - name: Publish candidate for visual inspection on this isolated branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/ui-reference/evidence/synthetic-reference-candidate.png
+          git commit -m "test(privacy): capture synthetic reference candidate for inspection"
+          git push origin HEAD:integration/synthetic-baseline-capture
