@@ -36,7 +36,12 @@ class LLMRequestLimitMiddleware:
                         if message["type"] == "http.disconnect":
                             return
                         body.extend(message.get("body", b""))
-                        if len(body) > self._max_bytes:
+                        limit = (
+                            8_388_608
+                            if scope["path"] == "/api/v1/conversations/import"
+                            else self._max_bytes
+                        )
+                        if len(body) > limit:
                             error = LLMError("REQUEST_TOO_LARGE", 413)
                             break
                         if not message.get("more_body", False):
