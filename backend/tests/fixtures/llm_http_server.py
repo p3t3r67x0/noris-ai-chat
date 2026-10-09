@@ -1,4 +1,4 @@
-"""Loopback-only HTTP fixture for browser tests. Never deployed in Compose."""
+"""Loopback-only HTTP fixture for browser tests and explicit compose.test.yaml."""
 
 import asyncio
 import json

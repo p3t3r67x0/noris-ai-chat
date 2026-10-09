@@ -2,7 +2,7 @@ export default defineNuxtConfig({
   ...(process.env.NORIS_NUXT_BUILD_DIR ? { buildDir: process.env.NORIS_NUXT_BUILD_DIR } : {}),
   compatibilityDate: '2026-10-08',
   devtools: { enabled: false },
-  runtimeConfig: { public: { chatTransport: 'mock', chatWebsocketUrl: '' } },
+  runtimeConfig: { public: { chatTransport: 'websocket', chatWebsocketUrl: '' } },
   modules: ['@nuxt/eslint', '@nuxt/ui'],
   css: ['~/assets/css/main.css'],
   ui: { fonts: false },

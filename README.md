@@ -1,6 +1,6 @@
 # noris AI Chat
 
-Das Monorepo enthält die Foundation aus **Etappe 0**, die Chat-Oberfläche aus **Etappe 1** und die ausdrücklich beauftragte **Etappe 2: LLM-Anbindung**. Unter `/` läuft standardmäßig die lokale Chat-Demo; der konfigurierbare Real-Transport streamt über ein zugriffsgeschütztes FastAPI-Gateway. `/status` prüft weiterhin Nuxt, API und PostgreSQL. Die neue Aufgabenstellung erweitert den ursprünglichen [PLAN.md](PLAN.md); Domain-/OIDC-Migration und Chat-Datenbanktabellen sind weiterhin offen. Die frühere Live-Abnahme ist separat dokumentiert; die aktuelle Katalogabnahme führte genau ein ausdrücklich freigegebenes GET /models aus, ohne Textgenerierung.
+Das Monorepo enthält die Foundation, die bestehende Chat-Oberfläche, die Noris-Anbindung und **Etappe 3: PostgreSQL-Persistenz mit WebSocket-Streaming**. Im WebSocket-Modus speichert das Backend Chats, Varianten, Titel und Entwürfe dauerhaft und lädt den LLM-Kontext aus PostgreSQL. Die credentialfreie Beispielkonfiguration bleibt eine lokale Mock-Demo. `/status` prüft Nuxt, API und PostgreSQL. [Architektur](docs/ETAPPE-3-ARCHITEKTUR.md), [WebSocket-Vertrag](docs/WEBSOCKET-CHAT-V1.md) und [Abnahmebericht](docs/ETAPPE-3-ABSCHLUSSBERICHT.md) beschreiben den Single-Owner-Betrieb und die Prüfungen. OIDC und öffentlicher TLS-Betrieb bleiben separat vorzubereiten.
 
 ## Voraussetzungen und Versionen
 
@@ -33,9 +33,9 @@ curl --fail http://127.0.0.1:8080/api/v1/health/ready
 
 Die Anwendung ist unter **http://127.0.0.1:8080** erreichbar. Caddy führt Frontend und `/api/*` unter derselben Origin zusammen. Die Datenbank besitzt in dieser Konfiguration keinen veröffentlichten Port. PostgreSQL 18 speichert seine Daten im Volume unter `/var/lib/postgresql`.
 
-Der einmalige `migrate`-Dienst führt `alembic upgrade head` nach dem Datenbankstart aus. Der PostgreSQL-Healthcheck prüft TCP auf `127.0.0.1:5432`, damit der temporäre Unix-Socket-Server während der Initialisierung nicht bereits als bereit gilt. Das Backend startet erst nach erfolgreicher Migration. Die Baseline `0001_foundation` verwaltet ausschließlich den Alembic-Revisionsstand; Domänentabellen folgen in Etappe 2.
+Der einmalige `migrate`-Dienst führt `alembic upgrade head` nach dem Datenbankstart aus. Der PostgreSQL-Healthcheck prüft TCP auf `127.0.0.1:5432`, damit der temporäre Unix-Socket-Server während der Initialisierung nicht bereits als bereit gilt. Das Backend startet erst nach erfolgreicher Migration. Die Baseline `0001_foundation` verwaltet ausschließlich den Alembic-Revisionsstand; die Chat-Migrationen 0002–0004 ergänzen Persistenz, immutable Topologie und Fortsetzungsvarianten.
 
-`noris_migrator` ist der lokale Bootstrap-/Migrationsbenutzer. Die Anwendung verbindet sich als `noris_app`, ohne Superuser- oder `BYPASSRLS`-Rechte. Das Init-Skript vergibt für die Foundation nur Verbindungs-, Schema-Nutzungs- und Tabellen-Leserechte. Spätere Schreibrechte und RLS-Regeln müssen zusammen mit den Domänenmigrationen eingeführt werden. Die Migration-Zugangsdaten werden dem Backend-Container nicht übergeben.
+`noris_migrator` ist der lokale Bootstrap-/Migrationsbenutzer. Die Anwendung verbindet sich als `noris_app`, ohne Superuser- oder `BYPASSRLS`-Rechte. Das Init-Skript vergibt für die Foundation nur Verbindungs-, Schema-Nutzungs- und Tabellen-Leserechte. Die Chat-Migration vergibt gezielte DML-Rechte auf die sechs Chat-Tabellen; Ownership prüft die Domain-Schicht. RLS und OIDC-Multi-User sind noch nicht implementiert. Die Migration-Zugangsdaten werden dem Backend-Container nicht übergeben.
 
 Die Werte in `.env.example` sind ausschließlich lokale Entwicklungswerte. Eigene Passwörter müssen für die interpolierten Compose-URLs URL-kompatibel sein oder percent-kodiert werden. Auf dem Host stehen vollständige URLs in `NORIS_DATABASE_URL` und `NORIS_MIGRATION_DATABASE_URL`. Änderungen an Init-Passwörtern wirken nur bei einem frischen PostgreSQL-Volume; bestehende Rollen müssen in der Datenbank aktualisiert werden.
 
@@ -178,7 +178,7 @@ Die Backend-Konfiguration ist unveränderlich und typisiert. DB-URL und Provider
 | Endpoint | Verhalten |
 | --- | --- |
 | `GET /api/v1/health/live` | 200, wenn der API-Prozess antwortet; unabhängig von der DB |
-| `GET /api/v1/health/ready` | 200 nach erfolgreichem DB-Check und erwarteter Baseline; sonst 503 |
+| `GET /api/v1/health/ready` | 200 nach erfolgreichem DB-Check und Revision `0004_chat_continuation`; sonst 503 |
 | `GET /api/v1/openapi.json` | Versionierter API-Vertrag |
 | `GET /api/v1/llm/models` | Zugriffsgeschützter, dynamischer Chatmodellkatalog mit serverseitigem Discovery-Cache |
 | `POST /api/v1/llm/chat` | Zugriffsgeschützte Chat-Anfrage mit Etappe-1-Ereignissen als SSE |
@@ -190,7 +190,7 @@ make generate-api
 make check-api
 ```
 
-Die Generierung exportiert OpenAPI direkt aus der FastAPI-App, ohne laufenden Server oder DB-Verbindung. Daraus entstehen `docs/api/openapi.json` und `frontend/app/types/generated/api.ts`; die HTTP-Funktionen verwenden diese Typen. `check-api` verhindert Drift in beiden Dateien. Der Generator unterstützt GET/POST, JSON und SSE-Verträge und bricht bei unbekannten Vertragsformen ab.
+Die Generierung exportiert OpenAPI direkt aus der FastAPI-App, ohne laufenden Server oder DB-Verbindung. Daraus entstehen `docs/api/openapi.json` und `frontend/app/types/generated/api.ts`; die HTTP-Funktionen verwenden diese Typen. `check-api` verhindert Drift in beiden Dateien. Der Generator unterstützt die vorhandenen REST-Methoden, JSON und SSE-Verträge und bricht bei unbekannten Vertragsformen ab. Zusätzlich werden der versionierte WebSocket-Vertrag und seine TypeScript-Unions auf Drift geprüft.
 
 ## Checks und Tests
 
@@ -224,11 +224,11 @@ make test-e2e
 
 Die sechs Foundation-Playwright-Fälle bleiben unter `/status` erhalten. Die Chat-Tests prüfen Desktop und Mobile, Markdown/Clipboard, IME, Streaming/Stop/Fehler, Verzweigungen, Entwürfe, lange Verläufe, Shortcuts, Fokus und Light/Dark-Screenshots. Referenzen liegen unter `frontend/tests/e2e/__screenshots__/linux`. Nach einer beabsichtigten Designänderung können sie mit `pnpm --dir frontend test:e2e chat-visual.spec.ts --update-snapshots` neu erzeugt werden; neue Bilder vor dem Commit visuell prüfen.
 
-Unter `/` läuft standardmäßig die lokale Chat-Demo ohne Provider-Schlüssel. Im Mock-Modus erzeugen `/lang` und `/fehler` deterministische Fixtures. Im Real-Modus werden normale Nachrichten an den konfigurierten Provider übertragen; verfügbare Modelle kommen ausschließlich aus dem Backend. Chats und Entwürfe bleiben im Browser gespeichert. Anhänge und Benutzerbereich sind vorbereitete Demo-Funktionen. Enter sendet, Shift+Enter fügt einen Zeilenumbruch ein. Neue Fragen rücken unter den Header; manuelles Hochscrollen pausiert das Folgen. `Ctrl/Cmd+Shift+O` startet einen Chat, `Ctrl/Cmd+K` öffnet die Suche und Escape stoppt außerhalb von Dialogen eine Antwort.
+Unter `/` läuft standardmäßig die lokale Chat-Demo ohne Provider-Schlüssel. Im Mock-Modus erzeugen `/lang` und `/fehler` deterministische Fixtures. Im Real-Modus werden normale Nachrichten an den konfigurierten Provider übertragen; verfügbare Modelle kommen ausschließlich aus dem Backend. Im Mock-/SSE-Kompatibilitätsmodus bleiben Chats und Entwürfe lokal; im WebSocket-Modus lädt und speichert das Backend sie in PostgreSQL. Anhänge und Benutzerbereich sind vorbereitete Demo-Funktionen. Enter sendet, Shift+Enter fügt einen Zeilenumbruch ein. Neue Fragen rücken unter den Header; manuelles Hochscrollen pausiert das Folgen. `Ctrl/Cmd+Shift+O` startet einen Chat, `Ctrl/Cmd+K` öffnet die Suche und Escape stoppt außerhalb von Dialogen eine Antwort.
 
 Konfiguration, Anmeldung für Real-Modus, Sicherheitsgrenzen und lokale HTTP-/Browser-Tests: [Etappe-2-Betrieb](docs/ETAPPE-2-BETRIEB.md). Der Provider ist standardmäßig deaktiviert; es gibt keine implizite externe Zieladresse. Echte Provider-Smoke-Tests verlangen einen ausdrücklichen Opt-in und Zugangsdaten außerhalb des Repositories.
 
-Neue Chats erhalten automatisch kurze [Gesprächstitel](docs/AI-CONVERSATION-TITLES.md), ohne das Antwort-Streaming zu verzögern. Manuell vergebene Namen haben Vorrang. Titel und ihr Generierungszustand bleiben im vorhandenen Browser-Speicher erhalten; im Mock-Modus entstehen ausschließlich lokale synthetische Titel. Im Real-Modus gelten die gemeinsamen Backend-Kostenlimits auch für die zusätzliche Titelanfrage.
+Neue Chats erhalten automatisch kurze [Gesprächstitel](docs/AI-CONVERSATION-TITLES.md), ohne das Antwort-Streaming zu verzögern. Manuell vergebene Namen haben Vorrang. Im WebSocket-Modus bleiben Titel in PostgreSQL erhalten, im Mock-/SSE-Kompatibilitätsmodus im Browser. Der Mock-Modus erzeugt ausschließlich lokale synthetische Titel. Für Noris-Titelanfragen gelten die gemeinsamen Backend-Kostenlimits.
 
 GitHub Actions führt Lint, strikte Typprüfung, API-Drift-Check, Unit-, DB- und Browser-Tests sowie Produktionsbuilds aus. Ein zweiter Job baut den vollständigen Compose-Stack aus einem frischen Checkout und prüft Proxy-Routing und DB-Rollenrechte. Browserläufe liefern Reports und Screenshots als Artefakt; fehlgeschlagene Fälle ergänzen Traces.
 
@@ -246,3 +246,39 @@ Im Real-Modus lädt der bestehende Backend-Provider automatisch `GET /v1/models`
 Der gemeinsame Katalog schützt Modellmenü, Chat und Titel. TTL standardmäßig 300 Sekunden, zusammengefasste Parallelaufrufe und begrenzte Timeouts. Stale standardmäßig aus; optionale veraltete Anzeige gibt keine Generierungsberechtigung. Modellabhängige Kontext-/Ausgabelimits und belegte Reasoning-/Tokenparameter erhalten Sicherheits- und Kostenlimits. Metadaten kennzeichnen DOCUMENTED/VERIFIED/UNKNOWN; Echtzeitpreise werden nicht behauptet.
 
 Header und Composer zeigen verständliche, gruppierte Namen. Ein Wechsel startet keine Generierung und erhält Chats, Varianten und Entwürfe. Bei Berechtigungsentzug erklärt die UI den Zustand und bietet ein bewusstes Fallback. Konfiguration, zusätzliche Modellfreigaben, Cache-Policy und Fehlerbehandlung: [Betriebsdokumentation](docs/ETAPPE-2-BETRIEB.md#dynamischer-modellkatalog-und-zusätzliche-modelle).
+
+
+## Persistenter Chat mit WebSocket
+
+`NUXT_PUBLIC_CHAT_TRANSPORT=websocket` aktiviert die bestehenden UI-Komponenten
+mit dem PostgreSQL-Backend. Setze die serverseitigen Noris- und Basic-
+Zugangsdaten sowie `NORIS_LLM_ALLOWED_ORIGINS` für die Caddy-Origin; migriere mit
+`make migrate` beziehungsweise dem Compose-Migrationsdienst. Der Provider-Key
+bleibt im Backend. Alle Zugangsberechtigten teilen im ausdrücklich begrenzten
+Single-Owner-Modus dieselben Chats. Nutze genau einen Backend-Worker.
+
+Browserlokale Chats werden über „Lokale Chats importieren“ nach einem
+Hinweisdialog und ausdrücklichem Start übernommen. Der ursprüngliche localStorage-Bestand bleibt
+stehen. Rückkehr zur Demo mit `NUXT_PUBLIC_CHAT_TRANSPORT=mock` liest diese
+Sicherung; neue PostgreSQL-Änderungen werden dadurch nicht zurückkopiert. Sichere
+vor einem Datenbank-Downgrade die DB: Migration 0002 entfernt beim Downgrade die
+neuen Tabellen. Solche Downgrades gehören ausschließlich in freigegebene
+Wiederherstellungsabläufe oder wegwerfbare Testdatenbanken.
+
+`real` bleibt der bisherige SSE-Kompatibilitätsmodus mit lokalem Chatbestand.
+Für PostgreSQL-Persistenz verwende `websocket`. Nuxt-devProxy unterstützt keine
+WS-Upgrades: nutze Caddy oder setze für lokale Entwicklung
+`NUXT_PUBLIC_CHAT_WEBSOCKET_URL=ws://127.0.0.1:8000/api/v1/chat/ws` und ausdrücklich
+passende `NORIS_CHAT_WS_ALLOWED_HOSTS`/Origins. Im öffentlichen Betrieb ist WSS
+mit einer HTTPS-Origin erforderlich.
+
+GLM 5.3 Flash ist mit der tatsächlich bestätigten ID
+`vllm/qsu/glm-5-3-flash` registriert. Die Anzeige verlangt weiterhin aktuelle
+Listung und Freigabe im Noris-Katalog; Reasoning-Parameter werden nicht erfunden.
+
+`make test-e2e-websocket` benötigt eine migrierte, isolierte Datenbank über
+`NORIS_DATABASE_URL` und startet ausschließlich lokale Provider-Simulatoren.
+Die Tests löschen ihre synthetischen Chats: niemals gegen Nutzerdaten starten.
+Mit `compose.test.yaml` und `NORIS_E2E_COMPOSE_URL=http://127.0.0.1:8080` prüft
+dieselbe Suite den Produktionsbuild über Caddy. Diese Testkonfiguration enthält
+nur synthetische Zugangsdaten und darf nicht öffentlich betrieben werden.
