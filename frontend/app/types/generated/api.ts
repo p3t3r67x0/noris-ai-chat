@@ -15,14 +15,17 @@ export type Version = number
  */
 export type Conversations = ImportConversation[]
 export type Content = string
+export type Continuationcount = number
 export type Conversationid = string
 export type Createdat1 = string
 export type Editedfrommessageid = (string | null)
+export type Errorcode = (string | null)
+export type Errormessage = (string | null)
 export type Id1 = string
 export type Modelid = (string | null)
 export type Parentmessageid = (string | null)
 export type Role = ("user" | "assistant")
-export type Status = ("pending" | "streaming" | "completed" | "cancelled" | "failed")
+export type Status = ("pending" | "streaming" | "completed" | "incomplete" | "cancelled" | "failed")
 export type Updatedat1 = string
 /**
  * @maxItems 10000
@@ -42,7 +45,7 @@ export type StreamIdleTimeoutMs = number
 export type StreamTimeoutMs = number
 export type Assistantmessageid = (string | null)
 export type Attempt = number
-export type Continuationcount = number
+export type Continuationcount1 = number
 export type Conversationid2 = string
 export type Generationid = string
 export type Inputmessageid = string
@@ -57,11 +60,12 @@ export type Modelid1 = string
 export type Operation = ("generate" | "continue")
 export type Seq1 = number
 export type Type1 = "response.completed"
+export type Id2 = (string | null)
 export type Title1 = (string | null)
 export type Activeleafmessageid1 = (string | null)
 export type Archivedat1 = (string | null)
 export type Createdat2 = string
-export type Id2 = string
+export type Id3 = string
 export type Lastmessageat = (string | null)
 export type Title2 = string
 export type Titlesource1 = ("fallback" | "generated" | "manual")
@@ -95,6 +99,10 @@ export type Code1 = string
 export type Message1 = string
 export type Seq3 = number
 export type Type3 = "response.failed"
+export type Location = (string | number)[]
+export type Message2 = string
+export type ErrorType = string
+export type Detail = ValidationError[]
 export type Service = "noris-ai"
 export type Status1 = "ok"
 export type Version3 = string
@@ -110,7 +118,7 @@ export type OutputPointsPerMillion = (number | null)
 export type Source = string
 export type Description = string
 export type DocumentedContextWindow = (number | null)
-export type Id3 = string
+export type Id4 = string
 export type Lifecycle = ("LTS" | "PRODUCTIVE" | "EXPERIMENTAL" | "DEPRECATED" | "UNKNOWN")
 export type MaxOutputTokens = number
 export type Name = string
@@ -134,15 +142,18 @@ export type ToolCalling = (boolean | null)
 export type Virtual = boolean
 export type Vision = (boolean | null)
 export type Content4 = string
+export type Continuationcount2 = number
 export type Conversationid5 = string
 export type Createdat3 = string
 export type Editedfrommessageid1 = (string | null)
+export type Errorcode1 = (string | null)
+export type Errormessage1 = (string | null)
 export type Generationid1 = (string | null)
-export type Id4 = string
+export type Id5 = string
 export type Modelid3 = (string | null)
 export type Parentmessageid1 = (string | null)
 export type Role2 = ("user" | "assistant")
-export type Status2 = ("pending" | "streaming" | "completed" | "cancelled" | "failed")
+export type Status2 = ("pending" | "streaming" | "completed" | "incomplete" | "cancelled" | "failed")
 export type Updatedat4 = string
 export type Messages2 = MessageResponse[]
 export type DefaultModel = (string | null)
@@ -160,6 +171,8 @@ export type Modelid5 = (string | null)
 export type Status4 = "ready"
 export type Seq5 = number
 export type Type5 = "response.started"
+export type Expiresinseconds = number
+export type Ticketid = string
 
 export interface ApiSchemas {
   CancelledEvent: CancelledEvent
@@ -182,6 +195,7 @@ export interface ApiSchemas {
   ErrorResponse: ErrorResponse
   Evidence: Evidence
   FailedEvent: FailedEvent
+  HTTPValidationError: HTTPValidationError
   HealthResponse: HealthResponse
   ImportConflict: ImportConflict
   ImportConversation: ImportConversation
@@ -198,7 +212,9 @@ export interface ApiSchemas {
   PreferencesUpdate: PreferencesUpdate
   ReadinessResponse: ReadinessResponse
   StartedEvent: StartedEvent
+  TicketResponse: TicketResponse
   TimeoutPolicy: TimeoutPolicy
+  ValidationError: ValidationError
 }
 export interface CancelledEvent {
   seq: Seq
@@ -225,9 +241,12 @@ export interface Drafts {
 }
 export interface ImportMessage {
   content: Content
+  continuationCount?: Continuationcount
   conversationId: Conversationid
   createdAt: Createdat1
   editedFromMessageId?: Editedfrommessageid
+  errorCode?: Errorcode
+  errorMessage?: Errormessage
   id: Id1
   modelId?: Modelid
   parentMessageId?: Parentmessageid
@@ -256,7 +275,7 @@ export interface ChatLimits {
 export interface ChatRequest {
   assistantMessageId?: Assistantmessageid
   attempt: Attempt
-  continuationCount?: Continuationcount
+  continuationCount?: Continuationcount1
   conversationId: Conversationid2
   generationId: Generationid
   inputMessageId: Inputmessageid
@@ -273,6 +292,7 @@ export interface CompletedEvent {
   type?: Type1
 }
 export interface ConversationCreate {
+  id?: Id2
   title?: Title1
 }
 export interface ConversationListResponse {
@@ -282,7 +302,7 @@ export interface ConversationResponse {
   activeLeafMessageId: Activeleafmessageid1
   archivedAt: Archivedat1
   createdAt: Createdat2
-  id: Id2
+  id: Id3
   lastMessageAt: Lastmessageat
   title: Title2
   titleSource: Titlesource1
@@ -336,6 +356,24 @@ export interface FailedEvent {
   seq: Seq3
   type?: Type3
 }
+export interface HTTPValidationError {
+  detail?: Detail
+  [k: string]: unknown
+}
+export interface ValidationError {
+  ctx?: Context
+  input?: Input
+  loc: Location
+  msg: Message2
+  type: ErrorType
+  [k: string]: unknown
+}
+export interface Context {
+  [k: string]: unknown
+}
+export interface Input {
+  [k: string]: unknown
+}
 export interface HealthResponse {
   service?: Service
   status?: Status1
@@ -354,7 +392,7 @@ export interface LLMModel {
   description?: Description
   documented_context_window?: DocumentedContextWindow
   evidence?: Evidence1
-  id: Id3
+  id: Id4
   lifecycle?: Lifecycle
   max_output_tokens?: MaxOutputTokens
   name: Name
@@ -397,11 +435,14 @@ export interface MessageListResponse {
 }
 export interface MessageResponse {
   content: Content4
+  continuationCount?: Continuationcount2
   conversationId: Conversationid5
   createdAt: Createdat3
   editedFromMessageId: Editedfrommessageid1
+  errorCode?: Errorcode1
+  errorMessage?: Errormessage1
   generationId: Generationid1
-  id: Id4
+  id: Id5
   modelId: Modelid3
   parentMessageId: Parentmessageid1
   role: Role2
@@ -433,6 +474,10 @@ export interface StartedEvent {
   seq: Seq5
   type?: Type5
 }
+export interface TicketResponse {
+  expiresInSeconds: Expiresinseconds
+  ticketId: Ticketid
+}
 
 export interface ApiPaths {
   "/api/v1/chat/drafts": {
@@ -448,6 +493,14 @@ export interface ApiPaths {
       422: ApiSchemas["ErrorResponse"]
       500: ApiSchemas["ErrorResponse"]
       503: ApiSchemas["ErrorResponse"]
+    } }
+  }
+  "/api/v1/chat/drafts/new": {
+    put: {
+      requestBody: ApiSchemas["DraftUpdate"]
+      responses: {
+      200: ApiSchemas["DraftResponse"]
+      422: ApiSchemas["HTTPValidationError"]
     } }
   }
   "/api/v1/chat/preferences": {
@@ -477,6 +530,12 @@ export interface ApiPaths {
       422: ApiSchemas["ErrorResponse"]
       500: ApiSchemas["ErrorResponse"]
       503: ApiSchemas["ErrorResponse"]
+    } }
+  }
+  "/api/v1/chat/ws-ticket": {
+    post: {
+      responses: {
+      200: ApiSchemas["TicketResponse"]
     } }
   }
   "/api/v1/conversations": {

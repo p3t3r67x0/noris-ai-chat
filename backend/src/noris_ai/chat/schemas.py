@@ -15,8 +15,10 @@ from noris_ai.core.schemas import ApiSchema
 
 TitleSource = Literal["fallback", "generated", "manual"]
 MessageRole = Literal["user", "assistant"]
-MessageStatus = Literal["pending", "streaming", "completed", "cancelled", "failed"]
-GenerationStatus = Literal["queued", "running", "completed", "cancelled", "failed", "interrupted"]
+MessageStatus = Literal["pending", "streaming", "completed", "incomplete", "cancelled", "failed"]
+GenerationStatus = Literal[
+    "queued", "running", "completed", "incomplete", "cancelled", "failed", "interrupted"
+]
 
 MAX_MESSAGE_LENGTH = 32_000
 MAX_TITLE_LENGTH = 120
@@ -32,6 +34,7 @@ class JsonApiSchema(ApiSchema):
 
 
 class ConversationCreate(JsonApiSchema):
+    id: UUID | None = None
     title: str | None = Field(default=None, min_length=1, max_length=MAX_TITLE_LENGTH)
 
 
@@ -65,6 +68,9 @@ class MessageResponse(JsonApiSchema):
     role: MessageRole
     content: str
     modelId: str | None
+    continuationCount: int = 0
+    errorCode: str | None = None
+    errorMessage: str | None = None
     status: MessageStatus
     generationId: UUID | None
     editedFromMessageId: UUID | None
@@ -105,9 +111,12 @@ class ImportMessage(JsonApiSchema):
     conversationId: UUID
     parentMessageId: UUID | None = None
     role: MessageRole
-    content: str = Field(min_length=1, max_length=MAX_MESSAGE_LENGTH)
+    content: str = Field(max_length=1_048_576)
     status: MessageStatus
     modelId: str | None = Field(default=None, max_length=200)
+    continuationCount: int = Field(default=0, ge=0, le=20)
+    errorCode: str | None = Field(default=None, max_length=100)
+    errorMessage: str | None = Field(default=None, max_length=1000)
     editedFromMessageId: UUID | None = None
     createdAt: datetime
     updatedAt: datetime

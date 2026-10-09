@@ -35,6 +35,7 @@ MESSAGE_STATUS_ENUM = Enum(
     "pending",
     "streaming",
     "completed",
+    "incomplete",
     "cancelled",
     "failed",
     name="chat_message_status",
@@ -44,6 +45,7 @@ GENERATION_STATUS_ENUM = Enum(
     "queued",
     "running",
     "completed",
+    "incomplete",
     "cancelled",
     "failed",
     "interrupted",
@@ -103,7 +105,7 @@ class ChatMessage(Base):
             name="edited_from",
         ),
         UniqueConstraint("conversation_id", "id", name="uq_chat_message_conversation_id"),
-        CheckConstraint("length(content) <= 128000", name="content_length"),
+        CheckConstraint("length(content) <= 1048576", name="content_length"),
         Index("ix_chat_message_conversation_created", "conversation_id", "created_at"),
     )
 
@@ -115,6 +117,9 @@ class ChatMessage(Base):
     role: Mapped[str] = mapped_column(MESSAGE_ROLE_ENUM, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     model_id: Mapped[str | None] = mapped_column(Text)
+    continuation_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    error_code: Mapped[str | None] = mapped_column(Text)
+    error_message: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(MESSAGE_STATUS_ENUM, nullable=False)
     generation_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("chat_generation.id"))
     edited_from_message_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
@@ -129,6 +134,12 @@ class ChatMessage(Base):
 class ChatGeneration(Base):
     __tablename__ = "chat_generation"
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["conversation_id", "source_message_id"],
+            ["chat_message.conversation_id", "chat_message.id"],
+            name="source_message",
+            use_alter=True,
+        ),
         ForeignKeyConstraint(
             ["conversation_id", "input_message_id"],
             ["chat_message.conversation_id", "chat_message.id"],
@@ -161,6 +172,8 @@ class ChatGeneration(Base):
     model_id: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(GENERATION_STATUS_ENUM, nullable=False)
     attempt: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    operation: Mapped[str] = mapped_column(Text, nullable=False, server_default="generate")
+    source_message_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

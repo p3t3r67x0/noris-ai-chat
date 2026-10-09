@@ -168,15 +168,17 @@ class LLMGateway:
         self._answer_targets.pop(generation_id, None)
         self._admitted.pop(generation_id, None)
 
-    async def stream(self, request: ChatRequest) -> AsyncGenerator[bytes]:
+    async def events(
+        self, request: ChatRequest
+    ) -> AsyncGenerator[
+        StartedEvent | DeltaEvent | CompletedEvent | IncompleteEvent | FailedEvent | None
+    ]:
         seq = 1
         started = self._encode(StartedEvent(seq=seq))
-        yield started
+        yield StartedEvent(seq=seq)
         provider = self.provider
         if provider is None:
-            yield self._encode(
-                FailedEvent(seq=2, code="LLM_DISABLED", message=LLMError("LLM_DISABLED").message)
-            )
+            yield FailedEvent(seq=2, code="LLM_DISABLED", message=LLMError("LLM_DISABLED").message)
             return
         model = self._admitted[request.generationId]
         iterator = provider.stream(continuation_messages(request), model)
@@ -187,9 +189,9 @@ class LLMGateway:
         received = len(started)
         pending: asyncio.Future[str] | None = None
 
-        def output(delta: str) -> list[bytes]:
+        def output(delta: str) -> list[DeltaEvent]:
             nonlocal seq, text_length, has_text, received
-            events: list[bytes] = []
+            events: list[DeltaEvent] = []
             for offset in range(0, len(delta), 512):
                 fragment = delta[offset : offset + 512]
                 # Keep all text that fits, including the valid prefix of a boundary chunk.
@@ -207,7 +209,7 @@ class LLMGateway:
                 text_length += utf16_length(fragment)
                 has_text = has_text or bool(fragment.strip())
                 seq += 1
-                events.append(encoded)
+                events.append(DeltaEvent(seq=seq, delta=fragment))
             return events
 
         def check_limits(delta: str, before: int) -> None:
@@ -234,7 +236,7 @@ class LLMGateway:
                             received += len(heartbeat)
                             if received > self.config.llm_max_stream_bytes - 512:
                                 raise LLMError("STREAM_SIZE_LIMIT")
-                            yield heartbeat
+                            yield None
                     try:
                         delta = pending.result()
                     except StopAsyncIteration:
@@ -251,7 +253,7 @@ class LLMGateway:
                 check_limits(delta, before)
             if not has_text:
                 raise LLMError("DUPLICATE_CONTINUATION" if previous else "INVALID_RESPONSE")
-            yield self._encode(CompletedEvent(seq=seq + 1))
+            yield CompletedEvent(seq=seq + 1)
         except (TimeoutError, LLMError) as cause:
             error = cause if isinstance(cause, LLMError) else LLMError("TIMEOUT", 504)
             try:
@@ -266,14 +268,14 @@ class LLMGateway:
                 if previous and not has_text:
                     error = LLMError("DUPLICATE_CONTINUATION")
                 else:
-                    yield self._encode(IncompleteEvent(seq=seq + 1))
+                    yield IncompleteEvent(seq=seq + 1)
                     return
             if error.code in ("MODEL_UNAVAILABLE", "PROVIDER_AUTH_FAILED"):
                 self.catalog.invalidate()
-            yield self._encode(FailedEvent(seq=seq + 1, code=error.code, message=error.message))
+            yield FailedEvent(seq=seq + 1, code=error.code, message=error.message)
         except Exception:
             error = LLMError("INTERNAL_ERROR", 500)
-            yield self._encode(FailedEvent(seq=seq + 1, code=error.code, message=error.message))
+            yield FailedEvent(seq=seq + 1, code=error.code, message=error.message)
         finally:
             # ASGI disconnect uses level cancellation; cleanup must finish even
             # while the response task group is cancelled.
@@ -287,6 +289,14 @@ class LLMGateway:
                         await close()
                 finally:
                     self.release(request.generationId)
+
+    async def stream(self, request: ChatRequest) -> AsyncGenerator[bytes]:
+        iterator = self.events(request)
+        try:
+            async for event in iterator:
+                yield b": keepalive\n\n" if event is None else self._encode(event)
+        finally:
+            await iterator.aclose()
 
     @staticmethod
     def _encode(

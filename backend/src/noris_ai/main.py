@@ -12,13 +12,16 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from starlette.exceptions import HTTPException
 
 from noris_ai import __version__
+from noris_ai.api.v1.chat_ws import router as chat_ws_router
 from noris_ai.api.v1.conversations import router as conversations_router
 from noris_ai.api.v1.health import router as health_router
 from noris_ai.api.v1.llm import llm_error
 from noris_ai.api.v1.llm import router as llm_router
 from noris_ai.chat.errors import ChatError
+from noris_ai.chat.generation import GenerationManager
 from noris_ai.chat.repository import ChatRepository
 from noris_ai.chat.service import ChatService
+from noris_ai.chat.tickets import WsTicketStore
 from noris_ai.core.config import Settings
 from noris_ai.core.middleware import RequestContextMiddleware
 from noris_ai.core.schemas import ErrorDetail, ErrorResponse
@@ -59,6 +62,10 @@ def create_app(
         application.state.chat_database = database
         application.state.chat_repository = repository
         application.state.chat_service = ChatService(repository)
+        application.state.chat_tickets = WsTicketStore(config.chat_ws_ticket_ttl_seconds)
+        application.state.chat_generations = GenerationManager(
+            config, repository, application.state.llm_gateway
+        )
         # Startup recovery: generations orphaned by a restart are never
         # reported as completed.
         try:
@@ -68,6 +75,7 @@ def create_app(
         try:
             yield
         finally:
+            await application.state.chat_generations.close()
             if llm_provider is not None:
                 await llm_provider.aclose()
             await engine.dispose()
@@ -128,6 +136,7 @@ def create_app(
     application.include_router(health_router, prefix="/api/v1")
     application.include_router(llm_router, prefix="/api/v1")
     application.include_router(conversations_router, prefix="/api/v1")
+    application.include_router(chat_ws_router, prefix="/api/v1")
     return application
 
 

@@ -16,8 +16,10 @@ class LLMRequestLimitMiddleware:
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if (
             scope["type"] != "http"
-            or scope.get("method") != "POST"
-            or not scope["path"].startswith("/api/v1/llm/")
+            or scope.get("method") not in ("POST", "PUT", "PATCH")
+            or not scope["path"].startswith(
+                ("/api/v1/llm/", "/api/v1/chat/", "/api/v1/conversations")
+            )
         ):
             await self._app(scope, receive, send)
             return

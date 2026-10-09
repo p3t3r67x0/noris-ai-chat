@@ -13,7 +13,7 @@ RUN useradd --create-home --uid 10001 noris
 USER noris
 ENV PATH="/app/backend/.venv/bin:$PATH"
 EXPOSE 8000
-CMD ["uvicorn", "noris_ai.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
+CMD ["uvicorn", "noris_ai.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*", "--ws", "websockets-sansio", "--ws-max-size", "262144", "--ws-max-queue", "16"]
 
 FROM base AS development
 USER root

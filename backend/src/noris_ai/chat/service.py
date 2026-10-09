@@ -54,6 +54,9 @@ def message_response(message: ChatMessage) -> MessageResponse:
         role=cast(MessageRole, message.role),
         content=message.content,
         modelId=message.model_id,
+        continuationCount=message.continuation_count,
+        errorCode=message.error_code,
+        errorMessage=message.error_message,
         status=cast(MessageStatus, message.status),
         generationId=message.generation_id,
         editedFromMessageId=message.edited_from_message_id,
@@ -67,13 +70,20 @@ class ChatService:
         self.repository = repository
 
     async def create_conversation(
-        self, owner_id: uuid.UUID, title: str | None
+        self, owner_id: uuid.UUID, title: str | None, conversation_id: uuid.UUID | None = None
     ) -> ConversationResponse:
         try:
             conversation = await self.repository.create_conversation(
-                owner_id, title=title.strip() if title else FALLBACK_TITLE
+                owner_id,
+                title=(title.strip() or FALLBACK_TITLE) if title else FALLBACK_TITLE,
+                conversation_id=conversation_id,
             )
         except IntegrityError as error:
+            if conversation_id is not None:
+                try:
+                    return await self.get_conversation(owner_id, conversation_id)
+                except ChatError:
+                    raise ChatError("MESSAGE_EXISTS", 409) from error
             raise ChatError("INVALID_INPUT", 422) from error
         return conversation_response(conversation)
 
@@ -194,87 +204,35 @@ class ChatService:
     async def import_snapshot(
         self, owner_id: uuid.UUID, request: ChatImportRequest
     ) -> ChatImportResponse:
-        """Controlled browser-data import; idempotent and conflict-reporting."""
-        imported: list[uuid.UUID] = []
-        skipped: list[uuid.UUID] = []
+        """Prevalidate everything; the repository imports the entire snapshot atomically."""
+        if len({c.id for c in request.conversations}) != len(request.conversations) or len(
+            {m.id for m in request.messages}
+        ) != len(request.messages):
+            raise ChatError("IMPORT_INVALID", 422)
+        ids = {c.id for c in request.conversations}
+        if any(m.conversationId not in ids for m in request.messages):
+            raise ChatError("IMPORT_INVALID", 422)
+        if request.activeConversationId is not None and request.activeConversationId not in ids:
+            raise ChatError("IMPORT_INVALID", 422)
+        for key, value in request.drafts.items():
+            if (key != NEW_CHAT_DRAFT_KEY and key not in {str(i) for i in ids}) or len(
+                value
+            ) > 64000:
+                raise ChatError("IMPORT_INVALID", 422)
+        ordered: list[ImportMessage] = []
         conflicts: list[ImportConflict] = []
-        messages_by_conversation: dict[uuid.UUID, dict[uuid.UUID, ImportMessage]] = {}
-        for message in request.messages:
-            messages_by_conversation.setdefault(message.conversationId, {})[message.id] = message
         for conversation in request.conversations:
-            tree = messages_by_conversation.get(conversation.id, {})
+            tree = {m.id: m for m in request.messages if m.conversationId == conversation.id}
             conflict = _validate_import_tree(conversation, tree)
-            try:
-                existing = await self.repository.get_conversation(owner_id, conversation.id)
-            except ChatError:
-                existing = None
-            if existing is not None:
-                existing_messages = await self.repository.list_messages(owner_id, conversation.id)
-                same = (
-                    existing.title == conversation.title
-                    and existing.title_source == conversation.titleSource
-                    and len(existing_messages) == len(tree)
-                )
-                if same and conflict is None:
-                    skipped.append(conversation.id)
-                    continue
-                conflicts.append(
-                    ImportConflict(
-                        conversationId=conversation.id, reason="exists_with_different_data"
-                    )
-                )
-                continue
             if conflict is not None:
                 conflicts.append(conflict)
-                continue
-            try:
-                await self.repository.create_conversation(
-                    owner_id,
-                    title=conversation.title,
-                    title_source=conversation.titleSource,
-                    conversation_id=conversation.id,
-                    created_at=conversation.createdAt,
-                )
-                for message in _topological_order(tree):
-                    await self.repository.append_message(
-                        ChatMessage(
-                            id=message.id,
-                            conversation_id=conversation.id,
-                            parent_message_id=message.parentMessageId,
-                            role=message.role,
-                            content=message.content,
-                            model_id=message.modelId,
-                            status=message.status,
-                            generation_id=None,
-                            edited_from_message_id=message.editedFromMessageId,
-                            created_at=message.createdAt,
-                            updated_at=message.updatedAt,
-                        )
-                    )
-            except (IntegrityError, ChatError) as error:
-                raise ChatError("IMPORT_INVALID", 422) from error
-            leaf = conversation.activeLeafMessageId
-            if leaf is not None:
-                await self.repository.update_conversation(
-                    owner_id,
-                    conversation.id,
-                    expected_version=1,
-                    active_leaf_message_id=leaf,
-                )
-            imported.append(conversation.id)
-        drafts_imported = 0
-        for key, content in request.drafts.items():
-            if key == NEW_CHAT_DRAFT_KEY or key in {
-                str(conversation.id) for conversation in request.conversations
-            }:
-                await self.repository.set_draft(owner_id, key, content)
-                drafts_imported += 1
-        return ChatImportResponse(
-            imported=imported,
-            skipped=skipped,
-            conflicts=conflicts,
-            draftsImported=drafts_imported,
-        )
+            else:
+                ordered.extend(_topological_order(tree))
+        if conflicts:
+            return ChatImportResponse(
+                imported=[], skipped=[], conflicts=conflicts, draftsImported=0
+            )
+        return await self.repository.import_snapshot(owner_id, request, ordered)
 
 
 def _validate_import_tree(
@@ -287,9 +245,22 @@ def _validate_import_tree(
         parent = tree.get(message.parentMessageId) if message.parentMessageId else None
         if message.parentMessageId is not None and parent is None:
             return ImportConflict(conversationId=conversation.id, reason="invalid_parent")
-        if parent is not None and parent.role == message.role:
+        if (parent is not None and parent.role == message.role) or (
+            parent is None and message.role == "assistant"
+        ):
             return ImportConflict(conversationId=conversation.id, reason="invalid_parent")
-        if message.role == "user" and message.status != "completed":
+        if message.editedFromMessageId is not None:
+            original = tree.get(message.editedFromMessageId)
+            if (
+                original is None
+                or original.id == message.id
+                or original.role != message.role
+                or original.parentMessageId != message.parentMessageId
+            ):
+                return ImportConflict(conversationId=conversation.id, reason="invalid_parent")
+        if message.role == "user" and (
+            message.status != "completed" or not message.content.strip()
+        ):
             return ImportConflict(conversationId=conversation.id, reason="invalid_parent")
     return None
 
@@ -304,7 +275,9 @@ def _topological_order(
     while remaining:
         progressed = False
         for message in list(remaining):
-            if message.parentMessageId is None or message.parentMessageId in placed:
+            if (message.parentMessageId is None or message.parentMessageId in placed) and (
+                message.editedFromMessageId is None or message.editedFromMessageId in placed
+            ):
                 ordered.append(message)
                 placed.add(message.id)
                 remaining.remove(message)

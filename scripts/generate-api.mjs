@@ -89,6 +89,23 @@ try {
     { path: join(root, 'docs/api/openapi.json'), content: contract },
     { path: join(root, 'frontend/app/types/generated/api.ts'), content: `/* Generated from backend OpenAPI. Run pnpm api:generate. Do not edit. */\n${compiled}\n${lines.join('\n')}` },
   ]
+  const wsPath = join(temporary, 'chat-v1.json')
+  const wsResult = spawnSync('uv', ['run', '--locked', 'python', 'scripts/export_websocket.py', wsPath], {
+    cwd: join(root, 'backend'), encoding: 'utf8',
+  })
+  if (wsResult.status !== 0) throw new Error(wsResult.stderr || 'WebSocket export failed')
+  const wsContract = await readFile(wsPath, 'utf8')
+  const wsDocument = JSON.parse(wsContract)
+  // Each Pydantic union has its own definitions; compile each independently.
+  for (const direction of ['client', 'server']) {
+    const union = JSON.parse(JSON.stringify(wsDocument.properties[direction]).replaceAll('#/$defs/', '#/definitions/'))
+    union.definitions = union.$defs
+    delete union.$defs
+    const wsTypes = await compile(union, direction === 'client' ? 'ChatWsCommand' : 'ChatWsEvent')
+    outputs.push({ path: join(root, `frontend/app/types/generated/chat-ws-${direction}.ts`), content: `/* Generated WebSocket v1 contract. Run pnpm api:generate. */\n${wsTypes}` })
+  }
+  outputs.push({ path: join(root, 'docs/websocket/chat-v1.json'), content: wsContract })
+  outputs.push({ path: join(root, 'frontend/app/types/generated/chat-ws.ts'), content: "/* Generated WebSocket v1 contract. */\nexport type { ChatWsCommand } from './chat-ws-client'\nexport type { ChatWsEvent } from './chat-ws-server'\n" })
   for (const output of outputs) {
     if (check) {
       const existing = await readFile(output.path, 'utf8')

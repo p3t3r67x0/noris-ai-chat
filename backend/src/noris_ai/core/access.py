@@ -31,7 +31,7 @@ def verify_basic(
 
 
 def verify_write_origin(request: Request, config: Settings) -> None:
-    if request.method == "POST":
+    if request.method not in ("GET", "HEAD", "OPTIONS"):
         origin = request.headers.get("origin")
         if origin is not None and origin not in config.llm_allowed_origins:
             raise ChatError("ORIGIN_DENIED", 403)
