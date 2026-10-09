@@ -1,0 +1,46 @@
+name: Approved privacy artifact cleanup
+on:
+  push:
+    branches: [integration/privacy-artifact-cleanup]
+permissions:
+  actions: write
+  contents: read
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Delete only the approved legacy PR18 browser artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: p3t3r67x0/noris-ai-chat
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          targets = [{"id":11599270387,"run":37892119136,"head":"6a81a48a272d919afd894654f26d50751b3fc5e3"},{"id":11598144290,"run":37892115263,"head":"6a81a48a272d919afd894654f26d50751b3fc5e3"},{"id":11597870092,"run":37888534206,"head":"23faceb58d0f15a8c29f02c4e8de507af26b651a"},{"id":11597935262,"run":37888529587,"head":"23faceb58d0f15a8c29f02c4e8de507af26b651a"},{"id":11597540612,"run":37887976895,"head":"30d54e877b55f7d251164ba8656aa6887a647afd"},{"id":11597237665,"run":37887972615,"head":"30d54e877b55f7d251164ba8656aa6887a647afd"},{"id":11595600994,"run":37883323319,"head":"eb0ca33bd684705acdfed1a7788a6c1480b86d92"},{"id":11595506119,"run":37883319472,"head":"eb0ca33bd684705acdfed1a7788a6c1480b86d92"},{"id":11594488639,"run":37882833762,"head":"a1e4557cb214d292cd8b373edda4575da62f639b"},{"id":11595153734,"run":37882828891,"head":"a1e4557cb214d292cd8b373edda4575da62f639b"},{"id":11594813022,"run":37881928538,"head":"dba475b1a209f40d74af83ed37896098a01bdc29"},{"id":11594977664,"run":37881923848,"head":"dba475b1a209f40d74af83ed37896098a01bdc29"},{"id":11594596126,"run":37881075409,"head":"58d57b217b31c9dc749de65603bd49d1c6c96b8c"},{"id":11594174769,"run":37881069540,"head":"58d57b217b31c9dc749de65603bd49d1c6c96b8c"}]
+          repo = os.environ['GH_REPO']
+          # Check the complete allowlist before any deletion.
+          present = []
+          for target in targets:
+              result = subprocess.run(['gh', 'api', f"repos/{repo}/actions/artifacts/{target['id']}"], capture_output=True, text=True)
+              if result.returncode:
+                  if 'HTTP 404' in result.stderr:
+                      print(f"Already absent: {target['id']}")
+                      continue
+                  raise RuntimeError(f"Cannot inspect artifact {target['id']}")
+              artifact = json.loads(result.stdout)
+              run = artifact['workflow_run']
+              assert artifact['id'] == target['id']
+              assert artifact['name'] == 'browser-test-results'
+              assert run['id'] == target['run']
+              assert run['head_sha'] == target['head']
+              present.append(target)
+          for target in present:
+              subprocess.run(['gh', 'api', '--method', 'DELETE', f"repos/{repo}/actions/artifacts/{target['id']}"], check=True)
+              result = subprocess.run(['gh', 'api', f"repos/{repo}/actions/artifacts/{target['id']}"], capture_output=True, text=True)
+              assert result.returncode != 0 and 'HTTP 404' in result.stderr, f"Deletion not confirmed: {target['id']}"
+              print(f"Deleted and confirmed: {target['id']}")
+          print(f"PASS: {len(present)} deleted; {len(targets) - len(present)} already absent")
+          PY
