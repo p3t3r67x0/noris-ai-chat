@@ -8,7 +8,7 @@ for (const theme of ['light', 'dark']) {
     test(`reference desktop ${scene} ${theme}`, async ({ page }, testInfo) => { await captureScene(page, testInfo, scene, theme) })
   }
 }
-test('original reference size and matching content', async ({ page }, testInfo) => {
+test('original reference size with synthetic content', async ({ page }, testInfo) => {
   await captureScene(page, testInfo, 'reference', 'light')
   const rail = await page.locator('.chat-rail').boundingBox()
   const sidebar = await page.locator('#chat-sidebar [data-slot="container"]').boundingBox()

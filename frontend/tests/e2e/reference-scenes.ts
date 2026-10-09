@@ -33,7 +33,7 @@ export async function captureScene(page: Page, testInfo: TestInfo, scene: string
   }
   if (scene === 'code') await expect(page.locator('.syntax-token').first()).toBeVisible()
   if (scene === 'reference') {
-    // Read the supplied comparable answer while a genuine cancellable mock runs
+    // Read the synthetic comparable answer while a genuine cancellable mock runs
     // in the next turn. No production component receives a screenshot-only state.
     const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
     await input.fill('/lang')
