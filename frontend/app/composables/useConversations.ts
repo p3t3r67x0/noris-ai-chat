@@ -50,9 +50,7 @@ export function createConversationState(dependencies: ConversationDependencies =
   }
 
   function remove(conversationId: string): void {
-    const remaining = { ...records.value }
-    delete remaining[conversationId]
-    records.value = remaining
+    records.value = Object.fromEntries(Object.entries(records.value).filter(([key]) => key !== conversationId))
     if (activeId.value === conversationId) activeId.value = null
   }
 
