@@ -1,0 +1,80 @@
+import { computed, ref } from 'vue'
+import { isBusy, MAX_MESSAGE_LENGTH } from '../lib/chat/types'
+import type { ChatRequest, ChatTransport, GenerationStatus } from '../lib/chat/types'
+
+export interface StreamCallbacks {
+  delta: (text: string) => void
+  status: (status: Exclude<GenerationStatus, 'idle'>) => void
+}
+
+export function useChatStream(transport: ChatTransport) {
+  const status = ref<GenerationStatus>('idle')
+  const error = ref<string | null>(null)
+  const cancellationRequested = ref(false)
+  const running = ref(false)
+  const busy = computed(() => running.value)
+  let controller: AbortController | null = null
+  const currentStatus = (): GenerationStatus => status.value
+
+  async function start(request: ChatRequest, callbacks: StreamCallbacks): Promise<boolean> {
+    if (busy.value) return false
+    running.value = true
+    controller = new AbortController()
+    const signal = controller.signal
+    status.value = 'submitting'
+    error.value = null
+    cancellationRequested.value = false
+    callbacks.status('submitting')
+    let sequence = 0
+    let length = 0
+    const transition = (next: Exclude<GenerationStatus, 'idle'>) => { status.value = next; callbacks.status(next) }
+    try {
+      for await (const event of transport.stream(request, signal)) {
+        if (!isBusy(status.value)) break
+        if (!Number.isSafeInteger(event.seq) || event.seq < 1) throw new Error('Ungültige Ereignisfolge')
+        if (event.seq <= sequence) continue
+        if (event.seq !== sequence + 1) throw new Error('Die Antwort wurde unvollständig übertragen.')
+        sequence = event.seq
+        if (signal.aborted && event.type !== 'response.cancelled') continue
+        switch (event.type) {
+          case 'response.started':
+            if (status.value !== 'submitting') throw new Error('Die Antwort wurde mehrfach gestartet.')
+            transition('streaming')
+            break
+          case 'response.output_text.delta':
+            if (currentStatus() !== 'streaming') throw new Error('Text ohne gestartete Antwort')
+            length += event.delta.length
+            if (length > MAX_MESSAGE_LENGTH) throw new Error('Die Antwort überschreitet die zulässige Länge.')
+            callbacks.delta(event.delta)
+            break
+          case 'response.completed': transition('completed'); break
+          case 'response.cancelled': transition('cancelled'); break
+          case 'response.failed': error.value = event.message; transition('failed'); break
+        }
+        if (!isBusy(status.value)) break
+      }
+      if (isBusy(status.value)) {
+        if (signal.aborted) transition('cancelled')
+        else throw new Error('Die Verbindung endete vor dem Abschluss der Antwort.')
+      }
+    }
+    catch (cause) {
+      if (!isBusy(status.value)) return true
+      if (signal.aborted) transition('cancelled')
+      else {
+        error.value = cause instanceof Error ? cause.message : 'Die Antwort konnte nicht geladen werden.'
+        transition('failed')
+      }
+    }
+    finally { controller = null; cancellationRequested.value = false; running.value = false }
+    return true
+  }
+
+  function stop(): void {
+    if (!busy.value || !controller) return
+    cancellationRequested.value = true
+    controller.abort()
+  }
+
+  return { status, error, busy, cancellationRequested, start, stop }
+}
