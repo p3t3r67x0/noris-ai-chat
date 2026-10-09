@@ -1,3 +1,4 @@
+import uuid
 from pathlib import Path
 from typing import Literal, Self
 from urllib.parse import urlsplit
@@ -52,6 +53,15 @@ class Settings(BaseSettings):
     llm_daily_token_budget: int = Field(default=100_000, ge=1, le=10_000_000)
     llm_max_request_bytes: int = Field(default=1_048_576, ge=1024, le=8_388_608)
     llm_max_upstream_bytes: int = Field(default=16_777_216, ge=1024, le=67_108_864)
+    # Single-owner identity (Option A): server-side, never accepted from clients.
+    chat_owner_id: uuid.UUID = Field(default_factory=lambda: uuid.UUID(int=1))
+    chat_ws_ticket_ttl_seconds: float = Field(default=60, ge=5, le=300)
+    chat_ws_queue_size: int = Field(default=256, ge=16, le=4096)
+    chat_ws_send_timeout_seconds: float = Field(default=15, gt=0, le=120)
+    chat_ws_heartbeat_seconds: float = Field(default=30, ge=5, le=300)
+    chat_stream_flush_ms: int = Field(default=100, ge=20, le=2000)
+    chat_stream_flush_characters: int = Field(default=512, ge=32, le=8192)
+    chat_stream_event_retention_hours: int = Field(default=168, ge=1, le=8760)
     llm_max_stream_bytes: int = Field(default=16_777_216, ge=1024, le=67_108_864)
     llm_max_message_chars: int = Field(default=32_000, ge=1, le=1_048_576)
     llm_max_response_chars: int = Field(default=262_144, ge=1, le=1_048_576)

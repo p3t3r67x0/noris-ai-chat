@@ -5,8 +5,15 @@ from alembic import context
 from sqlalchemy import Connection, pool
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from noris_ai.chat import models as chat_models
 from noris_ai.core.config import Settings
 from noris_ai.db.base import Base
+
+# Importing the chat models registers the Etappe 3 tables on the shared
+# declarative metadata; bind it explicitly for Alembic autogeneration.
+TARGET_METADATA = chat_models.Base.metadata
+if TARGET_METADATA is not Base.metadata:  # pragma: no cover - metadata identity
+    raise RuntimeError("Chat models must register on the shared declarative base")
 
 config = context.config
 settings = Settings()
