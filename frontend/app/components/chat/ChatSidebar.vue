@@ -31,11 +31,21 @@ function newChat(): void {
   closeOnMobile()
 }
 
+function showSearch(): void {
+  closeOnMobile()
+  searchOpen.value = true
+}
+
+function showArchive(): void {
+  closeOnMobile()
+  archiveOpen.value = true
+}
+
 function actions(conversation: Conversation): DropdownMenuItem[] {
   return [
-    { label: 'Umbenennen', icon: 'i-lucide-pencil', onSelect: () => { renameTarget.value = conversation; renameTitle.value = conversation.title } },
+    { label: 'Umbenennen', icon: 'i-lucide-pencil', onSelect: () => { closeOnMobile(); renameTarget.value = conversation; renameTitle.value = conversation.title } },
     { label: 'Archivieren', icon: 'i-lucide-archive', onSelect: () => emit('archive', conversation.id) },
-    { label: 'Löschen', icon: 'i-lucide-trash-2', color: 'error', onSelect: () => { deleteTarget.value = conversation } },
+    { label: 'Löschen', icon: 'i-lucide-trash-2', color: 'error', onSelect: () => { closeOnMobile(); deleteTarget.value = conversation } },
   ]
 }
 
@@ -58,7 +68,7 @@ const searchGroups = computed(() => [{
   })),
 }])
 
-defineExpose({ openSearch: () => { searchOpen.value = true } })
+defineExpose({ openSearch: showSearch })
 </script>
 
 <template>
@@ -81,7 +91,7 @@ defineExpose({ openSearch: () => { searchOpen.value = true } })
       </div>
       <div class="mt-4 flex w-full flex-col gap-1">
         <UButton icon="i-lucide-square-pen" color="neutral" variant="ghost" label="Neuer Chat" class="min-h-11 justify-start rounded-lg" @click="newChat" />
-        <UButton icon="i-lucide-search" color="neutral" variant="ghost" label="Chats suchen" class="min-h-11 justify-start rounded-lg" @click="searchOpen = true" />
+        <UButton icon="i-lucide-search" color="neutral" variant="ghost" label="Chats suchen" class="min-h-11 justify-start rounded-lg" @click="showSearch" />
       </div>
     </template>
 
@@ -104,7 +114,7 @@ defineExpose({ openSearch: () => { searchOpen.value = true } })
 
     <template #footer>
       <div class="flex flex-col gap-2">
-        <UButton icon="i-lucide-archive" color="neutral" variant="ghost" label="Archivierte Chats" class="min-h-11 justify-start" @click="archiveOpen = true" />
+        <UButton icon="i-lucide-archive" color="neutral" variant="ghost" label="Archivierte Chats" class="min-h-11 justify-start" @click="showArchive" />
         <UColorModeSelect aria-label="Darstellung" class="w-full" :ui="{ base: 'min-h-11' }" />
         <div class="flex items-center gap-3 px-2 pt-2">
           <UAvatar text="N" size="sm" />

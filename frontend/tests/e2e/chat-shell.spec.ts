@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 async function openSidebar(page: import('@playwright/test').Page) {
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   const toggle = page.getByRole('button', { name: 'Sidebar öffnen', exact: true })
   if (await toggle.isVisible()) await toggle.click()
 }
@@ -10,8 +11,9 @@ test('shell is responsive, has a bounded composer and renders without client err
   page.on('pageerror', error => errors.push(error.message))
   page.on('console', message => { if (message.type() === 'error' || /hydration/i.test(message.text())) errors.push(message.text()) })
   await page.goto('/')
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   await expect(page.getByRole('heading', { name: 'Was möchtest du heute bewegen?' })).toBeVisible()
-  await expect(page.getByRole('combobox', { name: 'Modell auswählen' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Modell auswählen' })).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'Nachricht' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   expect(errors).toEqual([])
@@ -39,6 +41,8 @@ test('conversation menu supports rename, search, archive and restore by keyboard
   await page.getByRole('menuitem', { name: 'Umbenennen' }).click()
   await page.getByRole('textbox', { name: 'Chat-Titel' }).fill('Meine Notizen')
   await page.getByRole('textbox', { name: 'Chat-Titel' }).press('Enter')
+  await expect(page.getByRole('dialog', { name: 'Chat umbenennen' })).not.toBeVisible()
+  await openSidebar(page)
   await expect(page.getByRole('button', { name: 'Aktionen für Meine Notizen' })).toBeVisible()
   await page.getByRole('button', { name: 'Chats suchen' }).click()
   await page.getByPlaceholder('Chat suchen …').fill('Notizen')
@@ -57,7 +61,7 @@ test('conversation menu supports rename, search, archive and restore by keyboard
 test('theme can switch to dark and survives reload', async ({ page }) => {
   await page.goto('/')
   await openSidebar(page)
-  await page.getByRole('combobox', { name: 'Darstellung' }).click()
+  await page.getByRole('button', { name: 'Darstellung' }).click()
   await page.getByRole('option', { name: 'Dunkel', exact: true }).click()
   await expect(page.locator('html')).toHaveClass(/dark/)
   await page.reload()

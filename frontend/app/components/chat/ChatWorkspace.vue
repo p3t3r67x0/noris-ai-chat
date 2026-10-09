@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useConversations } from '../../composables/useConversations'
 import { useModelSelection } from '../../composables/useModelSelection'
 import ChatHeader from './ChatHeader.vue'
@@ -9,10 +9,12 @@ import EmptyChatState from './EmptyChatState.vue'
 const conversations = useConversations()
 const { modelId } = useModelSelection()
 const sidebarOpen = ref(true)
+const ready = ref(false)
+onMounted(() => { ready.value = true })
 </script>
 
 <template>
-  <div class="chat-workspace">
+  <div class="chat-workspace" :data-ready="ready" :inert="!ready" :aria-busy="!ready">
     <a href="#chat-main" class="sr-only z-50 rounded-md bg-default p-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Zum Chat springen</a>
     <ChatSidebar
       v-model:open="sidebarOpen" :conversations="conversations.visible.value" :archived="conversations.archived.value"
