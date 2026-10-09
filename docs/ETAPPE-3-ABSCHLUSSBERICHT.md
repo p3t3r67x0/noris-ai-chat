@@ -37,9 +37,10 @@ geprüft. Der Bericht enthält keine behauptete öffentliche Produktivfreigabe.
 | `make build` | PASS | Python-Wheel/SDist und Nuxt-Produktionsbuild |
 | WebSocket Desktop/Mobile | PASS | 12 Fälle: Streaming während Generierung, Stop/Retry, Reload/Resume, Import, Titel, Modellwahl, Fortsetzung/Varianten, Archivieren/Restore/Löschen, Overflow |
 | Caddy/Compose WebSocket Desktop/Mobile | PASS | Dieselben 12 Fälle gegen isolierten Produktionsstack auf Port 8089; echtes Upgrade über Caddy und PostgreSQL-App-Rolle |
-| Bisherige UI-/Screenshot-Suite | NOT TESTED | Vollständiger Lauf mit unveränderten Assertions/Baselines in Arbeit |
-| SSE-Kompatibilitäts-Browser | NOT TESTED | Lokaler HTTP-Simulator, vollständiger Lauf in Arbeit |
+| Bisherige UI-/Screenshot-Suite | PASS | 147 Desktop-/Mobile-Fälle mit unveränderten Assertions und Screenshot-Baselines |
+| SSE-Kompatibilitäts-Browser | PASS | 38 Desktop-/Mobile-Fälle gegen den lokalen HTTP-Simulator, einschließlich langer Antworten und Fortsetzung |
 | Compose-Konfigurationen | PASS | production, dev und ausdrücklicher lokaler Testoverride validiert |
+| PR A eigenständig | PASS | 6 PostgreSQL-/Schema-/Migrationsfälle im separaten Checkout |
 | PR B eigenständig | PASS | 11 PostgreSQL-/REST-/Migrationsfälle und strikte Python-Typprüfung im separaten Checkout |
 | Kostenpflichtige Noris-Generierung | NOT TESTED | Nicht freigegeben; keine reale Textgenerierung oder kostenpflichtige CI-Anfrage ausgeführt |
 | Öffentliche Domain/HTTPS/WSS | NOT TESTED | Keine Domain-/TLS-Bereitstellung beauftragt; WSS-Policy und Same-Origin-Routing implementiert |

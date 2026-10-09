@@ -196,8 +196,8 @@ Das WS-Protokoll ist als versioniertes JSON-Schema zusätzlich zu OpenAPI in
   (Strukturäquivalent zu `ChatSnapshot v1`). Der Server validiert Besitz,
   Baum-Konsistenz (Rollen-Alternation, keine Zyklen, Blatt-Eigentum) und
   übernimmt die bestehenden IDs. Idempotent: identisch existierende
-  Konversationen werden übersprungen; Konflikte werden gemeldet (409 mit
-  Einzelbericht im Response), nichts Halbfertiges. Bei Konflikt wird keine
+  Konversationen werden übersprungen; fachliche Importkonflikte stehen im
+  `conflicts`-Feld des Importberichts (HTTP 200). Bei Konflikt wird keine
   neue Konversation importiert; bereits vorhandene identische Bestände werden
   ausgewiesen. Bereits serverseitig bearbeitete Entwürfe werden nicht überschrieben.
 - Auslösung ausschließlich durch Nutzeraktion (Dialog im Sidebar-Fuß), niemals
