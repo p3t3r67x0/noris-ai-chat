@@ -1,5 +1,9 @@
 # Bereinigung der fünf Vergleichsbilder für PR #18
 
+## Nachträglicher Integrationsstand
+
+Die fünf Bildhashes und deren damalige Prüfung bleiben unverändert. Zusätzlich wurden später die private Referenz-Fixture, ihre Golden und die aktiven PR-18-/PR-20-Historien nach gesonderter Freigabe bereinigt. Alle 17 freigegebenen alten Browserartefakte sind gelöscht. Der Auftraggeber genehmigte anschließend die Integration der bereinigten PRs #18 und #19 trotz des ausdrücklich offenen GitHub-Support-Takedowns. [HISTORIENBEREINIGUNG](HISTORIENBEREINIGUNG.md) beschreibt den aktuellen Stand; nachfolgende ursprüngliche Befunde bleiben als historische Nachweise nachvollziehbar.
+
 Stand: 2026-10-09. **Die abschließende Freigabe des Auftraggebers wurde erteilt.** Dieser PR veröffentlicht ausschließlich die fünf nachfolgend benannten, vollständig bereinigten Dateien mit den geprüften SHA256-Werten sowie diesen Bericht. Die Freigabe umfasst weder private Originale noch alte Vergleichsdateien, eine Historienumschreibung oder einen Merge.
 
 ## Ergebnis
@@ -85,12 +89,12 @@ Alle fünf Dateien haben den Modus **RGB ohne Alpha**, keine PNG-Text-/EXIF-Meta
 
 Die App, ihre Golden-Baselines und die bestehenden Frontend-/Backend-Tests wurden für diese Bildprüfung nicht verändert. Die elf Prüfungen verwenden vollständig synthetische Eingangsfixtures und benötigen keine privaten Screenshots. Sie sind separate lokal ausgeführte Datenschutzprüfungen; sie werden nicht als zusätzliche bereits bestandene GitHub-CI-Fälle ausgegeben. Pillow und die Schrift Arimo sind lokale Vorbereitungsvoraussetzungen, keine neuen App-Abhängigkeiten.
 
-## Git-Prüfung und offener Altbestand
+## Historische Git-Prüfung vor der separat genehmigten Historienbereinigung
 
 Geprüfter PR-Head vor der Veröffentlichung: `23faceb58d0f15a8c29f02c4e8de507af26b651a`. PR #18 bleibt Draft; die Bildfreigabe ist keine vollständige UX-Abnahme.
 
 - **PASS aktueller Dateibaum:** Die ursprüngliche private Datei `docs/ui-reference/evidence/reference-chatgpt.png` fehlt; die Ausschlussregel ist aktiv. Sämtliche alten/neuen lokalen Vergleiche sind ebenfalls ausgeschlossen. Während der Vorbereitung bis zur Freigabe wurde kein Bild hochgeladen. Der anschließende Veröffentlichungscommit nimmt ausschließlich die fünf oben genannten bereinigten PNG-Kopien auf.
-- **FAIL Historie:** Commit `58d57b2` enthält die ursprüngliche private Datei als Blob `3d50917c0d895af92dceffcc8cda7c9c64819e5f`. Der SHA256-Abgleich bestätigt, dass es sich um das ursprüngliche Bild handelt. Seine spätere Entfernung in `dba475b` beseitigt diesen historischen Bestand nicht. Die frühere Aufnahme war ein Fehler.
+- **FAIL, damalige Historie:** Commit `58d57b2` enthält die ursprüngliche private Datei als Blob `3d50917c0d895af92dceffcc8cda7c9c64819e5f`. Der SHA256-Abgleich bestätigt, dass es sich um das ursprüngliche Bild handelt. Seine spätere Entfernung in `dba475b` beseitigt diesen historischen Bestand nicht. Die frühere Aufnahme war ein Fehler.
 - **Zusatzbefund:** Die bestehende Funktion `referenceChat()` in `frontend/tests/e2e/chat-fixtures.ts` und die bereits veröffentlichte Baseline `reference-reference-light.png` enthalten übernommene Referenztexte. Diese fünf neuen Bildversionen ersetzen diese Texte vollständig, bereinigen aber nicht rückwirkend die vorhandene Fixture/Baseline oder Git-Historie.
 
 Eine vollständige Bereinigung des bestehenden Repository-Bestands benötigt einen eigenen Schritt für die Historie und die übernommenen Referenztexte. Die Veröffentlichung fügt einen regulären Folgecommit hinzu; sie schreibt keine Historie um und führt keinen Merge aus. Die Anforderung „Originale nicht in Git“ ist für neue Änderungen erfüllt, aber wegen des dokumentierten Altbestands noch nicht für die gesamte Historie.
