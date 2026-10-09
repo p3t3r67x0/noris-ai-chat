@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useChat } from '../../composables/useChat'
-import { createMockTransport } from '../../lib/chat/mockTransport'
+import { useChatTransport } from '../../composables/useChatTransport'
 import { useModelSelection } from '../../composables/useModelSelection'
 import ChatHeader from './ChatHeader.vue'
 import ChatSidebar from './ChatSidebar.vue'
@@ -11,9 +11,10 @@ import ChatTimeline from './ChatTimeline.vue'
 import { MAX_MESSAGE_LENGTH } from '../../lib/chat/types'
 import { useChatViewport } from '../../composables/useChatViewport'
 
-const chat = useChat(createMockTransport())
+const { transport, mode } = useChatTransport()
+const chat = useChat(transport)
 const { conversations, stream } = chat
-const { modelId } = useModelSelection()
+const { modelId } = useModelSelection({ mode })
 const { draft } = chat.drafts
 const sidebarOpen = ref(true)
 const sidebar = ref<InstanceType<typeof ChatSidebar> | null>(null)

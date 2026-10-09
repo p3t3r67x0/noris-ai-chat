@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url'
 import { compile } from 'json-schema-to-typescript-lite'
 
 /** @typedef {import('json-schema-to-typescript-lite').JSONSchema} JSONSchema */
-/** @typedef {{operationId: string, parameters?: unknown[], requestBody?: unknown, responses: Record<string, {content?: Record<string, {schema: {$ref?: string}}>}>}} Operation */
+/** @typedef {{$ref?: string, oneOf?: ContractSchema[], anyOf?: ContractSchema[]}} ContractSchema */
+/** @typedef {{operationId: string, parameters?: unknown[], requestBody?: {content: Record<string, {schema: ContractSchema}>}, responses: Record<string, {content?: Record<string, {schema: ContractSchema}>}>}} Operation */
 /** @typedef {{components: {schemas: Record<string, JSONSchema>}, paths: Record<string, Record<string, Operation>>}} ApiDocument */
 
 const root = fileURLToPath(new URL('../', import.meta.url))
@@ -33,20 +34,37 @@ try {
     definitions: schemas,
   }, 'ApiSchemas')
   const lines = ['export interface ApiPaths {']
+  /** @param {ContractSchema} schema @returns {string} */
+  function schemaType(schema) {
+    if (schema.$ref) {
+      const name = schema.$ref.replace('#/components/schemas/', '')
+      if (!Object.hasOwn(schemas, name)) throw new Error(`Unknown schema ${name}`)
+      return `ApiSchemas[${JSON.stringify(name)}]`
+    }
+    const variants = schema.oneOf ?? schema.anyOf
+    if (variants?.length) return variants.map(schemaType).join(' | ')
+    throw new Error('Unsupported inline schema; extend generation explicitly')
+  }
   for (const [path, methods] of Object.entries(document.paths)) {
     lines.push(`  ${JSON.stringify(path)}: {`)
     for (const [method, operation] of Object.entries(methods)) {
-      if (method !== 'get' || operation.parameters?.length || operation.requestBody) {
+      if (!['get', 'post'].includes(method) || operation.parameters?.length) {
         throw new Error(`Unsupported contract shape at ${method.toUpperCase()} ${path}; extend generation explicitly`)
       }
-      lines.push(`    ${method}: { responses: {`)
+      lines.push(`    ${method}: {`)
+      if (operation.requestBody) {
+        const body = operation.requestBody.content['application/json']?.schema
+        if (!body) throw new Error(`Unsupported request body at ${method} ${path}`)
+        lines.push(`      requestBody: ${schemaType(body)}`)
+      }
+      lines.push('      responses: {')
       for (const [status, response] of Object.entries(operation.responses)) {
-        const ref = response.content?.['application/json']?.schema.$ref
-        const name = ref?.replace('#/components/schemas/', '')
-        if (!name || !Object.hasOwn(schemas, name) || !/^\d{3}$/.test(status)) {
+        const content = response.content
+        const schema = content?.['application/json']?.schema ?? content?.['text/event-stream']?.schema
+        if (!schema || !/^\d{3}$/.test(status) || Object.keys(content ?? {}).some(type => !['application/json', 'text/event-stream'].includes(type))) {
           throw new Error(`Unsupported response schema at ${method.toUpperCase()} ${path} ${status}`)
         }
-        lines.push(`      ${status}: ApiSchemas[${JSON.stringify(name)}]`)
+        lines.push(`      ${status}: ${schemaType(schema)}`)
       }
       lines.push('    } }')
     }
