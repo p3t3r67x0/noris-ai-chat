@@ -51,7 +51,7 @@ export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HT
     const element = scroller.value
     if (!element || changing) return
     measure()
-    following.value = followingAfterScroll(following.value, lastTop, element.scrollTop, distance.value)
+    following.value = followingAfterScroll(following.value, lastTop, element.scrollTop, distance.value, element.scrollHeight - element.clientHeight)
     lastTop = element.scrollTop
     if (!following.value) cancelFrame()
   }

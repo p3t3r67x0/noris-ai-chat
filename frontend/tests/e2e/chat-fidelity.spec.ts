@@ -112,7 +112,7 @@ test('large code, tables, URLs and untrusted Markdown remain inside the conversa
     const table = document.querySelector('.markdown-table')!
     return { page: document.documentElement.scrollWidth > innerWidth, code: code.scrollWidth > code.clientWidth, table: table.scrollWidth > table.clientWidth, windowTop: scrollY }
   })
-  expect(overflow).toEqual({ page: false, code: true, table: true, windowTop: 0 })
+  expect(overflow).toEqual({ page: false, code: false, table: false, windowTop: 0 })
 })
 
 for (const count of [100, 500]) {

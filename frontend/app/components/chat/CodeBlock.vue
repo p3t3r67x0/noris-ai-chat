@@ -5,6 +5,7 @@ import { useCopy } from '../../composables/useCopy'
 
 const props = defineProps<{ code: string, language: string }>()
 const { copy, copied, copyError } = useCopy()
+const wrap = ref(true)
 const tokens = ref<ThemedToken[][] | null>(null)
 let revision = 0
 onMounted(() => {
@@ -26,10 +27,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <figure class="code-block">
+  <figure class="code-block" :data-wrap="wrap">
     <figcaption class="flex items-center justify-between gap-2 px-4 py-1 text-xs text-muted">
-      <span>{{ language || 'Text' }}</span>
-      <UButton :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" color="neutral" variant="ghost" size="xs" class="touch-control" :label="copied ? 'Kopiert' : 'Code kopieren'" @click="copy(code)" />
+      <span class="code-language">{{ language || 'Text' }}</span>
+      <div class="flex shrink-0 items-center gap-1">
+        <UButton :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" color="neutral" variant="ghost" size="xs" class="touch-control" :label="copied ? 'Kopiert' : 'Code kopieren'" @click="copy(code)" />
+        <UButton icon="i-lucide-wrap-text" color="neutral" :variant="wrap ? 'soft' : 'ghost'" size="xs" class="touch-control" aria-label="Zeilenumbruch umschalten" :aria-pressed="wrap" :title="wrap ? 'Zeilenumbruch deaktivieren' : 'Zeilenumbruch aktivieren'" @click="wrap = !wrap" />
+      </div>
     </figcaption>
     <pre tabindex="0" :aria-label="`Codeblock ${language || 'Text'}`"><code v-if="tokens"><template v-for="(line, index) in tokens" :key="index"><span v-for="(token, tokenIndex) in line" :key="tokenIndex" :style="token.htmlStyle" :class="{ 'syntax-token': Boolean(token.htmlStyle) }">{{ token.content }}</span><template v-if="index < tokens.length - 1">{{ '\n' }}</template></template></code><code v-else>{{ code }}</code></pre>
     <p v-if="copyError" role="status" class="px-4 pb-2 text-xs text-error">{{ copyError }}</p>
