@@ -59,6 +59,14 @@ export async function captureScene(page: Page, testInfo: TestInfo, scene: string
     await expect(page.locator('[data-generation-status]')).toHaveAttribute('data-generation-status', 'streaming')
   }
   await page.evaluate(() => document.fonts.ready)
+  // Measure after finite drawer/overlay motion settles. Interpolated transforms
+  // otherwise introduce floating-point widths just below the actual 44px target.
+  await page.evaluate(async () => {
+    const finite = document.getAnimations().filter(animation =>
+      animation.effect && Number.isFinite(Number(animation.effect.getComputedTiming().endTime)),
+    )
+    await Promise.all(finite.map(animation => animation.finished.catch(() => {})))
+  })
   const geometry = await page.evaluate(() => {
     const box = (selector: string) => {
       const element = document.querySelector(selector)

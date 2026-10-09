@@ -12,6 +12,13 @@ def test_environment_overrides(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.readiness_timeout_seconds == 1.5
 
 
+def test_compose_empty_reasoning_setting_keeps_provider_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("NORIS_LLM_REASONING_EFFORT", "")
+    assert EnvironmentSettings().llm_reasoning_effort is None
+
+
 @pytest.mark.parametrize("timeout", [0, -1, 31])
 def test_readiness_timeout_is_bounded(timeout: float) -> None:
     with pytest.raises(ValidationError):

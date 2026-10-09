@@ -22,7 +22,8 @@ class RequestContextMiddleware:
             if message["type"] == "http.response.start":
                 headers = MutableHeaders(scope=message)
                 headers["X-Request-ID"] = str(request_id)
-                headers["Cache-Control"] = "no-store"
+                if "Cache-Control" not in headers:
+                    headers["Cache-Control"] = "no-store"
             await send(message)
 
         await self._app(scope, receive, send_with_context)
