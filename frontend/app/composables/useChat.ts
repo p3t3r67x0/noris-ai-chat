@@ -151,9 +151,14 @@ export function useChat(transport: ChatTransport) {
       }
     }
     catch { storageWarning.value = 'Lokaler Speicher ist nicht verfügbar.' }
-    stopWatching = watch([state.conversations.records, state.conversations.activeId, state.messages, state.drafts.records, state.preferredLeaves], () => {
+    const schedule = () => {
       timer ??= setTimeout(flush, 120)
-    }, { deep: true, flush: 'sync' })
+    }
+    // Draft keystrokes must not traverse every stored message. Both watchers
+    // schedule the same atomic snapshot, so persistence/recovery is unchanged.
+    const stopData = watch([state.conversations.records, state.conversations.activeId, state.messages, state.preferredLeaves], schedule, { deep: true, flush: 'sync' })
+    const stopDrafts = watch(state.drafts.records, schedule, { deep: true, flush: 'sync' })
+    stopWatching = () => { stopData(); stopDrafts() }
     window.addEventListener('pagehide', flush)
     window.addEventListener('storage', externalChange)
   })

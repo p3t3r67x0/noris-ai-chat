@@ -1,6 +1,6 @@
 # UI-Referenz: Analyse und Abweichungsplan
 
-Stand: 2026-10-09. Verbindliche visuelle Quelle ist der vom Auftraggeber bereitgestellte Screenshot die lokale Desktopreferenz (1920 × 975). Das Original bleibt unverändert. Keine private Sitzung wurde aufgerufen. Die nachträgliche pixelorientierte Aufgabenstellung konkretisiert das frühere allgemeine UX-Ziel der PLAN.md; Etappe 2 bleibt ausgeschlossen.
+Stand: 2026-10-09. Verbindliche visuelle Quelle ist der vom Auftraggeber bereitgestellte Screenshot die lokale Desktopreferenz (1920 × 975). Das Original bleibt unverändert als lokale persönliche Referenz; die bestehende Git-Ausschlussregel wird respektiert. Öffentliche Vergleichsansichten maskieren ausschließlich persönliche Chat-Titel/Kontobuchstaben, keine Flächenkanten oder Maße. Keine private Sitzung wurde aufgerufen. Die nachträgliche pixelorientierte Aufgabenstellung konkretisiert das frühere allgemeine UX-Ziel der PLAN.md; Etappe 2 bleibt ausgeschlossen.
 
 ## Methode und Aussagegrenzen
 

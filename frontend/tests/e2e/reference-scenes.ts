@@ -53,7 +53,8 @@ export async function captureScene(page: Page, testInfo: TestInfo, scene: string
       const rect = element?.getBoundingClientRect()
       return rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : null
     }
-    return { viewport: { width: innerWidth, height: innerHeight, dpr: devicePixelRatio }, rail: box('.chat-rail'), sidebar: box('#chat-sidebar [data-slot="container"]'), timeline: box('.chat-timeline'), composer: box('.chat-composer'), header: box('.chat-header'), bodyScroll: scrollY, overflow: document.documentElement.scrollWidth > innerWidth }
+    const style = getComputedStyle(document.querySelector('.chat-composer textarea')!)
+    return { viewport: { width: innerWidth, height: innerHeight, dpr: devicePixelRatio }, rail: box('.chat-rail'), sidebar: box('#chat-sidebar [data-slot="container"]'), timeline: box('.chat-timeline'), composer: box('.chat-composer'), header: box('.chat-header'), typography: { family: style.fontFamily, size: style.fontSize, lineHeight: style.lineHeight }, bodyScroll: scrollY, overflow: document.documentElement.scrollWidth > innerWidth }
   })
   expect(geometry.overflow).toBe(false)
   expect(geometry.bodyScroll).toBe(0)

@@ -158,3 +158,20 @@ for (const count of [100, 500]) {
     await testInfo.attach('scroll-performance', { body: JSON.stringify({ count, scrollToFrameMs, inactiveVariants: 10 }, null, 2), contentType: 'application/json' })
   })
 }
+
+test('message editing returns keyboard focus and leaves selected text intact on cancel', async ({ page }) => {
+  await seedChat(page, savedChat())
+  await page.goto('/')
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+  const edit = page.getByRole('button', { name: 'Nachricht bearbeiten', exact: true })
+  await edit.click()
+  const dialog = page.getByRole('dialog', { name: 'Nachricht bearbeiten', exact: true })
+  const input = dialog.getByRole('textbox', { name: 'Nachricht bearbeiten', exact: true })
+  await expect(input).toBeFocused()
+  await input.press('Control+a')
+  expect(await input.evaluate(element => element instanceof HTMLTextAreaElement && element.selectionStart === 0 && element.selectionEnd === element.value.length)).toBe(true)
+  await page.keyboard.press('Escape')
+  await expect(dialog).not.toBeVisible()
+  await expect(edit).toBeFocused()
+  await expect(page.locator('.user-bubble')).toHaveText('Wie können wir eine gute Idee weiterentwickeln?')
+})

@@ -13,7 +13,7 @@ Quelle: REFERENCE-ANALYSIS.md. Alle Produktwerte werden in `frontend/app/assets/
 | `--noris-composer-bottom-gap` | 29px | gemessen±3, inklusive Noris-Hinweis |
 | `--noris-message-font-size` | 22px | geschätzt |
 | `--noris-message-line-height` | 1.545≈34px | geschätzt |
-| `--noris-heading-font-size` | 30px | geschätzt |
+| `--noris-heading-font-size` | 32px | Schätzung nach überprüfter Umbruchbreite, 42px Zeilenhöhe |
 | `--noris-sidebar-font-size` | 20px | geschätzt |
 | `--noris-composer-font-size` | 22px | geschätzt |
 | `--noris-user-bubble-radius` | 28px | geschätzt |

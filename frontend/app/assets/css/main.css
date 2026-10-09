@@ -16,8 +16,8 @@
   --noris-content-padding: 1.5rem;
   --noris-message-font-size: clamp(1rem, 1.14583vw, 1.375rem);
   --noris-message-line-height: 1.54545;
-  --noris-heading-font-size: clamp(1.5rem, 1.5625vw, 1.875rem);
-  --noris-heading-line-height: 1.4;
+  --noris-heading-font-size: clamp(1.5rem, 1.66667vw, 2rem);
+  --noris-heading-line-height: 1.3125;
   --noris-heading-weight: 650;
   --noris-sidebar-font-size: clamp(0.875rem, 1.04167vw, 1.25rem);
   --noris-sidebar-title-size: clamp(1.125rem, 1.14583vw, 1.375rem);
