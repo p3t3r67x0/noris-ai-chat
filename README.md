@@ -1,6 +1,6 @@
 # noris AI Chat
 
-Das Monorepo enthält die Foundation aus **Etappe 0** der verbindlichen [PLAN.md](PLAN.md). Die Startseite prüft die Verbindung von Nuxt über die API zu PostgreSQL. Die Chat-Oberfläche, Authentifizierung und Modellaufrufe beginnen erst in den jeweils freigegebenen späteren Etappen.
+Das Monorepo enthält die Foundation aus **Etappe 0** und die freigegebene Chat-Oberfläche aus **Etappe 1** der verbindlichen [PLAN.md](PLAN.md). Unter `/` entsteht die lokale Chat-Demo; `/status` prüft weiterhin die Verbindung von Nuxt über die API zu PostgreSQL. Authentifizierung, echte Modellaufrufe und Chat-Datenbanktabellen folgen in späteren Etappen.
 
 ## Voraussetzungen und Versionen
 
@@ -11,6 +11,7 @@ Die Make-Ziele verwenden das Compose-Plugin (`docker compose`) oder automatisch 
 | Komponente | Version |
 | --- | --- |
 | Nuxt / Vue | 4.5.2 / 3.5.42 |
+| Nuxt UI | 4.11.3 |
 | Tailwind CSS | 4.3.3 |
 | FastAPI / Pydantic | 0.142.2 / 2.13.5 |
 | Pydantic AI | 1.107.6 (`pydantic-ai-slim`) |
@@ -20,7 +21,7 @@ Die Make-Ziele verwenden das Compose-Plugin (`docker compose`) oder automatisch 
 
 `backend/uv.lock` und `pnpm-lock.yaml` fixieren auch die transitiven Abhängigkeiten. pnpm 11 erhält dafür explizit `lockfile: true` im Workspace; `optimisticRepeatInstall: false` stellt sicher, dass Installationsbefehle ihre Lockfile-Prüfung ausführen. Die Vue-Compiler und Laufzeitpakete bleiben über Overrides auf derselben Version. Der ESLint-Konfigurationsinspektor ist auf 3.4.0, `enhanced-resolve` auf 5.24.5 und `vue-component-type-helpers` passend zu den Vue-Typwerkzeugen auf 3.3.11 fixiert; diese kompatiblen Versionen waren in der eingeschränkten Entwicklungsumgebung verfügbar. Updates dieser Overrides sollen gemeinsam mit den Lint-, Typ- und Buildprüfungen erfolgen.
 
-Pydantic AI ist als schlanke Basis ohne Provider-Extras installiert. Der eigene Model Gateway und Provider-Konfiguration folgen in Etappe 3. Nuxt UI folgt mit den Chat-Komponenten in Etappe 1; Tailwind ist bereits eingerichtet. Etappe 0 verwendet eine kleine native Statuskomponente.
+Pydantic AI ist als schlanke Basis ohne Provider-Extras installiert. Der eigene Model Gateway und Provider-Konfiguration folgen in Etappe 3. Nuxt UI und Tailwind bilden das Chat-Designsystem. Die native Statuskomponente aus Etappe 0 bleibt unter `/status` verfügbar.
 
 ## Vollständiger Start mit Docker
 
@@ -219,8 +220,10 @@ pnpm --dir frontend exec playwright install --with-deps chromium
 make test-e2e
 ```
 
-Sechs Playwright-Fälle prüfen auf Desktop und Mobile die Verbindung FE → BE → DB, Neuladen, API-Ausfall mit Tastatur-Retry und die Viewport-Breite. Spätere Chat-Tests aus dem Plan werden mit den jeweiligen Funktionen ergänzt.
+Die sechs Foundation-Playwright-Fälle bleiben unter `/status` erhalten. Die Chat-Tests prüfen Desktop und Mobile, Markdown/Clipboard, IME, Streaming/Stop/Fehler, Verzweigungen, Entwürfe, lange Verläufe, Shortcuts, Fokus und Light/Dark-Screenshots. Referenzen liegen unter `frontend/tests/e2e/__screenshots__/linux`. Nach einer beabsichtigten Designänderung können sie mit `pnpm --dir frontend test:e2e chat-visual.spec.ts --update-snapshots` neu erzeugt werden; neue Bilder vor dem Commit visuell prüfen.
 
-GitHub Actions führt Lint, strikte Typprüfung, API-Drift-Check, Unit-, DB- und Browser-Tests sowie Produktionsbuilds aus. Ein zweiter Job baut den vollständigen Compose-Stack aus einem frischen Checkout und prüft Proxy-Routing und DB-Rollenrechte. Fehlgeschlagene Browserläufe liefern Reports und Traces.
+Unter `/` läuft die lokale Chat-Demo ohne Provider-Schlüssel. `/lang` erzeugt einen langen Stream, `/fehler` einen reproduzierbaren Fehler mit Teilantwort. Chats und Entwürfe werden im Browser gespeichert; die Modelle, Anhänge und der Benutzerbereich sind vorbereitete Demo-Funktionen. Enter sendet, Shift+Enter fügt einen Zeilenumbruch ein. Neue Fragen rücken unter den Header; manuelles Hochscrollen pausiert das Folgen. `Ctrl/Cmd+Shift+O` startet einen Chat, `Ctrl/Cmd+K` öffnet die Suche und Escape stoppt außerhalb von Dialogen eine Antwort.
 
-Der tatsächliche lokale Prüfstand einschließlich der Umgebungssperren steht in [docs/ETAPPE-0-TESTERGEBNISSE.md](docs/ETAPPE-0-TESTERGEBNISSE.md). Eine grüne Remote-CI und ein erfolgreicher vollständiger Start sind noch nachzuweisen, sofern sie dort als offen geführt werden. Etappe 1 bleibt bis zur ausdrücklichen Freigabe gesperrt.
+GitHub Actions führt Lint, strikte Typprüfung, API-Drift-Check, Unit-, DB- und Browser-Tests sowie Produktionsbuilds aus. Ein zweiter Job baut den vollständigen Compose-Stack aus einem frischen Checkout und prüft Proxy-Routing und DB-Rollenrechte. Browserläufe liefern Reports und Screenshots als Artefakt; fehlgeschlagene Fälle ergänzen Traces.
+
+Die Nachweise der Foundation stehen in [docs/ETAPPE-0-TESTERGEBNISSE.md](docs/ETAPPE-0-TESTERGEBNISSE.md). Aufbau und aktueller Prüfstand der Chat-Oberfläche stehen in [docs/ETAPPE-1-ARCHITEKTUR.md](docs/ETAPPE-1-ARCHITEKTUR.md) und [docs/ETAPPE-1-TESTERGEBNISSE.md](docs/ETAPPE-1-TESTERGEBNISSE.md). Etappe 2 benötigt eine neue ausdrückliche Freigabe.
