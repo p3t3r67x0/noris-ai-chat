@@ -32,4 +32,26 @@ Zusätzliche Unit-Fälle prüfen unveränderliches Editieren, Transporthistorien
 
 ## PR 4: UX und visuelle Nachweise
 
-Folgt nach PR 3. Das gewünschte Positionieren der gesendeten Frage unter dem Header gehört zu dieser Etappe des Frontends.
+PR: [#17](https://github.com/p3t3r67x0/noris-ai-chat/pull/17), abhängig von PR 3. Lokal bestanden: 66 Frontend-Unit-Tests, 38 Backend-Unit-/Contract-Tests, ESLint, Ruff/Format, striktes Nuxt-/Vue-TypeScript, Pyright (0 Fehler), API-Drift und Nuxt-Produktionsbuild. Pyright lokal 1.1.409; die CI verwendet die bestehende gepinnte Version 1.1.408. Lokale Browser-/DB-Sperren bleiben wie oben dokumentiert.
+
+Der erste Remote-Lauf prüfte bereits Send-Anker, Fokus, Shortcuts und Gesprächspositionen. Er erkannte eine nachlaufende Scroll-Aktualisierung bei der kontrollierten Uhr; der Post-Render-Watch ergänzt jetzt den ResizeObserver. Außerdem wurde eine Messung im Hintergrund eines geöffneten mobilen Drawers auf einen stabilen DOM-Locator umgestellt. Vier zunächst fehlende Referenzbilder führten bewusst zu fehlgeschlagenen Visual-Tests; sie wurden erzeugt und visuell geprüft. Der abschließende Lauf wird nach tatsächlicher Ausführung ergänzt.
+
+## Screenshots
+
+| Zustand | Desktop | Mobile |
+| --- | --- | --- |
+| Light, leer | [Referenz](../frontend/tests/e2e/__screenshots__/linux/desktop/workspace-light.png) | [Referenz](../frontend/tests/e2e/__screenshots__/linux/mobile/workspace-light.png) |
+| Dark, leer | [Referenz](../frontend/tests/e2e/__screenshots__/linux/desktop/workspace-dark.png) | [Referenz](../frontend/tests/e2e/__screenshots__/linux/mobile/workspace-dark.png) |
+| Aktives Gespräch | [Screenshot](screenshots/etappe-1/desktop-active.png) | [Screenshot](screenshots/etappe-1/mobile-active.png) |
+| Laufender Stream | [Screenshot](screenshots/etappe-1/desktop-streaming.png) | [Screenshot](screenshots/etappe-1/mobile-streaming.png) |
+
+Die Referenzbilder werden unter Linux mit gepinntem Chromium erzeugt. Die Browser-Uhr hält den Gruppierungstag konstant. Caret und Animationen sind für den Vergleich ausgeblendet. Die mobile Emulation prüft 412 × 839 CSS-Pixel; Desktop 1280 × 720. Dokumentationsbilder sind dauerhafte Repo-Artefakte, Reports/Traces bleiben zusätzlich sieben Tage in Actions verfügbar.
+
+## Grenzen und Abnahme
+
+- Mock-Antworten und lokale Browser-Persistenz; keine echten Provider, Benutzerkonten, Dateiübertragung oder serverseitige Chat-Speicherung.
+- Ein aktiver Stream pro Workspace. Entwürfe anderer Gespräche bleiben währenddessen bearbeitbar; inkompatible Generierungen sind gesperrt.
+- Gleichzeitige Änderungen in mehreren Tabs stoppen weitere lokale Schreibvorgänge und zeigen einen Reload-Hinweis. Keine automatische Zusammenführung.
+- Die automatische Prüfung verwendet Chromium auf Desktop und einem mobilen Viewport. Eine verkleinerte Visual-Viewport-Höhe prüft den Composer; reale iOS-/Android-Tastaturen, VoiceOver/TalkBack und weitere Browserengines benötigen manuelle Abnahme.
+- Scrollpositionen überleben Gesprächswechsel innerhalb des Workspace; ein Reload öffnet den Verlauf am Ende.
+- Etappe 2 wurde nicht begonnen. Die vier PRs sind in Reihenfolge zu prüfen; Merge nur durch den Repository-Verantwortlichen.

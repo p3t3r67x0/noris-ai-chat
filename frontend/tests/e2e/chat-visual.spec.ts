@@ -13,6 +13,26 @@ for (const theme of ['light', 'dark']) {
     await page.goto('/')
     await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true', { timeout: 15_000 })
     await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /dark/ : /light/)
+    const contrast = await page.locator('.chat-composer textarea').evaluate(element => {
+      const canvas = document.createElement('canvas')
+      canvas.width = canvas.height = 1
+      const context = canvas.getContext('2d')
+      if (!context) throw new Error('Farbprüfung nicht verfügbar')
+      function luminance(color: string): number {
+        if (!context) throw new Error('Farbprüfung nicht verfügbar')
+        context.fillStyle = color; context.fillRect(0, 0, 1, 1)
+        const pixel = context.getImageData(0, 0, 1, 1).data
+        const linear = [pixel[0] ?? 0, pixel[1] ?? 0, pixel[2] ?? 0].map(value => {
+          const channel = value / 255
+          return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4
+        })
+        return (linear[0] ?? 0) * 0.2126 + (linear[1] ?? 0) * 0.7152 + (linear[2] ?? 0) * 0.0722
+      }
+      const foreground = luminance(getComputedStyle(element, '::placeholder').color)
+      const background = luminance(getComputedStyle(element.closest('.chat-composer')!).backgroundColor)
+      return (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05)
+    })
+    expect(contrast).toBeGreaterThanOrEqual(4.5)
     await page.screenshot({ path: testInfo.outputPath(`${testInfo.project.name}-${theme}.png`), animations: 'disabled' })
     await expect(page).toHaveScreenshot(`workspace-${theme}.png`, { animations: 'disabled', caret: 'hide' })
     expect(errors).toEqual([])
