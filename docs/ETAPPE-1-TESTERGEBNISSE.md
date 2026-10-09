@@ -18,7 +18,9 @@ Die anfängliche lokale Paketsperre ist inzwischen aufgehoben: Nuxt UI, Markdown
 
 ## PR 2: Composer und Transport
 
-In Umsetzung. Lokal sind ESLint, striktes Nuxt-/Vue-TypeScript und der Nuxt-Produktionsbuild erfolgreich. Der PR ergänzt echte Nuxt-UI-Composer-Interaktionen sowie acht Desktop-/Mobilfälle für Send, Markdown, Clipboard, IME, Stop und Fehler/Retry. Unit-Ergebnisse werden nach dem fertigen Lauf ergänzt.
+**Bestanden:** [CI 37876762996](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37876762996) auf `8674302`: ESLint, striktes TypeScript/Pyright, API-Drift, 43 Frontend-Unit-, 38 Backend-Unit-/Contract-, 3 PostgreSQL-Integrations- und 22 Playwright-Tests ohne Retry. Beide Produktionsbuilds, Compose-Validierung und frischer Compose-Smoke-Test bestanden. PR: [#15](https://github.com/p3t3r67x0/noris-ai-chat/pull/15). Lokal sind ESLint, striktes Nuxt-/Vue-TypeScript, Vitest und Nuxt-Produktionsbuild ebenfalls erfolgreich.
+
+Browser-Traces zeigten einen Entwicklungs-Reload beim ersten dynamischen Shiki-Import; die gezielte Voroptimierung verhindert diesen Verlust. Der kurze Retry-Zustand wird mit der kontrollierten Browser-Uhr deterministisch geprüft.
 
 Lokales Playwright: **BLOCKED**, da der Sandbox-Prozess nicht an `127.0.0.1:8000` binden kann. Lokale PostgreSQL-Integration: **BLOCKED**, da keine separate `NORIS_TEST_DATABASE_URL` mit `_test` bereitgestellt ist; die drei Fixtures brechen ohne Datenbankmutation ab. Die CI führt beide Prüfungen mit eigener Testdatenbank aus.
 
