@@ -45,8 +45,8 @@ def title_source(message: str) -> str:
 
 
 def validate_title(raw: str) -> str:
-    title = unicodedata.normalize("NFKC", raw).strip()
-    if any(unicodedata.category(char) in {"Cc", "Cf", "So"} for char in raw) or ".." in title:
+    title = unicodedata.normalize("NFKC", raw).strip(" \n\r")
+    if any(unicodedata.category(char) in {"Cc", "Cf", "So"} for char in title) or ".." in title:
         raise LLMError("INVALID_RESPONSE")
     title = title.rstrip(".").strip().strip("\"'„“”\u2018\u2019«»").rstrip(".").strip()
     title = " ".join(title.split())
