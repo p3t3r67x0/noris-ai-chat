@@ -5,7 +5,7 @@ Stand: 2026-10-09. Der Auftraggeber hat die gezielte Historienbereinigung von PR
 ## Ersetzte Inhalte und erhaltene Architektur
 
 - Das private Originalbild wurde aus allen sieben neu aufgebauten PR-18-Commits entfernt.
-- Die aus der privaten Vorlage kopierten Benutzer- und Assistant-Texte in `referenceChat()` wurden vollständig durch einen frei erfundenen Tagesplan ersetzt. Referenztitel heißen ausschließlich „Fiktiver Tagesplan“ oder „Beispiel N“; der einzige Link verwendet example.com.
+- Die aus der privaten Vorlage kopierten Benutzer- und Assistant-Texte in `referenceChat()` wurden vollständig durch einen frei erfundenen Tagesplan ersetzt. Referenztitel heißen ausschließlich „Fiktiver Tagesplan“ oder „Beispiel N“; alle Links verwenden die reservierte Domain example.com.
 - Der persönliche Screenshot-Dateiname wurde in den betroffenen Dokumentversionen durch eine neutrale Referenzbezeichnung ersetzt.
 - Die private Referenz-Golden wurde aus allen sieben Commits entfernt. Eine neue Golden stammt aus dem tatsächlich ausgeführten Chromium-Test mit synthetischer Fixture und wurde bei 1920 × 975 visuell geprüft.
 - Die zuvor freigegebenen fünf vollständig bereinigten Vergleichsbilder bleiben byteidentisch. Unbereinigte Originale und alte lokale Vergleiche werden nicht erneut veröffentlicht.
@@ -18,8 +18,8 @@ Die Vorher-/Nachher-Diffs der sieben bereinigten Commits betreffen ausschließli
 Datei: `frontend/tests/e2e/__screenshots__/linux/desktop/reference-reference-light.png`.
 
 - Auflösung: 1920 × 975.
-- SHA256: `53f1131465080523a3ce46e09577483063916f0e5007d0a16bbb1dd1f2915fb8`.
-- Git-Blob: `5e9c721ca73cc0f7aae4b11ebbde055f4efa8706`.
+- SHA256: `8c1a0035364bdc0f82dec96407d72797e1e1bd1ffa69ce377da19c403117af61`.
+- Git-Blob: `08826618869a8543205501a3d0e6ba0556423dbd`.
 - PNG-Prüfung: gültige CRCs, ausschließlich IHDR/IDAT/IEND, keine angehängten Daten.
 - Alle übrigen vorhandenen Referenz-Goldens, Assertions, Testauswahl und Screenshot-Toleranzen blieben unverändert.
 
@@ -47,3 +47,11 @@ Neue Artefakte der bereinigten Branches verwenden synthetische Referenzinhalte.
 Eine Support-Anfrage wurde lokal vorbereitet, aber nicht versendet. GitHub Support muss alte PR-Referenzen und zwischengespeicherte Ansichten gegebenenfalls entfernen und die serverseitige Bereinigung bestätigen. Fremde Clones oder Forks lassen sich durch einen Branch-Force-Push nicht weltweit löschen. Es wird keine vollständige weltweite Löschung behauptet.
 
 Quelle: [GitHub-Dokumentation zur Entfernung vertraulicher Daten](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository).
+
+## Ergänzende unabhängige Prüfung dieser Arbeitsrunde
+
+Die Bereinigung der veröffentlichten Historie und die 17 Artefaktlöschungen erfolgten extern. Die oben beschriebenen früheren Freigaben sind Angaben der vorhandenen Repository-Dokumentation. In dieser Arbeitsrunde ausdrücklich bestätigt wurden die Einbeziehung von #20, die fünf neuen synthetischen Derivate und die gezielte private Support-Anfrage durch den Repository-Inhaber. Daraus wird keine zusätzliche Datenschutz-Merge-Abnahme abgeleitet. Alte Commit-URLs sind weiterhin erreichbar; es wird keine vollständige Löschung behauptet.
+
+Commit `9e12a50` erhält für die synthetische Referenz jetzt dieselben Textlängen und Markdown-Strukturmerkmale wie die ursprüngliche Layout-Fixture: 106 Zeichen Benutzertext, 1464 Zeichen Antwort, 12 Zeilenumbrüche, sieben Absätze, zwei Überschriften, zwei Fettschrift-Spannen und zwei Links. Es werden ausschließlich frei erfundene Inhalte und example.com verwendet. Nur die betroffene Golden wurde mit Playwright neu aufgenommen, visuell geprüft und übernommen; die Änderung zeigt den wiederhergestellten Absatz anstelle der zwischenzeitlichen Liste. Die übrigen Goldens und sämtliche Assertions/Toleranzen bleiben unverändert. Der Referenzfall einschließlich Geometrieprüfungen und beide Datenschutz-Fixture-Unit-Tests bestehen lokal. Neue vollständige CI bleibt für jeden aktualisierten Head erforderlich.
+
+Die unveränderten Testläufe auf den vorherigen, ausdrücklich benannten Integrationsständen bestehen vollständig: [301 Tests für #18/#19](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37900020532) und [328 einschließlich des damaligen #20-Stands](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37900024903), jeweils einschließlich Produktionsbuilds und frischem Compose-Smoke. Spätere Änderungen und deren CI werden separat bewertet. Ein lokaler Lauf des Nuxt-Entwicklungsservers ergab 80 direkt bestandene, sieben nach bestehendem Retry bestandene und 22 fehlgeschlagene Browserfälle; 21 Fehler betreffen die Hydrationsbereitschaft. Diese lokalen Fehler werden nicht als bestandene Tests gewertet. Die sechs lokalen RealTransport-Browserfälle bestehen; es wurden keine neuen Live-Provider-Aufrufe ausgeführt. Reale Bildschirmtastaturen und Screenreader bleiben manuelle Folgeprüfungen.
