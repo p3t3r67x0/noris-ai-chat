@@ -9,6 +9,7 @@ allowBuilds:
   '@parcel/watcher': true
   unrs-resolver: true
   sharp: true
+  vue-demi: true
 
 overrides:
   enhanced-resolve: '5.24.5'
