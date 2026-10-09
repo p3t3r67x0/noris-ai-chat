@@ -10,7 +10,9 @@
     "lint": "eslint .",
     "typecheck": "nuxt typecheck && vue-tsc --noEmit --project tsconfig.tests.json",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:llm": "playwright test --config playwright.llm.config.ts",
+    "test:e2e:live": "playwright test --config playwright.live.config.ts"
   },
   "dependencies": {
     "@nuxt/ui": "4.11.3",
