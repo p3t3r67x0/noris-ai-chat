@@ -8,7 +8,7 @@ Der Real-Transport verwendet die bestehende Nuxt-Oberfläche und eine Same-Origi
 
 ## Real-Modus
 
-Die Noris-Dokumentation nennt `https://ai.noris.de/v1`, Bearer-Authentifizierung und OpenAI-kompatible Chat Completions. Der Betreiber muss die tatsächlich nutzbaren Modell-IDs und Account-Quotas selbst freischalten. Die ID `vllm/release/gpt-oss-120b` ist [dokumentiert](https://noris.cloud/nai/models/gpt-oss-120b/) und wurde für den bereitgestellten Account live geprüft; siehe [Etappe-2.1-Abnahme](ETAPPE-2.1-LIVE-ABNAHME.md). Diese Prüfung überträgt sich nicht automatisch auf andere Accounts oder Modelle.
+Die Noris-Dokumentation nennt `https://ai.noris.de/v1`, Bearer-Authentifizierung und OpenAI-kompatible Chat Completions. Der Betreiber richtet den API-Key und Account-Quotas ein; das Backend ermittelt die freigegebenen IDs automatisch über `GET /v1/models`. Die ID `vllm/release/gpt-oss-120b` ist [dokumentiert](https://noris.cloud/nai/models/gpt-oss-120b/) und wurde für den bereitgestellten Account live geprüft; siehe [Etappe-2.1-Abnahme](ETAPPE-2.1-LIVE-ABNAHME.md). Diese Prüfung überträgt sich nicht automatisch auf andere Accounts oder Modelle.
 
 In der gitignorierten `.env` bzw. über serverseitige Secret-Injektion konfigurieren:
 
@@ -19,8 +19,11 @@ NORIS_LLM_BASE_URL=https://ai.noris.de/v1
 NORIS_LLM_ALLOWED_HOSTS=["ai.noris.de"]
 NORIS_LLM_ACCESS_USERNAME=<separater-anwendungsbenutzer>
 NORIS_LLM_ALLOWED_ORIGINS=["https://<anwendungs-host>"]
-NORIS_LLM_MODELS=[{"id":"vllm/release/gpt-oss-120b","name":"GPT-OSS 120B","available":true,"streaming":true,"context_window":8192,"max_output_tokens":1024}]
-NORIS_LLM_DEFAULT_MODEL=vllm/release/gpt-oss-120b
+# Keine manuelle Modell-Allowlist erforderlich.
+NORIS_LLM_CATALOG_TTL_SECONDS=300
+NORIS_LLM_CATALOG_STALE_SECONDS=0
+# Optional bevorzugtes Defaultmodell; nur bei bestätigter Berechtigung:
+# NORIS_LLM_DEFAULT_MODEL=vllm/release/gpt-oss-120b
 ```
 
 Zusätzlich `NORIS_LLM_API_KEY` und ein **separates** `NORIS_LLM_ACCESS_PASSWORD` mit mindestens 32 Zeichen injizieren. Anwendungszugangsdaten müssen druckbare ASCII-Zeichen verwenden; der Benutzername darf keinen Doppelpunkt enthalten. Header-Steuerzeichen sind auch im Provider-Key unzulässig. Keine echten Werte in Git, PRs, Screenshots oder Logs ablegen. Anwendungspasswort und Provider-Key dürfen nicht identisch sein. Keine Secrets in `NUXT_PUBLIC_*` setzen. Lokal exakte HTTP-Origins wie `http://127.0.0.1:8080` und bei Host-Nuxt `http://127.0.0.1:3000` freigeben; `localhost` und `127.0.0.1` sind unterschiedliche Origins.
@@ -30,6 +33,34 @@ Backend und Frontend nach Konfigurationsänderungen neu starten; Compose liest n
 Alle LLM-Endpunkte verlangen HTTP Basic mit den **Anwendungszugangsdaten**, niemals dem Provider-Key. Für den vorhandenen Browser-Flow einmal `https://<anwendungs-host>/api/v1/llm/models` öffnen, im nativen Browserdialog anmelden und danach zur Chatseite zurückkehren. Anschließend lädt die Modellauswahl den Katalog. Keine zusätzliche Login-Komponente oder Speicherung von Passwörtern in Browser-Storage. Basic ist eine Zugangsschranke für diese Integration; individuelle OIDC-Konten und Mandantentrennung sind eine spätere Aufgabe.
 
 Der bestehende Proxy leitet `/api/*` zum Backend und hat bereits `flush_interval -1`. Keine zusätzliche CORS-Freigabe nötig. Für Host-Entwicklung bleibt `NORIS_DEV_API_TARGET` die lokale FastAPI-Adresse; es darf nicht auf den privaten Provider zeigen.
+
+## Dynamischer Modellkatalog und zusätzliche Modelle
+
+Der bestehende `OpenAICompatibleProvider` verwendet seinen HTTPX-Client auch für Discovery. Der GET verwendet ausschließlich die validierte Basis-URL, Bearer-Key, Host-Allowlist und begrenzte Antwortgröße; Redirects, Umgebungs-Proxys und browsergesteuerte URLs bleiben ausgeschlossen. Discovery beginnt erst bei authentifiziertem Katalog-/Chat-/Titelzugriff, nicht beim Startup oder bei Healthchecks. Aktivierung des Real-Providers autorisiert diesen Betriebszugriff; eigenständige Live-Abnahme bleibt Betreiber-Opt-in.
+
+`ModelCatalogService` ist die gemeinsame Freigabe für Menü, Chat und Titel. Parallele Aufrufe teilen eine Aktualisierung, erfolgreiche leere Listen ersetzen den vorherigen Katalog, Fehler werden für den konfigurierten Cooldown gespeichert. Innerhalb der TTL kann ein Entzug erst beim nächsten Refresh erkannt werden. Zusätzlich invalidieren echte Provider-Auth-/Modellfehler den Cache sofort. Nach Ablauf der TTL autorisiert ein alter Katalog keine neue Generierung. Optionales Stale zeigt deaktivierte Einträge mit `status=stale`, Fehlercode und Hinweis; Auth-Fehler erlauben auch keine veraltete Anzeige. Keine neuen Modellnamen werden bei Fehlern erfunden.
+
+Die versionierte [Registry](../backend/src/noris_ai/llm/registry.py) klassifiziert ausschließlich exakte IDs als CHAT, REASONING, VISION, EMBEDDING, RERANKING oder UNKNOWN. Nur belegte, verfügbare Streaming-Chatmodelle werden geliefert. EMBEDDING/RERANKING bleiben ausgeschlossen, auch mit einem Override. Vision-Fähigkeit bedeutet hier nur Metadaten; der bestehende Chat sendet weiterhin Text. Ein unbekanntes Modell bleibt gesperrt, auch wenn Discovery zusätzliche vermeintliche Capabilities meldet.
+
+`evidence` unterscheidet DOCUMENTED, VERIFIED und UNKNOWN; ein fehlender Eintrag bedeutet UNKNOWN. `sources` nennt Belege. `documented_context_window` und `supported_output_tokens` unterscheiden belegte Provider-Maxima von effektiven lokalen `context_window`-/`max_output_tokens`-Policies. Nicht belegte Outputmaxima bleiben null. Die Ausgabe-Policies sind derzeit 2048 (Gemma/Router), 4096 (GPT-OSS/Qwen), 8192 (GLM), weiterhin höchstens 8192 und unterhalb des Kontextfensters. Die Registry beansprucht keine Live-Prüfung aller Fähigkeiten. `timeout_policy` begrenzt pro Modell Read-/Gesamtdauer zusätzlich zu den bestehenden globalen Obergrenzen.
+
+GPT-OSS unterstützt den belegten Top-Level-Parameter `reasoning_effort` mit low/medium/high. GLM nutzt dokumentiert `chat_template_kwargs.reasoning_effort` mit high/max. Ohne expliziten Modellwert wird keine Reasoning-Einstellung gesendet; der Legacy-GPT-Hinweis wird nicht auf GLM, Gemma, Qwen oder Router übertragen. Titel wählen low nur bei belegter Unterstützung. Andere Tokenlimit-Parameter müssen pro exakter ID mit Quellen und Evidence freigegeben werden.
+
+Für zusätzliche unbekannte Modelle zuerst die exakte API-ID und Streaming-/Chat-/Parameter-Kompatibilität anhand Provider-Dokumentation oder ausdrücklich autorisierter Einzelprüfung belegen. Dann einen gezielten serverseitigen Override setzen, zum Beispiel mit einer tatsächlich geprüften eigenen ID:
+
+```dotenv
+NORIS_LLM_MODELS=[{"id":"operator-confirmed-id","name":"Mein Chatmodell","category":"CHAT","streaming":true,"context_window":8192,"max_output_tokens":1024,"token_limit_parameter":"max_tokens","sources":["https://provider.example/model-contract"],"evidence":{"category":"VERIFIED","streaming":"VERIFIED","token_limit_parameter":"VERIFIED"}}]
+```
+
+Die Beispiel-ID ist kein Noris-Modell. Sie wird nur nutzbar, wenn sie exakt vom aktuellen Provider-Katalog geliefert wird. Overrides bekannter Modelle können bestehende Namen und Limits erhalten; sämtliche Modell-IDs müssen nicht mehr gepflegt werden. Nicht belegte Reasoning-/Vision-/Tool-Fähigkeiten nicht behaupten. Geprüfte Zuordnungen dauerhaft in der versionierten Registry mit Quellen ergänzen. Konfigurationsänderungen benötigen einen Backend-Neustart. Der globale Tokenparameter wird nicht mehr als Ersatz für fehlende Modellbelege verwendet.
+
+`smart_router` erscheint nur bei exakter Listung im Account-Katalog als „Automatisch“ am Anfang. Die UI erklärt wechselnde Zielmodelle. Noris dokumentiert `extra_fields.routing_info` für Antworten; der bestehende Textadapter ignoriert zusätzliche Felder und erhält den SSE-Vertrag. Da die Übertragung dieses Feldes in Streaming-Chunks nicht live bestätigt ist, wird kein Routing-Ziel angezeigt oder aus allgemeinen `model`-Feldern abgeleitet.
+
+Header und Composer teilen dieselbe Auswahl und Liste. Modellwechsel erhalten Nachrichten, Verzweigungen und Entwürfe; sie lösen keine Anfrage aus und sind während einer Generierung gesperrt. Zugelassene Requests behalten ihren Modell-Snapshot während Streaming. Die Auswahl bleibt im vorhandenen Browser-Storage erhalten. Nach Entzug bleibt der gewählte Wert bestehen, neue Anfragen sind gesperrt, und ein bewusstes Fallback wird angeboten. Der Browser aktualisiert nach Katalog-TTL und Fensterfokus; Fehler erfordern bewusstes Neuladen.
+
+`cost` bietet pro Modell optionale AI-Punkte-Raten, Quellen, Standdatum und Evidence. In der ersten Version bleiben Zahlen UNKNOWN/null; keine unbelegten Echtzeitpreise. Die UI weist auf unterschiedliche Modellkosten hin. Maßgeblich ist der [Noris-Punkte-Katalog](https://noris.cloud/nai/punkte-rechner/). Token-Tagesbudget, Raten-, Parallelitätslimit und Provider-Quotas gelten auch nach Modellwechsel und für Titel. Diese Tokenreservation ist keine vollständige AI-Punkte-Abrechnung.
+
+Die einmalig freigegebene GET-Abnahme am 2026-10-09 lieferte HTTP 200 mit `data` (ohne erforderliches Top-Level-`object`), `data[].id` und zusätzlichen Feldern, darunter `is_ready`, `input_modalities`, `output_modalities`, `schema_version` und Compliance-/Rechenzentrumsdaten. Discovery verwendet nur exakte IDs und das tatsächlich bestätigte `is_ready`: explizit nicht bereite oder unklar typisierte Bereitschaft ist ausgeschlossen; ältere Antworten ohne dieses Feld bleiben unterstützt. Zusätzliche Felder werden nicht zum Browser durchgereicht. GPT-OSS, GLM, Gemma und Qwen waren gelistet, ebenso Embedding-/Reranking-Modelle und drei unklassifizierte QSU-IDs. `smart_router` war nicht gelistet und wird für diesen Zugang nicht als verfügbar behauptet. Genau ein GET, keine Generierungsproben. Das Ergebnis bestätigt keine dauerhaften Berechtigungen oder Quotas.
 
 ## Variablen und Grenzen
 
@@ -45,24 +76,28 @@ Alle Backend-Werte tragen das bestehende Präfix `NORIS_`. JSON-Listen müssen g
 | `NORIS_LLM_ACCESS_USERNAME` | Kein Standard; separater HTTP-Basic-Benutzer |
 | `NORIS_LLM_ACCESS_PASSWORD` | Kein Standard; mindestens 32 Zeichen, vom Provider-Key verschieden |
 | `NORIS_LLM_ALLOWED_ORIGINS` | `[]`; exakte Browser-Origins ohne abschließenden Slash |
-| `NORIS_LLM_MODELS` | `[]`; IDs, Namen, availability/streaming, context_window und max_output_tokens |
-| `NORIS_LLM_DEFAULT_MODEL` | Kein Standard; muss nutzbares konfiguriertes Modell sein |
-| `NORIS_LLM_TOKEN_LIMIT_PARAMETER` | `max_tokens`; alternativ `max_completion_tokens` für passende Provider |
-| `NORIS_LLM_REASONING_EFFORT` | Unset/leer: Provider-Standard; optional `low`, `medium`, `high` ausschließlich serverseitig für kompatible Modelle |
+| `NORIS_LLM_MODELS` | `[]`; optionale exakte Metadaten-/Policy-Overrides, keine Berechtigungsquelle |
+| `NORIS_LLM_DEFAULT_MODEL` | Optional; sonst Automatisch, wenn gelistet, sonst erstes freigegebenes Modell |
+| `NORIS_LLM_CATALOG_TTL_SECONDS` | `300`; Berechtigungs-Cache, 1–3600 Sekunden |
+| `NORIS_LLM_CATALOG_STALE_SECONDS` | `0`; optionale veraltete Anzeige, höchstens 3600 Sekunden, niemals Generierungsfreigabe |
+| `NORIS_LLM_DISCOVERY_TIMEOUT_SECONDS` | `10`; gesamter begrenzter GET-Aufruf, höchstens 30 Sekunden |
+| `NORIS_LLM_DISCOVERY_RETRY_AFTER_SECONDS` | `10`; Fehler-Cooldown, 1–60 Sekunden; keine automatischen Retries |
+| `NORIS_LLM_TOKEN_LIMIT_PARAMETER` | Veraltet; wird nicht global gesendet. Stattdessen pro Modell `token_limit_parameter` |
+| `NORIS_LLM_REASONING_EFFORT` | Unset/leer: Provider-Standard; Legacy-Hinweis nur für exakte GPT-OSS-ID. Pro Modell `reasoning_effort` bevorzugen |
 | `NORIS_LLM_CONNECT_TIMEOUT_SECONDS` | `5`; auch Write-/Pool-Timeout |
-| `NORIS_LLM_READ_TIMEOUT_SECONDS` | `30`; maximale Stille zwischen Netzwerkdaten |
-| `NORIS_LLM_TOTAL_TIMEOUT_SECONDS` | `120`; gesamte Generierung, höchstens 600 |
+| `NORIS_LLM_READ_TIMEOUT_SECONDS` | `120`; maximale Stille zwischen Netzwerkdaten |
+| `NORIS_LLM_TOTAL_TIMEOUT_SECONDS` | `1800`; gesamte Generierung, höchstens 3600 |
 | `NORIS_LLM_TITLE_TIMEOUT_SECONDS` | `6`; eigener Titel-Timeout, höchstens 30 |
 | `NORIS_LLM_TITLE_MAX_OUTPUT_TOKENS` | `96`; Titel-Ausgabe, höchstens 256 und höchstens Modelllimit |
 | `NORIS_LLM_MAX_CONCURRENT` | `4`; aktive Anfragen und HTTP-Verbindungen, höchstens 32 |
 | `NORIS_LLM_REQUESTS_PER_MINUTE` | `20`; gemeinsame Anfragefrequenz pro Backend-Prozess |
 | `NORIS_LLM_DAILY_TOKEN_BUDGET` | `100000`; konservative Input-/Outputreservation, UTC-Tageswechsel |
-| `NORIS_LLM_MAX_REQUEST_BYTES` | `524288`; vollständiger JSON-Body, höchstens 1 MiB |
-| `NORIS_LLM_MAX_UPSTREAM_BYTES` | `1048576`; SSE-Daten einschließlich Metadaten, höchstens 10 MiB |
+| `NORIS_LLM_MAX_REQUEST_BYTES` | `1048576`; vollständiger JSON-Body, höchstens 8 MiB |
+| `NORIS_LLM_MAX_UPSTREAM_BYTES` | `16777216`; SSE-Daten einschließlich Metadaten, höchstens 64 MiB |
 
-Die aktuellen Grenzen und Änderungen für lange Antworten sind in [LONG-CONTEXT-RESPONSES.md](LONG-CONTEXT-RESPONSES.md) dokumentiert. Eingabe-/Antwortzeichen und Streambytes sind konfigurierbar; der Browser übernimmt Limits und Fristen aus dem authentifizierten Modellkatalog. Body-Empfang (10 Sekunden), 100 Nachrichten und 64 KiB pro SSE-Zeile/Event bleiben begrenzt. Keine automatischen Modell-Retries und keine automatische Kontextkürzung.
+Weitere feste Grenzen: Body-Empfang 10 Sekunden; 100 Nachrichten; 64 KiB pro SSE-Zeile/Event. Zeichen-, Stream- und Timeoutgrenzen sind jetzt konfigurierbar und werden über den Modellkatalog mit dem Browser abgestimmt. Details, Provider-Nachweis und ein bedingtes 32768/131072-Profil stehen in [LLM-OUTPUT-LIMITS.md](LLM-OUTPUT-LIMITS.md). Keine automatischen Modell-Retries und keine automatische Kontextkürzung.
 
-Das Kontextmanagement prüft den aktiven Gesprächspfad mit UTF-8-Bytes plus Nachrichten- und Outputreserve gegen das **lokale** Modelllimit. Das Beispiel setzt absichtlich 8192 statt des dokumentierten 128K-Fensters. Eine Überschreitung wird vor Provider-Aufruf abgelehnt. Ungewählte Antwortvarianten und privilegierte System-/Developer-Rollen gelangen nicht in den Request. Der Backend-Vertrag akzeptiert nur abwechselnde user-/assistant-Nachrichten: Generierung endet mit user, die explizite Fortsetzungsoperation mit dem vorhandenen assistant.
+Das Kontextmanagement prüft den aktiven Gesprächspfad mit UTF-8-Bytes plus Nachrichten- und Outputreserve gegen das **lokale** Modelllimit. Die Registry liefert modellabhängige Fenster; Betreiber können sie über Overrides verringern. Eine Überschreitung wird vor Provider-Aufruf abgelehnt. Ungewählte Antwortvarianten und privilegierte System-/Developer-Rollen gelangen nicht in den Request. Der Backend-Vertrag akzeptiert nur abwechselnde user-/assistant-Nachrichten mit abschließender User-Nachricht für Generierung; explizite Fortsetzungen enden mit der vorhandenen Assistentenantwort. Fortsetzung, Offline-Tokenizer und zusätzliche Reserven sind in [LONG-CONTEXT-RESPONSES.md](LONG-CONTEXT-RESPONSES.md) beschrieben.
 
 Raten-/Tagesbudgets gelten für einen Prozess und bleiben bei Fehler/Stop reserviert. Sie überleben keinen Neustart. Deshalb **einen Backend-Worker** betreiben und zusätzliche Account-Kostenlimits beim Provider setzen. Für mehrere Replikate ist vor Skalierung ein gemeinsamer Quota-Speicher erforderlich; diese Etappe behauptet keine verteilte Kostenkontrolle.
 
@@ -72,7 +107,7 @@ Die Provider-Adresse wird ausschließlich durch Betreiber konfiguriert, HTTPS un
 
 Automatische [Gesprächstitel](AI-CONVERSATION-TITLES.md) verwenden `POST /api/v1/llm/conversation-title`, dieselbe Anmeldung und dieselben Budgets. Nur dieser Prozess fügt eine serverseitige Titelanweisung hinzu. Chat-Nutzerdaten können weiterhin keine privilegierten Rollen senden. Titel-Fehler kommen als JSON zurück und lassen den Platzhalter bestehen; bei `TITLE_ALREADY_ATTEMPTED` (409) wird keine weitere Provider-Anfrage gestartet. Provider-/Antwortfehler verwenden 502, der Titel-Gesamttimeout 504, gemeinsame Raten-/Budgetlimits 429. Kein automatischer Retry.
 
-`GET /api/v1/health/live` prüft den API-Prozess. `GET /api/v1/health/ready` prüft wie zuvor PostgreSQL und Baseline. Beide rufen keinen Provider auf. `GET /api/v1/llm/models` prüft Anmeldung und statische Freigabe, **nicht** tatsächliche Provider-Liveness.
+`GET /api/v1/health/live` prüft den API-Prozess. `GET /api/v1/health/ready` prüft wie zuvor PostgreSQL und Baseline. Beide rufen keinen Provider auf. `GET /api/v1/llm/models` prüft Anmeldung und lädt bei Cache-Ablauf die Provider-Berechtigungen. Ein frischer Cache ist keine Garantie für spätere Generierungsverfügbarkeit.
 
 Vor Beginn des Streams verwendet die API `{error:{code,message,request_id}}`. Nach Beginn kommt `response.failed` im SSE-Stream; HTTP bleibt 200 und bereits empfangener Text erhalten. Request-IDs dienen zur Diagnose, ohne Prompt oder Konfiguration zu loggen. Provider-Response-Bodies und interne Ausnahmen werden nicht an den Browser weitergereicht.
 
@@ -81,7 +116,7 @@ Vor Beginn des Streams verwendet die API `{error:{code,message,request_id}}`. Na
 | `LLM_DISABLED` | Backend-Schalter und vollständige Serverkonfiguration |
 | `ACCESS_DENIED` | Native Anmeldung über `/api/v1/llm/models`, Anwendungszugangsdaten |
 | `ORIGIN_DENIED` | Exakte Origin einschließlich Schema/Port und zulässiger Browserzugriff |
-| `MODEL_UNAVAILABLE` | Modell-Allowlist, availability/streaming und echte Account-Berechtigung |
+| `MODEL_UNAVAILABLE` | Exakte Provider-ID, Registry-Freigabe und frische Account-Berechtigung |
 | `CONTEXT_LIMIT`, `REQUEST_TOO_LARGE`, `VALIDATION_ERROR` | Aktiver Pfad, Längen, Rollenfolge und lokal gesetzte Limits |
 | `RATE_LIMIT`, `BUDGET_LIMIT` | Prozessgrenzen bzw. Provider-Quota; Retry bewusst auslösen |
 | `PROVIDER_AUTH_FAILED` | Serverseitigen Provider-Key prüfen, niemals im Browser eingeben |

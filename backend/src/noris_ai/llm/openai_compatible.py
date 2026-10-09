@@ -1,4 +1,6 @@
+import asyncio
 import json
+import re
 from collections.abc import AsyncIterator, Sequence
 from typing import Literal, cast
 
@@ -16,6 +18,8 @@ from noris_ai.llm.titles import TitleInstruction
 class ProviderDelta(BaseModel):
     model_config = ConfigDict(strict=True)
     content: str | None = None
+    reasoning_content: str | None = None
+    reasoning: str | None = None
     role: Literal["assistant"] | None = None
     tool_calls: list[object] | None = None
     function_call: dict[str, object] | None = None
@@ -35,6 +39,11 @@ class ProviderChunk(BaseModel):
     model_config = ConfigDict(strict=True)
     choices: list[ProviderChoice]
     error: object | None = None
+
+
+class ProviderModels(BaseModel):
+    model_config = ConfigDict(strict=True)
+    data: list[object]
 
 
 class OpenAICompatibleProvider:
@@ -61,6 +70,55 @@ class OpenAICompatibleProvider:
     async def aclose(self) -> None:
         await self._client.aclose()
 
+    async def discover_models(self) -> list[str]:
+        key, base = self._config.llm_api_key, self._config.llm_base_url
+        if key is None or base is None:
+            raise LLMError("LLM_DISABLED", 503)
+        try:
+            async with asyncio.timeout(self._config.llm_discovery_timeout_seconds):
+                async with self._client.stream(
+                    "GET",
+                    base.rstrip("/") + "/models",
+                    headers={
+                        "Authorization": "Bearer " + key.get_secret_value(),
+                        "Accept": "application/json",
+                    },
+                ) as response:
+                    self._validate_status(response.status_code)
+                    data = bytearray()
+                    async for chunk in response.aiter_bytes():
+                        data.extend(chunk)
+                        if len(data) > self._config.llm_max_upstream_bytes:
+                            raise LLMError("INVALID_RESPONSE")
+                    # Parse IDs and confirmed readiness; capability metadata stays in the registry.
+                    try:
+                        payload = ProviderModels.model_validate_json(data)
+                    except ValidationError:
+                        raise LLMError("INVALID_RESPONSE") from None
+                    ids: list[str] = []
+                    for item in payload.data:
+                        if not isinstance(item, dict):
+                            continue
+                        fields = cast(dict[str, object], item)
+                        # Confirmed Noris field; absence is allowed for older responses.
+                        if "is_ready" in fields and fields["is_ready"] is not True:
+                            continue
+                        model_id = fields.get("id")
+                        if (
+                            isinstance(model_id, str)
+                            and len(model_id) <= 200
+                            and re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9._/:-]*", model_id)
+                            and model_id not in ids
+                        ):
+                            ids.append(model_id)
+                    return ids
+        except (TimeoutError, httpx.TimeoutException):
+            raise LLMError("TIMEOUT", 504) from None
+        except httpx.HTTPError:
+            raise LLMError("PROVIDER_UNREACHABLE", 503) from None
+        except (ValueError, UnicodeError):
+            raise LLMError("INVALID_RESPONSE") from None
+
     async def stream(
         self, messages: Sequence[ProviderMessage], model: LLMModel
     ) -> AsyncIterator[str]:
@@ -72,14 +130,26 @@ class OpenAICompatibleProvider:
             "model": model.id,
             "messages": [message.model_dump() for message in messages],
             "stream": True,
-            self._config.llm_token_limit_parameter: model.max_output_tokens,
         }
-        if self._config.llm_reasoning_effort is not None:
-            body["reasoning_effort"] = (
-                "low"
-                if any(isinstance(message, TitleInstruction) for message in messages)
-                else self._config.llm_reasoning_effort
-            )
+        if model.token_limit_parameter is None:
+            raise LLMError("MODEL_UNAVAILABLE", 400)
+        body[model.token_limit_parameter] = model.max_output_tokens
+        effort = model.reasoning_effort
+        if any(isinstance(message, TitleInstruction) for message in messages) and (
+            "low" in model.reasoning_efforts
+        ):
+            effort = "low"
+        if (
+            effort is not None
+            and model.reasoning is True
+            and model.reasoning_parameter is not None
+            and effort in model.reasoning_efforts
+            and model.evidence.get("reasoning_parameter", "UNKNOWN") != "UNKNOWN"
+        ):
+            if model.reasoning_parameter == "chat_template_kwargs":
+                body["chat_template_kwargs"] = {"reasoning_effort": effort}
+            else:
+                body["reasoning_effort"] = effort
         try:
             async with self._client.stream(
                 "POST",
@@ -89,6 +159,10 @@ class OpenAICompatibleProvider:
                     "Accept": "text/event-stream",
                 },
                 json=body,
+                timeout=httpx.Timeout(
+                    min(model.timeout_policy.read_seconds, self._config.llm_read_timeout_seconds),
+                    connect=self._config.llm_connect_timeout_seconds,
+                ),
             ) as response:
                 await self._validate_response(response)
                 if (

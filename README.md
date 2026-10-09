@@ -1,6 +1,6 @@
 # noris AI Chat
 
-Das Monorepo enthält die Foundation aus **Etappe 0**, die Chat-Oberfläche aus **Etappe 1** und die ausdrücklich beauftragte **Etappe 2: LLM-Anbindung**. Unter `/` läuft standardmäßig die lokale Chat-Demo; der konfigurierbare Real-Transport streamt über ein zugriffsgeschütztes FastAPI-Gateway. `/status` prüft weiterhin Nuxt, API und PostgreSQL. Die neue Aufgabenstellung erweitert den ursprünglichen [PLAN.md](PLAN.md); Domain-/OIDC-Migration und Chat-Datenbanktabellen sind weiterhin offen. Die frühere Live-Abnahme ist separat dokumentiert; diese Integrationsrunde führt keine neuen Live-Provider-Aufrufe aus.
+Das Monorepo enthält die Foundation aus **Etappe 0**, die Chat-Oberfläche aus **Etappe 1** und die ausdrücklich beauftragte **Etappe 2: LLM-Anbindung**. Unter `/` läuft standardmäßig die lokale Chat-Demo; der konfigurierbare Real-Transport streamt über ein zugriffsgeschütztes FastAPI-Gateway. `/status` prüft weiterhin Nuxt, API und PostgreSQL. Die neue Aufgabenstellung erweitert den ursprünglichen [PLAN.md](PLAN.md); Domain-/OIDC-Migration und Chat-Datenbanktabellen sind weiterhin offen. Die frühere Live-Abnahme ist separat dokumentiert; die aktuelle Katalogabnahme führte genau ein ausdrücklich freigegebenes GET /models aus, ohne Textgenerierung.
 
 ## Voraussetzungen und Versionen
 
@@ -180,7 +180,7 @@ Die Backend-Konfiguration ist unveränderlich und typisiert. DB-URL und Provider
 | `GET /api/v1/health/live` | 200, wenn der API-Prozess antwortet; unabhängig von der DB |
 | `GET /api/v1/health/ready` | 200 nach erfolgreichem DB-Check und erwarteter Baseline; sonst 503 |
 | `GET /api/v1/openapi.json` | Versionierter API-Vertrag |
-| `GET /api/v1/llm/models` | Zugriffsgeschützter, serverseitig konfigurierter Modellkatalog |
+| `GET /api/v1/llm/models` | Zugriffsgeschützter, dynamischer Chatmodellkatalog mit serverseitigem Discovery-Cache |
 | `POST /api/v1/llm/chat` | Zugriffsgeschützte Chat-Anfrage mit Etappe-1-Ereignissen als SSE |
 
 Fehler verwenden `{ "error": { "code", "message", "request_id" } }`. Antworten tragen `X-Request-ID` und `Cache-Control: no-store`. Interne Ausnahmen und Validierungseingaben werden nicht in Fehlerantworten ausgegeben. Das Frontend nutzt relative API-URLs und benötigt keine Provider-Zugangsdaten.
@@ -239,3 +239,10 @@ Die Nachweise der Foundation stehen in [docs/ETAPPE-0-TESTERGEBNISSE.md](docs/ET
 Nach `make up` führt `make test-e2e-production` dieselben Desktop-/Mobile-Interaktions- und Screenshot-Tests über Caddy auf `http://127.0.0.1:8080` aus. Die bestehenden Baselines und die Toleranz bleiben unverändert. Der Compose-CI-Job startet den Stack aus einem frischen Checkout und führt diese Prüfung automatisch aus; die zusätzlichen Artefakte heißen `production-browser-test-results`. Die regulären Entwicklungs- und RealTransport-Tests bleiben erhalten. Beide Transport-Testmodi verwenden synthetische Daten und einen lokalen Simulator; Live-Aufrufe erfolgen ausschließlich mit gesondertem Opt-in und Freigabe.
 
 Lange Antworten, bestätigte 128K-Kontextkonfiguration, manuelle Fortsetzung und die vollständige Limit-/Kostenpolitik: [LONG-CONTEXT-RESPONSES.md](docs/LONG-CONTEXT-RESPONSES.md).
+## Dynamische Noris-Modellauswahl
+
+Im Real-Modus lädt der bestehende Backend-Provider automatisch `GET /v1/models` über die konfigurierte, validierte URL und den serverseitigen Key. Keine Pflege sämtlicher IDs in `NORIS_LLM_MODELS` nötig: Die versionierte Registry filtert den berechtigten Katalog auf dokumentierte Streaming-Chatmodelle. Embeddings, Reranker und unbekannte IDs bleiben gesperrt. `smart_router` erscheint nur bei bestätigter Listung als „Automatisch“.
+
+Der gemeinsame Katalog schützt Modellmenü, Chat und Titel. TTL standardmäßig 300 Sekunden, zusammengefasste Parallelaufrufe und begrenzte Timeouts. Stale standardmäßig aus; optionale veraltete Anzeige gibt keine Generierungsberechtigung. Modellabhängige Kontext-/Ausgabelimits und belegte Reasoning-/Tokenparameter erhalten Sicherheits- und Kostenlimits. Metadaten kennzeichnen DOCUMENTED/VERIFIED/UNKNOWN; Echtzeitpreise werden nicht behauptet.
+
+Header und Composer zeigen verständliche, gruppierte Namen. Ein Wechsel startet keine Generierung und erhält Chats, Varianten und Entwürfe. Bei Berechtigungsentzug erklärt die UI den Zustand und bietet ein bewusstes Fallback. Konfiguration, zusätzliche Modellfreigaben, Cache-Policy und Fehlerbehandlung: [Betriebsdokumentation](docs/ETAPPE-2-BETRIEB.md#dynamischer-modellkatalog-und-zusätzliche-modelle).

@@ -1,18 +1,17 @@
 <script setup lang="ts">
+import { CHAT_LIMITS } from '../../lib/chat/limits'
 import { computed, ref } from 'vue'
-import { CHAT_MODELS } from '../../composables/useModelSelection'
+import ChatModelMenu from './ChatModelMenu.vue'
 import type { ChatModelId } from '../../composables/useModelSelection'
-import { chatLimits } from '../../lib/chat/limits'
 
-const props = defineProps<{ busy: boolean, streaming: boolean, cancellationRequested: boolean, inputError?: string | null }>()
+const props = defineProps<{ busy: boolean, streaming: boolean, cancellationRequested: boolean, modelUnavailable?: boolean, inputError?: string | null }>()
 const text = defineModel<string>({ required: true })
 const model = defineModel<ChatModelId>('model', { required: true })
 const emit = defineEmits<{ send: [text: string], stop: [] }>()
 const prompt = ref<{ textareaRef: HTMLTextAreaElement | undefined } | null>(null)
-const tooLong = computed(() => text.value.length > chatLimits.max_message_chars)
-const models = computed(() => CHAT_MODELS.map(item => ({ ...item, label: item.label.replace('noris ', '') })))
+const tooLong = computed(() => text.value.length > CHAT_LIMITS.max_message_chars)
 function submit(): void {
-  if (props.busy || props.inputError || !text.value.trim() || tooLong.value) return
+  if (props.busy || props.modelUnavailable || props.inputError || !text.value.trim() || tooLong.value) return
   emit('send', text.value)
 }
 defineExpose({ focus: () => prompt.value?.textareaRef?.focus({ preventScroll: true }) })
@@ -29,15 +28,15 @@ defineExpose({ focus: () => prompt.value?.textareaRef?.focus({ preventScroll: tr
       <template #footer>
         <UButton disabled icon="i-lucide-plus" color="neutral" variant="ghost" class="composer-attachment touch-control" aria-label="Anhang hinzufügen – demnächst verfügbar" />
         <div class="flex-1" />
-        <USelectMenu v-model="model" :items="models" value-key="id" :search-input="false" :disabled="busy" variant="ghost" color="neutral" aria-label="Modell im Eingabefeld auswählen" class="composer-model" :ui="{ base: 'min-h-11', content: 'min-w-48' }" />
+        <ChatModelMenu v-model="model" :busy="busy" compact label="Modell im Eingabefeld auswählen" />
         <UChatPromptSubmit
-          :status="busy ? (streaming ? 'streaming' : 'submitted') : 'ready'" :disabled="!text.trim() || tooLong || !!inputError"
+          :status="busy ? (streaming ? 'streaming' : 'submitted') : 'ready'" :disabled="!busy && (!text.trim() || tooLong || modelUnavailable || !!inputError)"
           color="neutral" variant="solid" streaming-color="neutral" streaming-variant="solid" submitted-color="neutral" submitted-variant="solid"
           :aria-label="busy ? (cancellationRequested ? 'Abbruch läuft' : 'Antwort stoppen') : 'Nachricht senden'"
           :aria-disabled="cancellationRequested" class="composer-submit touch-control rounded-full" @stop="emit('stop')"
         />
       </template>
     </UChatPrompt>
-    <p v-if="tooLong" role="status" class="mt-2 text-center text-xs text-error">Die Nachricht darf höchstens {{ chatLimits.max_message_chars.toLocaleString('de-DE') }} Zeichen enthalten.</p>
+    <p v-if="tooLong" role="status" class="mt-2 text-center text-xs text-error">Die Nachricht darf höchstens {{ CHAT_LIMITS.max_message_chars.toLocaleString('de-DE') }} Zeichen enthalten.</p>
   </div>
 </template>

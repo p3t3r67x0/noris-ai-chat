@@ -1,9 +1,9 @@
+import { CHAT_LIMITS, MAX_SNAPSHOT_CHARS } from '../lib/chat/limits'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { createConversationState } from './useConversations'
 import type { ConversationDependencies } from './useConversations'
 import { useChatStream } from './useChatStream'
 import { visiblePath } from '../lib/chat/types'
-import { chatLimits, MAX_SNAPSHOT_CHARS } from '../lib/chat/limits'
 import type { ChatMessage, ChatTransport, MessageRecords, ConversationTitleRequest } from '../lib/chat/types'
 import { FALLBACK_TITLE, fallbackConversationTitle, TITLE_INPUT_LIMIT } from '../lib/chat/titles'
 import { createConversationTitles } from './useConversationTitles'
@@ -61,7 +61,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
 
   function send(text: string, modelId: ChatModelId): boolean {
     const content = text.trim()
-    if (stream.busy.value || !content || content.length > chatLimits.max_message_chars) return false
+    if (stream.busy.value || !content || content.length > CHAT_LIMITS.max_message_chars) return false
     const draftConversationId = conversations.activeId.value
     const conversation = conversations.active.value ?? conversations.create()
     const parent = visible.value.at(-1)
@@ -98,7 +98,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
   function edit(messageId: string, text: string, modelId: ChatModelId): boolean {
     const content = text.trim()
     const original = Object.hasOwn(messages.value, messageId) ? messages.value[messageId] : undefined
-    if (stream.busy.value || !content || content.length > chatLimits.max_message_chars || original?.role !== 'user' || original.conversationId !== conversations.activeId.value) return false
+    if (stream.busy.value || !content || content.length > CHAT_LIMITS.max_message_chars || original?.role !== 'user' || original.conversationId !== conversations.activeId.value) return false
     rememberBranch()
     const input = append(original.conversationId, original.parentMessageId, 'user', content)
     input.editedFromMessageId = original.id
@@ -118,8 +118,8 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     return !stream.busy.value && reply?.role === 'assistant'
       && reply.id === visible.value.at(-1)?.id && Boolean(reply.content)
       && ['incomplete', 'cancelled', 'failed'].includes(reply.status)
-      && (reply.continuationCount ?? 0) < chatLimits.max_continuations
-      && reply.content.length < chatLimits.max_response_chars
+      && (reply.continuationCount ?? 0) < CHAT_LIMITS.max_continuations
+      && reply.content.length < CHAT_LIMITS.max_response_chars
       && !['RESPONSE_SIZE_LIMIT', 'STREAM_SIZE_LIMIT', 'DUPLICATE_CONTINUATION'].includes(reply.errorCode ?? '')
   }
 

@@ -36,7 +36,7 @@ mit Noris geklärt werden. Ein gelistetes Modell beweist keine bestimmte Quota.
 | Providerstream 1 MiB; SSE-Zeile/Event 64 KiB | Begrenzte Daten und Parserpuffer. Bytewert weiterhin konfigurierbar; Parsergrenze bleibt. Gateway teilt Text in höchstens 512 Zeichen pro Event. |
 | Browserstream 4 MiB | Gesamte SSE-Daten einschließlich Metadaten begrenzt; jetzt aus Backendkatalog. |
 | Connect 5 s, Read/Idle 30 s, insgesamt 120 s | Verbindungs-, Stillstands- und absolute Zeitgrenzen. Getrennte Werte; Konfigurationsprüfung verhindert Idle/Connect oberhalb der absoluten Zeit. |
-| Frontend absolut 135 s | Kann erlaubte Backendläufe über 120 s abbrechen. Jetzt Backend-Gesamtzeit + Connect + 15 s, aus authentifiziertem Katalog. |
+| Frontend absolut 135 s | Kann erlaubte Backendläufe über 120 s abbrechen. Jetzt globale Backend-Gesamtzeit + 15 s, aus authentifiziertem Katalog. |
 | 4 parallele Generierungen, 20 Requests/min, 100000 Tokens/Tag | Kosten-/Lastkontrolle; jede Fortsetzung und Titelanfrage nutzt dieselbe Admission. |
 | Titel 6 s, 96 Ausgabetokens, 256 Zeichen, 1 Versuch/Chat | Separates kleines Titelbudget; unverändert. |
 | Titelerzeugung im Browser 8 s; Quelle 1024 Unicode-Zeichen, serverseitig bereinigt | Begrenzter, separater Titelaufruf; beeinflusst weder Antworttext noch Gesprächskontext. |
@@ -56,18 +56,25 @@ setzt `X-Accel-Buffering: no` und `Cache-Control: no-store, no-transform`.
 
 ## Bewusste Aktivierung
 
-Standardwerte bleiben konservativ: 8192 Kontext, 1024 Ausgabetokens pro Modell,
-8192 als **lokaler** maximaler Ausgabedeckel, 32000 Eingabezeichen, 128000
-Antwortzeichen, 512 KiB Request, 1 MiB Upstream und 4 MiB Downstream. Die
+Der dynamische Modellkatalog liefert die dokumentierten modellabhängigen
+Kontextfenster und konservativen Ausgabepolitiken. Für unbekannte, ausdrücklich
+freigegebene Modelle bleiben die Schema-Defaults 8192 Kontext und 1024 Ausgabetokens.
+Die globalen Grenzen aus main bleiben erhalten: 8192 als **lokaler** maximaler
+Ausgabedeckel, 32000 Eingabezeichen, 262144 Antwortzeichen, 1 MiB Request
+und jeweils 16 MiB Upstream und Downstream. Die
 Schemaobergrenzen sind technische Schutzgrenzen, keine Providerzusagen.
 
-Für 128K müssen Betreiber den tatsächlich bereitgestellten Kontext bestätigen
+Für eine ausdrücklich bestätigte 128K-Providerkonfiguration müssen Betreiber den
+tatsächlich bereitgestellten Kontext bestätigen
 (Provider-/Accountbestätigung oder ausdrücklich genehmigter Live-Test) und im
 Modell `context_window=131072`, `provider_context_window=131072` sowie
 `provider_limit_evidence` setzen. Der Nachweis darf keine Secrets oder privaten
 Inhalte enthalten. Fehlender Nachweis oder überschrittene Providergrenzen führen
-zu einem Konfigurationsfehler. Bestehende größere, bisher ungeprüfte lokale
-Konfigurationen müssen daher ergänzt werden; die Anwendung hebt sie nicht selbst an.
+zu einem Konfigurationsfehler. Die zusätzliche `provider_context_window` ist optional: ohne sie gelten weiterhin
+die dokumentierten Fenster der Registry und ihre konservativen Ausgabeprofile.
+Eine explizit konfigurierte Providergrenze begrenzt das lokale Fenster; erhöhte
+bestätigte Providergrenzen verlangen einen Nachweis. Die Anwendung verändert
+bestehende Konversationen und Modellpräferenzen dabei nicht.
 
 Größere Ausgaben benötigen unabhängig davon eine bestätigte
 `provider_max_output_tokens`, einen passenden Modellwert `max_output_tokens`
@@ -81,7 +88,7 @@ Bei großem Kontext müssen `NORIS_LLM_MAX_MESSAGE_CHARS`,
 Antworten und Fortsetzungen müssen zusätzlich in `NORIS_LLM_MAX_RESPONSE_CHARS`
 sowie beide Stream-Bytegrenzen passen. Die technischen Maxima sind 1048576
 UTF-16-Einheiten pro Eingabe/Antwort, 8 MiB Request, 64 MiB je Stream,
-131071 Ausgabetokens, 20 Fortsetzungen und 3600 s absolute Laufzeit.
+131072 Ausgabetokens, 20 Fortsetzungen und 3600 s absolute Laufzeit.
 Diese Maxima sind keine empfohlenen Einstellungen. Ein ausreichend großes
 Tagesbudget ersetzt keine Providerquota.
 
@@ -111,7 +118,7 @@ den Start. Für Docker wird sie mit einem lokalen Compose-Override read-only
 gemountet; beide Variablen müssen dort explizit gesetzt werden.
 
 Die lokal tokenisierte Inhaltstokenzahl wird mit 10 % Sicherheitsaufschlag angesetzt. Dazu kommen
-32 Tokens pro Nachricht, 64 für die Vorlage, standardmäßig 256
+32 Tokens pro Nachricht, 64 für die Vorlage, standardmäßig 512
 `NORIS_LLM_CONTEXT_SAFETY_TOKENS` und 256 `NORIS_LLM_SYSTEM_RESERVED_TOKENS`.
 Der Provider kann seine Chatvorlage/Systemvorgaben ändern; auch die lokale
 Tokenizerzählung ist deshalb eine **Promptschätzung**, keine Provider-Usage.
@@ -173,8 +180,9 @@ einer Fortsetzung wird direkt am selben Knoten erneut versucht.
 ## Streaming, Darstellung und Persistenz
 
 Connect/Write/Pool verwenden `NORIS_LLM_CONNECT_TIMEOUT_SECONDS`, der Upstream-
-Idle-Timeout ist `NORIS_LLM_READ_TIMEOUT_SECONDS`, die absolute Generierungszeit
-ist `NORIS_LLM_TOTAL_TIMEOUT_SECONDS`. Idle wird durch empfangene Providerbytes
+Idle-Timeout wird durch `NORIS_LLM_READ_TIMEOUT_SECONDS` begrenzt, die absolute
+Generierungszeit durch `NORIS_LLM_TOTAL_TIMEOUT_SECONDS`. Beide verwenden zusätzlich
+das jeweils kleinere modellbezogene Limit aus `timeout_policy`. Idle wird durch empfangene Providerbytes
 zurückgesetzt, die absolute Frist niemals. Der Server sendet standardmäßig alle
 10 Sekunden SSE-Kommentare während Reasoning/Stille. Diese halten den Browser-/Proxy-
 Pfad aktiv, verlängern jedoch weder die Provider-Idle-Frist noch die absolute Zeit.

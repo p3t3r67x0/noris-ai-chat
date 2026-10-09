@@ -1,14 +1,11 @@
 import asyncio
 import json
-import socket
-from collections.abc import AsyncGenerator, AsyncIterator
-from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import cast
 
 import httpx
 import pytest
-import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
@@ -18,28 +15,7 @@ from noris_ai.llm.live_acceptance import Observation, acceptance_app
 from noris_ai.llm.schemas import ChatRequest
 from noris_ai.main import create_app
 
-
-@asynccontextmanager
-async def serve(app: FastAPI) -> AsyncGenerator[str]:
-    listener = socket.socket()
-    listener.bind(("127.0.0.1", 0))
-    listener.listen()
-    listener.setblocking(False)
-    server = uvicorn.Server(uvicorn.Config(app, log_level="critical", access_log=False, ws="none"))
-    task = asyncio.create_task(server.serve(sockets=[listener]))
-    try:
-        async with asyncio.timeout(5):
-            while not server.started:
-                if task.done():
-                    await task
-                await asyncio.sleep(0.01)
-        yield f"http://127.0.0.1:{listener.getsockname()[1]}"
-    finally:
-        server.should_exit = True
-        async with asyncio.timeout(5):
-            await task
-        listener.close()
-
+from .http_server import serve
 
 AUTH = ("fixture-user", "fixture-application-password-never-real")
 PAYLOAD: dict[str, object] = {
@@ -55,6 +31,12 @@ PAYLOAD: dict[str, object] = {
 @pytest.mark.parametrize("scenario", ["success", "rate", "timeout", "invalid", "disconnect"])
 async def test_actual_gateway_and_provider_http(llm_config: Settings, scenario: str) -> None:
     upstream = FastAPI()
+
+    async def models() -> dict[str, object]:
+        return {"data": [{"id": "fixture-alpha"}, {"id": "fixture-beta"}]}
+
+    upstream.add_api_route("/v1/models", models, methods=["GET"])
+
     closed = asyncio.Event()
     captured: list[dict[str, object]] = []
     received = asyncio.Event()
@@ -146,6 +128,12 @@ async def test_live_observer_confirms_socket_closure_without_recording_secrets(
     llm_config: Settings, tmp_path: Path
 ) -> None:
     upstream = FastAPI()
+
+    async def models() -> dict[str, object]:
+        return {"data": [{"id": "fixture-alpha"}, {"id": "fixture-beta"}]}
+
+    upstream.add_api_route("/v1/models", models, methods=["GET"])
+
     arrived, disconnected = asyncio.Event(), asyncio.Event()
 
     async def completion() -> StreamingResponse:
@@ -190,6 +178,12 @@ async def test_title_uses_existing_http_provider_and_closes_socket(
     llm_config: Settings, scenario: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     upstream = FastAPI()
+
+    async def models() -> dict[str, object]:
+        return {"data": [{"id": "fixture-alpha"}, {"id": "fixture-beta"}]}
+
+    upstream.add_api_route("/v1/models", models, methods=["GET"])
+
     received, closed = asyncio.Event(), asyncio.Event()
     captured: list[dict[str, object]] = []
 
@@ -262,7 +256,7 @@ async def test_title_uses_existing_http_provider_and_closes_socket(
                 await closed.wait()
                 await released.wait()
             chat = ChatRequest.model_validate(PAYLOAD)
-            gateway.reserve(chat)
+            await gateway.reserve(chat)
             gateway.release(chat.generationId)
             assert len(captured) == 1
             messages = cast(list[dict[str, str]], captured[0]["messages"])

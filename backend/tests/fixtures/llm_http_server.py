@@ -27,6 +27,29 @@ async def state() -> dict[str, object]:
     }
 
 
+catalog_ids = ["fixture-alpha", "fixture-beta", "fixture-long"]
+catalog_status = 200
+
+
+@app.get("/v1/models")
+async def models(request: Request) -> JSONResponse:
+    if request.headers.get("authorization") != "Bearer fixture-provider-key-never-real":
+        return JSONResponse({}, status_code=401)
+    return JSONResponse(
+        {"object": "list", "data": [{"id": value} for value in catalog_ids]},
+        status_code=catalog_status,
+    )
+
+
+@app.post("/fixture/catalog")
+async def configure_catalog(request: Request) -> dict[str, str]:
+    global catalog_ids, catalog_status
+    body = await request.json()
+    catalog_ids = body["ids"]
+    catalog_status = body.get("status", 200)
+    return {"status": "ok"}
+
+
 @app.post("/v1/chat/completions", response_model=None)
 async def completion(request: Request) -> StreamingResponse | JSONResponse:
     if request.headers.get("authorization") != "Bearer fixture-provider-key-never-real":
@@ -82,6 +105,10 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
                 ]
             if prompt == "Zähle die Zahlen von 1 bis 100, jede Zahl in einer eigenen Zeile.":
                 chunks = [f"{number}\n" for number in range(1, 101)]
+            if prompt.startswith(("/tokens-long", "/length")):
+                # 9000 simulated visible tokens; batch deltas for a fast local test.
+                chunks = [" token" * 100] * 90
+                finish = "length" if prompt.startswith("/length") else "stop"
             if prompt.startswith("/slow"):
                 chunks += [" weiterer Text"] * 100
             if is_title:
@@ -111,10 +138,14 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
                 ).encode()
                 # Long fixtures still fragment events, without thousands of tiny
                 # HTTP writes dominating the browser's generation time.
-                fragment_size = 512 if is_continuation or prompt.startswith("/long") else 7
+                fragment_size = (
+                    512
+                    if is_continuation or prompt.startswith(("/long", "/tokens-long", "/length"))
+                    else 7
+                )
                 for index in range(0, len(data), fragment_size):
                     yield data[index : index + fragment_size]
-                await asyncio.sleep(0.08)
+                await asyncio.sleep(0 if prompt.startswith(("/tokens-long", "/length")) else 0.08)
             yield (
                 'data: {"choices":[{"index":0,"delta":{},"finish_reason":"' + finish + '"}]}\n\n'
             ).encode()

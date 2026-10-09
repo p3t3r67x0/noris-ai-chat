@@ -3,7 +3,7 @@ import type { ChatMessage } from '../../lib/chat/types'
 import { useCopy } from '../../composables/useCopy'
 import MarkdownContent from './MarkdownContent'
 import MessageVariants from './MessageVariants.vue'
-import { chatLimits } from '../../lib/chat/limits'
+import { CHAT_LIMITS } from '../../lib/chat/limits'
 
 withDefaults(defineProps<{ message: ChatMessage, variants?: readonly ChatMessage[], busy?: boolean, canContinue?: boolean }>(), { variants: () => [], busy: false, canContinue: false })
 const emit = defineEmits<{ edit: [], regenerate: [], continue: [], rendered: [], selectVariant: [id: string] }>()
@@ -20,8 +20,8 @@ const { copy, copied, copyError } = useCopy()
       <p v-else-if="message.status === 'incomplete'" class="mt-3 text-xs text-muted">Ausgabelimit erreicht{{ canContinue ? ' – weiterschreiben' : '' }}</p>
       <p v-else-if="message.status === 'failed'" class="mt-3 text-xs text-error">{{ message.errorMessage ?? 'Die Antwort konnte nicht vollständig übertragen werden.' }}</p>
       <UButton v-if="canContinue" color="neutral" variant="outline" label="Weiterschreiben" class="mt-3 min-h-11" :disabled="busy" @click="emit('continue')" />
-      <p v-if="message.status === 'incomplete' && (message.continuationCount ?? 0) >= chatLimits.max_continuations" class="mt-3 text-xs text-muted">Fortsetzungslimit erreicht. Der bisherige Text bleibt erhalten.</p>
-      <p v-else-if="message.status === 'incomplete' && message.content.length >= chatLimits.max_response_chars" class="mt-3 text-xs text-muted">Die Größenbegrenzung dieser Antwort ist erreicht.</p>
+      <p v-if="message.status === 'incomplete' && (message.continuationCount ?? 0) >= CHAT_LIMITS.max_continuations" class="mt-3 text-xs text-muted">Fortsetzungslimit erreicht. Der bisherige Text bleibt erhalten.</p>
+      <p v-else-if="message.status === 'incomplete' && message.content.length >= CHAT_LIMITS.max_response_chars" class="mt-3 text-xs text-muted">Die Größenbegrenzung dieser Antwort ist erreicht.</p>
     </div>
     <div v-if="message.content && message.status !== 'streaming' && message.status !== 'submitting'" class="message-actions">
       <UButton :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" color="neutral" variant="ghost" class="touch-control" :aria-label="copied ? 'Nachricht kopiert' : 'Nachricht kopieren'" @click="copy(message.content)" />

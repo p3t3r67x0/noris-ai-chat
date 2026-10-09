@@ -5,7 +5,7 @@ import { useChatDrafts } from '../../app/composables/useChatDrafts'
 import { createMockTransport } from '../../app/lib/chat/mockTransport'
 import { parseChatSnapshot } from '../../app/lib/chat/persistence'
 import { visiblePath } from '../../app/lib/chat/types'
-import { MAX_PERSISTED_MESSAGE_CHARS } from '../../app/lib/chat/limits'
+import { ABSOLUTE_MESSAGE_CHARS } from '../../app/lib/chat/limits'
 import type { ChatRequest, ChatTransport } from '../../app/lib/chat/types'
 
 function fixture() {
@@ -138,7 +138,7 @@ describe('drafts and validated local persistence', () => {
     if (kind === 'cycle') user.parentMessageId = assistant.id
     if (kind === 'leaf') snapshot.conversations.conversations[user.conversationId]!.activeLeafMessageId = 'missing'
     if (kind === 'edit') user.editedFromMessageId = assistant.id
-    if (kind === 'oversize') assistant.content = 'x'.repeat(MAX_PERSISTED_MESSAGE_CHARS + 1)
+    if (kind === 'oversize') assistant.content = 'x'.repeat(ABSOLUTE_MESSAGE_CHARS + 1)
     if (kind === 'role') assistant.role = 'user'
     if (kind === 'draft') snapshot.drafts.missing = 'Lost draft'
     expect(parseChatSnapshot(JSON.stringify(snapshot))).toBeNull()

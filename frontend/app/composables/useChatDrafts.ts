@@ -1,7 +1,7 @@
 import { computed, ref, watch } from 'vue'
 import type { Ref } from 'vue'
 import { NEW_CHAT_DRAFT } from '../lib/chat/types'
-import { MAX_PERSISTED_MESSAGE_CHARS } from '../lib/chat/limits'
+import { ABSOLUTE_MESSAGE_CHARS } from '../lib/chat/limits'
 
 export function useChatDrafts(activeId: Ref<string | null>, records = ref<Record<string, string>>({})) {
   const key = (conversationId: string | null) => conversationId ?? NEW_CHAT_DRAFT
@@ -10,7 +10,7 @@ export function useChatDrafts(activeId: Ref<string | null>, records = ref<Record
   const draft = computed({
     get: () => Object.hasOwn(records.value, key(activeId.value)) ? records.value[key(activeId.value)] ?? '' : '',
     set: (text: string) => {
-      if (text.length > MAX_PERSISTED_MESSAGE_CHARS * 2) {
+      if (text.length > ABSOLUTE_MESSAGE_CHARS * 2) {
         error.value = 'Der Entwurf ist zu groß. Der bisherige Entwurf wurde erhalten. Bitte verkürze die Eingabe.'
         return
       }

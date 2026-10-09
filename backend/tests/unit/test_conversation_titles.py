@@ -45,6 +45,9 @@ class TitleProvider:
         finally:
             self.closed.set()
 
+    async def discover_models(self) -> list[str]:
+        return ["fixture-alpha", "fixture-beta"]
+
     async def aclose(self) -> None:
         pass
 
@@ -229,7 +232,7 @@ async def test_title_timeout_releases_shared_slot_and_prevents_retry(llm_config:
         await gateway.conversation_title(request)
     assert duplicate.value.code == "TITLE_ALREADY_ATTEMPTED"
     chat = chat_request()
-    gateway.reserve(chat)
+    await gateway.reserve(chat)
     gateway.release(chat.generationId)
     assert len(provider.calls) == 1
 
@@ -253,7 +256,7 @@ async def test_titles_share_chat_admission_and_budget(llm_config: Settings, limi
     provider = TitleProvider()
     gateway = LLMGateway(config, provider)
     chat = chat_request()
-    gateway.reserve(chat)
+    await gateway.reserve(chat)
     if limit != "llm_max_concurrent":
         gateway.release(chat.generationId)
     with pytest.raises(LLMError) as raised:
@@ -282,5 +285,5 @@ async def test_titles_charge_budget_even_when_invalid_and_limit_output(
     assert provider.calls[0][1].max_output_tokens == 96
     # The released slot does not erase the failed title's shared token charge.
     with pytest.raises(LLMError) as budget:
-        gateway.reserve(chat_request())
+        await gateway.reserve(chat_request())
     assert budget.value.code == "BUDGET_LIMIT"

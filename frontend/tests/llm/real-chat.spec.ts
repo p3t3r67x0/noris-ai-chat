@@ -1,8 +1,14 @@
 import { expect, test } from '@playwright/test'
+import { CHAT_STORAGE_KEY } from '../../app/lib/chat/persistence'
 
 const fixtureOrigin = `http://127.0.0.1:${Number(process.env.NORIS_E2E_PROVIDER_PORT ?? 8591)}`
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page, request }) => {
+  await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: ['fixture-alpha', 'fixture-beta', 'fixture-long'] } })
+  await expect.poll(async () => {
+    const response = await request.get('/api/v1/llm/models')
+    return (await response.json() as { models: { id: string }[] }).models.map(model => model.id)
+  }).toEqual(['fixture-alpha', 'fixture-beta', 'fixture-long'])
   await page.goto('/api/v1/llm/models')
   await page.goto('/')
   await expect(page.locator('[data-ready="true"]')).toBeVisible({ timeout: 20_000 })
@@ -55,3 +61,20 @@ test('Retry and model switching keep only the original active path', async ({ pa
   expect(calls[1]?.model).toBe('fixture-beta')
   expect(calls[1]?.messages).toEqual([{ role: 'user', content: prompt }])
 })
+
+for (const finish of ['long', 'length'] as const) {
+  test(`${finish}: preserves >8192 simulator tokens, state and reload`, async ({ page }, info) => {
+    await page.getByRole('button', { name: 'Modell auswählen', exact: true }).click()
+    await page.getByRole('option', { name: 'Fixture Long' }).click()
+    await page.getByRole('textbox', { name: 'Nachricht', exact: true }).fill(`/${finish === 'long' ? 'tokens-long' : 'length'} ${info.project.name}`)
+    await page.getByRole('textbox', { name: 'Nachricht', exact: true }).press('Enter')
+    await expect(page.locator(`[data-generation-status="${finish === 'long' ? 'completed' : 'incomplete'}"]`)).toBeAttached()
+    const answer = page.locator('.message-assistant').last()
+    await expect(answer).toHaveAttribute('data-status', finish === 'long' ? 'completed' : 'incomplete')
+    await expect.poll(async () => (await answer.locator('.assistant-content').textContent())?.match(/token/g)?.length).toBe(9000)
+    if (finish === 'length') await expect(page.getByRole('button', { name: 'Weiterschreiben', exact: true })).toBeVisible()
+    await expect.poll(async () => page.evaluate(key => Object.values((JSON.parse(localStorage.getItem(key) ?? '{}') as { messages?: Record<string, { content: string }> }).messages ?? {}).some(message => message.content === ' token'.repeat(9000)), CHAT_STORAGE_KEY)).toBe(true)
+    await page.reload()
+    await expect.poll(async () => (await page.locator('.message-assistant').last().textContent())?.match(/token/g)?.length).toBe(9000)
+  })
+}

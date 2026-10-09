@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { CHAT_LIMITS } from '../../lib/chat/limits'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useChat } from '../../composables/useChat'
 import { useChatTransport } from '../../composables/useChatTransport'
 import { useModelSelection } from '../../composables/useModelSelection'
@@ -8,7 +9,6 @@ import ChatSidebar from './ChatSidebar.vue'
 import EmptyChatState from './EmptyChatState.vue'
 import ChatComposer from './ChatComposer.vue'
 import ChatTimeline from './ChatTimeline.vue'
-import { chatLimits } from '../../lib/chat/limits'
 import { useChatViewport } from '../../composables/useChatViewport'
 import { useSidebarPreference } from '../../composables/useSidebarPreference'
 import ChatRail from './ChatRail.vue'
@@ -16,7 +16,8 @@ import ChatRail from './ChatRail.vue'
 const { transport, mode } = useChatTransport()
 const chat = useChat(transport)
 const { conversations, stream } = chat
-const { modelId } = useModelSelection({ mode })
+const { modelId, error: modelError, notice: modelNotice, loading: modelsLoading, canSend, fallbackId, refresh: refreshModels, chooseFallback } = useModelSelection({ mode })
+watch(stream.errorCode, (code) => { if (code === 'MODEL_UNAVAILABLE' || code === 'PROVIDER_AUTH_FAILED') void refreshModels() })
 const { draft } = chat.drafts
 const { sidebarOpen } = useSidebarPreference()
 const sidebar = ref<InstanceType<typeof ChatSidebar> | null>(null)
@@ -27,7 +28,7 @@ onMounted(() => { ready.value = true; window.addEventListener('keydown', onShort
 onUnmounted(() => { if (typeof window !== 'undefined') window.removeEventListener('keydown', onShortcut) })
 
 function send(text: string): void {
-  if (chat.send(text, modelId.value)) composer.value?.focus()
+  if (canSend.value && chat.send(text, modelId.value)) composer.value?.focus()
 }
 function stop(): void { stream.stop(); composer.value?.focus() }
 function newChat(): void { chat.newChat(); composer.value?.focus() }
@@ -56,7 +57,7 @@ function beginEdit(id: string): void {
   editText.value = message.content
 }
 function saveEdit(): void {
-  if (editingId.value && chat.edit(editingId.value, editText.value, modelId.value)) editingId.value = null
+  if (canSend.value && editingId.value && chat.edit(editingId.value, editText.value, modelId.value)) editingId.value = null
 }
 </script>
 
@@ -73,12 +74,17 @@ function saveEdit(): void {
       @archive="conversations.archive" @restore="conversations.restore"
     />
     <main id="chat-main" class="chat-main" aria-label="Chat" tabindex="-1">
-      <ChatHeader v-model:model="modelId" :sidebar-open="sidebarOpen" :busy="stream.busy.value" @toggle-sidebar="sidebarOpen = !sidebarOpen" @new-chat="newChat" />
+      <ChatHeader v-model:model="modelId" :sidebar-open="sidebarOpen" :busy="stream.busy.value" :demo="mode === 'mock'" @toggle-sidebar="sidebarOpen = !sidebarOpen" @new-chat="newChat" />
       <div class="chat-content" :data-empty="chat.visible.value.length === 0">
         <EmptyChatState v-if="chat.visible.value.length === 0" />
-        <ChatTimeline v-show="chat.visible.value.length > 0" :messages="chat.visible.value" :conversation-id="conversations.activeId.value" :busy="stream.busy.value" :variants="chat.variants" :can-continue="chat.canContinue" @continue="chat.continueResponse($event, modelId)" @edit="beginEdit" @regenerate="chat.regenerate($event, modelId)" @select-variant="chat.selectVariant" />
+        <ChatTimeline v-show="chat.visible.value.length > 0" :messages="chat.visible.value" :conversation-id="conversations.activeId.value" :busy="stream.busy.value" :variants="chat.variants" :can-continue="chat.canContinue" @continue="canSend && chat.continueResponse($event, modelId)" @edit="beginEdit" @regenerate="canSend && chat.regenerate($event, modelId)" @select-variant="chat.selectVariant" />
         <div class="composer-dock">
-          <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" :busy="stream.busy.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" :input-error="chat.drafts.error.value" @send="send" @stop="stop" />
+          <div v-if="modelError || modelNotice" role="status" aria-live="polite" class="px-4 pb-2 text-sm text-muted">
+            <p>{{ modelError || modelNotice }}</p>
+            <UButton v-if="fallbackId && !canSend" color="neutral" variant="link" label="Verfügbares Modell auswählen" @click="chooseFallback" />
+            <UButton color="neutral" variant="link" label="Modelle neu laden" :loading="modelsLoading" @click="refreshModels" />
+          </div>
+          <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" :busy="stream.busy.value" :model-unavailable="!canSend" :input-error="chat.drafts.error.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" @send="send" @stop="stop" />
           <p v-if="chat.drafts.error.value" role="alert" class="mt-2 text-center text-xs text-error">{{ chat.drafts.error.value }}</p>
           <p class="composer-note">noris AI kann Fehler machen. Prüfe wichtige Informationen.</p>
         </div>
@@ -91,7 +97,7 @@ function saveEdit(): void {
           <span v-else-if="stream.status.value === 'cancelled'">Antwort gestoppt.</span>
           <template v-else-if="stream.status.value === 'failed'">
             <span>{{ stream.error.value }}</span>
-            <UButton color="neutral" variant="ghost" label="Erneut versuchen" class="min-h-11" :disabled="stream.busy.value" @click="chat.retry(modelId)" />
+            <UButton color="neutral" variant="ghost" label="Erneut versuchen" class="min-h-11" :disabled="stream.busy.value || !canSend" @click="chat.retry(modelId)" />
           </template>
           <span v-else-if="stream.status.value === 'completed'" class="sr-only">Antwort abgeschlossen.</span>
         </div>
@@ -102,13 +108,13 @@ function saveEdit(): void {
       <template #body>
         <form id="edit-message-form" @submit.prevent="saveEdit">
           <UTextarea v-model="editText" aria-label="Nachricht bearbeiten" autofocus autoresize :rows="4" :maxrows="12" class="w-full" />
-          <p v-if="editText.length > chatLimits.max_message_chars" role="alert" class="mt-2 text-xs text-error">Die Nachricht darf höchstens {{ chatLimits.max_message_chars.toLocaleString('de-DE') }} Zeichen enthalten.</p>
+          <p v-if="editText.length > CHAT_LIMITS.max_message_chars" role="alert" class="mt-2 text-xs text-error">Die Nachricht darf höchstens {{ CHAT_LIMITS.max_message_chars.toLocaleString('de-DE') }} Zeichen enthalten.</p>
         </form>
       </template>
       <template #footer>
         <div class="flex w-full justify-end gap-2">
           <UButton color="neutral" variant="ghost" label="Abbrechen" @click="editingId = null" />
-          <UButton type="submit" form="edit-message-form" label="Speichern und senden" :disabled="stream.busy.value || !editText.trim() || editText.length > chatLimits.max_message_chars" />
+          <UButton type="submit" form="edit-message-form" label="Speichern und senden" :disabled="stream.busy.value || !canSend || !editText.trim() || editText.length > CHAT_LIMITS.max_message_chars" />
         </div>
       </template>
     </UModal>

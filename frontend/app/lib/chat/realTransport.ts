@@ -1,6 +1,6 @@
 import type { ChatTransport, StreamEvent, ConversationTitleResponse } from './types'
 import { validGeneratedTitle } from './titles'
-import { chatLimits } from './limits'
+import { CHAT_LIMITS } from './limits'
 
 const messages: Record<string, string> = {
   ACCESS_DENIED: 'Bitte öffne /api/v1/llm/models und melde dich für den Modellzugriff an.',
@@ -113,17 +113,19 @@ export function createRealTransport(options: { fetcher?: typeof fetch, timeoutMs
     async *stream(request, signal) {
       const controller = new AbortController()
       const abort = () => controller.abort()
+      const maxStreamBytes = CHAT_LIMITS.max_stream_bytes
+      const idleTimeoutMs = options.idleTimeoutMs ?? CHAT_LIMITS.stream_idle_timeout_ms
       let timedOut = false
       let sequence = 0
       let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
       let idleTimer: ReturnType<typeof setTimeout> | undefined
       const resetIdle = () => {
         clearTimeout(idleTimer)
-        idleTimer = setTimeout(() => { timedOut = true; controller.abort() }, options.idleTimeoutMs ?? chatLimits.stream_idle_timeout_ms)
+        idleTimer = setTimeout(() => { timedOut = true; controller.abort() }, idleTimeoutMs)
       }
       signal.addEventListener('abort', abort, { once: true })
       if (signal.aborted) controller.abort()
-      const timer = setTimeout(() => { timedOut = true; controller.abort() }, options.timeoutMs ?? chatLimits.stream_timeout_ms)
+      const timer = setTimeout(() => { timedOut = true; controller.abort() }, options.timeoutMs ?? CHAT_LIMITS.stream_timeout_ms)
       try {
         if (signal.aborted) { yield { seq: 1, type: 'response.cancelled' }; return }
         const response = await fetcher('/api/v1/llm/chat', {
@@ -147,7 +149,7 @@ export function createRealTransport(options: { fetcher?: typeof fetch, timeoutMs
             throw new TransportError(frames.incomplete ? 'INVALID_RESPONSE' : 'STREAM_INTERRUPTED')
           }
           received += value.byteLength
-          if (received > chatLimits.max_stream_bytes) throw new TransportError('STREAM_SIZE_LIMIT', 'Die Übertragung hat die konfigurierte Größenbegrenzung erreicht.')
+          if (received > maxStreamBytes) throw new TransportError('STREAM_SIZE_LIMIT', 'Die Übertragung hat die konfigurierte Größenbegrenzung erreicht.')
           for (const frame of frames.feed(decoder.decode(value, { stream: true }))) {
             const event = parseStreamEvent(frame)
             if (event.seq !== sequence + 1) throw new TransportError('INVALID_RESPONSE')

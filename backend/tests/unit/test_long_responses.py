@@ -42,6 +42,9 @@ class Provider:
         self.calls: list[Sequence[ProviderMessage]] = []
         self.closed = False
 
+    async def discover_models(self) -> list[str]:
+        return ["fixture-alpha"]
+
     async def stream(
         self, messages: Sequence[ProviderMessage], model: LLMModel
     ) -> AsyncIterator[str]:
@@ -59,7 +62,7 @@ class Provider:
 
 
 async def generate(gateway: LLMGateway, payload: ChatRequest) -> list[dict[str, object]]:
-    gateway.reserve(payload)
+    await gateway.reserve(payload)
     frames = [frame async for frame in gateway.stream(payload)]
     return [
         json.loads(frame.decode().split("data: ", 1)[1]) for frame in frames if b"data: " in frame
@@ -81,6 +84,14 @@ def expanded_model(**updates: object) -> LLMModel:
             "provider_max_output_tokens": 16384,
             "provider_limit_evidence": "Deterministic fixture; no live provider claim",
             "reasoning_reserve_tokens": 4096,
+            "category": "CHAT",
+            "token_limit_parameter": "max_tokens",
+            "sources": ["fixture:local"],
+            "evidence": {
+                "category": "VERIFIED",
+                "streaming": "VERIFIED",
+                "token_limit_parameter": "VERIFIED",
+            },
         }
         | updates
     )
@@ -93,7 +104,7 @@ def test_128k_and_large_output_require_provider_evidence_and_local_opt_in(
     assert model.context_window == 131072
     assert model.max_output_tokens == 16384
     values = llm_config.model_dump() | {"llm_models": (model,)}
-    with pytest.raises(ValidationError, match="application output ceiling"):
+    with pytest.raises(ValidationError, match="application token ceiling"):
         EnvironmentSettings(**values)
     config = EnvironmentSettings(**(values | {"llm_max_output_tokens": 16384}))
     assert config.llm_models == (model,)
@@ -112,11 +123,14 @@ def test_128k_and_large_output_require_provider_evidence_and_local_opt_in(
         )
 
 
-def test_input_never_consumes_output_reasoning_or_system_reserves(llm_config: Settings) -> None:
+async def test_input_never_consumes_output_reasoning_or_system_reserves(
+    llm_config: Settings,
+) -> None:
     config = llm_config.model_copy(
         update={
             "llm_models": (expanded_model(),),
             "llm_max_message_chars": 1_048_576,
+            "llm_max_output_tokens": 16384,
             "llm_daily_token_budget": 1_000_000,
         }
     )
@@ -127,11 +141,11 @@ def test_input_never_consumes_output_reasoning_or_system_reserves(llm_config: Se
     # Construct the exact boundary for the documented byte-bound fallback.
     available = 131072 - 16384 - 4096 - overhead
     payload.messages[0] = LLMMessage(role="user", content="a" * available)
-    gateway.reserve(payload)
+    await gateway.reserve(payload)
     gateway.release(payload.generationId)
     payload.messages[0] = LLMMessage(role="user", content="a" * (available + 1))
     with pytest.raises(LLMError) as error:
-        gateway.reserve(payload)
+        await gateway.reserve(payload)
     assert error.value.code == "CONTEXT_LIMIT"
     assert len(payload.messages[0].content) == available + 1  # Never truncate the input.
 
@@ -234,7 +248,7 @@ async def test_repeated_continuations_share_budget_and_reject_duplicates(
         assert events[-1]["type"] == "response.incomplete"
         previous += text(events)
         with pytest.raises(LLMError) as replay:
-            gateway.reserve(payload)
+            await gateway.reserve(payload)
         assert replay.value.code == "GENERATION_ACTIVE"
     assert previous == "Anfang weiter weiter weiter"
     assert len(provider.calls) == 3
@@ -250,21 +264,21 @@ async def test_repeated_continuations_share_budget_and_reject_duplicates(
         )
         await generate(bounded, payload)
     with pytest.raises(LLMError) as budget:
-        bounded.reserve(request(previous=previous, step=4, generation="denied"))
+        await bounded.reserve(request(previous=previous, step=4, generation="denied"))
     assert budget.value.code == "BUDGET_LIMIT"
     assert len(provider.calls) == 6
 
 
-def test_active_answer_lock_and_manual_continuation_limit(llm_config: Settings) -> None:
+async def test_active_answer_lock_and_manual_continuation_limit(llm_config: Settings) -> None:
     gateway = LLMGateway(llm_config, Provider("new"))
     payload = request(previous="Anfang")
-    gateway.reserve(payload)
+    await gateway.reserve(payload)
     with pytest.raises(LLMError) as duplicate:
-        gateway.reserve(request(previous="Anfang", generation="different-id"))
+        await gateway.reserve(request(previous="Anfang", generation="different-id"))
     assert duplicate.value.code == "GENERATION_ACTIVE"
     gateway.release(payload.generationId)
     with pytest.raises(LLMError) as limit:
-        gateway.reserve(request(previous="Anfang", step=9))
+        await gateway.reserve(request(previous="Anfang", step=9))
     assert limit.value.code == "CONTINUATION_LIMIT"
 
 
@@ -340,19 +354,24 @@ async def test_quiet_reasoning_has_heartbeats_and_cancellation_releases_slot(
         llm_config.model_copy(update={"llm_heartbeat_seconds": 0.01}), QuietProvider("")
     )
     payload = request(previous="Bestehende Antwort")
-    gateway.reserve(payload)
+    await gateway.reserve(payload)
     iterator = gateway.stream(payload)
     assert b"response.started" in await anext(iterator)
-    assert await anext(iterator) == b": heartbeat\n\n"
+    assert await anext(iterator) == b": keepalive\n\n"
     await iterator.aclose()
     assert closed.is_set()
-    gateway.reserve(request(previous="Bestehende Antwort", generation="after-stop"))
+    await gateway.reserve(request(previous="Bestehende Antwort", generation="after-stop"))
     gateway.release("after-stop")
 
 
 def test_timeout_relationships_are_validated(llm_config: Settings) -> None:
-    with pytest.raises(ValidationError, match="generation time"):
-        EnvironmentSettings(**(llm_config.model_dump() | {"llm_read_timeout_seconds": 121}))
+    with pytest.raises(ValidationError, match="total time"):
+        EnvironmentSettings(
+            **(
+                llm_config.model_dump()
+                | {"llm_read_timeout_seconds": 121, "llm_total_timeout_seconds": 120}
+            )
+        )
 
 
 async def test_timeout_preserves_buffered_new_continuation_text(llm_config: Settings) -> None:

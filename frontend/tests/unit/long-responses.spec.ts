@@ -2,14 +2,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createChatState } from '../../app/composables/useChat'
 import { useChatStream } from '../../app/composables/useChatStream'
-import { chatLimits, DEFAULT_CHAT_LIMITS, applyChatLimits, MAX_PERSISTED_MESSAGE_CHARS } from '../../app/lib/chat/limits'
+import { CHAT_LIMITS, DEFAULT_CHAT_LIMITS, applyChatLimits, ABSOLUTE_MESSAGE_CHARS } from '../../app/lib/chat/limits'
 import { parseChatSnapshot } from '../../app/lib/chat/persistence'
 import { createRealTransport, parseStreamEvent } from '../../app/lib/chat/realTransport'
 import type { ChatRequest, ChatTransport } from '../../app/lib/chat/types'
 import MarkdownContent from '../../app/components/chat/MarkdownContent'
 import ChatMessage from '../../app/components/chat/ChatMessage.vue'
 
-afterEach(() => { Object.assign(chatLimits, DEFAULT_CHAT_LIMITS); vi.useRealTimers() })
+afterEach(() => { Object.assign(CHAT_LIMITS, DEFAULT_CHAT_LIMITS); vi.useRealTimers() })
 
 function fixture(options: { stop?: boolean, failure?: string } = {}) {
   const requests: ChatRequest[] = []
@@ -26,7 +26,7 @@ function fixture(options: { stop?: boolean, failure?: string } = {}) {
     else if (options.failure && request.operation === 'continue') yield { seq: 3, type: 'response.failed', code: options.failure, message: 'Fortsetzung fehlgeschlagen.' }
     else yield { seq: 3, type: 'response.incomplete', reason: 'output_limit' }
   } }
-  Object.assign(chatLimits, { max_response_chars: 300_000 })
+  Object.assign(CHAT_LIMITS, { max_response_chars: 300_000 })
   let id = 0
   const chat = createChatState(transport, { id: () => `id-${++id}` })
   const settle = async () => { await vi.waitFor(() => expect(chat.stream.busy.value).toBe(false)) }
@@ -118,10 +118,10 @@ describe('long responses and explicit continuation', () => {
     chat.send('Nachfrage', 'fixture-alpha'); await settle()
     expect(chat.continueResponse(reply.id, 'fixture-alpha')).toBe(false)
     const leaf = chat.visible.value.at(-1)!
-    leaf.continuationCount = chatLimits.max_continuations
+    leaf.continuationCount = CHAT_LIMITS.max_continuations
     expect(chat.continueResponse(leaf.id, 'fixture-alpha')).toBe(false)
     leaf.continuationCount = 0
-    chatLimits.max_response_chars = leaf.content.length
+    CHAT_LIMITS.max_response_chars = leaf.content.length
     expect(chat.continueResponse(leaf.id, 'fixture-alpha')).toBe(false)
     chat.newChat()
     expect(chat.continueResponse(leaf.id, 'fixture-alpha')).toBe(false)
@@ -179,12 +179,12 @@ describe('long responses and explicit continuation', () => {
 describe('negotiated limits and bounded streaming', () => {
   it('preserves large input drafts and explicitly rejects oversized replacements without truncation', () => {
     const { chat } = fixture()
-    chatLimits.max_message_chars = 100_000
+    CHAT_LIMITS.max_message_chars = 100_000
     const text = 'Eingabe '.repeat(10_000)
     chat.drafts.draft.value = text
     expect(chat.drafts.draft.value).toBe(text)
     expect(Object.values(parseChatSnapshot(JSON.stringify(chat.snapshot()))!.drafts)).toContain(text)
-    chat.drafts.draft.value = 'x'.repeat(MAX_PERSISTED_MESSAGE_CHARS * 2 + 1)
+    chat.drafts.draft.value = 'x'.repeat(ABSOLUTE_MESSAGE_CHARS * 2 + 1)
     expect(chat.drafts.draft.value).toBe(text)
     expect(chat.drafts.error.value).toContain('bisherige Entwurf wurde erhalten')
     chat.drafts.draft.value = 'Korrigiert'
@@ -193,8 +193,8 @@ describe('negotiated limits and bounded streaming', () => {
 
   it('accepts server limits for long generation and rejects unbounded catalog values', () => {
     applyChatLimits({ ...DEFAULT_CHAT_LIMITS, max_message_chars: 600_000, max_response_chars: 500_000, stream_timeout_ms: 920_000 })
-    expect(chatLimits.stream_timeout_ms).toBe(920_000)
-    expect(chatLimits.max_message_chars).toBe(600_000)
+    expect(CHAT_LIMITS.stream_timeout_ms).toBe(920_000)
+    expect(CHAT_LIMITS.max_message_chars).toBe(600_000)
     expect(() => applyChatLimits({ ...DEFAULT_CHAT_LIMITS, max_response_chars: Number.MAX_SAFE_INTEGER })).toThrow()
     expect(() => applyChatLimits({ ...DEFAULT_CHAT_LIMITS, stream_timeout_ms: Infinity })).toThrow()
     expect(parseStreamEvent({ event: 'response.incomplete', data: '{"seq":3,"type":"response.incomplete","reason":"output_limit"}' })).toMatchObject({ type: 'response.incomplete' })
@@ -203,7 +203,7 @@ describe('negotiated limits and bounded streaming', () => {
 
   it('uses the advertised total timeout instead of the previous fixed 135 seconds', async () => {
     vi.useFakeTimers()
-    chatLimits.stream_timeout_ms = 920_000
+    CHAT_LIMITS.stream_timeout_ms = 920_000
     const fetcher: typeof fetch = async (_, init) => await new Promise<Response>((_, reject) => init?.signal?.addEventListener('abort', () => reject(new DOMException('abort', 'AbortError'))))
     const request: ChatRequest = { generationId: 'g', conversationId: 'c', inputMessageId: 'u', modelId: 'alpha', messages: [{ role: 'user', content: 'x' }], attempt: 1 }
     const stream = useChatStream(createRealTransport({ fetcher }))
