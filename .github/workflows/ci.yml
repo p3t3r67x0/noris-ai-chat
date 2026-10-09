@@ -83,8 +83,8 @@ jobs:
         run: |
           docker compose --env-file .env.example config --quiet
           docker compose --env-file .env.example -f compose.yaml -f compose.dev.yaml config --quiet
-      - name: Upload browser evidence on failure
-        if: failure()
+      - name: Upload browser evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: browser-test-results

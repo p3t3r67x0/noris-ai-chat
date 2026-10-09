@@ -1,11 +1,29 @@
-import tailwindcss from '@tailwindcss/vite'
-
 export default defineNuxtConfig({
   compatibilityDate: '2026-10-08',
   devtools: { enabled: false },
-  modules: ['@nuxt/eslint'],
+  modules: ['@nuxt/eslint', '@nuxt/ui'],
   css: ['~/assets/css/main.css'],
-  vite: { plugins: [tailwindcss()] },
+  ui: { fonts: false },
+  colorMode: { preference: 'system', fallback: 'light', storageKey: 'noris-ai-theme' },
+  icon: {
+    provider: 'none',
+    fallbackToApi: false,
+    serverBundle: false,
+    clientBundle: {
+      scan: true,
+      icons: [
+        'lucide:menu', 'lucide:panel-left', 'lucide:panel-left-close', 'lucide:panel-left-open',
+        'lucide:square-pen', 'lucide:search', 'lucide:chevron-down', 'lucide:chevron-up',
+        'lucide:chevron-left', 'lucide:chevron-right', 'lucide:check', 'lucide:x',
+        'lucide:moon', 'lucide:sun', 'lucide:monitor', 'lucide:ellipsis', 'lucide:pencil',
+        'lucide:archive', 'lucide:trash-2', 'lucide:undo-2', 'lucide:settings', 'lucide:user',
+        'lucide:arrow-up', 'lucide:arrow-down', 'lucide:copy', 'lucide:check-check',
+        'lucide:rotate-ccw', 'lucide:square', 'lucide:plus', 'lucide:paperclip',
+        'lucide:loader-circle', 'lucide:circle-alert', 'lucide:info', 'lucide:external-link',
+        'lucide:sparkles', 'lucide:circle-check',
+      ],
+    },
+  },
   app: {
     head: { title: 'noris AI', htmlAttrs: { lang: 'de' } },
   },

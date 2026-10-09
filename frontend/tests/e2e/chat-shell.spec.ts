@@ -1,0 +1,70 @@
+import { expect, test } from '@playwright/test'
+
+async function openSidebar(page: import('@playwright/test').Page) {
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
+  await expect(page.getByRole('navigation', { name: 'Gespräche' })).toBeVisible()
+}
+
+test('shell is responsive, has a bounded composer and renders without client errors', async ({ page }) => {
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  page.on('console', message => { if (message.type() === 'error' || /hydration/i.test(message.text())) errors.push(message.text()) })
+  await page.goto('/')
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+  await expect(page.getByRole('heading', { name: 'Was möchtest du heute bewegen?' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Modell auswählen' })).toBeVisible()
+  await expect(page.getByRole('textbox', { name: 'Nachricht' })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  expect(errors).toEqual([])
+})
+
+test('sidebar opens, creates a chat, collapses and restores navigation', async ({ page }) => {
+  await page.goto('/')
+  await openSidebar(page)
+  const navigation = page.getByRole('navigation', { name: 'Gespräche' })
+  await page.getByRole('button', { name: 'Neuer Chat', exact: true }).last().click()
+  await openSidebar(page)
+  await expect(navigation.getByRole('button', { name: 'Neuer Chat', exact: true })).toHaveAttribute('aria-current', 'page')
+  await page.getByRole('button', { name: 'Gesprächsliste schließen' }).click()
+  await expect(page.getByRole('button', { name: 'Sidebar öffnen', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Sidebar öffnen', exact: true }).click()
+  await expect(navigation.getByRole('button', { name: 'Neuer Chat', exact: true })).toBeVisible()
+})
+
+test('conversation menu supports rename, search, archive and restore by keyboard', async ({ page }) => {
+  await page.goto('/')
+  await openSidebar(page)
+  await page.getByRole('button', { name: 'Neuer Chat', exact: true }).last().click()
+  await openSidebar(page)
+  await page.getByRole('button', { name: 'Aktionen für Neuer Chat' }).click()
+  await page.getByRole('menuitem', { name: 'Umbenennen' }).click()
+  await page.getByRole('textbox', { name: 'Chat-Titel' }).fill('Meine Notizen')
+  await page.getByRole('textbox', { name: 'Chat-Titel' }).press('Enter')
+  await expect(page.getByRole('dialog', { name: 'Chat umbenennen' })).not.toBeVisible()
+  await openSidebar(page)
+  await expect(page.getByRole('button', { name: 'Aktionen für Meine Notizen' })).toBeVisible()
+  await page.getByRole('button', { name: 'Chats suchen' }).click()
+  await page.getByPlaceholder('Chat suchen …').fill('Notizen')
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('dialog', { name: 'Chats suchen' })).not.toBeVisible()
+  await openSidebar(page)
+  await page.getByRole('button', { name: 'Aktionen für Meine Notizen' }).click()
+  await page.getByRole('menuitem', { name: 'Archivieren' }).click()
+  await expect(page.getByRole('button', { name: 'Aktionen für Meine Notizen' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Archivierte Chats' }).click()
+  await page.getByRole('button', { name: 'Meine Notizen wiederherstellen' }).click()
+  await openSidebar(page)
+  await expect(page.getByRole('navigation', { name: 'Gespräche' }).getByRole('button', { name: 'Meine Notizen', exact: true })).toHaveAttribute('aria-current', 'page')
+})
+
+test('theme can switch to dark and survives reload', async ({ page }) => {
+  await page.goto('/')
+  await openSidebar(page)
+  await page.getByRole('button', { name: 'Darstellung' }).click()
+  await page.getByRole('option', { name: 'Dunkel', exact: true }).click()
+  await expect(page.locator('html')).toHaveClass(/dark/)
+  await page.reload()
+  await expect(page.locator('html')).toHaveClass(/dark/)
+})
