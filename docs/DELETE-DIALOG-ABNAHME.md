@@ -196,3 +196,9 @@ Die kombinierte Basis enthält die aktuellen Versionen aus main sowie PR #19. De
 ## Zusätzliche integrierte Produktionsprüfung
 
 `make test-e2e-production` prüft die vollständige vorhandene UI-Suite über den frisch gebauten Compose-/Caddy-Produktionsstack. Assertions, Screenshot-Goldens und Toleranz bleiben identisch zum regulären Lauf. Die beiden früheren lokalen Drawer-Baselinefehler werden damit unabhängig von der lokalen verlinkten Entwicklungsumgebung erneut geprüft. Ergebnisse werden anhand der aktuellen `compose-smoke`-CI ausgewertet; dieses Dokument erklärt einen ausstehenden Lauf nicht als bestanden.
+
+## Produktionsintegration: stabile Footer-Zeilenhöhen
+
+Der zusätzliche Compose-Produktionslauf [37906351675](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37906351675) reproduziert die früheren Drawer-Abweichungen: 109 PASS / 2 FAIL, 545 beziehungsweise 446 Pixel. Der Trace belegt im minifizierten Stylesheet `--text-sm--line-height:1.42857` und `--text-xs--line-height:1.33333`. Die daraus berechneten Zeilenhöhen unterscheiden sich geringfügig vom Entwicklungs-CSS und ändern Textposition und Rasterung im zentrierten Footer.
+
+Avatar, Kontolabel und Caption verwenden nun zentrale Schriftgrößen von 0.875rem beziehungsweise 0.75rem und explizite Zeilenhöhen von 1.25rem beziehungsweise 1rem. Die vier `--noris-account-*`-Tokens vermeiden die gerundeten dimensionslosen Quotienten und erhalten die Darstellung aus der bestehenden Baseline. Die Avatar-Klassenanbindung wurde über den offiziellen Nuxt-UI-MCP-Server (Avatar-Metadaten und API/Theme) sowie die installierte 4.11.3-Komponente geprüft. Keine Baseline, Assertion, Testauswahl oder Screenshot-Toleranz wird geändert. Neue vollständige Entwicklungs- und Produktions-CI ist für diesen Fix erforderlich; der vorherige Fehler bleibt als historischer Befund dokumentiert.

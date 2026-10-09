@@ -121,8 +121,8 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
         <UButton icon="i-lucide-archive" color="neutral" variant="ghost" label="Archivierte Chats" class="min-h-11 justify-start lg:hidden" @click="showArchive" />
         <UColorModeSelect aria-label="Darstellung" class="w-full" :ui="{ base: 'min-h-11' }" />
         <div class="flex items-center gap-3 px-2 pt-2 lg:hidden">
-          <UAvatar text="N" size="sm" />
-          <div class="min-w-0"><p class="text-sm font-medium">Dein Arbeitsbereich</p><p class="text-xs text-muted">Lokale Demo</p></div>
+          <UAvatar text="N" size="sm" class="sidebar-account-avatar" />
+          <div class="min-w-0"><p class="sidebar-account-label font-medium">Dein Arbeitsbereich</p><p class="sidebar-account-caption text-muted">Lokale Demo</p></div>
         </div>
       </div>
     </template>
