@@ -24,4 +24,10 @@ describe('scroll decisions', () => {
     expect(followingAfterScroll(true, 1800, 1800, 0)).toBe(true)
     expect(followingAfterScroll(true, 1800, 1799.5, 0.5)).toBe(true)
   })
+  it('keeps following when reparsed Markdown clamps the scroll position', () => {
+    expect(followingAfterScroll(true, 1800, 1200, 0, 1200)).toBe(true)
+    expect(followingAfterScroll(true, 1800, 0, 0, 0)).toBe(true)
+    expect(followingAfterScroll(false, 1800, 1200, 0, 1200)).toBe(false)
+    expect(followingAfterScroll(true, 1800, 1180, 20, 1200)).toBe(false)
+  })
 })

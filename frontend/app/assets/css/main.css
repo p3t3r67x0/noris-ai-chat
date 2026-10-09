@@ -122,7 +122,7 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 .chat-content[data-empty="true"] .composer-dock { padding-top: 0; }
 .composer-note { margin: 0.4375rem 0 0; height: calc(var(--noris-composer-bottom-gap) - 0.9375rem); font-size: var(--noris-caption-font-size); line-height: 0.875rem; color: var(--noris-text-secondary); text-align: center; }
 .chat-history { position: relative; display: flex; flex: 1; min-height: 0; min-width: 0; }
-.chat-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; overflow-anchor: none; }
+.chat-scroll { flex: 1; min-width: 0; min-height: 0; max-width: 100%; overflow-y: auto; overscroll-behavior-y: contain; overflow-anchor: none; }
 .chat-timeline { width: calc(100% - var(--noris-content-padding) * 2); max-width: var(--noris-chat-max-width); margin: 0 auto; padding: 1.5rem 0 2rem; }
 .chat-turn { display: flow-root; }
 .last-chat-turn { min-height: var(--last-turn-height, 0); }
@@ -137,6 +137,7 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 @keyframes pulse { 50% { opacity: 0.35; } }
 .chat-status { flex-shrink: 0; padding: 0 1rem 0.25rem; text-align: center; font-size: var(--noris-status-font-size); color: var(--noris-text-secondary); }
 .chat-status[data-attention="false"] { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.markdown-content { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
 .markdown-content > :first-child { margin-top: 0; }
 .markdown-content > :last-child { margin-bottom: 0; }
 .markdown-content p, .markdown-content ul, .markdown-content ol, .markdown-content blockquote { margin: 1em 0; }
@@ -150,14 +151,17 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 .markdown-content h3 { font-size: calc(var(--noris-heading-font-size) * 0.8); }
 .markdown-content a { text-decoration: underline; text-underline-offset: 3px; }
 .markdown-content blockquote { padding-left: 1rem; border-left: 3px solid var(--noris-border); color: var(--noris-text-secondary); }
-.markdown-content :not(pre) > code { border-radius: 0.25rem; background: var(--noris-code-background); padding: 0.15rem 0.3rem; font-size: 0.85em; }
-.markdown-table { max-width: 100%; overflow-x: auto; margin: 1rem 0; }
-.markdown-table table { width: max-content; min-width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9em; }
-.markdown-table th, .markdown-table td { padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--noris-border); }
+.markdown-content :not(pre) > code { border-radius: 0.25rem; background: var(--noris-code-background); padding: 0.15rem 0.3rem; font-size: 0.85em; white-space: normal; overflow-wrap: anywhere; }
+.markdown-table { min-width: 0; max-width: 100%; margin: 1rem 0; }
+/* Content-sized tables expand beyond the chat column, even when words wrap. */
+.markdown-table table { width: 100%; max-width: 100%; table-layout: fixed; border-collapse: collapse; text-align: left; font-size: 0.9em; }
+.markdown-table th, .markdown-table td { min-width: 0; padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--noris-border); white-space: normal; overflow-wrap: anywhere; word-break: normal; vertical-align: top; }
 .markdown-table th { font-weight: 600; }
 .code-block { min-width: 0; max-width: 100%; margin: 1rem 0; border: 1px solid var(--noris-border); border-radius: 0.8rem; overflow: hidden; background: var(--noris-code-background); }
 .code-block figcaption { border-bottom: 1px solid var(--noris-border); }
-.code-block pre { margin: 0; padding: 1rem; max-width: 100%; overflow-x: auto; font: var(--noris-code-font-size)/var(--noris-code-line-height) ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre; overflow-wrap: normal; }
+.code-block .code-language { min-width: 0; overflow-wrap: anywhere; }
+.code-block pre { margin: 0; padding: 1rem; max-width: 100%; font: var(--noris-code-font-size)/var(--noris-code-line-height) ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.code-block[data-wrap="false"] pre { overflow-x: auto; white-space: pre; overflow-wrap: normal; }
 .dark .syntax-token { color: var(--shiki-dark) !important; }
 .conversation-row { display: flex; align-items: center; gap: 0.125rem; min-height: 3rem; border-radius: 0.75rem; }
 .conversation-row:hover { background: var(--noris-hover-background); }

@@ -46,7 +46,7 @@ function renderTokens(tokens: readonly Token[]): (VNode | string)[] {
         }
         const content = token.nesting === 1 ? children() : token.content
         const node = h(tag, attributes, content)
-        nodes.push(tag === 'table' ? h('div', { key, class: 'markdown-table', tabindex: 0, 'aria-label': 'Tabelle' }, [node]) : node)
+        nodes.push(tag === 'table' ? h('div', { key, class: 'markdown-table' }, [node]) : node)
       }
     }
     return nodes
