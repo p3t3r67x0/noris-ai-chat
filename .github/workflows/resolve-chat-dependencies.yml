@@ -1,0 +1,36 @@
+name: Resolve chat dependencies
+
+on:
+  push:
+    branches: [feat/chat-composer]
+    paths:
+      - frontend/package.json
+      - .github/workflows/resolve-chat-dependencies.yml
+
+permissions:
+  contents: read
+
+jobs:
+  lockfile:
+    if: github.repository == 'p3t3r67x0/noris-ai-chat' && github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/chat-composer
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - name: Resolve dependencies using the public registry
+        run: |
+          npm install --global pnpm@11.1.3
+          pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile
+      - name: Commit the generated lockfile to this feature branch
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml; then exit 0; fi
+          git add pnpm-lock.yaml
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'build: resolve Nuxt UI dependencies with pnpm'
+          git push origin HEAD:feat/chat-composer
