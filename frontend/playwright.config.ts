@@ -19,12 +19,14 @@ export default defineConfig({
       url: 'http://127.0.0.1:8000/api/v1/health/ready',
       reuseExistingServer: false,
       timeout: 30_000,
+      env: { NORIS_LLM_PROVIDER: 'disabled' },
     },
     {
       command: 'pnpm dev --host 127.0.0.1 --port 3000',
       url: 'http://127.0.0.1:3000',
       reuseExistingServer: false,
       timeout: 60_000,
+      env: { NUXT_PUBLIC_CHAT_TRANSPORT: 'mock' },
     },
   ],
 })
