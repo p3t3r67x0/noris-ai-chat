@@ -36,6 +36,7 @@ function selectRunningChat(): void {
 }
 function onShortcut(event: KeyboardEvent): void {
   if (event.isComposing || event.repeat) return
+  if (document.querySelector('.delete-dialog[data-state="open"]')) return
   if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'o') {
     event.preventDefault(); newChat()
   }

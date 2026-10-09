@@ -11,6 +11,14 @@ auf PR #17, dahinter #16, #15 und #14. PR #19 mit der LLM-Anbindung ist unabhän
 Dieser Branch verändert weder Provider noch Nachrichtenmodell, Persistenzformat,
 Composer, Scroll-System oder globale Design-Tokens. Kein Merge auf `main`.
 
+Geänderte Dateien: `DeleteConversationDialog.vue` enthält Modal-UX und ausschließlich
+dialogbezogene Styles; `ChatSidebar.vue` setzt Ziel und Rückgabefokus;
+`ChatWorkspace.vue` reicht die bestehende Löschaktion durch und sperrt seine
+Hintergrund-Shortcuts während des Dialogs. `tests/unit/delete-dialog.spec.ts` und
+`tests/e2e/delete-dialog.spec.ts` ergänzen die Abnahme. Im vorhandenen
+`chat-fidelity.spec.ts` ändert sich nur der Buttonname von „Löschen“ zu „Chat löschen“.
+Hinzu kommen vier synthetische PNG-Baselines und dieses Dokument, insgesamt elf Dateien.
+
 Vorher öffnete `ChatSidebar` ein generisches `UModal`, zeigte den Chatnamen in
 einem separaten Body und emittierte `delete`. `ChatWorkspace` leitete das Ereignis
 an `chat.remove(id)` weiter. Das synchrone Vue-Ereignis konnte kein Löschresultat
@@ -47,7 +55,9 @@ ausgegebene `aria-modal=true` wird am Content ergänzt.
 
 Initialfokus: **Abbrechen**. Reka/Nuxt UI übernimmt Fokusfalle, Tab/Shift+Tab,
 Escape, Outside Click und Sperre des Hintergrunds. Kein globaler Enter-Handler
-für die Löschung. X verwendet den Namen **Dialog schließen** und weiterhin den
+für die Löschung. Die bestehenden Workspace-Shortcuts für neuen Chat/Suche
+pausieren während dieses Dialogs, damit sie den gesperrten Hintergrund nicht
+verändern. X verwendet den Namen **Dialog schließen** und weiterhin den
 Nuxt-UI-Close-Vertrag. Nach Abbruch kehrt der Fokus zum ursprünglichen Menübutton
 zurück, sofern er noch vorhanden und nicht inert ist; ansonsten zu `#chat-main`.
 Das betrifft besonders geschlossene mobile Drawer und gelöschte/archivierte Zeilen.
@@ -117,8 +127,13 @@ Dialog-Fehlerbehandlung greift.
 ## Prüfstatus
 
 Unit-Tests prüfen die Dialog-Anwendungsgrenze mit UI-Stubs; Playwright prüft die
-tatsächlich installierten Nuxt-UI-Komponenten. Die umfassende Regression und
-GitHub-CI werden nach ihrem Abschluss ergänzt.
+tatsächlich installierten Nuxt-UI-Komponenten. Der vollständige reguläre
+GitHub-CI-Lauf für `2767771` ist bestanden:
+[Run 37897054297](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37897054297),
+Jobs `checks` und `compose-smoke`. Nach der abschließenden Ergänzung der
+Hintergrund-Shortcut-Sperre sind die aktuellen [PR-20-Checks](https://github.com/p3t3r67x0/noris-ai-chat/pull/20/checks)
+für den finalen Branchstand maßgeblich. Diese Ergänzung ist zusätzlich lokal im
+Produktionsbuild mit allen 18 Dialog-Browserfällen geprüft.
 
 - **PASS:** Nuxt-UI-MCP-Abfrage und Abgleich mit 4.11.3.
 - **PASS:** 83 Frontend-Unit-Tests, darunter neun neue Dialogfälle.
@@ -126,8 +141,19 @@ GitHub-CI werden nach ihrem Abschluss ergänzt.
 - **PASS:** elf bestehende Prüfungen des Referenz-Bereinigungstools, synthetische Fixtures.
 - **PASS:** 18 neue Playwright-Fälle auf dem Produktionsbuild, einschließlich
   vier Screenshot-Baselines, Desktop/Mobile und Light/Dark; unveränderte Toleranz.
+- **PASS:** vollständige reguläre CI-Browser-Suite, 109 Fälle, sowie drei
+  PostgreSQL-Integrationstests, Migrationen und Docker-Smoke im genannten Lauf.
 - **PASS:** Frontend-ESLint, strenge Vue-/Test-Typprüfung, Backend-Ruff,
   Tools-Typecheck, API-Drift-Check, Produktionsbuild und Compose-Konfigurationsprüfung.
+- **FAIL, bestehende Produktions-Baselineabweichung:** Die zusätzliche lokale
+  vollständige Browser-Suite gegen den Produktionsbuild ergibt **107 PASS / 2 FAIL**.
+  Betroffen sind ausschließlich `reference mobile drawer light/dark`, mit
+  545 beziehungsweise 446 abweichenden Pixeln an Textkanten im Sidebar-Footer.
+  Beide Fehler wurden mit denselben Pixelzahlen auf dem unveränderten PR-18-Stand
+  `6a81a48` als Produktionsbuild reproduziert. Die neuen Dialog-Screenshots bestehen.
+  Es wurden weder Sidebar-Styles noch die bestehenden Baselines/Toleranzen geändert.
+  Der reguläre CI-Testmodus verwendet weiterhin den vorhandenen Nuxt-Dev-Server;
+  dessen Ergebnis wird separat ausgewiesen.
 - **BLOCKED:** Vergleich mit der nicht verfügbaren Löschdialog-Originalreferenz.
 - **NOT TESTED:** manuelle Screenreader-Abnahme und physische Geräte mit Notch.
 

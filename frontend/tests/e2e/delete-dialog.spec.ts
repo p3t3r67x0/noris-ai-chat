@@ -97,6 +97,10 @@ for (const action of ['Abbrechen', 'Dialog schließen', 'Enter', 'outside']) {
   test(`cancel via ${action} preserves conversations, messages and drafts`, async ({ page }) => {
     const before = await start(page)
     const dialog = await openDelete(page)
+    await page.keyboard.press('Control+Shift+o')
+    await page.keyboard.press('Control+k')
+    await expect(page.getByRole('dialog')).toHaveCount(1)
+    await expect(dialog.getByRole('button', { name: 'Abbrechen', exact: true })).toBeFocused()
     if (action === 'Enter') await page.keyboard.press('Enter')
     else if (action === 'outside') await page.mouse.click(4, 4)
     else await dialog.getByRole('button', { name: action, exact: true }).click()

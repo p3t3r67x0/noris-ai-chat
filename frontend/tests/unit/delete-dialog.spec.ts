@@ -53,8 +53,10 @@ describe('delete conversation dialog', () => {
     let finish!: () => void
     const remove = vi.fn(() => new Promise<void>(resolve => { finish = resolve }))
     const wrapper = dialog(remove)
-    await wrapper.get('.delete-dialog-confirm').trigger('click')
-    await wrapper.get('.delete-dialog-confirm').trigger('click')
+    // Both clicks happen before Vue can patch the disabled attribute.
+    const first = wrapper.get('.delete-dialog-confirm').trigger('click')
+    const duplicate = wrapper.get('.delete-dialog-confirm').trigger('click')
+    await Promise.all([first, duplicate])
     const modal = wrapper.findComponent(Modal)
     modal.vm.$emit('update:open', false)
     expect(remove).toHaveBeenCalledExactlyOnceWith('delete-me')
