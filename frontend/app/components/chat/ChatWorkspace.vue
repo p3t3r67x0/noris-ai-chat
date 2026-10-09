@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useChat } from '../../composables/useChat'
 import { createMockTransport } from '../../lib/chat/mockTransport'
 import { useModelSelection } from '../../composables/useModelSelection'
@@ -8,17 +8,30 @@ import ChatSidebar from './ChatSidebar.vue'
 import EmptyChatState from './EmptyChatState.vue'
 import ChatComposer from './ChatComposer.vue'
 import ChatTimeline from './ChatTimeline.vue'
+import { MAX_MESSAGE_LENGTH } from '../../lib/chat/types'
 
 const chat = useChat(createMockTransport())
 const { conversations, stream } = chat
 const { modelId } = useModelSelection()
-const draft = ref('')
+const { draft } = chat.drafts
 const sidebarOpen = ref(true)
 const ready = ref(false)
 onMounted(() => { ready.value = true })
 
 function send(text: string): void {
-  if (chat.send(text, modelId.value)) draft.value = ''
+  chat.send(text, modelId.value)
+}
+const editingId = ref<string | null>(null)
+const editText = ref('')
+const editOpen = computed({ get: () => editingId.value !== null, set: (open: boolean) => { if (!open) editingId.value = null } })
+function beginEdit(id: string): void {
+  const message = chat.messages.value[id]
+  if (!message || stream.busy.value) return
+  editingId.value = id
+  editText.value = message.content
+}
+function saveEdit(): void {
+  if (editingId.value && chat.edit(editingId.value, editText.value, modelId.value)) editingId.value = null
 }
 </script>
 
@@ -38,7 +51,7 @@ function send(text: string): void {
           <ChatComposer v-model="draft" v-model:model="modelId" :busy="stream.busy.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" @send="send" @stop="stream.stop" />
         </EmptyChatState>
         <template v-else>
-          <ChatTimeline :messages="chat.visible.value" />
+          <ChatTimeline :messages="chat.visible.value" :busy="stream.busy.value" :variants="chat.variants" @edit="beginEdit" @regenerate="chat.regenerate($event, modelId)" @select-variant="chat.selectVariant" />
           <div class="composer-dock">
             <ChatComposer v-model="draft" v-model:model="modelId" :busy="stream.busy.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" @send="send" @stop="stream.stop" />
             <p class="mt-2 text-center text-[11px] text-muted">noris AI kann Fehler machen. Prüfe wichtige Informationen.</p>
@@ -57,5 +70,18 @@ function send(text: string): void {
         <p v-if="chat.storageWarning.value" role="alert" class="px-4 pb-3 text-center text-xs text-warning">{{ chat.storageWarning.value }}</p>
       </div>
     </main>
+    <UModal v-model:open="editOpen" title="Nachricht bearbeiten" description="Deine ursprüngliche Frage und ihre Antworten bleiben als Variante erhalten.">
+      <template #body>
+        <form id="edit-message-form" @submit.prevent="saveEdit">
+          <UTextarea v-model="editText" aria-label="Nachricht bearbeiten" autofocus autoresize :rows="4" :maxrows="12" :maxlength="MAX_MESSAGE_LENGTH" class="w-full" />
+        </form>
+      </template>
+      <template #footer>
+        <div class="flex w-full justify-end gap-2">
+          <UButton color="neutral" variant="ghost" label="Abbrechen" @click="editingId = null" />
+          <UButton type="submit" form="edit-message-form" label="Speichern und senden" :disabled="stream.busy.value || !editText.trim()" />
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>

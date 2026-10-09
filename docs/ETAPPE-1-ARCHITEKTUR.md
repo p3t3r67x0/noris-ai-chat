@@ -41,6 +41,18 @@ Der Mock verwendet eine injizierbare Uhr, feste Chunks und Verzögerungen. `/feh
 
 PR 2 erhält lokale Gesprächsmetadaten. Nachrichten und Entwürfe werden erst mit der validierten gemeinsamen Persistenz in PR 3 dauerhaft gespeichert.
 
-## Verzweigungen und Scrollmanagement
+## Verzweigungen und lokale Persistenz
 
-Diese Abschnitte werden mit PR 3–4 um die tatsächlich implementierten Verträge ergänzt. Vorgaben: normalisierte Nachrichten mit Parent-ID und aktivem Blatt; Scroll-Follow richtet sich nach Position und Nutzerabsicht vor einem Layout-Update. Bestehende Nachrichten werden beim Editieren/Regenerieren nicht überschrieben.
+Nachrichten liegen einmalig in einem nach ID normalisierten Record. `parentMessageId` bildet den Baum; `activeLeafMessageId` wählt den sichtbaren Parent-Pfad. Rollen wechseln entlang eines gültigen Pfads. Editieren erzeugt eine neue Nutzernachricht mit demselben Parent und optionaler `editedFromMessageId` als Herkunft. Regeneration erzeugt eine Assistant-Schwester. Der Transport erhält jeweils nur die Historie bis zur gewählten Eingabe. Alte Texte und Fortsetzungen bleiben erhalten.
+
+`useChatBranches` ist durch die reinen Funktionen `siblingVariants` und `variantLeaf` umgesetzt; ein zusätzlicher Store wäre redundant. Beim Wechsel werden die zuletzt betrachteten Blätter für die Pfadknoten gespeichert. Zurückwechseln stellt damit auch eine frühere Fortsetzung wieder her. Neue Varianten folgen deterministisch der Erstellungsreihenfolge. Während eines laufenden Streams sind Editieren, Regeneration und Variantenwechsel gesperrt.
+
+`useChatDrafts` verwaltet einen Entwurf pro Gespräch und einen für die noch nicht angelegte Unterhaltung. Senden löscht nur den eingereichten Entwurf. `useChat` speichert Gesprächsmetadaten, Nachrichten, Blätter und Entwürfe atomar unter `noris-ai:chat:v1`. Der synchron beobachtete Zustand wird höchstens einmal pro 120 ms geschrieben; `pagehide` sichert ausstehende Änderungen. Einstellungen wie Modell und Theme haben eigene Speichergrenzen.
+
+Die Laufzeitvalidierung prüft Version, Größen, eigene Schlüssel, IDs, Rollen, Parents, Zyklen, Herkunft und Gesprächszugehörigkeit vor Hydration. Beschädigte Daten werden nicht überschrieben. Ein beim Reload unterbrochener Mock-Stream wird als abgebrochen dargestellt. Browser-Speicher beginnt erst nach Mount; der Server kennt keine privaten lokalen Daten. Bei konkurrierenden Änderungen in einem anderen Tab werden weitere Schreibvorgänge gestoppt und ein Neuladen empfohlen. Die Demo synchronisiert keine Chats zwischen Geräten und enthält keine PostgreSQL-Domänentabellen.
+
+## Scrollmanagement (PR 4)
+
+Scroll-Follow richtet sich nach Position und Nutzerabsicht vor einem Layout-Update. Konkrete Umsetzung und Nachweise werden mit PR 4 ergänzt.
+
+Ergänzte UX-Vorgabe: Beim Senden mit Enter wird die neue Nutzernachricht am oberen Rand des Verlaufs unter dem Header positioniert. Der letzte Gesprächsschritt reserviert dafür genug Höhe. Während die Antwort wächst, folgt der Viewport ihrem Ende; manuelles Hochscrollen pausiert dieses Folgen. Dies wird in PR 4 implementiert und mit langen Streams auf Desktop/Mobile geprüft.
