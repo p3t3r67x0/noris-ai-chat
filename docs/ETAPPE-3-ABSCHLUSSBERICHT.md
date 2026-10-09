@@ -21,7 +21,7 @@ geprüft. Der Bericht enthält keine behauptete öffentliche Produktivfreigabe.
 | 10. Browser-Migration | PASS | Expliziter Dialog/Start, Vorabvalidierung, IDs/Bäume/Titel/Entwürfe erhalten, identischer Import übersprungen, Konflikt ohne Teilimport; alte lokale Sicherung unverändert |
 | 11. GLM 5.3 | PASS | Katalog-GET bestätigt `vllm/qsu/glm-5-3-flash`; kein erfundener Modellname oder Reasoning-Parameter; Anzeige nur bei aktueller Listung/Freigabe |
 | 12. Tests | PASS | Lokale Unit-, Provider-, PostgreSQL-, WS- und persistente Desktop-/Mobile-Browserprüfungen; Details unten |
-| 13. CI | NOT TESTED | REST/WS-Drift, PostgreSQL 18, lokale Provider, Produktionsbuilds und Caddy-WebSocket-Browserlauf im Workflow ergänzt; GitHub-Läufe gestartet, Abschlussprüfung läuft |
+| 13. CI | PASS | REST/WS-Drift, PostgreSQL 18, lokale Provider, Produktionsbuilds und Caddy-WebSocket-Browserlauf lokal und in GitHub geprüft; aktuelle Remote-Ergebnisse bei den sechs verlinkten PRs |
 | 14. Pull Requests | PASS | Sechs abhängige, konfliktfrei reviewbare PRs A–F erstellt, ohne Merge; Links unten |
 | 15. Betriebsgrenzen | PASS | Single-Owner/Single-Worker und fehlende öffentliche TLS-/OIDC-Abnahme ausdrücklich dokumentiert |
 
@@ -50,6 +50,12 @@ betreibt den Fixture-Provider auf Loopback im Netzwerk-Namespace des Backends;
 zusätzliche öffentliche Provider-/Backendports werden nicht geöffnet. Die
 Browsertests arbeiten mit dem Produktionsbuild; sämtliche bestehenden
 Screenshot-Baselines und Assertions bleiben erhalten.
+
+Ein zusätzlicher CI-Lauf deckte einen zuvor bestehenden Klickverlust bei
+Fortsetzung während eines laufenden Modellkatalog-Refreshs auf. Fortsetzung
+und Regeneration warten nun auf diesen Refresh und prüfen anschließend die
+aktuelle Freigabe. Ein deterministischer Desktop-/Mobile-Regressionstest hält
+die Katalogantwort zurück und prüft die Verarbeitung des Klicks nach Freigabe.
 
 Der lokale neue Smoke-Netzwerkbridge wurde zunächst durch die vorhandene
 Host-Firewall blockiert. Für den erfolgreichen Lauf wurden ausschließlich

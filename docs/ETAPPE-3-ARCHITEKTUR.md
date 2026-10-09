@@ -99,7 +99,8 @@ Operationen; `downgrade()` entfernt nur die neuen Tabellen.
 - **WebSocket-Auth**: Browser-WS kann keine Authorization-Header setzen.
   deshalb kurzlebige, einmalige Tickets: `POST /api/v1/chat/ws-ticket` (Basic)
   → `{ticketId, expiresInSeconds}` (TTL 60 s, Single-Use, In-Memory).
-  Verbindung: `GET /api/v1/chat/ws mit Subprotokollen `noris-chat.v1`, `ticket.<Einmalticket>``. Origin-Allowlist gilt für beides;
+  Verbindung: `GET /api/v1/chat/ws` mit den Subprotokollen `noris-chat.v1`
+  und `ticket.<Einmalticket>`. Origin-Allowlist gilt für beides;
   fremde Origins werden vor dem Accept mit 403 geschlossen. Nach dem Accept
   sendet der Server `chat.connected`. Die URL enthält kein Ticket. Proxy-Logging des `Sec-WebSocket-Protocol`-Headers muss deaktiviert bleiben.
 
@@ -189,6 +190,8 @@ Das WS-Protokoll ist als versioniertes JSON-Schema zusätzlich zu OpenAPI in
   vom Backend geladen. Cachetexte/aktive Blätter überschreiben die DB niemals.
 - `ChatWorkspace.vue` wird nicht neu geschrieben; UI, Scroll-Following,
   Markdown, Fokus bleiben erhalten.
+  Fortsetzung und Regeneration warten auf einen laufenden Modellkatalog-Refresh,
+  damit ein währenddessen ausgeführter Klick nach erneuter Freigabe verarbeitet wird.
 
 ### 2.7 Browser-Migration
 

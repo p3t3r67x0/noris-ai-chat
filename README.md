@@ -33,7 +33,7 @@ curl --fail http://127.0.0.1:8080/api/v1/health/ready
 
 Die Anwendung ist unter **http://127.0.0.1:8080** erreichbar. Caddy führt Frontend und `/api/*` unter derselben Origin zusammen. Die Datenbank besitzt in dieser Konfiguration keinen veröffentlichten Port. PostgreSQL 18 speichert seine Daten im Volume unter `/var/lib/postgresql`.
 
-Der einmalige `migrate`-Dienst führt `alembic upgrade head` nach dem Datenbankstart aus. Der PostgreSQL-Healthcheck prüft TCP auf `127.0.0.1:5432`, damit der temporäre Unix-Socket-Server während der Initialisierung nicht bereits als bereit gilt. Das Backend startet erst nach erfolgreicher Migration. Die Baseline `0001_foundation` verwaltet ausschließlich den Alembic-Revisionsstand; Domänentabellen folgen in Etappe 2.
+Der einmalige `migrate`-Dienst führt `alembic upgrade head` nach dem Datenbankstart aus. Der PostgreSQL-Healthcheck prüft TCP auf `127.0.0.1:5432`, damit der temporäre Unix-Socket-Server während der Initialisierung nicht bereits als bereit gilt. Das Backend startet erst nach erfolgreicher Migration. Die Baseline `0001_foundation` verwaltet ausschließlich den Alembic-Revisionsstand; die Chat-Migrationen 0002–0004 ergänzen Persistenz, immutable Topologie und Fortsetzungsvarianten.
 
 `noris_migrator` ist der lokale Bootstrap-/Migrationsbenutzer. Die Anwendung verbindet sich als `noris_app`, ohne Superuser- oder `BYPASSRLS`-Rechte. Das Init-Skript vergibt für die Foundation nur Verbindungs-, Schema-Nutzungs- und Tabellen-Leserechte. Die Chat-Migration vergibt gezielte DML-Rechte auf die sechs Chat-Tabellen; Ownership prüft die Domain-Schicht. RLS und OIDC-Multi-User sind noch nicht implementiert. Die Migration-Zugangsdaten werden dem Backend-Container nicht übergeben.
 
@@ -178,7 +178,7 @@ Die Backend-Konfiguration ist unveränderlich und typisiert. DB-URL und Provider
 | Endpoint | Verhalten |
 | --- | --- |
 | `GET /api/v1/health/live` | 200, wenn der API-Prozess antwortet; unabhängig von der DB |
-| `GET /api/v1/health/ready` | 200 nach erfolgreichem DB-Check und erwarteter Baseline; sonst 503 |
+| `GET /api/v1/health/ready` | 200 nach erfolgreichem DB-Check und Revision `0004_chat_continuation`; sonst 503 |
 | `GET /api/v1/openapi.json` | Versionierter API-Vertrag |
 | `GET /api/v1/llm/models` | Zugriffsgeschützter, dynamischer Chatmodellkatalog mit serverseitigem Discovery-Cache |
 | `POST /api/v1/llm/chat` | Zugriffsgeschützte Chat-Anfrage mit Etappe-1-Ereignissen als SSE |
@@ -228,7 +228,7 @@ Unter `/` läuft standardmäßig die lokale Chat-Demo ohne Provider-Schlüssel. 
 
 Konfiguration, Anmeldung für Real-Modus, Sicherheitsgrenzen und lokale HTTP-/Browser-Tests: [Etappe-2-Betrieb](docs/ETAPPE-2-BETRIEB.md). Der Provider ist standardmäßig deaktiviert; es gibt keine implizite externe Zieladresse. Echte Provider-Smoke-Tests verlangen einen ausdrücklichen Opt-in und Zugangsdaten außerhalb des Repositories.
 
-Neue Chats erhalten automatisch kurze [Gesprächstitel](docs/AI-CONVERSATION-TITLES.md), ohne das Antwort-Streaming zu verzögern. Manuell vergebene Namen haben Vorrang. Titel und ihr Generierungszustand bleiben im vorhandenen Browser-Speicher erhalten; im Mock-Modus entstehen ausschließlich lokale synthetische Titel. Im Real-Modus gelten die gemeinsamen Backend-Kostenlimits auch für die zusätzliche Titelanfrage.
+Neue Chats erhalten automatisch kurze [Gesprächstitel](docs/AI-CONVERSATION-TITLES.md), ohne das Antwort-Streaming zu verzögern. Manuell vergebene Namen haben Vorrang. Im WebSocket-Modus bleiben Titel in PostgreSQL erhalten, im Mock-/SSE-Kompatibilitätsmodus im Browser. Der Mock-Modus erzeugt ausschließlich lokale synthetische Titel. Für Noris-Titelanfragen gelten die gemeinsamen Backend-Kostenlimits.
 
 GitHub Actions führt Lint, strikte Typprüfung, API-Drift-Check, Unit-, DB- und Browser-Tests sowie Produktionsbuilds aus. Ein zweiter Job baut den vollständigen Compose-Stack aus einem frischen Checkout und prüft Proxy-Routing und DB-Rollenrechte. Browserläufe liefern Reports und Screenshots als Artefakt; fehlgeschlagene Fälle ergänzen Traces.
 
@@ -257,8 +257,8 @@ Zugangsdaten sowie `NORIS_LLM_ALLOWED_ORIGINS` für die Caddy-Origin; migriere m
 bleibt im Backend. Alle Zugangsberechtigten teilen im ausdrücklich begrenzten
 Single-Owner-Modus dieselben Chats. Nutze genau einen Backend-Worker.
 
-Browserlokale Chats werden über „Lokale Chats importieren“ mit Vorschau und
-explizitem Start übernommen. Der ursprüngliche localStorage-Bestand bleibt
+Browserlokale Chats werden über „Lokale Chats importieren“ nach einem
+Hinweisdialog und ausdrücklichem Start übernommen. Der ursprüngliche localStorage-Bestand bleibt
 stehen. Rückkehr zur Demo mit `NUXT_PUBLIC_CHAT_TRANSPORT=mock` liest diese
 Sicherung; neue PostgreSQL-Änderungen werden dadurch nicht zurückkopiert. Sichere
 vor einem Datenbank-Downgrade die DB: Migration 0002 entfernt beim Downgrade die
