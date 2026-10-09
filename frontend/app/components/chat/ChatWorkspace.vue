@@ -69,6 +69,7 @@ function saveEdit(): void {
       v-model:open="sidebarOpen" :conversations="conversations.visible.value" :archived="conversations.archived.value"
       :active-id="conversations.activeId.value" :remove-conversation="chat.remove"
       @new-chat="newChat" @select="conversations.select" @rename="conversations.rename"
+      @fit-title="conversations.fitTitle"
       @archive="conversations.archive" @restore="conversations.restore"
     />
     <main id="chat-main" class="chat-main" aria-label="Chat" tabindex="-1">

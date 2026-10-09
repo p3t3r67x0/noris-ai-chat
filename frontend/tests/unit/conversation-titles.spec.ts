@@ -5,7 +5,7 @@ import { createChatState, useChat } from '../../app/composables/useChat'
 import { createMockTransport } from '../../app/lib/chat/mockTransport'
 import { createRealTransport } from '../../app/lib/chat/realTransport'
 import { parseChatSnapshot, CHAT_STORAGE_KEY } from '../../app/lib/chat/persistence'
-import { mockConversationTitle, validGeneratedTitle } from '../../app/lib/chat/titles'
+import { automaticTitleCandidates, fallbackConversationTitle, mockConversationTitle, normalizeAutomaticTitle, validGeneratedTitle } from '../../app/lib/chat/titles'
 import type { ConversationTitleRequest, ConversationTitleResponse } from '../../app/lib/chat/types'
 
 function fixture(chunkSize = 32_000) {
@@ -27,7 +27,7 @@ describe('bounded conversation titles', () => {
   it.each([
     ['Welche Vorteile bietet Rust gegenüber C++?', 'Rust vs. C++'],
     ['Warum funktioniert Docker DNS nicht?', 'Docker DNS-Probleme'],
-    ['How do I configure Docker Compose?', 'Docker Compose setup'],
+    ['How do I configure Docker Compose?', 'Docker Compose Setup'],
     ['Wie installiere ich Noris AI mit Docker?', 'Noris AI Docker-Setup'],
     ['Erkläre die Unterschiede zwischen PostgreSQL und MariaDB.', 'PostgreSQL vs. MariaDB'],
   ])('mock titles preserve language and technical terms: %s', (input, title) => {
@@ -43,7 +43,7 @@ describe('bounded conversation titles', () => {
     const { chat, calls, resolve } = fixture(100)
     expect(chat.send('Wie installiere ich Docker Compose?', 'balanced')).toBe(true)
     const conversation = chat.conversations.active.value!
-    expect(conversation.title).toBe('Neuer Chat')
+    expect(conversation.title).toBe('Docker Compose Einrichtung')
     expect(conversation.titleGenerationAttempted).toBe(true)
     expect(chat.visible.value[0]?.content).toBe('Wie installiere ich Docker Compose?')
     expect(calls).toHaveLength(0)
@@ -276,5 +276,90 @@ describe('bounded conversation titles', () => {
     await expect(failing.generateTitle!(request, signal)).rejects.toThrow('Modellanfrage')
     const invalid = createRealTransport({ fetcher: async () => Response.json({ conversationId: 'wrong', inputMessageId: 'u', title: 'Docker Setup' }) })
     await expect(invalid.generateTitle!(request, signal)).rejects.toThrow()
+  })
+
+  it.each(['Docker DNS', 'Docker DNS Troubleshooting', 'MCP zu Codex hinzufügen', 'Add MCP to Codex now', 'ÖPNV & Mobilität', 'Datenbankzugriffsrechte prüfen'])('accepts concise topics with two to five words: %s', (title) => {
+    expect(validGeneratedTitle(title)).toBe(true)
+  })
+
+  it.each(['Docker', 'eins zwei drei vier fünf sechs', 'A'.repeat(38) + ' BB', 'Docker DNS...', 'Docker DNS…', 'Bitte Docker erklären', 'Kannst du Docker erklären', 'Can you explain Docker', 'Docker\tDNS', 'Docker  DNS', 'Docker DNS:', 'Docker DNS;'])('rejects unsuitable title: %s', (title) => {
+    expect(validGeneratedTitle(title)).toBe(false)
+  })
+
+  it.each([
+    ['Automatisierte Chat-Titel Implementierung', 'Automatische Chat-Titel'],
+    ['Automatisierte Chat-Titel Impl...', 'Automatische Chat-Titel'],
+    ['Kannst du mir helfen, eine automatische Chat-Titelgenerierung für Noris AI zu implementieren und dabei die bestehende Architektur zu erhalten?', 'Automatische Chat-Titel'],
+    ['Kannst du mir erklären, wie ich Docker unter Ubuntu mit nftables konfigurieren kann?', 'Docker und nftables'],
+    ['Unbekannte Frage '.repeat(2000), 'Neuer Chat'],
+    ['Wie steht es damit?', 'Neuer Chat'],
+  ])('normalizes automatic topics without fragments or ellipsis: %s', (input, title) => {
+    expect(normalizeAutomaticTitle(input)).toBe(title)
+    expect(fallbackConversationTitle(input)).toBe(title)
+  })
+
+  it('keeps known technical nouns when choosing a narrower candidate', () => {
+    expect(automaticTitleCandidates('Docker DNS Troubleshooting Guide')).toContain('Docker DNS')
+    expect(normalizeAutomaticTitle('und wie steht es aus sicht der...', 'Wir besprechen Docker und nftables.')).toBe('Docker und nftables')
+  })
+
+  it('does not interpret an incidental brand in code as a Noris AI integration topic', () => {
+    expect(fallbackConversationTitle('Docker\nEin Beispiel: greet("noris")')).toBe('Neuer Chat')
+  })
+
+  it('normalizes historical automatic titles locally while preserving manual names, messages and branches', async () => {
+    const { chat, transport, calls } = fixture()
+    chat.send('Docker und nftables', 'balanced')
+    await vi.advanceTimersByTimeAsync(100)
+    const original = chat.snapshot()
+    const automatic = chat.conversations.active.value!
+    automatic.title = 'und wie steht es aus sicht der...'
+    automatic.titleSource = 'generated'
+    chat.newChat()
+    const manual = chat.conversations.active.value!
+    chat.conversations.rename(manual.id, 'Automatisierte Chat-Titel Implementierung – Meine vollständigen Notizen')
+    const restored = parseChatSnapshot(JSON.stringify(chat.snapshot()))!
+    expect(restored.conversations.conversations[automatic.id]?.title).toBe('Docker und nftables')
+    expect(restored.conversations.conversations[manual.id]?.title).toBe(manual.title)
+    expect(restored.messages).toEqual(original.messages)
+    expect(restored.preferredLeaves).toEqual(original.preferredLeaves)
+    const reloaded = createChatState(transport)
+    reloaded.hydrate(restored)
+    await vi.advanceTimersByTimeAsync(100)
+    expect(calls).toHaveLength(1)
+  })
+
+  it('never applies a stale width adjustment to a renamed title', () => {
+    const { chat } = fixture()
+    chat.newChat()
+    const conversation = chat.conversations.active.value!
+    conversation.title = 'Docker DNS Troubleshooting Guide'
+    conversation.titleSource = 'generated'
+    chat.conversations.fitTitle(conversation.id, conversation.title, 'Docker DNS')
+    expect(conversation.title).toBe('Docker DNS')
+    chat.conversations.rename(conversation.id, 'Meine eigenen langen DNS-Notizen bleiben vollständig erhalten')
+    chat.conversations.fitTitle(conversation.id, 'Docker DNS', 'Neuer Chat')
+    expect(conversation.titleSource).toBe('manual')
+    expect(conversation.title).toBe('Meine eigenen langen DNS-Notizen bleiben vollständig erhalten')
+  })
+
+  it('recovers a vague first question from the completed conversation locally without a second title request', async () => {
+    const { chat, transport, calls } = fixture()
+    transport.stream = async function* () {
+      yield { seq: 1, type: 'response.started' }
+      yield { seq: 2, type: 'response.output_text.delta', delta: 'Das Thema ist Docker unter Ubuntu mit nftables.' }
+      yield { seq: 3, type: 'response.completed' }
+    }
+    chat.send('was kann ich unter dem begriff verstehen?', 'balanced')
+    expect(chat.conversations.active.value?.title).toBe('Neuer Chat')
+    await vi.advanceTimersByTimeAsync(0)
+    expect(chat.conversations.active.value?.title).toBe('Docker und nftables')
+    expect(chat.conversations.active.value?.titleSource).toBe('fallback')
+    calls[0]!.reject(new Error('INVALID_RESPONSE'))
+    await vi.advanceTimersByTimeAsync(0)
+    chat.send('und wie steht es aus sicht der Sicherheit?', 'balanced')
+    await vi.advanceTimersByTimeAsync(100)
+    expect(calls).toHaveLength(1)
+    expect(chat.conversations.active.value?.title).toBe('Docker und nftables')
   })
 })

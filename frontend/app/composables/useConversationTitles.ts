@@ -1,5 +1,5 @@
 import type { Conversation } from '../lib/chat/conversations'
-import { validGeneratedTitle } from '../lib/chat/titles'
+import { normalizeAutomaticTitle, validGeneratedTitle } from '../lib/chat/titles'
 import type { ChatTransport, ConversationTitleRequest } from '../lib/chat/types'
 
 export function createConversationTitles(transport: ChatTransport, get: (id: string) => Conversation | undefined, timeoutMs = 8000) {
@@ -19,7 +19,7 @@ export function createConversationTitles(transport: ChatTransport, get: (id: str
       const result = await transport.generateTitle(request, controller.signal)
       if (controller.signal.aborted || disposed || get(conversation.id) !== conversation || conversation.titleSource !== 'fallback') return
       if (result.conversationId !== request.conversationId || result.inputMessageId !== request.inputMessageId || !validGeneratedTitle(result.title)) return
-      conversation.title = result.title
+      conversation.title = normalizeAutomaticTitle(result.title)
       conversation.titleSource = 'generated'
     }
     catch { /* A failed title keeps the fallback and never changes the chat stream. */ }

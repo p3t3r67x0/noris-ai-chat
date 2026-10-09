@@ -151,7 +151,7 @@
             "type": "string"
           },
           "title": {
-            "maxLength": 50,
+            "maxLength": 40,
             "minLength": 1,
             "title": "Title",
             "type": "string"

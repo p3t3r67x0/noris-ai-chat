@@ -168,6 +168,8 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 .conversation-row[data-active="true"] { background: var(--noris-active-background); }
 .conversation-row > button:first-child { flex: 1; min-width: 0; padding: 0.65rem 0.75rem; min-height: 2.75rem; border-radius: inherit; text-align: left; font-size: var(--noris-sidebar-font-size); }
 .conversation-row > button:first-child span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conversation-row > button:first-child span[data-title-source="generated"],
+.conversation-row > button:first-child span[data-title-source="fallback"] { overflow: visible; text-overflow: clip; }
 .status-page { max-width: 40rem; margin: 8vh auto; padding: 2rem; }
 .status-page h1 { font-size: 2rem; font-weight: 600; }
 .service-status { margin-top: 2rem; }
