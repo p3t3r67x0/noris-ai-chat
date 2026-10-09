@@ -3,15 +3,18 @@ import { computed, ref } from 'vue'
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { Conversation } from '../../lib/chat/conversations'
 import { groupConversations } from '../../lib/chat/conversations'
+import DeleteConversationDialog from './DeleteConversationDialog.vue'
 
-const props = defineProps<{ conversations: readonly Conversation[], archived: readonly Conversation[], activeId: string | null }>()
+const props = defineProps<{ conversations: readonly Conversation[], archived: readonly Conversation[], activeId: string | null, removeConversation: (id: string) => void | Promise<void> }>()
 const open = defineModel<boolean>('open', { required: true })
-const emit = defineEmits<{ newChat: [], select: [id: string], rename: [id: string, title: string], archive: [id: string], restore: [id: string], delete: [id: string] }>()
+const emit = defineEmits<{ newChat: [], select: [id: string], rename: [id: string, title: string], archive: [id: string], restore: [id: string] }>()
 const groups = computed(() => groupConversations(props.conversations))
 const searchOpen = ref(false)
 const archiveOpen = ref(false)
 const renameTarget = ref<Conversation | null>(null)
 const deleteTarget = ref<Conversation | null>(null)
+const deleteReturnFocus = ref<HTMLElement | null>(null)
+const actionsTrigger = ref<HTMLElement | null>(null)
 const renameTitle = ref('')
 const renameOpen = computed({ get: () => renameTarget.value !== null, set: (value: boolean) => { if (!value) renameTarget.value = null } })
 const deleteOpen = computed({ get: () => deleteTarget.value !== null, set: (value: boolean) => { if (!value) deleteTarget.value = null } })
@@ -45,7 +48,7 @@ function actions(conversation: Conversation): DropdownMenuItem[] {
   return [
     { label: 'Umbenennen', icon: 'i-lucide-pencil', onSelect: () => { closeOnMobile(); renameTarget.value = conversation; renameTitle.value = conversation.title } },
     { label: 'Archivieren', icon: 'i-lucide-archive', onSelect: () => emit('archive', conversation.id) },
-    { label: 'Löschen', icon: 'i-lucide-trash-2', color: 'error', onSelect: () => { closeOnMobile(); deleteTarget.value = conversation } },
+    { label: 'Löschen', icon: 'i-lucide-trash-2', color: 'error', onSelect: () => showDelete(conversation, actionsTrigger.value) },
   ]
 }
 
@@ -55,10 +58,11 @@ function saveRename(): void {
   renameTarget.value = null
 }
 
-function confirmDelete(): void {
-  if (!deleteTarget.value) return
-  emit('delete', deleteTarget.value.id)
-  deleteTarget.value = null
+function showDelete(conversation: Conversation, trigger: HTMLElement | null): void {
+  deleteReturnFocus.value = trigger
+  closeOnMobile()
+  archiveOpen.value = false
+  deleteTarget.value = conversation
 }
 
 const searchGroups = computed(() => [{
@@ -105,7 +109,7 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
               <span>{{ conversation.title }}</span>
             </button>
             <UDropdownMenu :items="actions(conversation)" :content="{ align: 'start', side: 'right' }">
-              <UButton icon="i-lucide-ellipsis" color="neutral" variant="ghost" class="touch-control shrink-0" :aria-label="`Aktionen für ${conversation.title}`" />
+              <UButton icon="i-lucide-ellipsis" color="neutral" variant="ghost" class="touch-control shrink-0" :aria-label="`Aktionen für ${conversation.title}`" @focus="actionsTrigger = $event.currentTarget as HTMLElement" @click="actionsTrigger = $event.currentTarget as HTMLElement" />
             </UDropdownMenu>
           </li>
         </ul>
@@ -117,8 +121,8 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
         <UButton icon="i-lucide-archive" color="neutral" variant="ghost" label="Archivierte Chats" class="min-h-11 justify-start lg:hidden" @click="showArchive" />
         <UColorModeSelect aria-label="Darstellung" class="w-full" :ui="{ base: 'min-h-11' }" />
         <div class="flex items-center gap-3 px-2 pt-2 lg:hidden">
-          <UAvatar text="N" size="sm" />
-          <div class="min-w-0"><p class="text-sm font-medium">Dein Arbeitsbereich</p><p class="text-xs text-muted">Lokale Demo</p></div>
+          <UAvatar text="N" size="sm" class="sidebar-account-avatar" />
+          <div class="min-w-0"><p class="sidebar-account-label font-medium">Dein Arbeitsbereich</p><p class="sidebar-account-caption text-muted">Lokale Demo</p></div>
         </div>
       </div>
     </template>
@@ -147,15 +151,7 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
     </template>
   </UModal>
 
-  <UModal v-model:open="deleteOpen" title="Chat löschen?" description="Dieser Chat und sein Verlauf werden aus der lokalen Demo entfernt.">
-    <template #body><p class="break-words text-sm">{{ deleteTarget?.title }}</p></template>
-    <template #footer>
-      <div class="flex w-full justify-end gap-2">
-        <UButton color="neutral" variant="ghost" label="Abbrechen" @click="deleteTarget = null" />
-        <UButton color="error" label="Löschen" @click="confirmDelete" />
-      </div>
-    </template>
-  </UModal>
+  <DeleteConversationDialog v-model:open="deleteOpen" :conversation="deleteTarget" :remove-conversation="removeConversation" :return-focus="deleteReturnFocus" />
 
   <UModal v-model:open="archiveOpen" title="Archivierte Chats">
     <template #body>
@@ -164,7 +160,7 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
         <li v-for="conversation in archived" :key="conversation.id" class="flex items-center gap-3">
           <span class="min-w-0 flex-1 truncate text-sm">{{ conversation.title }}</span>
           <UButton icon="i-lucide-undo-2" color="neutral" variant="ghost" class="touch-control" :aria-label="`${conversation.title} wiederherstellen`" @click="emit('restore', conversation.id); archiveOpen = false; closeOnMobile()" />
-          <UButton icon="i-lucide-trash-2" color="error" variant="ghost" class="touch-control" :aria-label="`${conversation.title} löschen`" @click="deleteTarget = conversation; archiveOpen = false" />
+          <UButton icon="i-lucide-trash-2" color="error" variant="ghost" class="touch-control" :aria-label="`${conversation.title} löschen`" @click="showDelete(conversation, $event.currentTarget as HTMLElement)" />
         </li>
       </ul>
     </template>

@@ -37,6 +37,7 @@ function selectRunningChat(): void {
 }
 function onShortcut(event: KeyboardEvent): void {
   if (event.isComposing || event.repeat) return
+  if (document.querySelector('.delete-dialog[data-state="open"]')) return
   if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'o') {
     event.preventDefault(); newChat()
   }
@@ -66,9 +67,9 @@ function saveEdit(): void {
     <ChatSidebar
       ref="sidebar"
       v-model:open="sidebarOpen" :conversations="conversations.visible.value" :archived="conversations.archived.value"
-      :active-id="conversations.activeId.value"
+      :active-id="conversations.activeId.value" :remove-conversation="chat.remove"
       @new-chat="newChat" @select="conversations.select" @rename="conversations.rename"
-      @archive="conversations.archive" @restore="conversations.restore" @delete="chat.remove"
+      @archive="conversations.archive" @restore="conversations.restore"
     />
     <main id="chat-main" class="chat-main" aria-label="Chat" tabindex="-1">
       <ChatHeader v-model:model="modelId" :sidebar-open="sidebarOpen" :busy="stream.busy.value" @toggle-sidebar="sidebarOpen = !sidebarOpen" @new-chat="newChat" />

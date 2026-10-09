@@ -1,6 +1,6 @@
 COMPOSE ?= sh infrastructure/scripts/compose.sh
 
-.PHONY: install dev backend-dev db-up db-diagnose network-repair dev-up generate-api check-api lint typecheck test test-unit test-integration test-llm-integration test-e2e build up down migrate python-typecheck
+.PHONY: install dev backend-dev db-up db-diagnose network-repair dev-up generate-api check-api lint typecheck test test-unit test-integration test-llm-integration test-e2e test-e2e-production build up down migrate python-typecheck
 
 install:
 	uv sync --project backend --locked
@@ -57,6 +57,9 @@ test-integration:
 test-e2e:
 	pnpm test:e2e
 	pnpm --dir frontend test:e2e:llm
+
+test-e2e-production:
+	pnpm --dir frontend test:e2e:production
 
 build:
 	uv build --project backend
