@@ -1,0 +1,51 @@
+name: Integration lockfile refresh
+
+on:
+  push:
+    branches: [integration/dependency-lock-refresh]
+
+permissions:
+  contents: write
+
+jobs:
+  resolve:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - name: Install the existing pinned package manager
+        run: npm install --global pnpm@11.1.3
+      - name: Apply the type tooling and matching Vue override versions
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          package = Path('frontend/package.json')
+          data = json.loads(package.read_text())
+          assert data['dependencies']['vue'] == '3.5.43'
+          assert data['devDependencies']['vue-tsc'] == '3.3.11'
+          data['devDependencies']['vue-tsc'] = '3.3.12'
+          package.write_text(json.dumps(data, indent=2) + '\n')
+          workspace = Path('pnpm-workspace.yaml')
+          text = workspace.read_text()
+          assert text.count("'3.5.42'") == 9
+          workspace.write_text(text.replace("'3.5.42'", "'3.5.43'"))
+          PY
+          pnpm install --lockfile-only --no-frozen-lockfile --ignore-scripts
+      - name: Store the candidate on this isolated branch
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          expected = {'frontend/package.json', 'pnpm-workspace.yaml', 'pnpm-lock.yaml'}
+          changed = set(subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines())
+          assert changed == expected, changed
+          PY
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/package.json pnpm-workspace.yaml pnpm-lock.yaml
+          git commit -m "build(deps): resolve current Vue tooling and matching runtime overrides"
+          git push origin HEAD:integration/dependency-lock-refresh
