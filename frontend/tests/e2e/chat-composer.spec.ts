@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
-  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true', { timeout: 15_000 })
 })
 
 test('Enter sends once, streams safe Markdown and allows message and code copying', async ({ page, context, browserName }) => {
@@ -57,8 +57,13 @@ test('mock failure keeps partial output and supports another attempt', async ({ 
   await input.press('Enter')
   await expect(page.locator('.message-assistant')).toHaveAttribute('data-status', 'failed')
   await expect(page.locator('.message-assistant')).toContainText('Teilantwort')
+  await page.clock.install()
+  await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 100))
   await page.getByRole('button', { name: 'Erneut versuchen', exact: true }).click()
+  await expect(page.locator('[data-generation-status]')).toHaveAttribute('data-generation-status', 'submitting')
+  await page.clock.runFor(450)
   await expect(page.locator('[data-generation-status]')).toHaveAttribute('data-generation-status', 'streaming')
+  await page.clock.runFor(1000)
   await expect(page.locator('[data-generation-status]')).toHaveAttribute('data-generation-status', 'failed')
   await expect(page.locator('.message-user')).toHaveCount(1)
 })

@@ -50,7 +50,7 @@ function send(text: string): void {
           <span v-else-if="stream.status.value === 'cancelled'">Antwort gestoppt.</span>
           <template v-else-if="stream.status.value === 'failed'">
             <span>{{ stream.error.value }}</span>
-            <UButton color="neutral" variant="ghost" label="Erneut versuchen" class="min-h-11" @click="chat.retry(modelId)" />
+            <UButton color="neutral" variant="ghost" label="Erneut versuchen" class="min-h-11" :disabled="stream.busy.value" @click="chat.retry(modelId)" />
           </template>
           <span v-else-if="stream.status.value === 'completed'" class="sr-only">Antwort abgeschlossen.</span>
         </div>
