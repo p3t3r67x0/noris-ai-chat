@@ -1,6 +1,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { CONVERSATIONS_STORAGE_KEY, normalizeTitle, parseConversationSnapshot } from '../lib/chat/conversations'
 import type { Conversation, ConversationSnapshot } from '../lib/chat/conversations'
+import { FALLBACK_TITLE, validGeneratedTitle } from '../lib/chat/titles'
 
 export interface ConversationDependencies {
   id?: () => string
@@ -35,6 +36,14 @@ export function createConversationState(dependencies: ConversationDependencies =
     if (conversation) { conversation.title = normalizeTitle(title); conversation.titleSource = 'manual'; conversation.titleGenerationAttempted = true }
   }
 
+  function fitTitle(conversationId: string, expected: string, title: string): void {
+    const conversation = get(conversationId)
+    if (conversation && conversation.titleSource !== 'manual' && conversation.title === expected && (validGeneratedTitle(title) || title === FALLBACK_TITLE)) {
+      conversation.title = title
+      if (title === FALLBACK_TITLE) conversation.titleSource = 'fallback'
+    }
+  }
+
   function archive(conversationId: string): void {
     const conversation = get(conversationId)
     if (!conversation) return
@@ -63,7 +72,7 @@ export function createConversationState(dependencies: ConversationDependencies =
     activeId.value = value.activeConversationId
   }
 
-  return { records, activeId, active, visible, archived, select, create, rename, archive, restore, remove, snapshot, hydrate }
+  return { records, activeId, active, visible, archived, select, create, rename, fitTitle, archive, restore, remove, snapshot, hydrate }
 }
 
 export function useConversations() {
