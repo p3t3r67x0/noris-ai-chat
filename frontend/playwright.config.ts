@@ -25,11 +25,11 @@ export default defineConfig({
       env: { NORIS_LLM_PROVIDER: 'disabled', NORIS_LLM_MODELS: '[]' },
     },
     {
-      command: `pnpm dev --host 127.0.0.1 --port ${frontendPort}`,
+      command: 'node node_modules/nuxt/bin/nuxt.mjs build && node ../scripts/serve-browser-fixture.mjs',
       url: `http://127.0.0.1:${frontendPort}`,
       reuseExistingServer: false,
-      timeout: 120_000,
-      env: { NUXT_PUBLIC_CHAT_TRANSPORT: 'mock', NORIS_DEV_API_TARGET: `http://127.0.0.1:${backendPort}`, NORIS_NUXT_BUILD_DIR: '.nuxt-e2e' },
+      timeout: 180_000,
+      env: { NUXT_PUBLIC_CHAT_TRANSPORT: 'mock', NORIS_E2E_BACKEND_PORT: String(backendPort), NORIS_E2E_FRONTEND_PORT: String(frontendPort), NORIS_NUXT_BUILD_DIR: '.nuxt-e2e', NUXT_TELEMETRY_DISABLED: '1' },
     },
   ],
 })
