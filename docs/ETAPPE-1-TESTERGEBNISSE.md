@@ -36,6 +36,12 @@ PR: [#17](https://github.com/p3t3r67x0/noris-ai-chat/pull/17), abhängig von PR 
 
 Der erste Remote-Lauf prüfte bereits Send-Anker, Fokus, Shortcuts und Gesprächspositionen. Er erkannte eine nachlaufende Scroll-Aktualisierung bei der kontrollierten Uhr; der Post-Render-Watch ergänzt jetzt den ResizeObserver. Außerdem wurde eine Messung im Hintergrund eines geöffneten mobilen Drawers auf einen stabilen DOM-Locator umgestellt. Vier zunächst fehlende Referenzbilder führten bewusst zu fehlgeschlagenen Visual-Tests; sie wurden erzeugt und visuell geprüft. Der abschließende Lauf wird nach tatsächlicher Ausführung ergänzt.
 
+**Zwischenstand:** [CI 37878303592](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37878303592) auf `d6fd1c9` bestand 38 von 40 Playwright-Fällen einschließlich aller vier Referenzvergleiche. Die beiden Scrollfälle bestanden ihre Positions-/Follow-/Lesepause-Assertions, suchten aber erst nach Ende des zeitgesteuerten Mocks den Stop-Button. Das Zeitfenster wurde auf 7,55 s begrenzt und der Streaming-Zustand vor Stop explizit geprüft. Kein Test wurde deaktiviert.
+
+**Ausstehend:** [CI 37878919360](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/37878919360) prüft `80a08b4` mit korrigiertem Stop-Zeitfenster und erhöhtem Platzhalter-/Fehler-/Warnkontrast. Der Bericht wartet nicht auf diesen Lauf. Die vier visuell geprüften Referenzen stammen noch vom vorherigen Farbstand; nach dem Kontrastupdate sind mögliche Abweichungen zu prüfen und Referenzen gegebenenfalls aus tatsächlich gerenderten Bildern neu zu übernehmen. PR 4 bleibt bis dahin ein Entwurf; eine vollständige grüne Browserprüfung wird nicht behauptet.
+
+Ein zusätzlicher lokaler Chromium-Start ohne Serverport war ebenfalls **BLOCKED** (`sandbox_host_linux`, `Operation not permitted`). Auch ein Unix-Socket-Server darf hier nicht binden (`EPERM`). Diese alternativen Versuche ändern keine Anwendungskonfiguration und liefern keinen erfolgreichen Browsernachweis.
+
 ## Screenshots
 
 | Zustand | Desktop | Mobile |
