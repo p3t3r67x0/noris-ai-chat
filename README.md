@@ -220,8 +220,10 @@ pnpm --dir frontend exec playwright install --with-deps chromium
 make test-e2e
 ```
 
-Sechs Playwright-Fälle prüfen auf Desktop und Mobile die Verbindung FE → BE → DB, Neuladen, API-Ausfall mit Tastatur-Retry und die Viewport-Breite. Spätere Chat-Tests aus dem Plan werden mit den jeweiligen Funktionen ergänzt.
+Die sechs Foundation-Playwright-Fälle bleiben unter `/status` erhalten. Die Chat-Tests prüfen Desktop und Mobile, Markdown/Clipboard, IME, Streaming/Stop/Fehler, Verzweigungen, Entwürfe, lange Verläufe, Shortcuts, Fokus und Light/Dark-Screenshots. Referenzen liegen unter `frontend/tests/e2e/__screenshots__/linux`. Nach einer beabsichtigten Designänderung können sie mit `pnpm --dir frontend test:e2e chat-visual.spec.ts --update-snapshots` neu erzeugt werden; neue Bilder vor dem Commit visuell prüfen.
 
-GitHub Actions führt Lint, strikte Typprüfung, API-Drift-Check, Unit-, DB- und Browser-Tests sowie Produktionsbuilds aus. Ein zweiter Job baut den vollständigen Compose-Stack aus einem frischen Checkout und prüft Proxy-Routing und DB-Rollenrechte. Fehlgeschlagene Browserläufe liefern Reports und Traces.
+Unter `/` läuft die lokale Chat-Demo ohne Provider-Schlüssel. `/lang` erzeugt einen langen Stream, `/fehler` einen reproduzierbaren Fehler mit Teilantwort. Chats und Entwürfe werden im Browser gespeichert; die Modelle, Anhänge und der Benutzerbereich sind vorbereitete Demo-Funktionen. Enter sendet, Shift+Enter fügt einen Zeilenumbruch ein. Neue Fragen rücken unter den Header; manuelles Hochscrollen pausiert das Folgen. `Ctrl/Cmd+Shift+O` startet einen Chat, `Ctrl/Cmd+K` öffnet die Suche und Escape stoppt außerhalb von Dialogen eine Antwort.
+
+GitHub Actions führt Lint, strikte Typprüfung, API-Drift-Check, Unit-, DB- und Browser-Tests sowie Produktionsbuilds aus. Ein zweiter Job baut den vollständigen Compose-Stack aus einem frischen Checkout und prüft Proxy-Routing und DB-Rollenrechte. Browserläufe liefern Reports und Screenshots als Artefakt; fehlgeschlagene Fälle ergänzen Traces.
 
 Die Nachweise der Foundation stehen in [docs/ETAPPE-0-TESTERGEBNISSE.md](docs/ETAPPE-0-TESTERGEBNISSE.md). Aufbau und aktueller Prüfstand der Chat-Oberfläche stehen in [docs/ETAPPE-1-ARCHITEKTUR.md](docs/ETAPPE-1-ARCHITEKTUR.md) und [docs/ETAPPE-1-TESTERGEBNISSE.md](docs/ETAPPE-1-TESTERGEBNISSE.md). Etappe 2 benötigt eine neue ausdrückliche Freigabe.
