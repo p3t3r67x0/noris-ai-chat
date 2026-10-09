@@ -7,6 +7,7 @@ export interface StreamCallbacks {
   delta: (text: string) => void
   status: (status: Exclude<GenerationStatus, 'idle'>) => void
   failure?: (code: string, message: string) => void
+  replace?: (text: string) => void
 }
 
 export function useChatStream(transport: ChatTransport) {
@@ -36,7 +37,17 @@ export function useChatStream(transport: ChatTransport) {
     try {
       for await (const event of transport.stream(request, signal)) {
         if (!isBusy(status.value)) break
-        if (!Number.isSafeInteger(event.seq) || event.seq < 1) throw new Error('Ungültige Ereignisfolge')
+        if (!Number.isSafeInteger(event.seq) || event.seq < (event.type === 'response.snapshot' ? 0 : 1)) throw new Error('Ungültige Ereignisfolge')
+        if (event.type === 'response.snapshot') {
+          if (event.seq < sequence) continue
+          if (event.content.length > maxResponseChars) throw new Error('Die Antwort überschreitet die zulässige Länge.')
+          sequence = event.seq
+          length = event.content.length
+          callbacks.replace?.(event.content)
+          transition(event.status)
+          if (!isBusy(status.value)) break
+          continue
+        }
         if (event.seq <= sequence) continue
         if (event.seq !== sequence + 1) throw new Error('Die Antwort wurde unvollständig übertragen.')
         sequence = event.seq

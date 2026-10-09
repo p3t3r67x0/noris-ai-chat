@@ -12,7 +12,7 @@ export function indexSiblingVariants(records: MessageRecords): ReadonlyMap<strin
   }
   const index = new Map<string, readonly ChatMessage[]>()
   for (const siblings of groups.values()) {
-    siblings.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    siblings.sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
     for (const message of siblings) index.set(message.id, siblings)
   }
   return index
@@ -22,7 +22,7 @@ export function siblingVariants(records: MessageRecords, messageId: string): Cha
   const selected = Object.hasOwn(records, messageId) ? records[messageId] : undefined
   if (!selected) return []
   return Object.values(records).filter(message => message.conversationId === selected.conversationId && message.parentMessageId === selected.parentMessageId && message.role === selected.role)
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
 }
 
 export function variantLeaf(records: MessageRecords, preferred: Record<string, string>, messageId: string): string {
@@ -35,7 +35,7 @@ export function variantLeaf(records: MessageRecords, preferred: Record<string, s
   while (!seen.has(leaf)) {
     seen.add(leaf)
     const child = Object.values(records).filter(node => node.conversationId === message.conversationId && node.parentMessageId === leaf)
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt)).at(-1)
+      .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt)).at(-1)
     if (!child) return leaf
     leaf = child.id
   }

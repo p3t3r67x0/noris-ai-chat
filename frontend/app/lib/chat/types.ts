@@ -1,5 +1,7 @@
 import type { ChatModelId } from '../../composables/useModelSelection'
 import type { ApiPaths } from '../../types/generated/api'
+import type { Conversation } from './conversations'
+import type { ChatBackend } from './backend'
 
 export type ConversationTitleRequest = ApiPaths['/api/v1/llm/conversation-title']['post']['requestBody']
 export type ConversationTitleResponse = ApiPaths['/api/v1/llm/conversation-title']['post']['responses'][200]
@@ -19,6 +21,7 @@ export interface ChatMessage {
   continuationCount?: number
   errorCode?: string
   errorMessage?: string
+  generationId?: string
 }
 export type MessageRecords = Record<string, ChatMessage>
 export interface ChatRequest {
@@ -31,6 +34,10 @@ export interface ChatRequest {
   operation?: 'generate' | 'continue'
   assistantMessageId?: string
   continuationCount?: number
+  input?: ChatMessage
+  conversation?: Conversation
+  resume?: boolean
+  sourceAssistantMessageId?: string
 }
 export type StreamEvent = { seq: number } & (
   | { type: 'response.started' }
@@ -39,10 +46,14 @@ export type StreamEvent = { seq: number } & (
   | { type: 'response.incomplete', reason: 'output_limit' }
   | { type: 'response.cancelled' }
   | { type: 'response.failed', code: string, message: string }
+  | { type: 'response.snapshot', content: string, status: Exclude<GenerationStatus, 'idle'> }
 )
 export interface ChatTransport {
   stream: (request: ChatRequest, signal: AbortSignal) => AsyncIterable<StreamEvent>
   generateTitle?: (request: ConversationTitleRequest, signal: AbortSignal) => Promise<ConversationTitleResponse>
+  backend?: ChatBackend
+  connect?: () => Promise<void>
+  dispose?: () => void
 }
 export const NEW_CHAT_DRAFT = '__new__'
 export const isBusy = (status: GenerationStatus): boolean => status === 'submitting' || status === 'streaming'

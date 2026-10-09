@@ -6,7 +6,7 @@ import { groupConversations } from '../../lib/chat/conversations'
 import DeleteConversationDialog from './DeleteConversationDialog.vue'
 import ConversationTitle from './ConversationTitle.vue'
 
-const props = defineProps<{ conversations: readonly Conversation[], archived: readonly Conversation[], activeId: string | null, removeConversation: (id: string) => void | Promise<void> }>()
+const props = defineProps<{ demo?: boolean, conversations: readonly Conversation[], archived: readonly Conversation[], activeId: string | null, removeConversation: (id: string) => void | Promise<void> }>()
 const open = defineModel<boolean>('open', { required: true })
 const emit = defineEmits<{ newChat: [], select: [id: string], rename: [id: string, title: string], fitTitle: [id: string, expected: string, title: string], archive: [id: string], restore: [id: string] }>()
 const groups = computed(() => groupConversations(props.conversations))
@@ -123,7 +123,7 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
         <UColorModeSelect aria-label="Darstellung" class="w-full" :ui="{ base: 'min-h-11' }" />
         <div class="flex items-center gap-3 px-2 pt-2 lg:hidden">
           <UAvatar text="N" size="sm" class="sidebar-account-avatar" />
-          <div class="min-w-0"><p class="sidebar-account-label font-medium">Dein Arbeitsbereich</p><p class="sidebar-account-caption text-muted">Lokale Demo</p></div>
+          <div class="min-w-0"><p class="sidebar-account-label font-medium">Dein Arbeitsbereich</p><p class="sidebar-account-caption text-muted">{{ demo === false ? 'Dein Arbeitsbereich' : 'Lokale Demo' }}</p></div>
         </div>
       </div>
     </template>
