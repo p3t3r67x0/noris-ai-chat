@@ -79,7 +79,7 @@ test('search, deletion and persisted navigation remain keyboard usable', async (
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
-  await page.getByRole('button', { name: 'Aktionen für Gedanken 1' }).click()
+  await page.getByRole('button', { name: 'Aktionen für Gedanken 1', exact: true }).click()
   await page.getByRole('menuitem', { name: 'Löschen', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Chat löschen?', exact: true })
   await expect(dialog).toBeVisible()
@@ -96,18 +96,47 @@ test('search, deletion and persisted navigation remain keyboard usable', async (
   if (testInfo.project.name === 'desktop') await expect(toggle).toHaveAttribute('aria-expanded', 'false')
   await toggle.click()
   await expect(page.getByRole('navigation', { name: 'Gespräche' })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Gespräche' }).getByRole('button', { name: 'Gedanken 1', exact: true })).toHaveCount(0)
+})
+
+test('large code, tables, URLs and untrusted Markdown remain inside the conversation', async ({ page }) => {
+  const snapshot = savedChat()
+  snapshot.messages['user-0']!.content = 'https://example.com/' + 'x'.repeat(1500)
+  snapshot.messages['assistant-0']!.content = '# Große Inhalte\n\n<script>alert("unsafe")</script>\n\n```text\n' + 'code'.repeat(500) + '\n```\n\n| Erste Spalte | Zweite Spalte | Dritte Spalte |\n| --- | --- | --- |\n| ' + 'cell'.repeat(100) + ' | ' + 'another'.repeat(100) + ' | ' + 'value'.repeat(100) + ' |'
+  await seedChat(page, snapshot)
+  await page.goto('/')
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+  await expect(page.locator('.assistant-content script')).toHaveCount(0)
+  const overflow = await page.evaluate(() => {
+    const code = document.querySelector('.code-block pre')!
+    const table = document.querySelector('.markdown-table')!
+    return { page: document.documentElement.scrollWidth > innerWidth, code: code.scrollWidth > code.clientWidth, table: table.scrollWidth > table.clientWidth, windowTop: scrollY }
+  })
+  expect(overflow).toEqual({ page: false, code: true, table: true, windowTop: 0 })
 })
 
 for (const count of [100, 500]) {
   test(`${count} messages stay responsive and do not rerender old message nodes on streaming`, async ({ page }, testInfo) => {
     const snapshot = savedChat(count / 2)
     snapshot.messages[`assistant-${count / 2 - 1}`]!.content += '\n\n```python\n' + 'value = "a long code line that can scroll horizontally"\n'.repeat(150) + '```'
+    for (let index = 0; index < 10; index++) {
+      const original = snapshot.messages['assistant-0']!
+      const id = `alternative-${index}`
+      snapshot.messages[id] = { ...original, id, content: `Alternative Antwort ${index + 1}` }
+    }
     await seedChat(page, snapshot)
     const start = Date.now()
     await page.goto('/')
     await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true', { timeout: 15_000 })
     await expect(page.locator('.chat-message')).toHaveCount(count)
     const readyMs = Date.now() - start
+    const scrollToFrameMs = await page.locator('.chat-scroll').evaluate(async (element) => {
+      const start = performance.now()
+      element.scrollTop -= 500
+      element.dispatchEvent(new Event('scroll'))
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+      return performance.now() - start
+    })
     await page.locator('.message-user').first().evaluate(element => { element.dataset.retained = 'yes' })
     const metrics = await page.getByRole('textbox', { name: 'Nachricht', exact: true }).evaluate(async (element) => {
       if (!(element instanceof HTMLTextAreaElement)) throw new Error('Missing textarea')
@@ -126,5 +155,6 @@ for (const count of [100, 500]) {
     await expect(page.locator('[data-generation-status]')).toHaveAttribute('data-generation-status', 'cancelled')
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await testInfo.attach('performance', { body: JSON.stringify({ count, readyMs, ...metrics }, null, 2), contentType: 'application/json' })
+    await testInfo.attach('scroll-performance', { body: JSON.stringify({ count, scrollToFrameMs, inactiveVariants: 10 }, null, 2), contentType: 'application/json' })
   })
 }

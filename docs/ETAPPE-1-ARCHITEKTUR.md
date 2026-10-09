@@ -23,9 +23,9 @@ Gesprächsdaten und ihre Invarianten liegen in typisierten Modulen unter `app/li
 
 ## Design und geprüfte APIs
 
-Nuxt **4.5.2** bleibt bestehen. Nuxt UI **4.11.3** ergänzt Tailwind 4. Seine Modulregistrierung übernimmt die Tailwind-Integration; der bisher separat registrierte Vite-Plugin-Aufruf entfällt. `app/app.config.ts` definiert die semantischen Farben. `UApp` stellt den deutschen UI-Kontext bereit. Systemschriften und gebündelte Lucide-Icons benötigen keine externen Font-/Icon-Anfragen.
+Nuxt **4.5.2** bleibt bestehen. Nuxt UI **4.11.3** ergänzt Tailwind 4. Seine Modulregistrierung übernimmt die Tailwind-Integration; der bisher separat registrierte Vite-Plugin-Aufruf entfällt. `app/app.config.ts` definiert die semantischen Farben. `UApp` stellt den deutschen UI-Kontext bereit. Lokale Arial/Helvetica-kompatible Schriften und gebündelte Lucide-Icons benötigen keine externen Font-/Icon-Anfragen.
 
-Die Oberfläche hat eine unabhängig scrollbar bleibende Sidebar, einen schmalen Header, eine begrenzte Lesebreite und genau einen Scrollbereich für den aktiven Verlauf. Eine ruhige neutrale Palette und ein dezenter noris-Akzent unterstützen die tägliche Arbeit. Große Touch-Ziele und sichtbarer Fokus gelten bereits in der Shell.
+Die Oberfläche hat eine unabhängig scrollbar bleibende Sidebar, einen schmalen Header, eine begrenzte Lesebreite und genau einen Scrollbereich für den aktiven Verlauf. Die nachgereichte Referenz präzisiert die Palette zu neutralen gemessenen Light-Flächen und schwarzen/weißen Hauptaktionen. Große Touch-Ziele und sichtbarer Fokus gelten weiterhin.
 
 Primärquellen, geprüft am 2026-10-09: [Nuxt-4-Verzeichnisstruktur](https://nuxt.com/docs/4.x/directory-structure/app), [Nuxt UI 4.11.3](https://github.com/nuxt/ui/releases/tag/v4.11.3), [Nuxt-UI-Installation](https://github.com/nuxt/ui/blob/v4.11.3/docs/content/docs/1.getting-started/2.installation/1.nuxt.md), [Sidebar](https://github.com/nuxt/ui/blob/v4.11.3/src/runtime/components/Sidebar.vue), [ChatPrompt einschließlich IME-Behandlung](https://github.com/nuxt/ui/blob/v4.11.3/src/runtime/components/ChatPrompt.vue).
 
@@ -67,4 +67,28 @@ Shortcuts: `Ctrl/Cmd+Shift+O` erzeugt einen Chat und fokussiert die Eingabe; `Ct
 
 ## Visuelle Regression
 
-Playwright prüft Desktop und Pixel-7-Viewport mit derselben Chromium-Version. Vier Linux-Referenzen decken die leere Light-/Dark-Ansicht ab. Die Uhr ist für die Referenzbilder fixiert; Animationen und Caret werden ausgeblendet. Zusätzlich entstehen Screenshots des aktiven Gesprächs und Streams. Referenzen werden nur nach sichtbarer Prüfung übernommen; normale CI akzeptiert neue Bilder nicht automatisch. Reale iOS-/Android-Bildschirmtastaturen und andere Browserengines bleiben gesonderte manuelle Abnahmefälle.
+Playwright prüft Desktop und Pixel-7-Viewport mit derselben Chromium-Version. Vier bisherige Linux-Referenzen bleiben erhalten. Der Folge-PR ergänzt22 Zustands-/Theme-Szenen und eine1920×975-Referenzszene: Desktop leer/aktiv/streaming/Sidebar offen/geschlossen/Code/lang, Mobile leer/aktiv/Drawer/streaming, jeweils Light/Dark. Die Uhr ist fixiert; Animationen und Caret werden ausgeblendet. Referenzen werden nur nach sichtbarer Prüfung übernommen; normale CI akzeptiert neue Bilder nicht automatisch. Reale iOS-/Android-Bildschirmtastaturen und andere Browserengines bleiben gesonderte manuelle Abnahmefälle.
+
+## Referenz-Folge-PR und Komponenteninventar
+
+Die [gemessene Analyse](ui-reference/REFERENCE-ANALYSIS.md) und [Tokens](ui-reference/DESIGN-TOKENS.md) definieren das nachgereichte Layout. PR18 `feat/chatgpt-ui-fidelity` baut auf PR17 auf. Es ersetzt keine Domain-/Transportarchitektur. Ein flexbasierter Viewport-Root trägt eigene Icon-Leiste, vorhandene USidebar mit ihrem Gap und den flexiblen Chatbereich. Nur die Bibliotheks-Sidebar positioniert ihre eigene Fläche; der gesamte Seitenaufbau benutzt keine absoluten Koordinaten.
+
+Bei1920px: Leiste68, Sidebar376, Inhalt/Composer1000, Header68, einzeiliger Composer70, Abstand zum unteren Rand29 inklusive Noris-Hinweis. Kleinere Desktopgrößen interpolieren Breiten/Schriftmaße; unter1024px bleiben Header und der vorhandene mobile Slideover. Die Referenzschrift ist unbekannt; Arial/Helvetica-kompatible Schriften bleiben lokal und passen nach Glyphenmessung besser als der vorherige breite Systemfont. Dark/Mobile sind begründete Produktvarianten, keine beobachteten Referenzen.
+
+| Komponente / Datei unter `frontend/app/components/chat/` | Aufgabe / Abhängigkeiten | Zustand | Accessibility / Referenz |
+| --- | --- | --- | --- |
+| ChatWorkspace.vue | Composition Root, useChat/ModelSelection/Viewport/SidebarPreference | Gesprächskoordination, Editor; kein Singleton | Main/Sprunglink/Phasenstatus; drei Spalten |
+| ChatRail.vue | Noris Home, vorhandene Suche/Archiv, Konto-Popover; UButton/Tooltip/Popover/Avatar | nur Popoveropen | benannte Nav/Buttons44px; Leiste68px, eigene Icons |
+| ChatSidebar.vue | Gruppen/Suche/CRUD, USidebar/Modal/CommandPalette | Dialogziele, Suchzustand; Daten via Props/Events | Bibliotheksfokus, Drawer vor Dialog schließen;376px/48px Zeilen |
+| ChatHeader.vue | Modell, Sidebar, neuer Chat; SelectMenu/Button | kontrolliertes Modell | kompakt/fix im Flow, benannte Aktionen; angenommene68px |
+| EmptyChatState.vue | Gruß vor demselben Composer | zustandslos | semantisches H1; Referenz leer UNVERIFIED |
+| ChatComposer.vue | UChatPrompt/Submit/SelectMenu, Inline-Toolbar, Autosize/IME | kontrollierter Draft/Modell, TextareaRef | Fokus/Enter/Shift/Stop;70px/35px Radius, Attachment ausdrücklich unavailable |
+| ChatTimeline.vue | ein Verlauf, turns-Projektion, useChatScroll | DOM-Refs, Scrollabsicht/Positionsmap | benannte Region/Ende-Button, kein Token-live; gemeinsame1000px-Spalte |
+| ChatMessage.vue | User/Assistant, Copy/Edit/Regenerate | nur Clipboardfeedback | Article/nicht nur Hover; schwarze Blase/freie Assistantfläche |
+| MessageVariants.vue | Schwesterwahl | kontrollierte Auswahl | benannte Pfeile, Busy-Sperre; Verhalten durch Branchtests belegt |
+| MarkdownContent.ts | sichere Markdown-it-VNodes, CodeBlock | zustandslos | Allowlist/sichere Links; proportionale Text-/Heading-Tokens |
+| CodeBlock.vue | Shiki-Klartext/Highlight, useCopy | Tokens/Revisionsschutz/Clipboard | beschrifteter Fokusblock, Kopierfeedback; blockweises Horizontaloverflow |
+
+`useSidebarPreference` speichert ausschließlich Desktopänderungen unter `noris-ai:sidebar-open`. Mobile Drawer-Aktionen ändern diese Präferenz nicht. Browserzugriff beginnt nach Mount und verträgt blockierten Speicher. Stop und Senden fokussieren dieselbe Textarea mit preventScroll; ein späterer Abschluss stiehlt keinen fremden Fokus. `useChatScroll` misst jetzt die tatsächlichen Timeline-Paddings statt fest56px zu subtrahieren; Nutzerabsicht, ResizeObserver und RAF bleiben unverändert.
+
+MCP-Abfragen sind in dieser Sitzung BLOCKED („unknown MCP server“), obwohl Nuxt in der CLI registriert ist. APIs wurden vor Anpassung an installierten4.11.3-Komponenten und generierten Slottypen geprüft. Dieser Ersatz ist ausdrücklich kein MCP-Nachweis.

@@ -21,8 +21,8 @@ export function savedChat(turns = 1): ChatSnapshot {
 }
 export async function seedChat(page: Page, snapshot: ChatSnapshot, theme = 'light') {
   await page.addInitScript(({ key, value, selectedTheme }) => {
-    localStorage.setItem(key, value)
-    localStorage.setItem('noris-ai-theme', selectedTheme)
+    if (localStorage.getItem(key) === null) localStorage.setItem(key, value)
+    if (localStorage.getItem('noris-ai-theme') === null) localStorage.setItem('noris-ai-theme', selectedTheme)
   }, { key: CHAT_STORAGE_KEY, value: JSON.stringify(snapshot), selectedTheme: theme })
 }
 

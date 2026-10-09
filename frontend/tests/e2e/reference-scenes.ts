@@ -21,10 +21,19 @@ export async function captureScene(page: Page, testInfo: TestInfo, scene: string
   }
   if (scene === 'code') await expect(page.locator('.syntax-token').first()).toBeVisible()
   if (scene === 'reference') {
+    // Read the supplied comparable answer while a genuine cancellable mock runs
+    // in the next turn. No production component receives a screenshot-only state.
+    const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
+    await input.fill('/lang')
+    await page.clock.install()
+    await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 100))
+    await input.press('Enter')
+    await page.clock.runFor(1000)
+    await expect(page.locator('[data-generation-status]')).toHaveAttribute('data-generation-status', 'streaming')
     await page.locator('.message-assistant h1').evaluate(element => {
       const scroll = element.closest('.chat-scroll')
       if (!(scroll instanceof HTMLElement)) throw new Error('Missing conversation scroller')
-      scroll.scrollTop += element.getBoundingClientRect().top - 159
+      scroll.scrollTop += element.getBoundingClientRect().top - 152
       scroll.dispatchEvent(new Event('scroll'))
     })
   }
