@@ -128,6 +128,20 @@ describe('lazy chat resources', () => {
     await vi.waitFor(() => expect(connect).toHaveBeenCalledOnce())
     expect(state.visible.value[0]?.content).toBe('Answer 1')
   })
+  it('moves an out-of-page active chat into the sidebar on a live title update without replacing messages', async () => {
+    const { backend } = client(99)
+    const transport = { backend, stream: async function* () {} }
+    const state = createChatState(transport)
+    let sync!: ReturnType<typeof useChatBackend>
+    wrappers.push(mount(defineComponent({ setup() { sync = useChatBackend(state, transport); return () => h('div') } })))
+    await vi.waitFor(() => expect(sync.backendReady.value).toBe(true))
+    expect(sync.pagination.conversations.value.some(c => c.id === id(99))).toBe(false)
+    const read = vi.spyOn(backend, 'path')
+    backend.remember({ ...conversation(99), version: 2, title: 'Updated title', updatedAt: '2026-01-02T00:00:00Z' })
+    expect(sync.pagination.conversations.value[0]?.title).toBe('Updated title')
+    expect(state.visible.value[0]?.content).toBe('Answer 99')
+    expect(read).not.toHaveBeenCalled()
+  })
 })
 
 describe('bounded read cache', () => {

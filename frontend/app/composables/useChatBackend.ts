@@ -5,6 +5,7 @@ import { conversationFromServer, messageFromServer } from '../lib/chat/backend'
 import type { ApiSchemas } from '../types/generated/api'
 import { ChatLoadCache } from '../lib/chat/loadCache'
 import { CHAT_STORAGE_KEY, parseChatSnapshot } from '../lib/chat/persistence'
+import { compareConversations } from '../lib/chat/conversations'
 
 export const CHAT_CACHE_KEY = 'noris-ai:chat-cache:v2'
 const OFFLINE_DRAFTS_KEY = 'noris-ai:offline-drafts:v1'
@@ -86,7 +87,10 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   function applyPath(result: ApiSchemas['ActivePathResponse'], append = false): void {
     const id = result.conversation.id
     const retainsBoundary = append && result.boundaryParentId && state.messages.value[result.boundaryParentId]?.conversationId === id
-    if (!append) state.messages.value = Object.fromEntries(Object.entries(state.messages.value).filter(([, m]) => m.conversationId !== id))
+    if (!append) {
+      state.messages.value = Object.fromEntries(Object.entries(state.messages.value).filter(([, m]) => m.conversationId !== id))
+      state.variantSummaries.value = Object.fromEntries(Object.entries(state.variantSummaries.value).filter(([key]) => Boolean(state.messages.value[key])))
+    }
     for (const message of result.messages) state.messages.value[message.id] = messageFromServer(message)
     for (const summary of result.variants) state.variantSummaries.value[summary.messageId] = summary
     if (!retainsBoundary) state.pathBoundaries.value[id] = result.boundaryParentId ?? null
@@ -131,6 +135,11 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   }
   backend.onConversation = (value) => {
     const previous = state.conversations.records.value[value.id]
+    // An active chat outside page one can become recent through a live update.
+    // Its metadata then belongs in the sorted sidebar without reloading messages.
+    if (!value.archivedAt && previous && compareConversations(conversationFromServer(value), previous) < 0 && !sidebarIds.value.includes(value.id)) {
+      sidebarIds.value = [value.id, ...sidebarIds.value].slice(0, 500)
+    }
     const changedLeaf = previous?.activeLeafMessageId !== value.activeLeafMessageId
     if (changedLeaf && value.id === state.conversations.activeId.value && value.id !== state.generatingConversationId.value) {
       // Retain the displayed path until its new authoritative window is ready.
