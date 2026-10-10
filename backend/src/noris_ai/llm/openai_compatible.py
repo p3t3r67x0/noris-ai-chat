@@ -87,7 +87,9 @@ class OpenAICompatibleProvider:
                         if len(data) > self._config.llm_max_upstream_bytes:
                             raise LLMError("INVALID_RESPONSE")
                     try:
-                        payload = ProviderModels.model_validate(json.loads(data, parse_float=Decimal))
+                        payload = ProviderModels.model_validate(
+                            json.loads(data, parse_float=Decimal)
+                        )
                     except ValidationError:
                         raise LLMError("INVALID_RESPONSE") from None
                     models: dict[str, ProviderModel] = {}

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from typing import Annotated, Literal, Self
 
 from pydantic import Field, field_validator, model_validator
@@ -38,7 +40,14 @@ class TimeoutPolicy(ApiSchema):
 
 class ModelCost(ApiSchema):
     evidence: Evidence = "UNKNOWN"
-    source: str = "https://noris.cloud/nai/punkte-rechner/"
+    source: str = "https://ai.noris.de/v1/models"
+    currency: Literal["USD"] | None = None
+    input_usd_per_million: Decimal | None = Field(default=None, ge=0)
+    cached_input_usd_per_million: Decimal | None = Field(default=None, ge=0)
+    output_usd_per_million: Decimal | None = Field(default=None, ge=0)
+    is_free: bool | None = None
+    discount_to_user: Decimal | None = None
+    discount_applied: bool = False
     as_of: str | None = None
     input_points_per_million: float | None = Field(default=None, ge=0)
     cached_input_points_per_million: float | None = Field(default=None, ge=0)
@@ -53,7 +62,20 @@ class LLMModel(ApiSchema):
     context_window: int = Field(default=8192, ge=256, le=2_000_000)
     # Total generated tokens, including reasoning, rather than visible text only.
     max_output_tokens: int = Field(default=1024, ge=1, le=131_072)
-    provider_max_output_tokens: int = Field(default=8192, ge=1, le=131_072)
+    provider_max_output_tokens: int | None = Field(default=None, ge=1)
+    verified_max_output_tokens: int | None = Field(default=None, ge=1, le=131_072)
+    effective_context_window: int | None = Field(default=None, ge=256, le=2_000_000)
+    effective_max_output_tokens: int | None = Field(default=None, ge=1, le=131_072)
+    provider_schema_version: str | None = None
+    provider_name: str | None = None
+    provider_created_at: str | None = None
+    input_modalities: list[str] = Field(default_factory=list)
+    output_modalities: list[str] = Field(default_factory=list)
+    is_ready: bool | None = None
+    chat_approved: bool = False
+    provenance: dict[
+        str, Literal["PROVIDER", "LOCAL_POLICY", "DOCUMENTATION", "LIVE_TEST", "UNKNOWN"]
+    ] = Field(default_factory=dict)
     provider_limit_evidence: str | None = Field(default=None, min_length=1, max_length=500)
     provider: str | None = Field(default=None, max_length=120)
     category: ModelCategory = "UNKNOWN"
@@ -92,12 +114,22 @@ class LLMModel(ApiSchema):
             and self.context_window > self.provider_context_window
         ):
             raise ValueError("Context window exceeds confirmed provider capacity")
-        if self.max_output_tokens > self.provider_max_output_tokens:
+        if self.max_output_tokens > (self.provider_max_output_tokens or 8192):
             raise ValueError("Output exceeds the configured provider capacity")
         if (
-            self.provider_max_output_tokens > 8192 or (self.provider_context_window or 0) > 8192
+            (self.provider_max_output_tokens or 0) > 8192
+            or (self.provider_context_window or 0) > 8192
         ) and (not self.provider_limit_evidence or not self.provider_limit_evidence.strip()):
             raise ValueError("Expanded provider output requires verification evidence")
+        if (
+            self.verified_max_output_tokens
+            and self.max_output_tokens > self.verified_max_output_tokens
+        ):
+            raise ValueError("Output exceeds live-tested capacity")
+        if self.effective_context_window not in (None, self.context_window):
+            raise ValueError("Effective context must match the legacy application limit")
+        if self.effective_max_output_tokens not in (None, self.max_output_tokens):
+            raise ValueError("Effective output must match the legacy application limit")
         if self.documented_context_window and self.context_window > self.documented_context_window:
             raise ValueError("Policy context must not exceed documented context")
         if self.supported_output_tokens and self.max_output_tokens > self.supported_output_tokens:
