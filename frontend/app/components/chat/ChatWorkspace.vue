@@ -106,9 +106,9 @@ function saveEdit(): void {
             <UButton v-if="fallbackId && !canSend" color="neutral" variant="link" label="Verfügbares Modell auswählen" @click="chooseFallback" />
             <UButton color="neutral" variant="link" label="Modelle neu laden" :loading="modelsLoading" @click="refreshModels" />
           </div>
+          <p class="composer-note">noris AI kann Fehler machen. Prüfe wichtige Informationen.</p>
           <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" :busy="stream.busy.value" :model-unavailable="!canSend" :input-error="chat.drafts.error.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" @send="send" @stop="stop" />
           <p v-if="chat.drafts.error.value" role="alert" class="mt-2 text-center text-xs text-error">{{ chat.drafts.error.value }}</p>
-          <p class="composer-note">noris AI kann Fehler machen. Prüfe wichtige Informationen.</p>
         </div>
         <div class="chat-status" :data-attention="stream.status.value === 'failed' || (stream.busy.value && chat.generatingConversationId.value !== conversations.activeId.value)" role="status" aria-live="polite" aria-atomic="true" :data-generation-status="stream.status.value">
           <template v-if="stream.busy.value && chat.generatingConversationId.value !== conversations.activeId.value">

@@ -22,9 +22,10 @@ const selectedLabel = computed(() => props.compact ? selected.value?.label.repla
   <USelectMenu
     v-model="model" :items="items" value-key="id" :search-input="false" :disabled="busy || !CHAT_MODELS.length"
     variant="ghost" color="neutral" :aria-label="label" :class="compact ? 'composer-model' : 'min-w-0 max-w-64 text-base font-semibold'"
-    :ui="{ base: 'min-h-11', content: 'w-80 max-w-[calc(100vw-2rem)]', itemLabel: 'whitespace-normal break-words', itemDescription: 'whitespace-normal', value: 'whitespace-normal break-words' }"
+    :title="selected?.label"
+    :ui="{ base: 'min-h-11', content: 'w-80 max-w-[calc(100vw-2rem)]', itemLabel: 'whitespace-normal break-words', itemDescription: 'whitespace-normal', value: 'truncate', trailingIcon: 'shrink-0' }"
   >
-    {{ selectedLabel ?? (model ? 'Modell nicht verfügbar' : 'Modell auswählen') }}
+    <span class="model-label min-w-0 truncate">{{ selectedLabel ?? (model ? 'Modell nicht verfügbar' : 'Modell auswählen') }}</span>
     <template #content-bottom>
       <p class="border-t border-default px-3 py-2 text-xs text-muted">Modellwechsel können unterschiedliche Kosten verursachen.</p>
       <p v-if="CHAT_MODELS.some(item => item.virtual)" class="px-3 pb-2 text-xs text-muted">Bei „Automatisch“ kann das tatsächliche Modell je nach Anfrage wechseln.</p>

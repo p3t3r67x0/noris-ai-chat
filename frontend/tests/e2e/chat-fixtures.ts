@@ -9,7 +9,10 @@ export function savedChat(turns = 1): ChatSnapshot {
   }
   for (let index = 0; index < 45; index++) {
     const id = index === 0 ? 'main' : `conversation-${index}`
-    snapshot.conversations.conversations[id] = { id, title: index === 0 ? 'Unser Gespräch' : `Gedanken ${index}`, titleSource: 'manual', titleGenerationAttempted: true, createdAt: date, updatedAt: date, archivedAt: null, activeLeafMessageId: null }
+    // Distinct synthetic activity times preserve the intended visible order
+    // across the production comparator's deterministic ID tie-breaker.
+    const activity = new Date(Date.parse(date) - index).toISOString()
+    snapshot.conversations.conversations[id] = { id, title: index === 0 ? 'Unser Gespräch' : `Gedanken ${index}`, titleSource: 'manual', titleGenerationAttempted: true, createdAt: activity, updatedAt: activity, archivedAt: null, activeLeafMessageId: null }
   }
   for (let index = 0; index < turns; index++) {
     const user = `user-${index}`, assistant = `assistant-${index}`

@@ -7,6 +7,8 @@ const frontendPort = Number(process.env.NORIS_E2E_FRONTEND_PORT ?? 8593)
 export default defineConfig({
   testDir: './tests/llm',
   outputDir: './test-results/llm',
+  snapshotPathTemplate: '{testDir}/__screenshots__/{platform}/{projectName}/{arg}{ext}',
+  expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.001 } },
   workers: 1, retries: 0,
   use: { baseURL: `http://127.0.0.1:${frontendPort}`, httpCredentials: { username: 'fixture-user', password: 'fixture-application-password-never-real' }, trace: 'retain-on-failure' },
   projects: [{ name: 'desktop', use: { ...devices['Desktop Chrome'] } }, { name: 'mobile', use: { ...devices['Pixel 7'] } }],

@@ -22,12 +22,13 @@ defineExpose({ focus: () => prompt.value?.textareaRef?.focus({ preventScroll: tr
     <UChatPrompt
       ref="prompt" v-model="text" aria-label="Nachricht" placeholder="Frag noris AI …" :autofocus="false" :rows="1"
       variant="naked" color="neutral" :maxrows="8" class="chat-composer"
-      :ui="{ root: 'gap-0 p-0', base: 'composer-input overflow-y-auto', footer: 'composer-toolbar' }"
+      :ui="{ root: 'gap-0 p-0', header: 'composer-leading', body: 'composer-body', base: 'composer-input overflow-y-auto', footer: 'composer-toolbar' }"
       @submit="submit"
     >
-      <template #footer>
+      <template #header>
         <UButton disabled icon="i-lucide-plus" color="neutral" variant="ghost" class="composer-attachment touch-control" aria-label="Anhang hinzufügen – demnächst verfügbar" />
-        <div class="flex-1" />
+      </template>
+      <template #footer>
         <ChatModelMenu v-model="model" :busy="busy" compact label="Modell im Eingabefeld auswählen" />
         <UChatPromptSubmit
           :status="busy ? (streaming ? 'streaming' : 'submitted') : 'ready'" :disabled="!busy && (!text.trim() || tooLong || modelUnavailable || !!inputError)"

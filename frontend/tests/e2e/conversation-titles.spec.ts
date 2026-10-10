@@ -115,7 +115,7 @@ for (const size of [{ width: 1920, height: 975 }, { width: 1440, height: 900 }, 
   test(`automatic titles fit the actual text area at ${size.width}×${size.height}`, async ({ page }, info) => {
     await page.setViewportSize(size)
     const snapshot = savedChat()
-    const examples = ['Automatisierte Chat-Titel Implementierung', 'MCP zu Codex hinzufügen', 'Statusübersicht einrichten', 'Chatplan für noris AI', 'Sicherheitskonzept entwickeln', 'Docker DNS Troubleshooting Guide', 'WWWWWWWWWWWWWWWWWWWW WWWWWWWWWWW', 'PostgreSQL vs. MariaDB', 'ÖPNV & Mobilität']
+    const examples = ['Automatisierte Chat-Titel Implementierung', 'Fiktive Beispiele sammeln', 'Neutrale Aufgaben planen', 'Synthetische Notizen ordnen', 'Beispielabläufe prüfen', 'Docker DNS Troubleshooting Guide', 'WWWWWWWWWWWWWWWWWWWW WWWWWWWWWWW', 'PostgreSQL vs. MariaDB', 'ÖPNV & Mobilität']
     for (const [index, conversation] of Object.values(snapshot.conversations.conversations).entries()) {
       conversation.title = examples[index % examples.length]!
       conversation.titleSource = 'generated'
