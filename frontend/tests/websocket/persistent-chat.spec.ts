@@ -140,3 +140,45 @@ test('manual title, archive, restore and deletion are persisted from the existin
   await page.getByRole('dialog', { name: 'Chat löschen?' }).getByRole('button', { name: 'Chat löschen', exact: true }).click()
   await expect.poll(async () => (await request.get(`/api/v1/conversations/${c.id}`)).status()).toBe(404)
 })
+
+test('manual rename survives a version conflict after automatic title generation', async ({ page, request }) => {
+  await page.goto('/')
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+  const composer = page.getByRole('textbox', { name: 'Nachricht' })
+  await composer.fill('Titelkonflikt prüfen')
+  await composer.press('Enter')
+  await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
+  const c = (await (await request.get('/api/v1/conversations')).json()).conversations[0]
+  const path = `/api/v1/conversations/${c.id}`
+  await expect.poll(async () => (await (await request.get(path)).json()).titleSource).toBe('generated')
+  let injected = false
+  await page.route(`**${path}`, async (route) => {
+    const body = route.request().postDataJSON()
+    if (!injected && route.request().method() === 'PATCH' && body?.title === 'Mein manueller Titel') {
+      // Commit concurrent metadata after the client's PATCH captured its revision.
+      injected = true
+      const current = await (await request.get(path)).json()
+      const update = await request.patch(path, { data: { archived: false, version: current.version } })
+      expect(update.ok()).toBe(true)
+      await route.continue()
+    }
+    else await route.continue()
+  })
+  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
+  const row = page.locator(`[data-conversation-id="${c.id}"]`)
+  await row.getByRole('button', { name: /^Aktionen für/ }).click()
+  await page.getByRole('menuitem', { name: 'Umbenennen', exact: true }).click()
+  await page.getByRole('textbox', { name: 'Chat-Titel' }).fill('Mein manueller Titel')
+  const conflict = page.waitForResponse(response => response.url().endsWith(path) && response.request().method() === 'PATCH' && response.status() === 409)
+  await page.getByRole('button', { name: 'Speichern', exact: true }).click()
+  await conflict
+  await expect.poll(async () => {
+    const saved = await (await request.get(path)).json()
+    return { title: saved.title, titleSource: saved.titleSource }
+  }).toEqual({ title: 'Mein manueller Titel', titleSource: 'manual' })
+  await page.reload()
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+  if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
+  await expect(row.locator('button').first()).toHaveAttribute('title', 'Mein manueller Titel')
+})

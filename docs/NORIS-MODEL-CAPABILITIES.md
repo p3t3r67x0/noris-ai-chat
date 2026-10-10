@@ -102,10 +102,10 @@ Prüfung am 2026-10-10, ausschließlich synthetische Generierungen. Die vorhande
 | `make lint` | PASS | Ruff, Format und ESLint; Frontend nach Decimal-Exponentenfix erneut geprüft |
 | `make typecheck` | PASS | Python strict, Nuxt/Vue und Tools-TypeScript |
 | `make check-api` | PASS | OpenAPI und TypeScript ohne Drift; WebSocket-Vertrag unverändert |
-| `make test-unit` | PASS | 286 Backendtests; Frontend zuletzt 228 Tests, einschließlich Decimal-Null-/Exponentenquote |
+| `make test-unit` | PASS | 286 Backendtests; Frontend zuletzt 236 Tests, einschließlich Decimal-Null-/Exponentenquote und Titelkonflikten |
 | `make test-integration` | PASS | 30 Tests auf eigener wegwerfbarer PostgreSQL-Instanz |
 | `make test-e2e` | PASS | 167 Mock/UI- und 51 SSE-/Modellkatalogtests, Desktop und Mobile |
-| `make test-e2e-websocket` | PASS | 18 Tests gegen gebaute Compose-Container, Caddy und PostgreSQL |
+| `make test-e2e-websocket` | PASS | Zuletzt 20 Desktop-/Mobiletests mit eigenem PostgreSQL und lokalem Provider; initial 18 Tests zusätzlich gegen gebaute Compose-Container und Caddy |
 | `make build` | PASS | Python sdist/wheel und Nuxt-Produktion |
 | Compose-Konfiguration | PASS | Basis-, Entwicklungs- und Testkonfiguration validiert |
 | Compose-Laufzeit mit isolierten Hostports | PASS | Separater Stack gesund, Same-Origin-Katalog und Readiness geprüft |
@@ -116,3 +116,5 @@ Prüfung am 2026-10-10, ausschließlich synthetische Generierungen. Die vorhande
 Die E2E-Suites enthalten weiterhin ihre 19 bereits bestehenden Projekt-/Viewportskips (14 Mock, 5 SSE). Es wurden keine Tests deaktiviert oder Toleranzen abgeschwächt. Compose wurde als eigener Projektname mit getrennten Datenvolumes gestartet; für das Firewallhindernis wurde nur ein temporäres, nicht committetes Testoverride verwendet. Die volle Partition wurde durch gezieltes Entfernen eigener unbenutzter Testbuild-Caches entlastet. Eigene Testcontainer und -volumes wurden danach entfernt; bestehende Dienste und Nutzerdaten wurden nicht verändert.
 
 Änderungsbereiche: Backend-Providervertrag/-Schemas, Catalog-Service, lokale Registry, Modell-/Kostenvertrag und Gateway-Schätzung; synchronisierte OpenAPI-/TypeScript-Dateien; Modellauswahl-Metadatenformatierung; bereinigte Fixture und Unit-/Contract-/HTTP-/WebSocket-/Browsertests; README, Betriebsdokumentation und `.env.example`. Kein neues Providerframework, keine DB-Migration und keine Änderung an Chat-Layout oder WebSocket-v1-Nachrichten.
+
+Der [Compose-CI-Lauf von PR #37](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/38055224433/job/114222188916) deckte zusätzlich einen Versionskonflikt beim manuellen Umbenennen auf: Ein automatisch erzeugter Titel kann die Gesprächsversion erhöhen, bevor das zugehörige WebSocket-Update beim Client ankommt. Bei `VERSION_CONFLICT` liest der Client für eine reine Titeländerung den aktuellen Gesprächsstand und wiederholt die Speicheranfrage höchstens einmal, sofern die Version gestiegen und der Titel weiterhin `fallback` oder `generated` ist. Ein konkurrierender manueller Titel und Konflikte anderer Änderungen behalten die bestehende Fehlerbehandlung. Acht deterministische Unit-Fälle sichern die Grenzen; ein zusätzlicher Desktop-/Mobile-Browsertest erzeugt einen echten HTTP-409-Konflikt durch einen gleichzeitigen Metadaten-Commit und prüft den manuellen Titel nach Reload. Die Speicherung startet keine Provider-Generierung. Der Compose-CI-Job lädt nun auch WebSocket-Fehlertraces als Artefakte hoch.

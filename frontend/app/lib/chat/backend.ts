@@ -1,7 +1,7 @@
 import type { ApiSchemas } from '../../types/generated/api'
 import type { Conversation } from './conversations'
 import type { ChatMessage } from './types'
-import { responseError } from './realTransport'
+import { responseError, TransportError } from './realTransport'
 
 type ServerConversation = ApiSchemas['ConversationResponse']
 type ServerMessage = ApiSchemas['MessageResponse']
@@ -69,7 +69,18 @@ export class ChatBackend {
   }
   patch(id: string, change: { title?: string, archived?: boolean, activeLeafMessageId?: string }): Promise<void> {
     return this.enqueue(async () => {
-      const value = await this.request<ServerConversation>(`/conversations/${id}`, 'PATCH', { ...change, version: this.versions.get(id) })
+      const path = `/conversations/${id}`
+      const version = this.versions.get(id)
+      let value: ServerConversation
+      try { value = await this.request<ServerConversation>(path, 'PATCH', { ...change, version }) }
+      catch (error) {
+        if (!(error instanceof TransportError) || error.code !== 'VERSION_CONFLICT' || typeof change.title !== 'string' || change.archived !== undefined || change.activeLeafMessageId !== undefined) throw error
+        // A generated title can commit before its WebSocket update reaches us.
+        // Reapply only the explicit title, once; competing manual edits still win.
+        const current = await this.request<ServerConversation>(path)
+        if (current.titleSource === 'manual' || version === undefined || current.version <= version) throw error
+        value = await this.request<ServerConversation>(path, 'PATCH', { ...change, version: current.version })
+      }
       this.remember(value)
     })
   }

@@ -140,6 +140,7 @@ jobs:
           path: |
             frontend/playwright-report/production
             frontend/test-results/production
+            frontend/test-results/websocket
           if-no-files-found: ignore
           retention-days: 7
       - name: Show service logs on failure
