@@ -17,6 +17,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   const importAvailable = ref(false)
   const importBusy = ref(false)
   let disposed = false
+  let userNavigated = false
   const sidebarIds = ref<string[]>([])
   const sidebarLoading = ref(false)
   const sidebarError = ref<string | null>(null)
@@ -27,6 +28,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   const cache = new ChatLoadCache()
   let viewRequest: { id: string, abort: AbortController } | undefined
   let viewRevision = 0
+  let selectingVariant: string | undefined
   const olderLoading = ref(false)
   let timer: ReturnType<typeof setTimeout> | undefined
   let draftTimer: ReturnType<typeof setTimeout> | undefined
@@ -45,6 +47,13 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       const existing = state.conversations.records.value[value.id]
       if (existing) Object.assign(existing, conversationFromServer(value))
       else state.conversations.records.value[value.id] = conversationFromServer(value)
+    }
+    const pinned = new Set([...sidebarIds.value, ...Object.keys(windows.value), ...values.map(c => c.id), ...Object.keys(pendingDrafts), state.conversations.activeId.value, state.generatingConversationId.value])
+    const records = Object.entries(state.conversations.records.value)
+    const remove = new Set(records.filter(([id]) => !pinned.has(id)).slice(0, Math.max(0, records.length - 600)).map(([id]) => id))
+    if (remove.size) {
+      state.conversations.records.value = Object.fromEntries(records.filter(([id]) => !remove.has(id)))
+      for (const id of remove) { backend.versions.delete(id); cache.invalidate(id) }
     }
   }
   function evict(): void {
@@ -68,16 +77,19 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   }
   function applyPath(result: ApiSchemas['ActivePathResponse'], append = false): void {
     const id = result.conversation.id
+    const retainsBoundary = append && result.boundaryParentId && state.messages.value[result.boundaryParentId]?.conversationId === id
     if (!append) state.messages.value = Object.fromEntries(Object.entries(state.messages.value).filter(([, m]) => m.conversationId !== id))
     for (const message of result.messages) state.messages.value[message.id] = messageFromServer(message)
     for (const summary of result.variants) state.variantSummaries.value[summary.messageId] = summary
-    state.pathBoundaries.value[id] = result.boundaryParentId ?? null
-    windows.value[id] = result
+    if (!retainsBoundary) state.pathBoundaries.value[id] = result.boundaryParentId ?? null
+    windows.value[id] = retainsBoundary && windows.value[id]
+      ? { ...result, nextCursor: windows.value[id].nextCursor ?? null, hasMore: windows.value[id].hasMore ?? false }
+      : result
     mergeMetadata([result.conversation])
     cache.touch(id, result.conversation.version)
     evict()
   }
-  async function loadConversation(id: string, force = false): Promise<void> {
+  async function loadConversation(id: string, force = false, preserve = false): Promise<void> {
     if (id === state.generatingConversationId.value) return
     if (!force && cache.valid(id, backend.versions.get(id) ?? 0)) return
     if (viewRequest && viewRequest.id !== id) { viewRequest.abort.abort(); cache.cancelRead(viewRequest.id) }
@@ -95,7 +107,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
         // A stream may have started while the request was pending.
         if (id === state.generatingConversationId.value) return
         if (result.conversation.version < (backend.versions.get(id) ?? 0) && result.leafMessageId !== state.conversations.records.value[id]?.activeLeafMessageId) throw new Error('Der Gesprächspfad wurde geändert. Lade den Chat erneut.')
-        applyPath(result)
+        applyPath(result, preserve)
         for (const draft of drafts.drafts) if (!Object.hasOwn(pendingDrafts, draft.key)) {
           sentDrafts[draft.key] = draft.content; state.drafts.records.value[draft.key] = draft.content
         }
@@ -111,6 +123,13 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   backend.onConversation = (value) => {
     const previous = state.conversations.records.value[value.id]
     const changedLeaf = previous?.activeLeafMessageId !== value.activeLeafMessageId
+    if (changedLeaf && value.id === state.conversations.activeId.value && value.id !== state.generatingConversationId.value) {
+      // Retain the displayed path until its new authoritative window is ready.
+      mergeMetadata([{ ...value, activeLeafMessageId: previous?.activeLeafMessageId ?? null }])
+      cache.invalidate(value.id)
+      if (selectingVariant !== value.id) void loadConversation(value.id, true)
+      return
+    }
     mergeMetadata([value])
     if (!changedLeaf && windows.value[value.id]) cache.touch(value.id, value.version)
     if (changedLeaf && value.id === state.conversations.activeId.value && !state.messages.value[value.activeLeafMessageId ?? ''] && value.id !== state.generatingConversationId.value) void loadConversation(value.id, true)
@@ -118,15 +137,16 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   backend.onMetadata = (values, activeId) => {
     if (disposed) return
     mergeMetadata(values)
-    state.conversations.activeId.value = activeId
+    sidebarIds.value = backend.initialPage?.conversations.map(c => c.id) ?? []
+    if (!userNavigated) state.conversations.activeId.value = activeId
   }
   async function refresh(): Promise<void> {
     const snapshot = await backend.load()
     if (disposed) return
     // Metadata arrives before the active path; never hydrate a partial tree as a legacy snapshot.
-    mergeMetadata(Object.values(snapshot.conversations.conversations).map(c => ({ ...c, version: backend.versions.get(c.id) ?? 1, lastMessageAt: null })))
-    state.drafts.records.value = { ...snapshot.drafts, ...pendingDrafts }
+    mergeMetadata(snapshot.metadata)
     sentDrafts = { ...snapshot.drafts }
+    state.drafts.records.value = { ...snapshot.drafts, ...pendingDrafts }
     sidebarIds.value = backend.initialPage?.conversations.map(c => c.id) ?? []
     nextCursor.value = backend.initialPage?.nextCursor ?? null
     if (backend.initialPath) applyPath(backend.initialPath)
@@ -146,16 +166,24 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     catch (error) { sidebarError.value = error instanceof Error ? error.message : 'Weitere Chats konnten nicht geladen werden.' }
     finally { sidebarLoading.value = false }
   }
+  async function reloadSidebar(): Promise<void> {
+    if (sidebarLoading.value) return
+    sidebarLoading.value = true; sidebarError.value = null
+    try { await refresh() }
+    catch (error) { sidebarError.value = error instanceof Error ? error.message : 'Chats konnten nicht geladen werden.' }
+    finally { sidebarLoading.value = false }
+  }
   async function loadOlder(): Promise<void> {
     const id = state.conversations.activeId.value
     const cursor = id ? windows.value[id]?.nextCursor : null
-    if (!id || !cursor || olderLoading.value || state.stream.busy.value) return
+    const boundary = id ? state.pathBoundaries.value[id] : null
+    if (!id || !cursor || !boundary || olderLoading.value || state.stream.busy.value) return
     olderLoading.value = true; historyError.value = null
     try {
-      const result = await backend.path(id, { cursor })
+      const result = await backend.path(id, { beforeMessageId: boundary })
       if (!disposed && state.conversations.records.value[id] && result.leafMessageId === state.conversations.records.value[id]?.activeLeafMessageId) applyPath(result, true)
     }
-    catch (error) { historyError.value = error instanceof Error ? error.message : 'Ältere Nachrichten konnten nicht geladen werden.' }
+    catch (error) { if (state.conversations.activeId.value === id) historyError.value = error instanceof Error ? error.message : 'Ältere Nachrichten konnten nicht geladen werden.' }
     finally { olderLoading.value = false }
   }
   async function search(query: string, signal: AbortSignal): Promise<ApiSchemas['ConversationListResponse']> {
@@ -181,7 +209,10 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     }
   }
   const create = state.conversations.create
+  const select = state.conversations.select
+  state.conversations.select = (id) => { userNavigated = true; select(id) }
   state.conversations.create = (title?: string) => {
+    userNavigated = true
     const conversation = create(title)
     sidebarIds.value = [conversation.id, ...sidebarIds.value].slice(0, 500)
     void persist(backend.ensure(conversation))
@@ -200,6 +231,8 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     const conversation = state.conversations.active.value
     if (!backendReady.value || state.stream.busy.value || !conversation || historyLoading.value) return false
     const conversationId = conversation.id
+    const revision = ++viewRevision
+    selectingVariant = conversationId
     const leaf = conversation.activeLeafMessageId
     if (leaf) for (const message of state.visible.value) state.preferredLeaves.value[message.id] = leaf
     historyLoading.value = true
@@ -213,10 +246,21 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
         result.conversation = { ...result.conversation, activeLeafMessageId: result.leafMessageId, version: backend.versions.get(conversationId)! }
         applyPath(result)
       }
-      catch (error) { historyError.value = error instanceof Error ? error.message : 'Die Variante konnte nicht geladen werden.' }
-      finally { historyLoading.value = false }
+      catch (error) { if (state.conversations.activeId.value === conversationId) historyError.value = error instanceof Error ? error.message : 'Die Variante konnte nicht geladen werden.' }
+      finally { if (revision === viewRevision) historyLoading.value = false; if (selectingVariant === conversationId) selectingVariant = undefined }
     })()
     return true
+  }
+  const regenerate = state.regenerate
+  state.regenerate = (id, modelId) => {
+    if (historyLoading.value || historyError.value) return false
+    const message = state.messages.value[id]
+    if (message?.role === 'assistant' && message.parentMessageId && !state.messages.value[message.parentMessageId]) {
+      const conversationId = message.conversationId
+      void loadOlder().then(() => { if (state.conversations.activeId.value === conversationId) regenerate(id, modelId) })
+      return true
+    }
+    return regenerate(id, modelId)
   }
   const remove = state.remove
   state.remove = (id) => {
@@ -251,6 +295,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     finally { importBusy.value = false }
   }
   onMounted(async () => {
+    sidebarLoading.value = true
     try {
       importAvailable.value = Boolean(localStorage.getItem(CHAT_STORAGE_KEY))
       await refresh()
@@ -285,13 +330,15 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       const running = Object.values(state.messages.value).find(m => m.generationId && (m.status === 'streaming' || m.status === 'submitting'))
       if (running) state.resume(running.id)
     }
-    catch (error) { storageWarning.value = error instanceof Error ? error.message : 'Chats konnten nicht geladen werden.' }
+    catch (error) { storageWarning.value = error instanceof Error ? error.message : 'Chats konnten nicht geladen werden.'; sidebarError.value = storageWarning.value }
+    finally { sidebarLoading.value = false }
   })
   watch([state.preferredLeaves, state.conversations.activeId], () => {
     clearTimeout(timer); timer = setTimeout(flushCache, 120)
   }, { deep: true })
   watch(state.conversations.activeId, id => {
     if (backendReady.value) {
+      ++viewRevision; historyLoading.value = false
       void persist(backend.preferences(id))
       historyError.value = null
       if (id) void loadConversation(id)
@@ -299,7 +346,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     }
   })
   watch(state.generatingConversationId, (id, previous) => {
-    if (!id && previous) { cache.invalidate(previous); void loadConversation(previous, true); evict() }
+    if (!id && previous) { cache.invalidate(previous); void loadConversation(previous, true, true); evict() }
   })
   watch(state.drafts.records, () => {
     if (backendReady.value) {
@@ -323,7 +370,8 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   onUnmounted(() => { disposed = true; viewRequest?.abort.abort(); clearTimeout(timer); clearTimeout(draftTimer); flushCache(); transport.dispose?.() })
   const pagination = {
     conversations: computed(() => sidebarIds.value.flatMap(id => { const c = state.conversations.records.value[id]; return c && !c.archivedAt ? [c] : [] })),
-    sidebarLoading, sidebarError, hasMore: computed(() => Boolean(nextCursor.value)), loadMore,
+    sidebarLoading, sidebarError, hasMore: computed(() => Boolean(nextCursor.value)), loadMore, reloadSidebar,
+    windowedList: computed(() => sidebarIds.value.length >= 500),
     historyLoading, historyError, olderLoading,
     hasOlder: computed(() => Boolean(windows.value[state.conversations.activeId.value ?? '']?.nextCursor)),
     loadOlder, retryHistory: () => { const id = state.conversations.activeId.value; if (id) void loadConversation(id, true) },

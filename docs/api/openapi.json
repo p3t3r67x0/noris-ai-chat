@@ -3251,6 +3251,23 @@
               ],
               "title": "Preferredleafid"
             }
+          },
+          {
+            "in": "query",
+            "name": "beforeMessageId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Beforemessageid"
+            }
           }
         ],
         "responses": {

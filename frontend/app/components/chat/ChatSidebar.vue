@@ -3,7 +3,7 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import type { useChatBackend } from '../../composables/useChatBackend'
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { Conversation } from '../../lib/chat/conversations'
-import { groupConversations } from '../../lib/chat/conversations'
+import { compareConversations, groupConversations } from '../../lib/chat/conversations'
 import DeleteConversationDialog from './DeleteConversationDialog.vue'
 import ConversationTitle from './ConversationTitle.vue'
 
@@ -118,7 +118,7 @@ function showDelete(conversation: Conversation, trigger: HTMLElement | null): vo
 const searchGroups = computed(() => [{
   id: 'conversations', label: 'Gespräche',
   ignoreFilter: Boolean(props.pagination),
-  items: [...(props.pagination ? searchResults.value : props.conversations)].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).map(conversation => ({
+  items: [...(props.pagination ? searchResults.value : props.conversations)].sort(compareConversations).map(conversation => ({
     id: conversation.id, label: conversation.title, icon: 'i-lucide-square-pen', onSelect: () => selectChat(conversation.id),
   })),
 }])
@@ -152,7 +152,9 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
 
     <nav aria-label="Gespräche" class="pb-4">
       <p v-if="pagination?.sidebarError.value" role="alert" class="px-3 py-2 text-sm text-warning">{{ pagination.sidebarError.value }}</p>
-      <p v-if="groups.length === 0" class="px-3 py-6 text-sm leading-relaxed text-muted">Hier ist Platz für deine Gedanken.<br>Deine Chats erscheinen hier.</p>
+      <UButton v-if="pagination?.sidebarError.value || pagination?.windowedList.value" color="neutral" variant="ghost" label="Neueste Chats laden" :loading="pagination?.sidebarLoading.value" @click="pagination?.reloadSidebar" />
+      <p v-if="pagination?.sidebarLoading.value && groups.length === 0" role="status" class="px-3 py-2 text-sm text-muted">Chats werden geladen …</p>
+      <p v-if="groups.length === 0 && !pagination?.sidebarLoading.value && !pagination?.sidebarError.value" class="px-3 py-6 text-sm leading-relaxed text-muted">Hier ist Platz für deine Gedanken.<br>Deine Chats erscheinen hier.</p>
       <section v-for="group in groups" :key="group.label" class="mt-5" :aria-label="group.label">
         <h2 class="sidebar-group">{{ group.label }}</h2>
         <ul class="space-y-0.5">
@@ -185,7 +187,7 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
     <template #body>
       <p v-if="searchError" role="alert" class="p-3 text-sm text-warning">{{ searchError }} <UButton label="Suche erneut versuchen" variant="link" @click="runSearch" /></p>
       <p v-if="searchCursor" role="status" class="px-3 pt-3 text-xs text-muted">Weitere Treffer vorhanden. Grenze die Suche ein.</p>
-      <UCommandPalette v-model:search-term="searchTerm" :groups="searchGroups" :loading="searchLoading" placeholder="Chat suchen …" :autofocus="true">
+      <UCommandPalette v-model:search-term="searchTerm" :groups="searchGroups" :fuse="pagination ? { resultLimit: 50 } : {}" :loading="searchLoading" placeholder="Chat suchen …" :autofocus="true">
         <template #empty>Keine passenden Chats gefunden.</template>
       </UCommandPalette>
     </template>

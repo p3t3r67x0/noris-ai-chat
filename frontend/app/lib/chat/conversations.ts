@@ -72,6 +72,13 @@ export function parseConversationSnapshot(raw: string): ConversationSnapshot | n
   catch { return null }
 }
 
+export function compareConversations(a: Conversation, b: Conversation): number {
+  const microseconds = (value: string) => Number((value.match(/\.(\d+)/)?.[1] ?? '').slice(3, 6).padEnd(3, '0'))
+  return Date.parse(b.updatedAt) - Date.parse(a.updatedAt)
+    || microseconds(b.updatedAt) - microseconds(a.updatedAt)
+    || b.id.localeCompare(a.id)
+}
+
 export function groupConversations(conversations: readonly Conversation[], now = new Date()): ConversationGroup[] {
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
   const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).getTime()
@@ -80,7 +87,7 @@ export function groupConversations(conversations: readonly Conversation[], now =
     { label: 'Heute', conversations: [] }, { label: 'Gestern', conversations: [] },
     { label: 'Letzte 7 Tage', conversations: [] }, { label: 'Älter', conversations: [] },
   ]
-  for (const conversation of [...conversations].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))) {
+  for (const conversation of [...conversations].sort(compareConversations)) {
     const time = Date.parse(conversation.updatedAt)
     const index = time >= start ? 0 : time >= yesterday ? 1 : time >= week ? 2 : 3
     groups[index]?.conversations.push(conversation)

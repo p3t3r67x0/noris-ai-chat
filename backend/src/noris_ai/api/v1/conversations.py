@@ -186,6 +186,7 @@ async def get_active_path(
     cursor: Annotated[str | None, Query(max_length=2048)] = None,
     messageId: UUID | None = None,
     preferredLeafId: UUID | None = None,
+    beforeMessageId: UUID | None = None,
 ) -> ActivePathResponse:
     service, owner_id = access
     return await service.path_page(
@@ -195,6 +196,7 @@ async def get_active_path(
         cursor=cursor,
         message=messageId,
         preferred=preferredLeafId,
+        before=beforeMessageId,
     )
 
 

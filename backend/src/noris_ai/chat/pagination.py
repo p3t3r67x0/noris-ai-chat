@@ -244,6 +244,7 @@ async def path_page(
     cursor: str | None,
     message: UUID | None = None,
     preferred: UUID | None = None,
+    before: UUID | None = None,
 ) -> tuple[ChatConversation, UUID | None, list[ChatMessage], list[VariantSummary], str | None]:
     row = await owned(session, owner, conversation)
     scope = f"path:{owner}:{conversation}"
@@ -253,8 +254,15 @@ async def path_page(
         else row.active_leaf_message_id
     )
     start = leaf
-    if cursor:
-        seek = Cursor.decode(cursor, scope)
+    if cursor or before:
+        if before and (cursor or message):
+            raise ChatError("INVALID_CURSOR", 422)
+        if cursor:
+            seek = Cursor.decode(cursor, scope)
+        else:
+            if before is None:
+                raise ChatError("INVALID_CURSOR", 422)
+            seek = Cursor(scope=scope, id=before, leaf=leaf)
         if message or seek.timestamp is not None or seek.leaf != leaf:
             raise ChatError("VERSION_CONFLICT", 409)
         # Cursors are not credentials. Verify the boundary belongs to this

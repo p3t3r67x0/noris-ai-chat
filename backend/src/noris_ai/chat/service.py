@@ -193,6 +193,7 @@ class ChatService:
         cursor: str | None = None,
         message: uuid.UUID | None = None,
         preferred: uuid.UUID | None = None,
+        before: uuid.UUID | None = None,
     ) -> ActivePathResponse:
         async with self.repository.database() as session, session.begin():
             # Read metadata, ancestors and variants from one consistent snapshot.
@@ -205,6 +206,7 @@ class ChatService:
                 cursor=cursor,
                 message=message,
                 preferred=preferred,
+                before=before,
             )
             result = ActivePathResponse(
                 conversation=conversation_response(row),
@@ -221,7 +223,9 @@ class ChatService:
         if not key or len(key) > 64 or key != key.strip():
             raise ChatError("INVALID_INPUT", 422)
         await self.repository.set_draft(owner_id, key, content)
-        drafts = {draft.draft_key: draft for draft in await self.repository.list_drafts(owner_id, [key])}
+        drafts = {
+            draft.draft_key: draft for draft in await self.repository.list_drafts(owner_id, [key])
+        }
         draft = drafts.get(key)
         if draft is None:  # pragma: no cover - upsert just succeeded
             raise ChatError("INTERNAL_ERROR", 500)

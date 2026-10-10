@@ -704,6 +704,7 @@ export interface ApiPaths {
           "cursor"?: string | null
           "messageId"?: string | null
           "preferredLeafId"?: string | null
+          "beforeMessageId"?: string | null
         }
       }
       responses: {

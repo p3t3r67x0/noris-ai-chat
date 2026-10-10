@@ -7,6 +7,7 @@ Revises: 0004_chat_continuation
 from collections.abc import Sequence
 
 from alembic import op
+from sqlalchemy import text
 
 revision: str = "0005_chat_pagination"
 down_revision: str | None = "0004_chat_continuation"
@@ -36,6 +37,16 @@ def upgrade() -> None:
     op.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
     with op.get_context().autocommit_block():
         for name, definition in INDEXES.items():
+            invalid = op.get_bind().scalar(
+                text(
+                    "SELECT NOT i.indisvalid FROM pg_index i JOIN pg_class c ON c.oid=i.indexrelid "
+                    "WHERE c.relname=:name AND c.relnamespace='public'::regnamespace"
+                ),
+                {"name": name},
+            )
+            if invalid:
+                # An interrupted concurrent build can leave an unusable index.
+                op.execute(f"DROP INDEX CONCURRENTLY {name}")
             op.execute(f"CREATE INDEX CONCURRENTLY IF NOT EXISTS {name} {definition}")
 
 

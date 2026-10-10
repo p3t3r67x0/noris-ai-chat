@@ -88,8 +88,9 @@ class ChatConversation(Base):
         ),
         Index(
             "ix_chat_conversation_title_search",
-            text("lower(title) gin_trgm_ops"),
+            func.lower(text("title")).label("title_lower"),
             postgresql_using="gin",
+            postgresql_ops={"title_lower": "gin_trgm_ops"},
             postgresql_where=text("deleted_at IS NULL"),
         ),
     )
