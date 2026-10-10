@@ -97,6 +97,7 @@ class LLMModel(ApiSchema):
     evidence: dict[str, Evidence] = Field(default_factory=dict)
     sources: list[str] = Field(default_factory=list)
     cost: ModelCost = Field(default_factory=ModelCost)
+    estimated_max_cost_usd: Decimal | None = Field(default=None, ge=0)
     provider_context_window: int | None = Field(default=None, ge=256, le=2_000_000)
     reasoning_reserve_tokens: int = Field(default=0, ge=0, le=65_536)
 

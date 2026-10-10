@@ -282,7 +282,7 @@ def resolve_model(facts: "ProviderModel", config: "Settings") -> LLMModel:
     """Apply operator policy without allowing it to manufacture provider facts."""
     from datetime import UTC, datetime
 
-    from noris_ai.llm.schemas import ModelCost
+    from noris_ai.llm.pricing import estimate_cost, model_cost
 
     policy = classify(facts.id, config.llm_models)
     inputs = facts.input_modalities or []
@@ -359,6 +359,7 @@ def resolve_model(facts: "ProviderModel", config: "Settings") -> LLMModel:
         and effective_context >= 256
         and effective_output >= 1
     )
+    cost = model_cost(facts, datetime.now(UTC).isoformat())
     values = policy.model_dump() | {
         "name": policy.name if approved else (facts.name or "Unbekanntes Modell"),
         "provider_name": facts.name,
@@ -384,7 +385,12 @@ def resolve_model(facts: "ProviderModel", config: "Settings") -> LLMModel:
         "input_modalities": [item.type for item in inputs],
         "output_modalities": [item.type for item in outputs],
         "is_ready": facts.is_ready,
-        "cost": ModelCost(),
+        "cost": cost,
+        "estimated_max_cost_usd": estimate_cost(
+            cost,
+            max(0, effective_context - effective_output - policy.reasoning_reserve_tokens),
+            max(1, effective_output) + policy.reasoning_reserve_tokens,
+        ),
         "evidence": policy.evidence
         | {
             "category": "DOCUMENTED" if category != "UNKNOWN" else "UNKNOWN",
@@ -404,6 +410,7 @@ def resolve_model(facts: "ProviderModel", config: "Settings") -> LLMModel:
             "effective_context_window": "LOCAL_POLICY",
             "effective_max_output_tokens": "LOCAL_POLICY",
             "chat_approved": "LOCAL_POLICY",
+            "cost": "PROVIDER" if cost.currency else "UNKNOWN",
             "name": "LOCAL_POLICY" if approved else "PROVIDER",
             "is_ready": "PROVIDER" if facts.is_ready is not None else "UNKNOWN",
         },
