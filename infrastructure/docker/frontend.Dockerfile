@@ -11,7 +11,7 @@ RUN chown -R node:node /app/frontend
 WORKDIR /app/frontend
 USER node
 EXPOSE 3000
-CMD ["pnpm", "dev", "--host", "0.0.0.0", "--port", "3000"]
+CMD ["node", "node_modules/nuxt/bin/nuxt.mjs", "dev", "--host", "0.0.0.0", "--port", "3000"]
 
 FROM base AS build
 COPY frontend ./frontend

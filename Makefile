@@ -22,6 +22,7 @@ network-repair:
 	sh infrastructure/scripts/repair-docker-network.sh
 
 dev-up:
+	pnpm --dir /tmp self-update
 	$(COMPOSE) -f compose.yaml -f compose.dev.yaml up --build --wait
 
 generate-api:
