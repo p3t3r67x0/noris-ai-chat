@@ -107,7 +107,7 @@ export class ChatBackend {
     this.initialPath = path
     return {
       metadata: conversations, activeConversationId: activeId, path,
-      drafts: Object.fromEntries(drafts.drafts.map(d => [d.key, d.content])),
+      drafts: { __new__: '', ...(activeId ? { [activeId]: '' } : {}), ...Object.fromEntries(drafts.drafts.map(d => [d.key, d.content])) },
     }
   }
   path(id: string, options: { cursor?: string, beforeMessageId?: string, messageId?: string, preferredLeafId?: string } = {}, signal?: AbortSignal): Promise<ApiSchemas['ActivePathResponse']> {

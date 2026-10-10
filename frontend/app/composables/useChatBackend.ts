@@ -29,11 +29,19 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   let viewRequest: { id: string, abort: AbortController } | undefined
   let viewRevision = 0
   let selectingVariant: string | undefined
+  let olderConversation: string | undefined
   const olderLoading = ref(false)
   let timer: ReturnType<typeof setTimeout> | undefined
   let draftTimer: ReturnType<typeof setTimeout> | undefined
   let sentDrafts: Record<string, string> = {}
   let pendingDrafts: Record<string, string> = {}
+  function localJson(key: string, maximum = Infinity): unknown {
+    try {
+      const raw = localStorage.getItem(key)
+      return raw && raw.length <= maximum ? JSON.parse(raw) : null
+    }
+    catch { return null }
+  }
   function savePendingDrafts(): void {
     try { localStorage.setItem(OFFLINE_DRAFTS_KEY, JSON.stringify(pendingDrafts)) }
     catch { storageWarning.value = 'Der lokale Entwurf konnte nicht gesichert werden.' }
@@ -57,7 +65,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     }
   }
   function evict(): void {
-    const pinned = new Set([state.conversations.activeId.value, state.generatingConversationId.value, ...Object.keys(pendingDrafts)].filter((id): id is string => Boolean(id)))
+    const pinned = new Set([state.conversations.activeId.value, state.generatingConversationId.value, olderConversation, ...cache.pendingIds(), ...Object.keys(pendingDrafts)].filter((id): id is string => Boolean(id)))
     const ids = new Set(cache.evictions(pinned))
     // Additional byte budget bounds unusually large inactive responses.
     let bytes = Object.values(state.messages.value).reduce((total, m) => total + m.content.length * 2 + 512, 0)
@@ -92,11 +100,11 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   async function loadConversation(id: string, force = false, preserve = false): Promise<void> {
     if (id === state.generatingConversationId.value) return
     if (!force && cache.valid(id, backend.versions.get(id) ?? 0)) return
-    if (viewRequest && viewRequest.id !== id) { viewRequest.abort.abort(); cache.cancelRead(viewRequest.id) }
-    const revision = ++viewRevision
-    const controller = viewRequest?.id === id ? viewRequest.abort : new AbortController()
-    viewRequest = { id, abort: controller }
-    if (state.conversations.activeId.value === id) { historyLoading.value = true; historyError.value = null }
+    const foreground = state.conversations.activeId.value === id
+    if (foreground && viewRequest && viewRequest.id !== id) { viewRequest.abort.abort(); cache.cancelRead(viewRequest.id) }
+    const revision = foreground ? ++viewRevision : -1
+    const controller = foreground && viewRequest?.id === id ? viewRequest.abort : new AbortController()
+    if (foreground) { viewRequest = { id, abort: controller }; historyLoading.value = true; historyError.value = null }
     try {
       await cache.read(id, async () => {
         const [result, drafts] = await Promise.all([
@@ -108,8 +116,9 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
         if (id === state.generatingConversationId.value) return
         if (result.conversation.version < (backend.versions.get(id) ?? 0) && result.leafMessageId !== state.conversations.records.value[id]?.activeLeafMessageId) throw new Error('Der Gesprächspfad wurde geändert. Lade den Chat erneut.')
         applyPath(result, preserve)
-        for (const draft of drafts.drafts) if (!Object.hasOwn(pendingDrafts, draft.key)) {
-          sentDrafts[draft.key] = draft.content; state.drafts.records.value[draft.key] = draft.content
+        if (!Object.hasOwn(pendingDrafts, id)) {
+          const content = drafts.drafts.find(draft => draft.key === id)?.content ?? ''
+          sentDrafts[id] = content; state.drafts.records.value[id] = content
         }
         const running = result.messages.find(m => m.generationId && ['pending', 'streaming'].includes(m.status))
         if (running && !state.stream.busy.value) state.resume(running.id)
@@ -118,7 +127,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     catch (error) {
       if (!controller.signal.aborted && state.conversations.activeId.value === id) historyError.value = error instanceof Error ? error.message : 'Dieser Chat konnte nicht geladen werden.'
     }
-    finally { if (revision === viewRevision) { historyLoading.value = false; viewRequest = undefined } }
+    finally { if (foreground && revision === viewRevision) { historyLoading.value = false; viewRequest = undefined } }
   }
   backend.onConversation = (value) => {
     const previous = state.conversations.records.value[value.id]
@@ -145,8 +154,8 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     if (disposed) return
     // Metadata arrives before the active path; never hydrate a partial tree as a legacy snapshot.
     mergeMetadata(snapshot.metadata)
-    sentDrafts = { ...snapshot.drafts }
-    state.drafts.records.value = { ...snapshot.drafts, ...pendingDrafts }
+    sentDrafts = { ...sentDrafts, ...snapshot.drafts }
+    state.drafts.records.value = { ...state.drafts.records.value, ...snapshot.drafts, ...pendingDrafts }
     sidebarIds.value = backend.initialPage?.conversations.map(c => c.id) ?? []
     nextCursor.value = backend.initialPage?.nextCursor ?? null
     if (backend.initialPath) applyPath(backend.initialPath)
@@ -179,12 +188,13 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     const boundary = id ? state.pathBoundaries.value[id] : null
     if (!id || !cursor || !boundary || olderLoading.value || state.stream.busy.value) return
     olderLoading.value = true; historyError.value = null
+    olderConversation = id
     try {
       const result = await backend.path(id, { beforeMessageId: boundary })
       if (!disposed && state.conversations.records.value[id] && result.leafMessageId === state.conversations.records.value[id]?.activeLeafMessageId) applyPath(result, true)
     }
     catch (error) { if (state.conversations.activeId.value === id) historyError.value = error instanceof Error ? error.message : 'Ältere Nachrichten konnten nicht geladen werden.' }
-    finally { olderLoading.value = false }
+    finally { olderLoading.value = false; olderConversation = undefined }
   }
   async function search(query: string, signal: AbortSignal): Promise<ApiSchemas['ConversationListResponse']> {
     const result = await backend.page({ q: query }, signal)
@@ -232,13 +242,15 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     if (!backendReady.value || state.stream.busy.value || !conversation || historyLoading.value) return false
     const conversationId = conversation.id
     const revision = ++viewRevision
+    const controller = new AbortController()
+    viewRequest = { id: conversationId, abort: controller }
     selectingVariant = conversationId
     const leaf = conversation.activeLeafMessageId
     if (leaf) for (const message of state.visible.value) state.preferredLeaves.value[message.id] = leaf
     historyLoading.value = true
     void (async () => {
       try {
-        const result = await backend.path(conversationId, { messageId: id, ...(state.preferredLeaves.value[id] ? { preferredLeafId: state.preferredLeaves.value[id] } : {}) })
+        const result = await backend.path(conversationId, { messageId: id, ...(state.preferredLeaves.value[id] ? { preferredLeafId: state.preferredLeaves.value[id] } : {}) }, controller.signal)
         if (disposed || state.conversations.activeId.value !== conversationId || state.stream.busy.value) return
         if (!result.leafMessageId) return
         // Persist selection before presenting the resolved path.
@@ -246,8 +258,8 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
         result.conversation = { ...result.conversation, activeLeafMessageId: result.leafMessageId, version: backend.versions.get(conversationId)! }
         applyPath(result)
       }
-      catch (error) { if (state.conversations.activeId.value === conversationId) historyError.value = error instanceof Error ? error.message : 'Die Variante konnte nicht geladen werden.' }
-      finally { if (revision === viewRevision) historyLoading.value = false; if (selectingVariant === conversationId) selectingVariant = undefined }
+      catch (error) { if (!controller.signal.aborted && state.conversations.activeId.value === conversationId) historyError.value = error instanceof Error ? error.message : 'Die Variante konnte nicht geladen werden.' }
+      finally { if (revision === viewRevision) { historyLoading.value = false; viewRequest = undefined }; if (selectingVariant === conversationId) selectingVariant = undefined }
     })()
     return true
   }
@@ -297,29 +309,31 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   onMounted(async () => {
     sidebarLoading.value = true
     try {
-      importAvailable.value = Boolean(localStorage.getItem(CHAT_STORAGE_KEY))
+      try { importAvailable.value = Boolean(localStorage.getItem(CHAT_STORAGE_KEY)) }
+      catch { storageWarning.value = 'Der lokale Speicher ist nicht verfügbar.' }
       await refresh()
       // Recover an explicitly saved reader position with bounded active-chat
       // paging. No inactive messages are loaded. At most 20 pages (1,000 rows).
-      const scrollRaw = localStorage.getItem('noris-ai:chat-scroll:v1')
-      if (scrollRaw && scrollRaw.length <= 16000) {
-        const positions: unknown = JSON.parse(scrollRaw)
+      const positions = localJson('noris-ai:chat-scroll:v1', 16000)
+      if (positions) {
         const active = state.conversations.activeId.value
         const entry = Array.isArray(positions) ? positions.find(item => Array.isArray(item) && item[0] === active) : undefined
         const anchor = entry?.[1]?.following === false && typeof entry[1].messageId === 'string' ? entry[1].messageId : null
-        for (let page = 0; anchor && !state.messages.value[anchor] && windows.value[active ?? '']?.nextCursor && page < 20; page++) await loadOlder()
+        for (let page = 0; anchor && !state.messages.value[anchor] && windows.value[active ?? '']?.nextCursor && page < 20; page++) {
+          await loadOlder()
+          if (historyError.value) break
+        }
       }
       await transport.connect?.()
       // Only variant-view preferences are read from cache. Message content and
       // active conversation always come from the database.
-      const cached = localStorage.getItem(CHAT_CACHE_KEY)
-      if (cached && cached.length <= 256000) {
-        const value: unknown = JSON.parse(cached)
+      const value = localJson(CHAT_CACHE_KEY, 256000)
+      if (value) {
         if (value && typeof value === 'object' && 'preferredLeaves' in value && value.preferredLeaves && typeof value.preferredLeaves === 'object') {
           state.preferredLeaves.value = Object.fromEntries(Object.entries(value.preferredLeaves).filter(([node, leaf]) => /^[0-9a-f-]{36}$/.test(node) && typeof leaf === 'string' && /^[0-9a-f-]{36}$/.test(leaf)).slice(-2000))
         }
       }
-      const offline: unknown = JSON.parse(localStorage.getItem(OFFLINE_DRAFTS_KEY) ?? '{}')
+      const offline = localJson(OFFLINE_DRAFTS_KEY)
       if (offline && typeof offline === 'object' && !Array.isArray(offline)) {
         for (const [key, text] of Object.entries(offline)) if (typeof text === 'string' && text.length <= 64000 && (key === '__new__' || /^[0-9a-f-]{36}$/.test(key))) {
           pendingDrafts[key] = text
@@ -338,6 +352,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   }, { deep: true })
   watch(state.conversations.activeId, id => {
     if (backendReady.value) {
+      if (viewRequest && viewRequest.id !== id) { viewRequest.abort.abort(); cache.cancelRead(viewRequest.id); viewRequest = undefined }
       ++viewRevision; historyLoading.value = false
       void persist(backend.preferences(id))
       historyError.value = null

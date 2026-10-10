@@ -14,6 +14,7 @@ export class ChatLoadCache {
   }
   invalidate(id: string): void { this.entries.delete(id) }
   cancelRead(id: string): void { this.pending.delete(id) }
+  pendingIds(): string[] { return [...this.pending.keys()] }
   evictions(pinned: ReadonlySet<string>): string[] {
     const evicted: string[] = []
     for (const id of this.entries.keys()) {
