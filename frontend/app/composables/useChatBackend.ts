@@ -80,6 +80,8 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       state.messages.value = Object.fromEntries(Object.entries(state.messages.value).filter(([, m]) => !ids.has(m.conversationId)))
       windows.value = Object.fromEntries(Object.entries(windows.value).filter(([id]) => !ids.has(id)))
       state.pathBoundaries.value = Object.fromEntries(Object.entries(state.pathBoundaries.value).filter(([id]) => !ids.has(id)))
+      sentDrafts = Object.fromEntries(Object.entries(sentDrafts).filter(([id]) => !ids.has(id)))
+      state.drafts.records.value = Object.fromEntries(Object.entries(state.drafts.records.value).filter(([id]) => !ids.has(id)))
       for (const id of ids) cache.invalidate(id)
       state.variantSummaries.value = Object.fromEntries(Object.entries(state.variantSummaries.value).filter(([id]) => Boolean(state.messages.value[id])))
     }

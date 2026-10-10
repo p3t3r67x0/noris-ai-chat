@@ -69,6 +69,7 @@ describe('lazy chat resources', () => {
     expect(Object.keys(state.messages.value)).toHaveLength(10)
     expect(state.messages.value[id(1001)]?.content).toBe('Answer 1')
     expect(state.messages.value[id(1002)]).toBeUndefined()
+    expect(state.drafts.records.value[id(2)]).toBeUndefined()
     const read = vi.spyOn(backend, 'path')
     state.conversations.select(id(2)); await nextTick()
     await vi.waitFor(() => expect(state.visible.value[0]?.content).toBe('Answer 2'))
