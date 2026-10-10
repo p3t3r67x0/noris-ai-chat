@@ -17,7 +17,7 @@ const { transport, mode } = useChatTransport()
 const chat = useChat(transport)
 const { conversations, stream } = chat
 const { modelId, error: modelError, notice: modelNotice, loading: modelsLoading, canSend: modelCanSend, fallbackId, refresh: refreshModels, chooseFallback } = useModelSelection({ mode })
-const canSend = computed(() => modelCanSend.value && chat.backendReady.value)
+const canSend = computed(() => modelCanSend.value && chat.backendReady.value && !chat.pagination?.historyLoading.value && !chat.pagination?.historyError.value)
 let preferencesRestored = false
 watch([chat.backendReady, modelsLoading], ([loaded, loading]) => {
   if (!transport.backend || !loaded || loading || preferencesRestored) return
@@ -84,8 +84,8 @@ function saveEdit(): void {
     <ChatRail :demo="mode === 'mock'" @home="newChat" @search="sidebar?.openSearch()" @archive="sidebar?.openArchive()" />
     <ChatSidebar
       ref="sidebar"
-      v-model:open="sidebarOpen" :demo="mode === 'mock'" :conversations="conversations.visible.value" :archived="conversations.archived.value"
-      :active-id="conversations.activeId.value" :remove-conversation="chat.remove"
+      v-model:open="sidebarOpen" :demo="mode === 'mock'" :conversations="chat.pagination?.conversations.value ?? conversations.visible.value" :archived="conversations.archived.value"
+      :active-id="conversations.activeId.value" :remove-conversation="chat.remove" :pagination="chat.pagination"
       @new-chat="newChat" @select="conversations.select" @rename="conversations.rename"
       @fit-title="conversations.fitTitle"
       @archive="conversations.archive" @restore="conversations.restore"
@@ -93,8 +93,13 @@ function saveEdit(): void {
     <main id="chat-main" class="chat-main" aria-label="Chat" tabindex="-1">
       <ChatHeader v-model:model="modelId" :sidebar-open="sidebarOpen" :busy="stream.busy.value" :demo="mode === 'mock'" @toggle-sidebar="sidebarOpen = !sidebarOpen" @new-chat="newChat" />
       <div class="chat-content" :data-empty="chat.visible.value.length === 0">
-        <EmptyChatState v-if="chat.visible.value.length === 0" />
-        <ChatTimeline v-show="chat.visible.value.length > 0" :messages="chat.visible.value" :conversation-id="conversations.activeId.value" :busy="stream.busy.value" :variants="chat.variants" :can-continue="chat.canContinue" @continue="continueResponse" @edit="beginEdit" @regenerate="regenerateResponse" @select-variant="chat.selectVariant" />
+        <p v-if="chat.pagination?.historyLoading.value" role="status" class="p-4 text-sm text-muted">Chat wird geladen …</p>
+        <div v-if="chat.pagination?.historyError.value" role="alert" class="p-4 text-sm text-warning">
+          {{ chat.pagination.historyError.value }}
+          <UButton color="neutral" variant="link" label="Chat erneut laden" @click="chat.pagination.retryHistory" />
+        </div>
+        <EmptyChatState v-if="chat.visible.value.length === 0 && !chat.pagination?.historyLoading.value && !chat.pagination?.historyError.value" />
+        <ChatTimeline v-show="chat.visible.value.length > 0" :messages="chat.visible.value" :conversation-id="conversations.activeId.value" :busy="stream.busy.value || Boolean(chat.pagination?.historyLoading.value)" :variants="chat.variants" :variant-summary="chat.variantSummary" :persistent-scroll="Boolean(chat.pagination)" :has-older="chat.pagination?.hasOlder.value" :older-loading="chat.pagination?.olderLoading.value" :load-older="chat.pagination?.loadOlder" :can-continue="chat.canContinue" @continue="continueResponse" @edit="beginEdit" @regenerate="regenerateResponse" @select-variant="chat.selectVariant" />
         <div class="composer-dock">
           <div v-if="modelError || modelNotice" role="status" aria-live="polite" class="px-4 pb-2 text-sm text-muted">
             <p>{{ modelError || modelNotice }}</p>

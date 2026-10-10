@@ -161,6 +161,12 @@ class ChatRequest(ApiSchema):
         return self
 
 
+class PersistedChatRequest(ChatRequest):
+    """Trusted database context; REST clients retain their 100-message cap."""
+
+    messages: list[LLMMessage] = Field(min_length=1, max_length=10_001)
+
+
 class ConversationTitleRequest(ApiSchema):
     conversationId: str = Field(min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_-]+$")
     inputMessageId: str = Field(min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_-]+$")

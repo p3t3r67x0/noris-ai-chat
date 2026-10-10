@@ -1,17 +1,65 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
+import type { useChatBackend } from '../../composables/useChatBackend'
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { Conversation } from '../../lib/chat/conversations'
-import { groupConversations } from '../../lib/chat/conversations'
+import { compareConversations, groupConversations } from '../../lib/chat/conversations'
 import DeleteConversationDialog from './DeleteConversationDialog.vue'
 import ConversationTitle from './ConversationTitle.vue'
 
-const props = defineProps<{ demo?: boolean, conversations: readonly Conversation[], archived: readonly Conversation[], activeId: string | null, removeConversation: (id: string) => void | Promise<void> }>()
+const props = defineProps<{ demo?: boolean, pagination?: ReturnType<typeof useChatBackend>['pagination'] | undefined, conversations: readonly Conversation[], archived: readonly Conversation[], activeId: string | null, removeConversation: (id: string) => void | Promise<void> }>()
 const open = defineModel<boolean>('open', { required: true })
 const emit = defineEmits<{ newChat: [], select: [id: string], rename: [id: string, title: string], fitTitle: [id: string, expected: string, title: string], archive: [id: string], restore: [id: string] }>()
 const groups = computed(() => groupConversations(props.conversations))
 const searchOpen = ref(false)
 const archiveOpen = ref(false)
+const searchTerm = ref('')
+const searchResults = ref<Conversation[]>([])
+const searchLoading = ref(false)
+const searchError = ref<string | null>(null)
+const searchCursor = ref<string | null>(null)
+const archiveLoading = ref(false)
+const archiveError = ref<string | null>(null)
+const archiveCursor = ref<string | null>(null)
+const archiveResults = ref<Conversation[]>([])
+const archivedRows = computed(() => props.pagination ? archiveResults.value : props.archived)
+let searchTimer: ReturnType<typeof setTimeout> | undefined
+let searchAbort: AbortController | undefined
+let searchRevision = 0
+
+async function runSearch(): Promise<void> {
+  if (!props.pagination || !searchOpen.value) return
+  searchAbort?.abort()
+  const controller = new AbortController()
+  searchAbort = controller
+  const revision = ++searchRevision
+  searchLoading.value = true; searchError.value = null
+  try {
+    const result = await props.pagination.search(searchTerm.value, controller.signal)
+    if (revision !== searchRevision || controller.signal.aborted) return
+    searchResults.value = result.conversations.map(c => ({ ...c, titleGenerationAttempted: c.titleSource !== 'fallback' }))
+    searchCursor.value = result.nextCursor ?? null
+  }
+  catch { if (!controller.signal.aborted) searchError.value = 'Die Suche ist fehlgeschlagen. Bitte versuche es erneut.' }
+  finally { if (revision === searchRevision) searchLoading.value = false }
+}
+watch([searchTerm, searchOpen], () => {
+  searchAbort?.abort(); clearTimeout(searchTimer)
+  if (searchOpen.value) searchTimer = setTimeout(() => { void runSearch() }, 200)
+})
+async function loadArchive(more = false): Promise<void> {
+  if (!props.pagination || archiveLoading.value) return
+  archiveLoading.value = true; archiveError.value = null
+  try {
+    const result = await props.pagination.loadArchive(more ? archiveCursor.value ?? undefined : undefined)
+    const rows = result.conversations.map(c => ({ ...c, titleGenerationAttempted: c.titleSource !== 'fallback' }))
+    archiveResults.value = [...new Map([...(more ? archiveResults.value : []), ...rows].map(c => [c.id, c])).values()]
+    archiveCursor.value = result.nextCursor ?? null
+  }
+  catch { archiveError.value = 'Das Archiv konnte nicht geladen werden.' }
+  finally { archiveLoading.value = false }
+}
+onUnmounted(() => { searchAbort?.abort(); clearTimeout(searchTimer) })
 const renameTarget = ref<Conversation | null>(null)
 const deleteTarget = ref<Conversation | null>(null)
 const deleteReturnFocus = ref<HTMLElement | null>(null)
@@ -43,6 +91,7 @@ function showSearch(): void {
 function showArchive(): void {
   closeOnMobile()
   archiveOpen.value = true
+  void loadArchive()
 }
 
 function actions(conversation: Conversation): DropdownMenuItem[] {
@@ -68,7 +117,8 @@ function showDelete(conversation: Conversation, trigger: HTMLElement | null): vo
 
 const searchGroups = computed(() => [{
   id: 'conversations', label: 'Gespräche',
-  items: [...props.conversations].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).map(conversation => ({
+  ignoreFilter: Boolean(props.pagination),
+  items: [...(props.pagination ? searchResults.value : props.conversations)].sort(compareConversations).map(conversation => ({
     id: conversation.id, label: conversation.title, icon: 'i-lucide-square-pen', onSelect: () => selectChat(conversation.id),
   })),
 }])
@@ -101,7 +151,10 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
     </template>
 
     <nav aria-label="Gespräche" class="pb-4">
-      <p v-if="groups.length === 0" class="px-3 py-6 text-sm leading-relaxed text-muted">Hier ist Platz für deine Gedanken.<br>Deine Chats erscheinen hier.</p>
+      <p v-if="pagination?.sidebarError.value" role="alert" class="px-3 py-2 text-sm text-warning">{{ pagination.sidebarError.value }}</p>
+      <UButton v-if="pagination?.sidebarError.value || pagination?.windowedList.value" color="neutral" variant="ghost" label="Neueste Chats laden" :loading="pagination?.sidebarLoading.value" @click="pagination?.reloadSidebar" />
+      <p v-if="pagination?.sidebarLoading.value && groups.length === 0" role="status" class="px-3 py-2 text-sm text-muted">Chats werden geladen …</p>
+      <p v-if="groups.length === 0 && !pagination?.sidebarLoading.value && !pagination?.sidebarError.value" class="px-3 py-6 text-sm leading-relaxed text-muted">Hier ist Platz für deine Gedanken.<br>Deine Chats erscheinen hier.</p>
       <section v-for="group in groups" :key="group.label" class="mt-5" :aria-label="group.label">
         <h2 class="sidebar-group">{{ group.label }}</h2>
         <ul class="space-y-0.5">
@@ -115,6 +168,7 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
           </li>
         </ul>
       </section>
+      <UButton v-if="pagination?.hasMore.value" color="neutral" variant="ghost" label="Weitere Chats laden" :loading="pagination.sidebarLoading.value" class="mt-3 w-full" @click="pagination.loadMore" />
     </nav>
 
     <template #footer>
@@ -131,7 +185,9 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
 
   <UModal v-model:open="searchOpen" title="Chats suchen" :ui="{ content: 'max-w-xl', body: 'p-0 sm:p-0' }">
     <template #body>
-      <UCommandPalette :groups="searchGroups" placeholder="Chat suchen …" :autofocus="true">
+      <p v-if="searchError" role="alert" class="p-3 text-sm text-warning">{{ searchError }} <UButton label="Suche erneut versuchen" variant="link" @click="runSearch" /></p>
+      <p v-if="searchCursor" role="status" class="px-3 pt-3 text-xs text-muted">Weitere Treffer vorhanden. Grenze die Suche ein.</p>
+      <UCommandPalette v-model:search-term="searchTerm" :groups="searchGroups" :fuse="pagination ? { resultLimit: 50 } : {}" :loading="searchLoading" placeholder="Chat suchen …" :autofocus="true">
         <template #empty>Keine passenden Chats gefunden.</template>
       </UCommandPalette>
     </template>
@@ -156,14 +212,16 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
 
   <UModal v-model:open="archiveOpen" title="Archivierte Chats">
     <template #body>
-      <p v-if="archived.length === 0" class="text-sm text-muted">Keine archivierten Chats.</p>
+      <p v-if="archiveError" role="alert" class="text-sm text-warning">{{ archiveError }} <UButton label="Archiv erneut laden" variant="link" @click="loadArchive()" /></p>
+      <p v-if="archivedRows.length === 0 && !archiveLoading" class="text-sm text-muted">Keine archivierten Chats.</p>
       <ul v-else class="space-y-3">
-        <li v-for="conversation in archived" :key="conversation.id" class="flex items-center gap-3">
+        <li v-for="conversation in archivedRows" :key="conversation.id" class="flex items-center gap-3">
           <span class="min-w-0 flex-1 truncate text-sm">{{ conversation.title }}</span>
           <UButton icon="i-lucide-undo-2" color="neutral" variant="ghost" class="touch-control" :aria-label="`${conversation.title} wiederherstellen`" @click="emit('restore', conversation.id); archiveOpen = false; closeOnMobile()" />
           <UButton icon="i-lucide-trash-2" color="error" variant="ghost" class="touch-control" :aria-label="`${conversation.title} löschen`" @click="showDelete(conversation, $event.currentTarget as HTMLElement)" />
         </li>
       </ul>
+      <UButton v-if="archiveCursor" label="Weitere archivierte Chats laden" color="neutral" variant="ghost" :loading="archiveLoading" @click="loadArchive(true)" />
     </template>
   </UModal>
 </template>

@@ -4,7 +4,7 @@ import asyncio
 import os
 from collections.abc import AsyncIterator, Iterator, Sequence
 from typing import cast
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from alembic import command
@@ -460,3 +460,98 @@ def test_startup_recovery_and_slow_client_overflow(client: TestClient) -> None:
             while True:
                 socket.receive_json()
         assert closed.value.code == 1013
+
+
+def test_thousand_message_context_reaches_the_existing_provider(
+    migration_config: Config, llm_config: Settings, simulator: Simulator
+) -> None:
+    """UI windows must never truncate the authoritative provider path."""
+    from sqlalchemy import insert, update
+
+    from noris_ai.chat.models import ChatConversation, ChatMessage
+
+    command.upgrade(migration_config, "head")
+    config = Settings(
+        **(
+            llm_config.model_dump()
+            | {
+                "database_url": os.environ["NORIS_TEST_DATABASE_URL"],
+                "llm_models": tuple(
+                    model.model_copy(update={"context_window": 131072})
+                    for model in llm_config.llm_models
+                ),
+                "llm_daily_token_budget": 1_000_000,
+            }
+        )
+    )
+    with TestClient(
+        create_app(config, provider=simulator), base_url="http://localhost:3000"
+    ) as client:
+        payload = generate(client)
+        conversation_id = UUID(str(payload["conversationId"]))
+        ids = [uuid4() for _ in range(1002)]
+        alternate = uuid4()
+
+        async def seed_path() -> None:
+            database = cast(ModelDatabase, cast(FastAPI, client.app).state.chat_database)
+            async with database() as session, session.begin():
+                for index, id in enumerate(ids):
+                    await session.execute(
+                        insert(ChatMessage).values(
+                            id=id,
+                            conversation_id=conversation_id,
+                            parent_message_id=ids[index - 1] if index else None,
+                            role="user" if index % 2 == 0 else "assistant",
+                            content=f"Selected {index}",
+                            status="completed",
+                        )
+                    )
+                await session.execute(
+                    insert(ChatMessage).values(
+                        id=alternate,
+                        conversation_id=conversation_id,
+                        parent_message_id=ids[1000],
+                        role="assistant",
+                        content="Not selected",
+                        status="completed",
+                    )
+                )
+                await session.execute(
+                    update(ChatConversation)
+                    .where(ChatConversation.id == conversation_id)
+                    .values(active_leaf_message_id=ids[-1])
+                )
+
+        assert client.portal is not None
+        client.portal.call(seed_path)
+        assert (
+            len(
+                client.get(
+                    f"/api/v1/conversations/{conversation_id}/active-path", auth=AUTH
+                ).json()["messages"]
+            )
+            == 50
+        )
+        payload["parentMessageId"] = str(ids[-1])
+        with client.websocket_connect(
+            "/api/v1/chat/ws", subprotocols=protocols(client), headers=ORIGIN.copy()
+        ) as socket:
+            socket.receive_json()
+            socket.send_json(payload)
+            while True:
+                event = socket.receive_json()
+                assert event["type"] != "chat.generation.failed", event
+                if event["type"] == "chat.generation.completed":
+                    break
+        assert len(simulator.calls) == 1
+        context = simulator.calls[0]
+        assert len(context) == 1003
+        assert [m.content for m in context[:-1]] == [f"Selected {i}" for i in range(1002)]
+        assert all(m.content != "Not selected" for m in context)
+        # A cached older boundary remains valid after appending this response.
+        page = client.get(
+            f"/api/v1/conversations/{conversation_id}/active-path",
+            params={"beforeMessageId": str(ids[951])},
+            auth=AUTH,
+        )
+        assert page.status_code == 200 and len(page.json()["messages"]) == 50

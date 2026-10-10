@@ -59,6 +59,8 @@ class ConversationResponse(JsonApiSchema):
 
 class ConversationListResponse(JsonApiSchema):
     conversations: list[ConversationResponse]
+    nextCursor: str | None = None
+    hasMore: bool = False
 
 
 class MessageResponse(JsonApiSchema):
@@ -80,6 +82,28 @@ class MessageResponse(JsonApiSchema):
 
 class MessageListResponse(JsonApiSchema):
     messages: list[MessageResponse]
+    nextCursor: str | None = None
+    hasMore: bool = False
+    # A chronological page is never an assertion that the tree is complete.
+    completeTree: bool = False
+
+
+class VariantSummary(JsonApiSchema):
+    messageId: UUID
+    total: int
+    index: int
+    previousMessageId: UUID | None
+    nextMessageId: UUID | None
+
+
+class ActivePathResponse(JsonApiSchema):
+    conversation: ConversationResponse
+    leafMessageId: UUID | None
+    messages: list[MessageResponse]
+    variants: list[VariantSummary]
+    nextCursor: str | None = None
+    hasMore: bool = False
+    boundaryParentId: UUID | None = None
 
 
 class DraftUpdate(JsonApiSchema):

@@ -28,6 +28,7 @@ from noris_ai.llm.schemas import (
     FailedEvent,
     IncompleteEvent,
     LLMMessage,
+    PersistedChatRequest,
     StartedEvent,
 )
 
@@ -103,7 +104,7 @@ class GenerationManager:
                     }
                 )
                 try:
-                    request = ChatRequest(
+                    request = PersistedChatRequest(
                         generationId=str(generation.id),
                         conversationId=str(command.conversationId),
                         inputMessageId=str(command.inputMessageId),

@@ -2,7 +2,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { Ref } from 'vue'
 import { distanceToBottom, followingAfterScroll } from '../lib/chat/scroll'
 
-export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HTMLElement | null>, conversationId: Ref<string | null>, turnId: Ref<string | null>) {
+export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HTMLElement | null>, conversationId: Ref<string | null>, turnId: Ref<string | null>, persistent = false) {
   const following = ref(true)
   const distance = ref(0)
   const showScrollButton = computed(() => !following.value || distance.value > 64)
@@ -13,6 +13,44 @@ export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HT
   let changing = false
   let revision = 0
   let touchY = 0
+  const storageKey = 'noris-ai:chat-scroll:v1'
+  const anchors = new Map<string, { messageId: string | null, offset: number, following: boolean }>()
+  let restoring = persistent
+  if (persistent && typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(storageKey)
+      if (raw && raw.length <= 16000) {
+        const saved: unknown = JSON.parse(raw)
+        if (Array.isArray(saved)) for (const item of saved.slice(-10)) {
+          if (Array.isArray(item) && typeof item[0] === 'string' && item[1] && typeof item[1].following === 'boolean' && typeof item[1].offset === 'number' && Number.isFinite(item[1].offset) && (item[1].messageId === null || typeof item[1].messageId === 'string')) anchors.set(item[0], item[1])
+        }
+      }
+    }
+    catch { /* Scroll preferences never block chat recovery. */ }
+  }
+  function saveAnchor(): void {
+    const element = scroller.value
+    const id = conversationId.value
+    if (!persistent || !id || !element || restoring || changing) return
+    const viewport = element.getBoundingClientRect()
+    const message = [...element.querySelectorAll<HTMLElement>('[data-message-id]')].find(node => node.getBoundingClientRect().bottom > viewport.top)
+    anchors.delete(id)
+    anchors.set(id, { messageId: message?.dataset.messageId ?? null, offset: message ? message.getBoundingClientRect().top - viewport.top : 0, following: following.value })
+    if (anchors.size > 10) anchors.delete(anchors.keys().next().value!)
+    try { localStorage.setItem(storageKey, JSON.stringify([...anchors])) } catch { /* Optional UI cache. */ }
+  }
+  function restoreAnchor(): boolean {
+    const element = scroller.value
+    const id = conversationId.value
+    const saved = id ? anchors.get(id) : undefined
+    if (!persistent || !element || !saved || saved.following) { restoring = false; return false }
+    following.value = false
+    const node = [...element.querySelectorAll<HTMLElement>('[data-message-id]')].find(node => node.dataset.messageId === saved.messageId)
+    if (!node) return true
+    setTop(element.scrollTop + node.getBoundingClientRect().top - element.getBoundingClientRect().top - saved.offset)
+    restoring = false
+    return true
+  }
 
   function measure(): void {
     const element = scroller.value
@@ -53,9 +91,10 @@ export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HT
     measure()
     following.value = followingAfterScroll(following.value, lastTop, element.scrollTop, distance.value, element.scrollHeight - element.clientHeight)
     lastTop = element.scrollTop
+    saveAnchor()
     if (!following.value) cancelFrame()
   }
-  function pause(): void { following.value = false; cancelFrame() }
+  function pause(): void { restoring = false; following.value = false; cancelFrame() }
   function onWheel(event: WheelEvent): void { if (event.deltaY < 0) pause() }
   function onKeydown(event: KeyboardEvent): void {
     if (['ArrowUp', 'PageUp', 'Home'].includes(event.key)) pause()
@@ -69,6 +108,7 @@ export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HT
   function contentChanged(): void { measure(); follow() }
   function contentRendered(): void {
     measure()
+    if (restoring && restoreAnchor()) return
     if (following.value && !changing) {
       cancelFrame()
       setTop(scroller.value?.scrollHeight ?? 0)
@@ -87,15 +127,16 @@ export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HT
     if (saved) { following.value = saved.following; setTop(saved.following ? scroller.value?.scrollHeight ?? 0 : saved.top) }
     else if (id !== previousId || turn !== previousTurn) { following.value = true; setTop(scroller.value?.scrollHeight ?? 0) }
     changing = false
-    follow()
+    if (id !== previousId) restoring = persistent
+    if (!restoreAnchor()) follow()
   }, { flush: 'pre' })
 
   onMounted(() => {
     observer = new ResizeObserver(() => { measure(); follow() })
     if (scroller.value) observer.observe(scroller.value)
     if (content.value) observer.observe(content.value)
-    measure(); follow()
+    measure(); if (!restoreAnchor()) follow()
   })
-  onUnmounted(() => { ++revision; stopWatching(); observer?.disconnect(); cancelFrame() })
-  return { following, showScrollButton, scrollToBottom, contentChanged, contentRendered, onScroll, onWheel, onKeydown, onTouchstart, onTouchmove }
+  onUnmounted(() => { saveAnchor(); ++revision; stopWatching(); observer?.disconnect(); cancelFrame() })
+  return { pause, following, showScrollButton, scrollToBottom, contentChanged, contentRendered, onScroll, onWheel, onKeydown, onTouchstart, onTouchmove }
 }

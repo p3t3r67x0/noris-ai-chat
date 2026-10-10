@@ -1,9 +1,15 @@
+import type { ApiSchemas } from '../../app/types/generated/api'
 import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ request }) => {
-  const response = await request.get('/api/v1/conversations?archived=true')
-  expect(response.ok()).toBe(true)
-  for (const c of (await response.json()).conversations) await request.delete(`/api/v1/conversations/${c.id}`)
+  let cursor: string | null = null
+  do {
+    const response = await request.get('/api/v1/conversations', { params: { archived: true, limit: 100, ...(cursor ? { cursor } : {}) } })
+    expect(response.ok()).toBe(true)
+    const data: ApiSchemas['ConversationListResponse'] = await response.json()
+    for (const c of data.conversations) await request.delete(`/api/v1/conversations/${c.id}`)
+    cursor = data.nextCursor ?? null
+  } while (cursor)
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
 })
@@ -47,7 +53,7 @@ test('stop and reload retain partial answer; retry creates another immutable var
   const c = (await (await request.get('/api/v1/conversations')).json()).conversations[0]
   const rows = (await (await request.get(`/api/v1/conversations/${c.id}/messages`)).json()).messages
   expect(rows.at(-1).status).toBe('cancelled')
-  await composer.fill(`/retry ws persistence ${info.project.name}`)
+  await composer.fill(`/retry ws persistence ${info.project.name} ${globalThis.crypto.randomUUID()}`)
   await composer.press('Enter')
   await expect(page.locator('[data-generation-status="failed"]')).toBeAttached()
   await page.getByRole('button', { name: 'Erneut versuchen', exact: true }).click()

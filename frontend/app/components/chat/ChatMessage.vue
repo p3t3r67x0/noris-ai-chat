@@ -2,10 +2,11 @@
 import type { ChatMessage } from '../../lib/chat/types'
 import { useCopy } from '../../composables/useCopy'
 import MarkdownContent from './MarkdownContent'
+import type { ApiSchemas } from '../../types/generated/api'
 import MessageVariants from './MessageVariants.vue'
 import { CHAT_LIMITS } from '../../lib/chat/limits'
 
-withDefaults(defineProps<{ message: ChatMessage, variants?: readonly ChatMessage[], busy?: boolean, canContinue?: boolean }>(), { variants: () => [], busy: false, canContinue: false })
+withDefaults(defineProps<{ message: ChatMessage, summary?: ApiSchemas['VariantSummary'] | undefined, variants?: readonly ChatMessage[], busy?: boolean, canContinue?: boolean }>(), { summary: undefined, variants: () => [], busy: false, canContinue: false })
 const emit = defineEmits<{ edit: [], regenerate: [], continue: [], rendered: [], selectVariant: [id: string] }>()
 const { copy, copied, copyError } = useCopy()
 </script>
@@ -27,7 +28,7 @@ const { copy, copied, copyError } = useCopy()
       <UButton :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" color="neutral" variant="ghost" class="touch-control" :aria-label="copied ? 'Nachricht kopiert' : 'Nachricht kopieren'" @click="copy(message.content)" />
       <UButton v-if="message.role === 'user'" icon="i-lucide-pencil" color="neutral" variant="ghost" class="touch-control" aria-label="Nachricht bearbeiten" :disabled="busy" @click="emit('edit')" />
       <UButton v-else icon="i-lucide-rotate-ccw" color="neutral" variant="ghost" class="touch-control" aria-label="Antwort erneut generieren" :disabled="busy" @click="emit('regenerate')" />
-      <MessageVariants :variants="variants" :selected-id="message.id" :busy="busy" :role="message.role" @select="emit('selectVariant', $event)" />
+      <MessageVariants :variants="variants" :summary="summary" :selected-id="message.id" :busy="busy" :role="message.role" @select="emit('selectVariant', $event)" />
     </div>
     <p v-if="copyError" role="status" class="text-xs text-error">{{ copyError }}</p>
   </article>

@@ -24,5 +24,6 @@ MESSAGES = {
     "GENERATION_NOT_FOUND": "Diese Generierung existiert nicht.",
     "GENERATION_ACTIVE": "Diese Generierung läuft bereits.",
     "INVALID_INPUT": "Die Anfrage ist ungültig.",
+    "INVALID_CURSOR": "Die Seitenmarkierung ist ungültig. Lade die Liste erneut.",
     "INTERNAL_ERROR": "Die Chatanfrage konnte nicht verarbeitet werden.",
 }

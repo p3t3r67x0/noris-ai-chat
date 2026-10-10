@@ -7,6 +7,6 @@ export default defineConfig({
   ...base,
   outputDir: './test-results/production',
   reporter: process.env.CI ? [['list'], ['html', { outputFolder: 'playwright-report/production', open: 'never' }]] : 'list',
-  use: { ...base.use, baseURL: 'http://127.0.0.1:8080' },
+  use: { ...base.use, baseURL: process.env.NORIS_E2E_COMPOSE_URL ?? 'http://127.0.0.1:8080' },
   webServer: [],
 })
