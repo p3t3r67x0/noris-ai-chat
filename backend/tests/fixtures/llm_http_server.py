@@ -3,11 +3,14 @@
 import asyncio
 import json
 from collections.abc import AsyncIterator
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from noris_ai.llm.titles import TITLE_INSTRUCTION
+
+from .provider_catalog import provider_data
 
 app = FastAPI()
 calls: list[dict[str, object]] = []
@@ -29,6 +32,10 @@ async def state() -> dict[str, object]:
 
 catalog_ids = ["fixture-alpha", "fixture-beta", "fixture-long"]
 catalog_status = 200
+native_catalog = {
+    item["id"]: item
+    for item in json.loads(Path(__file__).with_name("noris-models-2.4.json").read_text())["data"]
+}
 
 
 @app.get("/v1/models")
@@ -36,7 +43,10 @@ async def models(request: Request) -> JSONResponse:
     if request.headers.get("authorization") != "Bearer fixture-provider-key-never-real":
         return JSONResponse({}, status_code=401)
     return JSONResponse(
-        {"object": "list", "data": [{"id": value} for value in catalog_ids]},
+        {
+            "object": "list",
+            "data": [native_catalog.get(value, provider_data(value)) for value in catalog_ids],
+        },
         status_code=catalog_status,
     )
 

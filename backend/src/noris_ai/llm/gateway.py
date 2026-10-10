@@ -2,6 +2,7 @@ import asyncio
 from collections import deque
 from collections.abc import AsyncGenerator, AsyncIterator, Sequence
 from datetime import UTC, datetime
+from decimal import Decimal
 from time import monotonic
 
 import anyio
@@ -10,6 +11,7 @@ from noris_ai.core.config import Settings
 from noris_ai.llm.catalog import ModelCatalogService
 from noris_ai.llm.continuation import ContinuationFilter, continuation_messages, utf16_length
 from noris_ai.llm.errors import LLMError
+from noris_ai.llm.pricing import estimate_cost
 from noris_ai.llm.provider import LLMProvider, ProviderMessage
 from noris_ai.llm.schemas import (
     ChatRequest,
@@ -34,6 +36,7 @@ class LLMGateway:
         self.config = config
         self.provider = provider
         self.catalog = ModelCatalogService(config, provider)
+        self._estimated_costs: dict[str, Decimal | None] = {}
         self._admitted: dict[str, LLMModel] = {}
         self._active: set[str] = set()
         self._recent: deque[float] = deque()
@@ -104,6 +107,9 @@ class LLMGateway:
             self._budget_day, self._reserved_tokens = today, 0
         if self._reserved_tokens + reservation > self.config.llm_daily_token_budget:
             raise LLMError("BUDGET_LIMIT", 429)
+        self._estimated_costs[generation_id] = estimate_cost(
+            model.cost, estimate, model.max_output_tokens + model.reasoning_reserve_tokens
+        )
         self._active.add(generation_id)
         self._admitted[generation_id] = model
         self._recent.append(now)
@@ -167,6 +173,7 @@ class LLMGateway:
         self._active.discard(generation_id)
         self._answer_targets.pop(generation_id, None)
         self._admitted.pop(generation_id, None)
+        self._estimated_costs.pop(generation_id, None)
 
     async def events(
         self, request: ChatRequest

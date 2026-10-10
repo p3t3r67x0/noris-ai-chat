@@ -13,8 +13,10 @@ from noris_ai.llm.errors import LLMError
 from noris_ai.llm.gateway import LLMGateway
 from noris_ai.llm.openai_compatible import OpenAICompatibleProvider
 from noris_ai.llm.provider import ProviderMessage
+from noris_ai.llm.provider_models import ProviderModel
 from noris_ai.llm.schemas import ChatRequest, LLMMessage, LLMModel
 from noris_ai.llm.tokens import TokenCounter
+from tests.fixtures.provider_catalog import provider_model
 
 
 def request(
@@ -42,8 +44,8 @@ class Provider:
         self.calls: list[Sequence[ProviderMessage]] = []
         self.closed = False
 
-    async def discover_models(self) -> list[str]:
-        return ["fixture-alpha"]
+    async def discover_models(self) -> list[ProviderModel]:
+        return [provider_model(value) for value in ["fixture-alpha"]]
 
     async def stream(
         self, messages: Sequence[ProviderMessage], model: LLMModel

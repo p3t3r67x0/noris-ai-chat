@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from noris_ai.core.config import Settings
 from noris_ai.main import create_app
+from tests.fixtures.provider_catalog import provider_data
 
 from .http_server import serve
 
@@ -34,7 +35,7 @@ async def test_catalog_over_actual_http(llm_config: Settings, scenario: str) -> 
 
             return StreamingResponse(waiting(), media_type="application/json")
         return JSONResponse(
-            {"data": [] if scenario == "empty" else [{"id": value} for value in ids]}
+            {"data": [] if scenario == "empty" else [provider_data(value) for value in ids]}
         )
 
     upstream.add_api_route("/v1/models", discover, methods=["GET"], response_model=None)
