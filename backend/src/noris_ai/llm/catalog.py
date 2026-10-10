@@ -6,7 +6,7 @@ from time import monotonic
 from noris_ai.core.config import Settings
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.provider import LLMProvider
-from noris_ai.llm.registry import REGISTRY_VERSION, chat_compatible, classify
+from noris_ai.llm.registry import REGISTRY_VERSION, chat_compatible, resolve_model
 from noris_ai.llm.schemas import ChatLimits, LLMModel, ModelCatalog
 
 
@@ -46,19 +46,9 @@ class ModelCatalogService:
                     if self.provider is None:
                         raise LLMError("LLM_DISABLED", 503)
                     async with asyncio.timeout(self.config.llm_discovery_timeout_seconds):
-                        ids = await self.provider.discover_models()
-                    models = [classify(model_id, self.config.llm_models) for model_id in ids]
+                        facts = await self.provider.discover_models()
+                    models = [resolve_model(fact, self.config) for fact in facts]
                     models = [model for model in models if chat_compatible(model)]
-                    models = [
-                        model.model_copy(
-                            update={
-                                "max_output_tokens": min(
-                                    model.max_output_tokens, self.config.llm_max_output_tokens
-                                )
-                            }
-                        )
-                        for model in models
-                    ]
                     models.sort(key=lambda model: (not model.virtual, model.name.casefold()))
                     # The legacy reasoning option applies ONLY to exact GPT-OSS metadata.
                     configured_effort = self.config.llm_reasoning_effort
@@ -122,6 +112,7 @@ class ModelCatalogService:
                 return self._last.model_copy(
                     update={
                         "status": "stale",
+                        "expires_in_seconds": 0,
                         "default_model": None,
                         "models": [
                             model.model_copy(update={"available": False})
@@ -135,6 +126,6 @@ class ModelCatalogService:
     async def require(self, model_id: str) -> LLMModel:
         catalog = await self.get(allow_stale=False)
         model = next((model for model in catalog.models if model.id == model_id), None)
-        if model is None:
+        if model is None or not model.available:
             raise LLMError("MODEL_UNAVAILABLE", 400)
         return model
