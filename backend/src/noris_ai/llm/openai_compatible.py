@@ -1,7 +1,7 @@
 import asyncio
 import json
-import re
 from collections.abc import AsyncIterator, Sequence
+from decimal import Decimal
 from typing import Literal, cast
 
 import httpx
@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from noris_ai.core.config import Settings
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.provider import ProviderMessage
+from noris_ai.llm.provider_models import ProviderModel, ProviderModels
 from noris_ai.llm.schemas import LLMModel
 from noris_ai.llm.sse import SSEDecoder
 from noris_ai.llm.titles import TitleInstruction
@@ -41,11 +42,6 @@ class ProviderChunk(BaseModel):
     error: object | None = None
 
 
-class ProviderModels(BaseModel):
-    model_config = ConfigDict(strict=True)
-    data: list[object]
-
-
 class OpenAICompatibleProvider:
     def __init__(
         self, config: Settings, *, transport: httpx.AsyncBaseTransport | None = None
@@ -70,7 +66,7 @@ class OpenAICompatibleProvider:
     async def aclose(self) -> None:
         await self._client.aclose()
 
-    async def discover_models(self) -> list[str]:
+    async def discover_models(self) -> list[ProviderModel]:
         key, base = self._config.llm_api_key, self._config.llm_base_url
         if key is None or base is None:
             raise LLMError("LLM_DISABLED", 503)
@@ -90,28 +86,22 @@ class OpenAICompatibleProvider:
                         data.extend(chunk)
                         if len(data) > self._config.llm_max_upstream_bytes:
                             raise LLMError("INVALID_RESPONSE")
-                    # Parse IDs and confirmed readiness; capability metadata stays in the registry.
                     try:
-                        payload = ProviderModels.model_validate_json(data)
+                        payload = ProviderModels.model_validate(json.loads(data, parse_float=Decimal))
                     except ValidationError:
                         raise LLMError("INVALID_RESPONSE") from None
-                    ids: list[str] = []
+                    models: dict[str, ProviderModel] = {}
+                    duplicates: set[str] = set()
                     for item in payload.data:
-                        if not isinstance(item, dict):
-                            continue
-                        fields = cast(dict[str, object], item)
-                        # Confirmed Noris field; absence is allowed for older responses.
-                        if "is_ready" in fields and fields["is_ready"] is not True:
-                            continue
-                        model_id = fields.get("id")
-                        if (
-                            isinstance(model_id, str)
-                            and len(model_id) <= 200
-                            and re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9._/:-]*", model_id)
-                            and model_id not in ids
-                        ):
-                            ids.append(model_id)
-                    return ids
+                        try:
+                            model = ProviderModel.model_validate(item)
+                        except ValidationError:
+                            continue  # Malformed entries never authorize generation.
+                        if model.id in models:
+                            duplicates.add(model.id)
+                        models[model.id] = model
+                    # Conflicting duplicate IDs have no reliable contract.
+                    return [model for key, model in models.items() if key not in duplicates]
         except (TimeoutError, httpx.TimeoutException):
             raise LLMError("TIMEOUT", 504) from None
         except httpx.HTTPError:
