@@ -92,6 +92,7 @@ test('a failed older page preserves messages and offers retry', async ({ page, r
 test('keeps loaded ancestors after streaming and restores a saved reader anchor on reload', async ({ page, request }) => {
   test.setTimeout(120000)
   const conversationId = await seed(request)
+  expect((await request.put('/api/v1/chat/preferences', { data: { activeConversationId: conversationId, modelId: 'fixture-long' } })).ok()).toBe(true)
   await page.goto('/')
   await expect(page.locator('[data-message-id]')).toHaveCount(50)
   const scroller = page.locator('.chat-scroll')

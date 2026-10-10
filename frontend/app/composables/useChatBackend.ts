@@ -189,7 +189,16 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   async function reloadSidebar(): Promise<void> {
     if (sidebarLoading.value) return
     sidebarLoading.value = true; sidebarError.value = null
-    try { await refresh() }
+    try {
+      if (!backendReady.value) await refresh()
+      else {
+        const result = await backend.page()
+        if (disposed) return
+        mergeMetadata(result.conversations)
+        sidebarIds.value = result.conversations.map(c => c.id)
+        nextCursor.value = result.nextCursor ?? null
+      }
+    }
     catch (error) { sidebarError.value = error instanceof Error ? error.message : 'Chats konnten nicht geladen werden.' }
     finally { sidebarLoading.value = false }
   }

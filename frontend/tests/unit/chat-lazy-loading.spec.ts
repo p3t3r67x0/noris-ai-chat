@@ -160,6 +160,21 @@ describe('lazy chat resources', () => {
     expect(state.drafts.records.value[id(80)]).toBe('Offline inactive draft')
     expect(JSON.parse(localStorage.getItem('noris-ai:offline-drafts:v1')!)).toMatchObject({ [id(1)]: 'Typed while loading', [id(80)]: 'Offline inactive draft' })
   })
+  it('reloads sidebar metadata during streaming without fetching or replacing its message window', async () => {
+    const { backend } = client(1)
+    const transport = { backend, stream: async function* () {} }
+    const state = createChatState(transport)
+    let sync!: ReturnType<typeof useChatBackend>
+    wrappers.push(mount(defineComponent({ setup() { sync = useChatBackend(state, transport); return () => h('div') } })))
+    await vi.waitFor(() => expect(sync.backendReady.value).toBe(true))
+    state.generatingConversationId.value = id(1)
+    state.messages.value[id(1001)]!.content = 'Current streamed content'
+    const read = vi.spyOn(backend, 'path')
+    await sync.pagination.reloadSidebar()
+    expect(read).not.toHaveBeenCalled()
+    expect(state.visible.value[0]?.content).toBe('Current streamed content')
+    expect(state.generatingConversationId.value).toBe(id(1))
+  })
 })
 
 describe('bounded read cache', () => {
