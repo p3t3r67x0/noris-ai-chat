@@ -36,6 +36,9 @@ test('Stop closes a quiet provider stream', async ({ page, request }, info) => {
   await expect.poll(async () => (await request.get(`${fixtureOrigin}/fixture/state`).then(response => response.json()) as { cancelled: number }).cancelled).toBeGreaterThan(before.cancelled)
   const continuation = `Weiter nach Stop ${info.project.name}`
   await page.getByRole('textbox', { name: 'Nachricht', exact: true }).fill(continuation)
+  // Refocusing can refresh the model catalog. Wait for the existing send gate
+  // before pressing Enter so a pending refresh cannot discard the keystroke.
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await page.getByRole('textbox', { name: 'Nachricht', exact: true }).press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   const state = await request.get(`${fixtureOrigin}/fixture/state`).then(response => response.json()) as { calls: { messages: { role: string, content: string }[] }[] }

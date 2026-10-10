@@ -278,7 +278,7 @@ describe('bounded conversation titles', () => {
     await expect(invalid.generateTitle!(request, signal)).rejects.toThrow()
   })
 
-  it.each(['Docker DNS', 'Docker DNS Troubleshooting', 'MCP zu Codex hinzufügen', 'Add MCP to Codex now', 'ÖPNV & Mobilität', 'Datenbankzugriffsrechte prüfen'])('accepts concise topics with two to five words: %s', (title) => {
+  it.each(['Docker DNS', 'Docker DNS Troubleshooting', 'Fiktive Beispiele sammeln', 'Add MCP to Codex now', 'ÖPNV & Mobilität', 'Datenbankzugriffsrechte prüfen'])('accepts concise topics with two to five words: %s', (title) => {
     expect(validGeneratedTitle(title)).toBe(true)
   })
 

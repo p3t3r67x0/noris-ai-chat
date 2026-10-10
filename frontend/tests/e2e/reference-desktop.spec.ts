@@ -25,7 +25,7 @@ test('original reference size with synthetic content', async ({ page }, testInfo
 })
 
 for (const theme of ['light', 'dark']) {
-  for (const viewport of [{ width: 1440, height: 900 }, { width: 1920, height: 1080 }, { width: 1280, height: 800 }, { width: 768, height: 1024 }, { width: 390, height: 844 }, { width: 360, height: 800 }]) {
+  for (const viewport of [{ width: 1701, height: 863 }, { width: 1440, height: 900 }, { width: 1920, height: 1080 }, { width: 1280, height: 800 }, { width: 768, height: 1024 }, { width: 390, height: 844 }, { width: 360, height: 800 }]) {
     test(`bounded layout ${viewport.width}x${viewport.height} ${theme}`, async ({ page }) => {
       await page.setViewportSize(viewport)
       await seedChat(page, savedChat(1), theme)

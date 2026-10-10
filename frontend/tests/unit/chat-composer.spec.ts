@@ -4,7 +4,7 @@ import { defineComponent, h } from 'vue'
 import ChatComposer from '../../app/components/chat/ChatComposer.vue'
 
 // Application boundaries are tested here; actual Nuxt UI keyboard/IME behavior is exercised in Playwright.
-const Prompt = defineComponent({ emits: ['submit'], setup: (_, { emit, slots }) => () => h('form', { onSubmit: (event: Event) => { event.preventDefault(); emit('submit', event) } }, [slots.footer?.()]) })
+const Prompt = defineComponent({ emits: ['submit'], setup: (_, { emit, slots }) => () => h('form', { onSubmit: (event: Event) => { event.preventDefault(); emit('submit', event) } }, [slots.header?.(), slots.footer?.()]) })
 function composer(modelValue: string, busy = false) {
   return mount(ChatComposer, { props: { modelValue, model: 'balanced', busy, streaming: busy, cancellationRequested: false }, global: { stubs: { UChatPrompt: Prompt, UButton: true, USelectMenu: true, UChatPromptSubmit: true } } })
 }
