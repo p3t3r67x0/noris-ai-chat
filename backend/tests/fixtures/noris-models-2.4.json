@@ -1,0 +1,581 @@
+{
+  "data": [
+    {
+      "schema_version": "2.4",
+      "id": "vllm/qsu/deepseek-v41-flash",
+      "name": "Deepseek V41 Flash",
+      "input_modalities": [
+        {
+          "type": "text",
+          "supported_inputs": {
+            "max_context_length": {
+              "value": 1048576,
+              "unit": "token"
+            }
+          },
+          "pricing": [
+            {
+              "type": "prompt",
+              "unit": "token",
+              "cost_usd": "0.0000100000"
+            },
+            {
+              "type": "cached_prompt",
+              "unit": "token",
+              "cost_usd": "0.0000020000"
+            }
+          ]
+        }
+      ],
+      "output_modalities": [
+        {
+          "type": "text",
+          "supported_parameters": {
+            "max_tokens": {
+              "max": 1048576,
+              "min": 1,
+              "type": "integer",
+              "unit": "token"
+            },
+            "stop": {
+              "max_items": 4,
+              "type": "array"
+            },
+            "temperature": {
+              "max": 2,
+              "min": 0,
+              "type": "range"
+            },
+            "top_p": {
+              "max": 1,
+              "min": 0,
+              "type": "range"
+            }
+          },
+          "max_length": {
+            "value": 1048576,
+            "unit": "token"
+          },
+          "streaming": true,
+          "pricing": [
+            {
+              "type": "completion",
+              "unit": "token",
+              "cost_usd": "0.0000300000"
+            }
+          ]
+        }
+      ],
+      "created": 1791590400,
+      "is_ready": true
+    },
+    {
+      "schema_version": "2.4",
+      "id": "vllm/qsu/glm-5-3-flash",
+      "name": "Glm 5.3 Flash",
+      "input_modalities": [
+        {
+          "type": "text",
+          "supported_inputs": {
+            "max_context_length": {
+              "value": 1048576,
+              "unit": "token"
+            }
+          },
+          "pricing": [
+            {
+              "type": "prompt",
+              "unit": "token",
+              "cost_usd": "0.0000100000"
+            },
+            {
+              "type": "cached_prompt",
+              "unit": "token",
+              "cost_usd": "0.0000030000"
+            }
+          ]
+        }
+      ],
+      "output_modalities": [
+        {
+          "type": "text",
+          "supported_parameters": {
+            "max_tokens": {
+              "max": 1048576,
+              "min": 1,
+              "type": "integer",
+              "unit": "token"
+            },
+            "stop": {
+              "max_items": 4,
+              "type": "array"
+            },
+            "temperature": {
+              "max": 2,
+              "min": 0,
+              "type": "range"
+            },
+            "top_p": {
+              "max": 1,
+              "min": 0,
+              "type": "range"
+            }
+          },
+          "max_length": {
+            "value": 1048576,
+            "unit": "token"
+          },
+          "streaming": true,
+          "pricing": [
+            {
+              "type": "completion",
+              "unit": "token",
+              "cost_usd": "0.0000180000"
+            }
+          ]
+        }
+      ],
+      "created": 1791590400,
+      "is_ready": true
+    },
+    {
+      "schema_version": "2.4",
+      "id": "vllm/qsu/qwen3.8-27b",
+      "name": "Qwen3.8 27B",
+      "input_modalities": [
+        {
+          "type": "text",
+          "supported_inputs": {
+            "max_context_length": {
+              "value": 131072,
+              "unit": "token"
+            }
+          },
+          "pricing": [
+            {
+              "type": "prompt",
+              "unit": "token",
+              "cost_usd": "0.0000120000"
+            },
+            {
+              "type": "cached_prompt",
+              "unit": "token",
+              "cost_usd": "0.0000030000"
+            }
+          ]
+        }
+      ],
+      "output_modalities": [
+        {
+          "type": "text",
+          "supported_parameters": {
+            "max_tokens": {
+              "max": 131072,
+              "min": 1,
+              "type": "integer",
+              "unit": "token"
+            },
+            "stop": {
+              "max_items": 4,
+              "type": "array"
+            },
+            "temperature": {
+              "max": 2,
+              "min": 0,
+              "type": "range"
+            },
+            "top_p": {
+              "max": 1,
+              "min": 0,
+              "type": "range"
+            }
+          },
+          "max_length": {
+            "value": 131072,
+            "unit": "token"
+          },
+          "streaming": true,
+          "pricing": [
+            {
+              "type": "completion",
+              "unit": "token",
+              "cost_usd": "0.0001000000"
+            }
+          ]
+        }
+      ],
+      "created": 1791590400,
+      "is_ready": true
+    },
+    {
+      "schema_version": "2.4",
+      "id": "vllm/release/bge-reranker-v2-m3",
+      "name": "vllm/release/bge-reranker-v2-m3",
+      "input_modalities": [
+        {
+          "type": "text"
+        }
+      ],
+      "output_modalities": [
+        {
+          "type": "rerank",
+          "supported_parameters": {}
+        }
+      ],
+      "created": 1791590400,
+      "is_ready": true
+    },
+    {
+      "schema_version": "2.4",
+      "id": "vllm/release/gemma-4-31b-it",
+      "name": "Gemma 4 31B It",
+      "input_modalities": [
+        {
+          "type": "text",
+          "supported_inputs": {
+            "max_context_length": {
+              "value": 131072,
+              "unit": "token"
+            }
+          },
+          "pricing": [
+            {
+              "type": "prompt",
+              "unit": "token",
+              "cost_usd": "0.0000060000"
+            },
+            {
+              "type": "cached_prompt",
+              "unit": "token",
+              "cost_usd": "0.0000010000"
+            }
+          ]
+        }
+      ],
+      "output_modalities": [
+        {
+          "type": "text",
+          "supported_parameters": {
+            "max_tokens": {
+              "max": 131072,
+              "min": 1,
+              "type": "integer",
+              "unit": "token"
+            },
+            "stop": {
+              "max_items": 4,
+              "type": "array"
+            },
+            "temperature": {
+              "max": 2,
+              "min": 0,
+              "type": "range"
+            },
+            "top_p": {
+              "max": 1,
+              "min": 0,
+              "type": "range"
+            }
+          },
+          "max_length": {
+            "value": 131072,
+            "unit": "token"
+          },
+          "streaming": true,
+          "pricing": [
+            {
+              "type": "completion",
+              "unit": "token",
+              "cost_usd": "0.0000170000"
+            }
+          ]
+        }
+      ],
+      "created": 1791590400,
+      "is_ready": true
+    },
+    {
+      "schema_version": "2.4",
+      "id": "vllm/release/glm-5-2",
+      "name": "Glm 5.2",
+      "input_modalities": [
+        {
+          "type": "text",
+          "supported_inputs": {
+            "max_context_length": {
+              "value": 1048576,
+              "unit": "token"
+            }
+          },
+          "pricing": [
+            {
+              "type": "prompt",
+              "unit": "token",
+              "cost_usd": "0.0000200000"
+            },
+            {
+              "type": "cached_prompt",
+              "unit": "token",
+              "cost_usd": "0.0000040000"
+            }
+          ]
+        }
+      ],
+      "output_modalities": [
+        {
+          "type": "text",
+          "supported_parameters": {
+            "max_tokens": {
+              "max": 1048576,
+              "min": 1,
+              "type": "integer",
+              "unit": "token"
+            },
+            "stop": {
+              "max_items": 4,
+              "type": "array"
+            },
+            "temperature": {
+              "max": 2,
+              "min": 0,
+              "type": "range"
+            },
+            "top_p": {
+              "max": 1,
+              "min": 0,
+              "type": "range"
+            }
+          },
+          "max_length": {
+            "value": 1048576,
+            "unit": "token"
+          },
+          "streaming": true,
+          "pricing": [
+            {
+              "type": "completion",
+              "unit": "token",
+              "cost_usd": "0.0002000000"
+            }
+          ]
+        }
+      ],
+      "created": 1791590400,
+      "is_ready": true
+    },
+    {
+      "schema_version": "2.4",
+      "id": "vllm/release/gpt-oss-120b",
+      "name": "Gpt Oss 120B",
+      "input_modalities": [
+        {
+          "type": "text",
+          "supported_inputs": {
+            "max_context_length": {
+              "value": 131072,
+              "unit": "token"
+            }
+          },
+          "pricing": [
+            {
+              "type": "prompt",
+              "unit": "token",
+              "cost_usd": "0.0000060000"
+            },
+            {
+              "type": "cached_prompt",
+              "unit": "token",
+              "cost_usd": "0.0000010000"
+            }
+          ]
+        }
+      ],
+      "output_modalities": [
+        {
+          "type": "text",
+          "supported_parameters": {
+            "max_tokens": {
+              "max": 131072,
+              "min": 1,
+              "type": "integer",
+              "unit": "token"
+            },
+            "stop": {
+              "max_items": 4,
+              "type": "array"
+            },
+            "temperature": {
+              "max": 2,
+              "min": 0,
+              "type": "range"
+            },
+            "top_p": {
+              "max": 1,
+              "min": 0,
+              "type": "range"
+            }
+          },
+          "max_length": {
+            "value": 131072,
+            "unit": "token"
+          },
+          "streaming": true,
+          "pricing": [
+            {
+              "type": "completion",
+              "unit": "token",
+              "cost_usd": "0.0000250000"
+            }
+          ]
+        }
+      ],
+      "created": 1791590400,
+      "is_ready": true
+    },
+    {
+      "schema_version": "2.4",
+      "id": "vllm/release/harrier-oss-v1-0.6b",
+      "name": "Harrier Oss V1 0.6B",
+      "input_modalities": [
+        {
+          "type": "text",
+          "supported_inputs": {
+            "max_context_length": {
+              "value": 8192,
+              "unit": "token"
+            }
+          },
+          "pricing": [
+            {
+              "type": "prompt",
+              "unit": "token",
+              "cost_usd": "0.0000010000"
+            }
+          ]
+        }
+      ],
+      "output_modalities": [
+        {
+          "type": "embeddings",
+          "supported_parameters": {},
+          "pricing": [
+            {
+              "type": "completion",
+              "unit": "token",
+              "cost_usd": "0.0000000000"
+            }
+          ]
+        }
+      ],
+      "created": 1791590400,
+      "is_ready": true
+    },
+    {
+      "schema_version": "2.4",
+      "id": "vllm/release/jina-reranker-v2-base-multilingual",
+      "name": "Jina Reranker V2 Base Multilingual",
+      "input_modalities": [
+        {
+          "type": "text",
+          "supported_inputs": {
+            "max_context_length": {
+              "value": 32000,
+              "unit": "token"
+            }
+          },
+          "pricing": [
+            {
+              "type": "prompt",
+              "unit": "token",
+              "cost_usd": "0.0000010000"
+            }
+          ]
+        }
+      ],
+      "output_modalities": [
+        {
+          "type": "rerank",
+          "supported_parameters": {},
+          "pricing": [
+            {
+              "type": "completion",
+              "unit": "request",
+              "cost_usd": "0.0000000000"
+            }
+          ]
+        }
+      ],
+      "created": 1791590400,
+      "is_ready": true
+    },
+    {
+      "schema_version": "2.4",
+      "id": "vllm/release/qwen3.6-27b",
+      "name": "Qwen3.6 27B",
+      "input_modalities": [
+        {
+          "type": "text",
+          "supported_inputs": {
+            "max_context_length": {
+              "value": 131072,
+              "unit": "token"
+            }
+          },
+          "pricing": [
+            {
+              "type": "prompt",
+              "unit": "token",
+              "cost_usd": "0.0000150000"
+            },
+            {
+              "type": "cached_prompt",
+              "unit": "token",
+              "cost_usd": "0.0000030000"
+            }
+          ]
+        }
+      ],
+      "output_modalities": [
+        {
+          "type": "text",
+          "supported_parameters": {
+            "max_tokens": {
+              "max": 8192,
+              "min": 1,
+              "type": "integer",
+              "unit": "token"
+            },
+            "stop": {
+              "max_items": 4,
+              "type": "array"
+            },
+            "temperature": {
+              "max": 2,
+              "min": 0,
+              "type": "range"
+            },
+            "top_p": {
+              "max": 1,
+              "min": 0,
+              "type": "range"
+            }
+          },
+          "max_length": {
+            "value": 8192,
+            "unit": "token"
+          },
+          "streaming": true,
+          "pricing": [
+            {
+              "type": "completion",
+              "unit": "token",
+              "cost_usd": "0.0001000000"
+            }
+          ]
+        }
+      ],
+      "created": 1791590400,
+      "is_ready": true
+    }
+  ]
+}

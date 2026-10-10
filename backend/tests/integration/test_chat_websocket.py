@@ -23,9 +23,11 @@ from noris_ai.chat.ws_protocol import GenerateIncomingMessage
 from noris_ai.core.config import Settings
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.provider import ProviderMessage
+from noris_ai.llm.provider_models import ProviderModel
 from noris_ai.llm.schemas import LLMModel
 from noris_ai.llm.titles import TITLE_INSTRUCTION
 from noris_ai.main import create_app
+from tests.fixtures.provider_catalog import provider_model
 
 pytestmark = pytest.mark.integration
 AUTH = ("fixture-user", "fixture-application-password-never-real")
@@ -37,12 +39,15 @@ class Simulator:
         self.calls: list[list[ProviderMessage]] = []
         self.finished = False
 
-    async def discover_models(self) -> list[str]:
+    async def discover_models(self) -> list[ProviderModel]:
         return [
-            "fixture-alpha",
-            "fixture-beta",
-            "vllm/qsu/glm-5-3-flash",
-            "vllm/release/gpt-oss-120b",
+            provider_model(value)
+            for value in [
+                "fixture-alpha",
+                "fixture-beta",
+                "vllm/qsu/glm-5-3-flash",
+                "vllm/release/gpt-oss-120b",
+            ]
         ]
 
     async def stream(

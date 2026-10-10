@@ -10,9 +10,11 @@ from noris_ai.core.config import EnvironmentSettings, Settings
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.gateway import LLMGateway
 from noris_ai.llm.provider import ProviderMessage
+from noris_ai.llm.provider_models import ProviderModel
 from noris_ai.llm.schemas import ChatRequest, ConversationTitleRequest, LLMMessage, LLMModel
 from noris_ai.llm.titles import TITLE_INSTRUCTION, title_source, validate_title
 from noris_ai.main import create_app
+from tests.fixtures.provider_catalog import provider_model
 
 AUTH = ("fixture-user", "fixture-application-password-never-real")
 PAYLOAD: dict[str, object] = {
@@ -45,8 +47,8 @@ class TitleProvider:
         finally:
             self.closed.set()
 
-    async def discover_models(self) -> list[str]:
-        return ["fixture-alpha", "fixture-beta"]
+    async def discover_models(self) -> list[ProviderModel]:
+        return [provider_model(value) for value in ["fixture-alpha", "fixture-beta"]]
 
     async def aclose(self) -> None:
         pass

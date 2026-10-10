@@ -1094,6 +1094,11 @@
             "$ref": "#/components/schemas/ModelCategory",
             "default": "UNKNOWN"
           },
+          "chat_approved": {
+            "default": false,
+            "title": "Chat Approved",
+            "type": "boolean"
+          },
           "context_window": {
             "default": 8192,
             "maximum": 2000000.0,
@@ -1123,6 +1128,44 @@
             ],
             "title": "Documented Context Window"
           },
+          "effective_context_window": {
+            "anyOf": [
+              {
+                "maximum": 2000000.0,
+                "minimum": 256.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Context Window"
+          },
+          "effective_max_output_tokens": {
+            "anyOf": [
+              {
+                "maximum": 131072.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Max Output Tokens"
+          },
+          "estimated_max_cost_usd": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Max Cost Usd"
+          },
           "evidence": {
             "additionalProperties": {
               "$ref": "#/components/schemas/Evidence"
@@ -1130,12 +1173,41 @@
             "title": "Evidence",
             "type": "object"
           },
+          "hugging_face_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hugging Face Id"
+          },
           "id": {
             "maxLength": 200,
             "minLength": 1,
             "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._/:-]*$",
             "title": "Id",
             "type": "string"
+          },
+          "input_modalities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Input Modalities",
+            "type": "array"
+          },
+          "is_ready": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Ready"
           },
           "lifecycle": {
             "default": "UNKNOWN",
@@ -1162,6 +1234,27 @@
             "title": "Name",
             "type": "string"
           },
+          "output_modalities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Output Modalities",
+            "type": "array"
+          },
+          "provenance": {
+            "additionalProperties": {
+              "enum": [
+                "PROVIDER",
+                "LOCAL_POLICY",
+                "DOCUMENTATION",
+                "LIVE_TEST",
+                "UNKNOWN"
+              ],
+              "type": "string"
+            },
+            "title": "Provenance",
+            "type": "object"
+          },
           "provider": {
             "anyOf": [
               {
@@ -1173,6 +1266,20 @@
               }
             ],
             "title": "Provider"
+          },
+          "provider_compliance": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Provider Compliance",
+            "type": "object"
           },
           "provider_context_window": {
             "anyOf": [
@@ -1186,6 +1293,24 @@
               }
             ],
             "title": "Provider Context Window"
+          },
+          "provider_created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Created At"
+          },
+          "provider_datacenters": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Provider Datacenters",
+            "type": "array"
           },
           "provider_limit_evidence": {
             "anyOf": [
@@ -1201,11 +1326,38 @@
             "title": "Provider Limit Evidence"
           },
           "provider_max_output_tokens": {
-            "default": 8192,
-            "maximum": 131072.0,
-            "minimum": 1.0,
-            "title": "Provider Max Output Tokens",
-            "type": "integer"
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Max Output Tokens"
+          },
+          "provider_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Name"
+          },
+          "provider_schema_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Schema Version"
           },
           "reasoning": {
             "anyOf": [
@@ -1321,6 +1473,32 @@
               }
             ],
             "title": "Tool Calling"
+          },
+          "verified_max_output_tokens": {
+            "anyOf": [
+              {
+                "maximum": 131072.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified Max Output Tokens"
+          },
+          "verified_output_evidence": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified Output Evidence"
           },
           "virtual": {
             "default": false,
@@ -1633,6 +1811,47 @@
             ],
             "title": "Cached Input Points Per Million"
           },
+          "cached_input_usd_per_million": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cached Input Usd Per Million"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "const": "USD",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "discount_applied": {
+            "default": false,
+            "title": "Discount Applied",
+            "type": "boolean"
+          },
+          "discount_to_user": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount To User"
+          },
           "evidence": {
             "$ref": "#/components/schemas/Evidence",
             "default": "UNKNOWN"
@@ -1649,6 +1868,29 @@
             ],
             "title": "Input Points Per Million"
           },
+          "input_usd_per_million": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Usd Per Million"
+          },
+          "is_free": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Free"
+          },
           "output_points_per_million": {
             "anyOf": [
               {
@@ -1661,8 +1903,20 @@
             ],
             "title": "Output Points Per Million"
           },
+          "output_usd_per_million": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Usd Per Million"
+          },
           "source": {
-            "default": "https://noris.cloud/nai/punkte-rechner/",
+            "default": "https://ai.noris.de/v1/models",
             "title": "Source",
             "type": "string"
           }

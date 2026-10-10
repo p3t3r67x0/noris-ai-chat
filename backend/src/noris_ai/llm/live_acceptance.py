@@ -21,6 +21,7 @@ from noris_ai.core.config import EnvironmentSettings, Settings
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.openai_compatible import OpenAICompatibleProvider, ProviderChunk
 from noris_ai.llm.provider import ProviderMessage
+from noris_ai.llm.provider_models import ProviderModel
 from noris_ai.llm.schemas import LLMModel, StreamEvent
 from noris_ai.llm.sse import SSEDecoder
 from noris_ai.main import create_app
@@ -212,12 +213,10 @@ class ObservedProvider:
             self.observation.save()
             self.observation.finished.set()
 
-    async def discover_models(self) -> list[str]:
+    async def discover_models(self) -> list[ProviderModel]:
         # The explicitly bounded smoke harness exposes only its approved probe models.
         return [
-            model_id
-            for model_id in await self.inner.discover_models()
-            if model_id in self._model_ids
+            model for model in await self.inner.discover_models() if model.id in self._model_ids
         ]
 
     async def aclose(self) -> None:

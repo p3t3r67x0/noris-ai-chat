@@ -11,7 +11,9 @@ from noris_ai.llm.errors import LLMError
 from noris_ai.llm.gateway import LLMGateway
 from noris_ai.llm.openai_compatible import OpenAICompatibleProvider
 from noris_ai.llm.provider import ProviderMessage
+from noris_ai.llm.provider_models import ProviderModel
 from noris_ai.llm.schemas import ChatRequest, LLMModel
+from tests.fixtures.provider_catalog import provider_data, provider_model
 
 
 def long_model(**updates: object) -> LLMModel:
@@ -72,7 +74,7 @@ async def test_over_8192_output_tokens_preserve_stream_and_length_failure(
 
     def handler(upstream: httpx.Request) -> httpx.Response:
         if upstream.method == "GET":
-            return httpx.Response(200, json={"data": [{"id": "fixture-alpha"}]})
+            return httpx.Response(200, json={"data": [provider_data("fixture-alpha")]})
         captured.append(upstream)
         return httpx.Response(200, headers={"Content-Type": "text/event-stream"}, content=data)
 
@@ -135,8 +137,8 @@ def test_application_ceiling_and_timeout_configuration() -> None:
 
 
 class QuietProvider:
-    async def discover_models(self) -> list[str]:
-        return ["fixture-alpha"]
+    async def discover_models(self) -> list[ProviderModel]:
+        return [provider_model(value) for value in ["fixture-alpha"]]
 
     def __init__(self) -> None:
         self.closed = False
@@ -216,8 +218,8 @@ async def test_full_output_reservation_rejects_context_and_retry_budget(
 
 
 class TextProvider:
-    async def discover_models(self) -> list[str]:
-        return ["fixture-alpha"]
+    async def discover_models(self) -> list[ProviderModel]:
+        return [provider_model(value) for value in ["fixture-alpha"]]
 
     async def stream(
         self, messages: Sequence[ProviderMessage], model: LLMModel

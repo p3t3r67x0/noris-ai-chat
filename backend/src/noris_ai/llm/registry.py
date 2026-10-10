@@ -302,11 +302,17 @@ def resolve_model(facts: "ProviderModel", config: "Settings") -> LLMModel:
     reasoning = (
         True
         if any(
-            name in item.supported_parameters
+            isinstance(item.supported_parameters.get("reasoning_effort"), dict)
             for item in text_outputs
-            for name in ("reasoning_effort", "chat_template_kwargs")
         )
-        else (policy.reasoning if policy.evidence.get("reasoning") == "DOCUMENTED" else None)
+        else (
+            policy.reasoning
+            if (
+                policy.evidence.get("reasoning") in ("DOCUMENTED", "VERIFIED")
+                or policy.evidence.get("reasoning_parameter") in ("DOCUMENTED", "VERIFIED")
+            )
+            else None
+        )
     )
     if category == "CHAT":
         if vision:
@@ -378,10 +384,20 @@ def resolve_model(facts: "ProviderModel", config: "Settings") -> LLMModel:
         "documented_context_window": context if context and context >= 256 else None,
         "supported_output_tokens": output,
         "provider_limit_evidence": "Provider-reported GET /models; not a live generation test",
+        "verified_output_evidence": (
+            policy.verified_output_evidence or policy.provider_limit_evidence
+        )
+        if verified
+        else None,
         "provider_schema_version": facts.schema_version,
         "provider_created_at": datetime.fromtimestamp(facts.created, UTC).isoformat()
         if facts.created is not None and facts.created <= 253402300799
         else None,
+        "hugging_face_id": facts.hugging_face_id,
+        "provider_datacenters": [
+            item.country_code for item in (facts.datacenters or []) if item.country_code
+        ],
+        "provider_compliance": facts.compliance.model_dump() if facts.compliance else {},
         "input_modalities": [item.type for item in inputs],
         "output_modalities": [item.type for item in outputs],
         "is_ready": facts.is_ready,
@@ -403,13 +419,26 @@ def resolve_model(facts: "ProviderModel", config: "Settings") -> LLMModel:
             "category": "PROVIDER" if category != "UNKNOWN" else "UNKNOWN",
             "streaming": "PROVIDER" if text_outputs else "UNKNOWN",
             "vision": "PROVIDER" if inputs else "UNKNOWN",
-            "reasoning": "DOCUMENTATION" if reasoning is not None else "UNKNOWN",
+            "reasoning": "PROVIDER"
+            if any(
+                isinstance(item.supported_parameters.get("reasoning_effort"), dict)
+                for item in text_outputs
+            )
+            else "DOCUMENTATION"
+            if reasoning is not None
+            else "UNKNOWN",
             "provider_context_window": "PROVIDER" if context else "UNKNOWN",
             "provider_max_output_tokens": "PROVIDER" if output else "UNKNOWN",
             "verified_max_output_tokens": "LIVE_TEST" if verified else "UNKNOWN",
             "effective_context_window": "LOCAL_POLICY",
             "effective_max_output_tokens": "LOCAL_POLICY",
             "chat_approved": "LOCAL_POLICY",
+            "timeout_policy": "LOCAL_POLICY",
+            "reasoning_parameter": "LOCAL_POLICY" if policy.reasoning_parameter else "UNKNOWN",
+            "token_limit_parameter": "LOCAL_POLICY" if token_parameter else "UNKNOWN",
+            "tool_calling": "DOCUMENTATION" if policy.tool_calling is not None else "UNKNOWN",
+            "provider_name": "PROVIDER" if facts.name else "UNKNOWN",
+            "provider_created_at": "PROVIDER" if facts.created is not None else "UNKNOWN",
             "cost": "PROVIDER" if cost.currency else "UNKNOWN",
             "name": "LOCAL_POLICY" if approved else "PROVIDER",
             "is_ready": "PROVIDER" if facts.is_ready is not None else "UNKNOWN",

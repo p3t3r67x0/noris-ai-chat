@@ -94,7 +94,17 @@ class OpenAICompatibleProvider:
                         raise LLMError("INVALID_RESPONSE") from None
                     models: dict[str, ProviderModel] = {}
                     duplicates: set[str] = set()
+                    seen: set[str] = set()
                     for item in payload.data:
+                        candidate = (
+                            cast(dict[str, object], item).get("id")
+                            if isinstance(item, dict)
+                            else None
+                        )
+                        if isinstance(candidate, str):
+                            if candidate in seen:
+                                duplicates.add(candidate)
+                            seen.add(candidate)
                         try:
                             model = ProviderModel.model_validate(item)
                         except ValidationError:

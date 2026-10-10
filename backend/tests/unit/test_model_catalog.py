@@ -11,9 +11,11 @@ from noris_ai.llm.errors import LLMError
 from noris_ai.llm.gateway import LLMGateway
 from noris_ai.llm.openai_compatible import OpenAICompatibleProvider
 from noris_ai.llm.provider import ProviderMessage
+from noris_ai.llm.provider_models import ProviderModel
 from noris_ai.llm.registry import REGISTRY, chat_compatible, classify
 from noris_ai.llm.schemas import ChatRequest, LLMModel
 from noris_ai.main import create_app
+from tests.fixtures.provider_catalog import provider_model
 
 GPT = "vllm/release/gpt-oss-120b"
 GEMMA = "vllm/release/gemma-4-31b-it"
@@ -27,12 +29,12 @@ class CatalogProvider:
         self.error: LLMError | None = None
         self.generations: list[LLMModel] = []
 
-    async def discover_models(self) -> list[str]:
+    async def discover_models(self) -> list[ProviderModel]:
         self.discovery_calls += 1
         await asyncio.sleep(0)
         if self.error:
             raise self.error
-        return self.ids
+        return [provider_model(value) for value in self.ids]
 
     async def stream(
         self, messages: Sequence[ProviderMessage], model: LLMModel
@@ -248,7 +250,7 @@ async def test_concurrent_continuations_lock_the_answer_after_catalog_discovery(
                     {"id": GLM, "is_ready": "true"},
                 ]
             },
-            [GPT, "smart_router"],
+            ["smart_router", GEMMA],
         ),
         ({"object": "list", "data": []}, []),
     ],
@@ -266,7 +268,7 @@ async def test_discovery_tolerates_extra_missing_and_unknown_fields(
 
     provider = OpenAICompatibleProvider(llm_config, transport=httpx.MockTransport(handler))
     try:
-        assert await provider.discover_models() == expected
+        assert [model.id for model in await provider.discover_models()] == expected
         assert str(captured[0].url) == str(llm_config.llm_base_url) + "/models"
         assert captured[0].headers["authorization"] == "Bearer fixture-provider-key-never-real"
     finally:

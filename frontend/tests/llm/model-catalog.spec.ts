@@ -91,8 +91,37 @@ test('documented models are grouped and the entitled router is first', async ({ 
   await expect(page.getByRole('option').first()).toContainText('Automatisch')
   await expect(page.getByText('Reasoning & Entwicklung', { exact: true })).toBeVisible()
   await expect(page.getByRole('option', { name: 'GPT-OSS 120B', exact: false })).toBeVisible()
-  await expect(page.getByRole('option', { name: 'Qwen 3.6 27B', exact: false })).toBeVisible()
+  await expect(page.getByRole('option', { name: 'Qwen3.6 27B', exact: false })).toBeVisible()
   await expect(page.getByRole('option', { name: /Harrier|Reranker|unknown-model/ })).toHaveCount(0)
   await expect(page.getByText('Bei „Automatisch“ kann das tatsächliche Modell je nach Anfrage wechseln.')).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+})
+
+
+test('native 2.4 catalogs include new approved models with dated USD quotes', async ({ page, request }) => {
+  const chatIds = [
+    'vllm/qsu/deepseek-v41-flash', 'vllm/qsu/glm-5-3-flash', 'vllm/qsu/qwen3.8-27b',
+    'vllm/release/gemma-4-31b-it', 'vllm/release/glm-5-2', 'vllm/release/gpt-oss-120b', 'vllm/release/qwen3.6-27b',
+  ]
+  await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: [
+    ...chatIds, 'vllm/release/harrier-oss-v1-0.6b', 'vllm/release/bge-reranker-v2-m3',
+    'vllm/release/jina-reranker-v2-base-multilingual', 'unknown-model',
+  ] } })
+  await expect.poll(async () => {
+    const catalog = await request.get('/api/v1/llm/models').then(response => response.json()) as { models: { id: string }[] }
+    return catalog.models.map(model => model.id).sort()
+  }).toEqual([...chatIds].sort())
+  await page.reload()
+  await page.getByRole('button', { name: 'Verfügbares Modell auswählen' }).click()
+  const menu = page.getByRole('button', { name: 'Modell auswählen', exact: true })
+  await expect(menu).toContainText('DeepSeek V4.1 Flash')
+  await menu.click()
+  const deepseek = page.getByRole('option', { name: 'DeepSeek V4.1 Flash', exact: false })
+  await expect(deepseek).toContainText('1.048.576 Tokens Kontext')
+  await expect(deepseek).toContainText('10 / 30 USD je Mio.')
+  await expect(deepseek).toContainText('2 USD Cache-Eingabe')
+  await expect(deepseek).toContainText('Abruf')
+  await expect(page.getByRole('option', { name: 'Qwen3.8 27B', exact: false })).toBeAttached()
+  await expect(page.getByRole('option', { name: /Harrier|Reranker|unknown-model|Automatisch/ })).toHaveCount(0)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })

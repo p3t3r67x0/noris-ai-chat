@@ -1,6 +1,6 @@
 """Validated Noris catalog facts. Unknown additions are ignored at every level."""
 
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -38,7 +38,10 @@ class ProviderPrice(ProviderSchema):
     def decimal_price(cls, value: object) -> Decimal:
         if isinstance(value, bool) or not isinstance(value, (str, int, float, Decimal)):
             raise ValueError("Invalid USD price")
-        return Decimal(str(value))
+        try:
+            return Decimal(str(value))
+        except InvalidOperation:
+            raise ValueError("Invalid decimal price") from None
 
 
 class ProviderModality(ProviderSchema):
@@ -48,7 +51,7 @@ class ProviderModality(ProviderSchema):
     supported_parameters: dict[str, object] = Field(default_factory=dict)
     max_length: ProviderLength | None = None
     streaming: bool | None = None
-    pricing: list[ProviderPrice] = Field(default_factory=list)
+    pricing: list[ProviderPrice] = Field(default_factory=lambda: list[ProviderPrice]())
 
     def token_parameter(self, name: str) -> ProviderParameter | None:
         from pydantic import ValidationError
@@ -62,6 +65,15 @@ class ProviderModality(ProviderSchema):
             return None
 
 
+class ProviderDatacenter(ProviderSchema):
+    country_code: str | None = None
+
+
+class ProviderCompliance(ProviderSchema):
+    zdr: bool | None = None
+    hipaa: bool | None = None
+
+
 class ProviderModel(ProviderSchema):
     schema_version: str | None = None
     id: str = Field(min_length=1, max_length=200, pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._/:-]*$")
@@ -69,6 +81,8 @@ class ProviderModel(ProviderSchema):
     input_modalities: list[ProviderModality] | None = None
     output_modalities: list[ProviderModality] | None = None
     hugging_face_id: str | None = None
+    datacenters: list[ProviderDatacenter] | None = None
+    compliance: ProviderCompliance | None = None
     created: int | None = Field(default=None, ge=0)
     is_ready: bool | None = None
     is_free: bool | None = None

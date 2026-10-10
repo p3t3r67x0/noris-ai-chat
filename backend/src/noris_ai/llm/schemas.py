@@ -1,5 +1,4 @@
 from decimal import Decimal
-
 from typing import Annotated, Literal, Self
 
 from pydantic import Field, field_validator, model_validator
@@ -63,12 +62,16 @@ class LLMModel(ApiSchema):
     # Total generated tokens, including reasoning, rather than visible text only.
     max_output_tokens: int = Field(default=1024, ge=1, le=131_072)
     provider_max_output_tokens: int | None = Field(default=None, ge=1)
+    verified_output_evidence: str | None = Field(default=None, min_length=1, max_length=500)
     verified_max_output_tokens: int | None = Field(default=None, ge=1, le=131_072)
     effective_context_window: int | None = Field(default=None, ge=256, le=2_000_000)
     effective_max_output_tokens: int | None = Field(default=None, ge=1, le=131_072)
     provider_schema_version: str | None = None
     provider_name: str | None = None
     provider_created_at: str | None = None
+    hugging_face_id: str | None = None
+    provider_datacenters: list[str] = Field(default_factory=list)
+    provider_compliance: dict[str, bool | None] = Field(default_factory=dict)
     input_modalities: list[str] = Field(default_factory=list)
     output_modalities: list[str] = Field(default_factory=list)
     is_ready: bool | None = None
@@ -122,6 +125,11 @@ class LLMModel(ApiSchema):
             or (self.provider_context_window or 0) > 8192
         ) and (not self.provider_limit_evidence or not self.provider_limit_evidence.strip()):
             raise ValueError("Expanded provider output requires verification evidence")
+        if self.verified_max_output_tokens and not (
+            (self.verified_output_evidence and self.verified_output_evidence.strip())
+            or (self.provider_limit_evidence and self.provider_limit_evidence.strip())
+        ):
+            raise ValueError("Live-tested output requires a verification reference")
         if (
             self.verified_max_output_tokens
             and self.max_output_tokens > self.verified_max_output_tokens

@@ -71,3 +71,25 @@ def test_title_contract_is_bounded_and_cannot_supply_system_instructions() -> No
         "user",
         "assistant",
     ]
+
+
+def test_provider_facts_policy_and_usd_contract_are_explicit() -> None:
+    schemas = create_app().openapi()["components"]["schemas"]
+    model = schemas["LLMModel"]["properties"]
+    assert {
+        "provider_context_window",
+        "provider_max_output_tokens",
+        "verified_max_output_tokens",
+        "effective_context_window",
+        "effective_max_output_tokens",
+        "context_window",
+        "max_output_tokens",
+        "provenance",
+        "is_ready",
+        "chat_approved",
+    } <= model.keys()
+    cost = schemas["ModelCost"]["properties"]
+    # Decimal quotes are serialized as strings, preserving precision for consumers.
+    assert cost["input_usd_per_million"]["anyOf"][0]["type"] == "string"
+    assert cost["currency"]["anyOf"][0]["const"] == "USD"
+    assert {"cached_input_usd_per_million", "output_usd_per_million", "as_of"} <= cost.keys()

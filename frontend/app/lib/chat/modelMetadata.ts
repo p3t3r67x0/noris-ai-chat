@@ -7,9 +7,10 @@ export function modelDetails(value: Record<string, unknown>, stale: boolean): st
   if (cost && typeof cost === 'object') {
     const quote = cost as Record<string, unknown>
     const usd = (amount: unknown): string | null => {
-      if (typeof amount !== 'string' || !/^\d+(\.\d+)?$/.test(amount)) return null
+      if (typeof amount !== 'string' || !/^\d+(\.\d+)?([eE][+-]?\d+)?$/.test(amount)) return null
       const parsed = Number(amount)
-      return Number.isFinite(parsed) ? new Intl.NumberFormat('de-DE', { maximumFractionDigits: 4 }).format(parsed) : null
+      if (!Number.isFinite(parsed) || (parsed === 0 && /[1-9]/.test(amount.split(/[eE]/)[0] ?? ''))) return null
+      return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 4, notation: parsed > 0 && parsed < 0.0001 ? 'scientific' : 'standard' }).format(parsed)
     }
     const input = usd(quote.input_usd_per_million)
     const output = usd(quote.output_usd_per_million)

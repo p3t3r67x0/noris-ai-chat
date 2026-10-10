@@ -137,22 +137,41 @@ export type Reason1 = "output_limit"
 export type Seq4 = number
 export type Type4 = "response.incomplete"
 export type Available = boolean
+export type ChatApproved = boolean
 export type ContextWindow = number
 export type AsOf = (string | null)
 export type CachedInputPointsPerMillion = (number | null)
+export type CachedInputUsdPerMillion = (string | null)
+export type Currency = ("USD" | null)
+export type DiscountApplied = boolean
+export type DiscountToUser = (string | null)
 export type InputPointsPerMillion = (number | null)
+export type InputUsdPerMillion = (string | null)
+export type IsFree = (boolean | null)
 export type OutputPointsPerMillion = (number | null)
+export type OutputUsdPerMillion = (string | null)
 export type Source = string
 export type Description = string
 export type DocumentedContextWindow = (number | null)
+export type EffectiveContextWindow = (number | null)
+export type EffectiveMaxOutputTokens = (number | null)
+export type EstimatedMaxCostUsd = (string | null)
+export type HuggingFaceId = (string | null)
 export type Id5 = string
+export type InputModalities = string[]
+export type IsReady = (boolean | null)
 export type Lifecycle = ("LTS" | "PRODUCTIVE" | "EXPERIMENTAL" | "DEPRECATED" | "UNKNOWN")
 export type MaxOutputTokens = number
 export type Name = string
+export type OutputModalities = string[]
 export type Provider = (string | null)
 export type ProviderContextWindow = (number | null)
+export type ProviderCreatedAt = (string | null)
+export type ProviderDatacenters = string[]
 export type ProviderLimitEvidence = (string | null)
-export type ProviderMaxOutputTokens = number
+export type ProviderMaxOutputTokens = (number | null)
+export type ProviderName = (string | null)
+export type ProviderSchemaVersion = (string | null)
 export type Reasoning = (boolean | null)
 export type ReasoningEffort = (string | null)
 export type ReasoningEfforts = string[]
@@ -166,6 +185,8 @@ export type ReadSeconds = number
 export type TotalSeconds = number
 export type TokenLimitParameter = (("max_tokens" | "max_completion_tokens") | null)
 export type ToolCalling = (boolean | null)
+export type VerifiedMaxOutputTokens = (number | null)
+export type VerifiedOutputEvidence = (string | null)
 export type Virtual = boolean
 export type Vision = (boolean | null)
 export type Completetree = boolean
@@ -439,19 +460,33 @@ export interface IncompleteEvent {
 export interface LLMModel {
   available?: Available
   category?: ("CHAT" | "REASONING" | "VISION" | "EMBEDDING" | "RERANKING" | "UNKNOWN")
+  chat_approved?: ChatApproved
   context_window?: ContextWindow
   cost?: ModelCost
   description?: Description
   documented_context_window?: DocumentedContextWindow
+  effective_context_window?: EffectiveContextWindow
+  effective_max_output_tokens?: EffectiveMaxOutputTokens
+  estimated_max_cost_usd?: EstimatedMaxCostUsd
   evidence?: Evidence1
+  hugging_face_id?: HuggingFaceId
   id: Id5
+  input_modalities?: InputModalities
+  is_ready?: IsReady
   lifecycle?: Lifecycle
   max_output_tokens?: MaxOutputTokens
   name: Name
+  output_modalities?: OutputModalities
+  provenance?: Provenance
   provider?: Provider
+  provider_compliance?: ProviderCompliance
   provider_context_window?: ProviderContextWindow
+  provider_created_at?: ProviderCreatedAt
+  provider_datacenters?: ProviderDatacenters
   provider_limit_evidence?: ProviderLimitEvidence
   provider_max_output_tokens?: ProviderMaxOutputTokens
+  provider_name?: ProviderName
+  provider_schema_version?: ProviderSchemaVersion
   reasoning?: Reasoning
   reasoning_effort?: ReasoningEffort
   reasoning_efforts?: ReasoningEfforts
@@ -464,19 +499,34 @@ export interface LLMModel {
   timeout_policy?: TimeoutPolicy
   token_limit_parameter?: TokenLimitParameter
   tool_calling?: ToolCalling
+  verified_max_output_tokens?: VerifiedMaxOutputTokens
+  verified_output_evidence?: VerifiedOutputEvidence
   virtual?: Virtual
   vision?: Vision
 }
 export interface ModelCost {
   as_of?: AsOf
   cached_input_points_per_million?: CachedInputPointsPerMillion
+  cached_input_usd_per_million?: CachedInputUsdPerMillion
+  currency?: Currency
+  discount_applied?: DiscountApplied
+  discount_to_user?: DiscountToUser
   evidence?: ("DOCUMENTED" | "VERIFIED" | "UNKNOWN")
   input_points_per_million?: InputPointsPerMillion
+  input_usd_per_million?: InputUsdPerMillion
+  is_free?: IsFree
   output_points_per_million?: OutputPointsPerMillion
+  output_usd_per_million?: OutputUsdPerMillion
   source?: Source
 }
 export interface Evidence1 {
   [k: string]: Evidence
+}
+export interface Provenance {
+  [k: string]: ("PROVIDER" | "LOCAL_POLICY" | "DOCUMENTATION" | "LIVE_TEST" | "UNKNOWN")
+}
+export interface ProviderCompliance {
+  [k: string]: (boolean | null)
 }
 export interface TimeoutPolicy {
   read_seconds?: ReadSeconds

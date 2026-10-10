@@ -51,6 +51,7 @@ include = ["src", "migrations", "scripts", "tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "-ra --strict-config --strict-markers"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"

@@ -14,6 +14,7 @@ from noris_ai.llm.gateway import LLMGateway
 from noris_ai.llm.live_acceptance import Observation, acceptance_app
 from noris_ai.llm.schemas import ChatRequest
 from noris_ai.main import create_app
+from tests.fixtures.provider_catalog import provider_data
 
 from .http_server import serve
 
@@ -33,7 +34,7 @@ async def test_actual_gateway_and_provider_http(llm_config: Settings, scenario: 
     upstream = FastAPI()
 
     async def models() -> dict[str, object]:
-        return {"data": [{"id": "fixture-alpha"}, {"id": "fixture-beta"}]}
+        return {"data": [provider_data("fixture-alpha"), provider_data("fixture-beta")]}
 
     upstream.add_api_route("/v1/models", models, methods=["GET"])
 
@@ -130,7 +131,7 @@ async def test_live_observer_confirms_socket_closure_without_recording_secrets(
     upstream = FastAPI()
 
     async def models() -> dict[str, object]:
-        return {"data": [{"id": "fixture-alpha"}, {"id": "fixture-beta"}]}
+        return {"data": [provider_data("fixture-alpha"), provider_data("fixture-beta")]}
 
     upstream.add_api_route("/v1/models", models, methods=["GET"])
 
@@ -180,7 +181,7 @@ async def test_title_uses_existing_http_provider_and_closes_socket(
     upstream = FastAPI()
 
     async def models() -> dict[str, object]:
-        return {"data": [{"id": "fixture-alpha"}, {"id": "fixture-beta"}]}
+        return {"data": [provider_data("fixture-alpha"), provider_data("fixture-beta")]}
 
     upstream.add_api_route("/v1/models", models, methods=["GET"])
 
