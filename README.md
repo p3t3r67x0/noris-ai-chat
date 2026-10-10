@@ -250,6 +250,8 @@ Header und Composer zeigen verständliche, gruppierte Namen. Ein Wechsel startet
 
 ## Persistenter Chat mit WebSocket
 
+Chats werden im WebSocket-Modus [paginiert und bei Bedarf geladen](docs/CHAT-PAGINATION.md): initial höchstens 50 Sidebar-Metadaten, die aktiven Präferenzen/Entwürfe und ein 50-Nachrichten-Pfadfenster. Ältere Nachrichten, weitere Chats und Varianten werden gezielt nachgeladen; die Suche läuft über alle autorisierten Titel in PostgreSQL. Der LLM-Kontext bleibt vollständig serverseitig. REST-Listen liefern `nextCursor` und `hasMore`; Clients müssen für vollständige Listen weiterblättern. Migration `0005_chat_pagination` ergänzt Indizes ohne Daten zu löschen. [Reproduzierbare Messungen](docs/CHAT-PAGINATION-BENCHMARKS.json) umfassen bis zu 10.000 synthetische Unterhaltungen.
+
 `NUXT_PUBLIC_CHAT_TRANSPORT=websocket` aktiviert die bestehenden UI-Komponenten
 mit dem PostgreSQL-Backend. Setze die serverseitigen Noris- und Basic-
 Zugangsdaten sowie `NORIS_LLM_ALLOWED_ORIGINS` für die Caddy-Origin; migriere mit

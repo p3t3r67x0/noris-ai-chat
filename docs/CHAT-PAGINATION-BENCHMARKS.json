@@ -14,7 +14,8 @@
     },
     "data": "1 conversation with 1000 messages, 10 with 100, all others with 10; synthetic content; separate *_test database",
     "concurrency_note": "Browser before/after pairs run simultaneously on separate servers; other local quality checks may consume CPU. No production latency guarantee.",
-    "additional_plan_note": "Active ancestor plan measured separately on the same 10,000-conversation synthetic database; original API latency samples retained."
+    "additional_plan_note": "Active ancestor plan measured separately on the same 10,000-conversation synthetic database; original API latency samples retained.",
+    "request_scope": "Chat resources only: conversations, messages/active-path, preferences, drafts. Excludes models, health, tickets and WebSocket frames. Concurrency counts open browser requests, including queued connections."
   },
   "scenarios": {
     "100": {
