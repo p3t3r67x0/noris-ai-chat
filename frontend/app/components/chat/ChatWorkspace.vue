@@ -12,6 +12,7 @@ import ChatTimeline from './ChatTimeline.vue'
 import { useChatViewport } from '../../composables/useChatViewport'
 import { useSidebarPreference } from '../../composables/useSidebarPreference'
 import ChatRail from './ChatRail.vue'
+import SettingsDialog from '../settings/SettingsDialog.vue'
 
 const { transport, mode } = useChatTransport()
 const chat = useChat(transport)
@@ -65,7 +66,7 @@ function onShortcut(event: KeyboardEvent): void {
 }
 const editingId = ref<string | null>(null)
 const editText = ref('')
-const importOpen = ref(false)
+const settingsOpen = ref(false)
 const editOpen = computed({ get: () => editingId.value !== null, set: (open: boolean) => { if (!open) editingId.value = null } })
 function beginEdit(id: string): void {
   const message = chat.messages.value[id]
@@ -81,7 +82,7 @@ function saveEdit(): void {
 <template>
   <div class="chat-workspace" :style="viewportStyle" :data-ready="ready" :inert="!ready" :aria-busy="!ready">
     <a href="#chat-main" class="sr-only z-50 rounded-md bg-default p-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Zum Chat springen</a>
-    <ChatRail :demo="mode === 'mock'" @home="newChat" @search="sidebar?.openSearch()" @archive="sidebar?.openArchive()" />
+    <ChatRail :demo="mode === 'mock'" @home="newChat" @search="sidebar?.openSearch()" @archive="sidebar?.openArchive()" @settings="settingsOpen = true" />
     <ChatSidebar
       ref="sidebar"
       v-model:open="sidebarOpen" :demo="mode === 'mock'" :conversations="chat.pagination?.conversations.value ?? conversations.visible.value" :archived="conversations.archived.value"
@@ -89,6 +90,7 @@ function saveEdit(): void {
       @new-chat="newChat" @select="conversations.select" @rename="conversations.rename"
       @fit-title="conversations.fitTitle"
       @archive="conversations.archive" @restore="conversations.restore"
+      @settings="settingsOpen = true"
     />
     <main id="chat-main" class="chat-main" aria-label="Chat" tabindex="-1">
       <ChatHeader v-model:model="modelId" :sidebar-open="sidebarOpen" :busy="stream.busy.value" :demo="mode === 'mock'" @toggle-sidebar="sidebarOpen = !sidebarOpen" @new-chat="newChat" />
@@ -106,8 +108,8 @@ function saveEdit(): void {
             <UButton v-if="fallbackId && !canSend" color="neutral" variant="link" label="Verfügbares Modell auswählen" @click="chooseFallback" />
             <UButton color="neutral" variant="link" label="Modelle neu laden" :loading="modelsLoading" @click="refreshModels" />
           </div>
-          <p class="composer-note">noris AI kann Fehler machen. Prüfe wichtige Informationen.</p>
           <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" :busy="stream.busy.value" :model-unavailable="!canSend" :input-error="chat.drafts.error.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" @send="send" @stop="stop" />
+          <p class="composer-note">noris AI kann Fehler machen. Prüfe wichtige Informationen.</p>
           <p v-if="chat.drafts.error.value" role="alert" class="mt-2 text-center text-xs text-error">{{ chat.drafts.error.value }}</p>
         </div>
         <div class="chat-status" :data-attention="stream.status.value === 'failed' || (stream.busy.value && chat.generatingConversationId.value !== conversations.activeId.value)" role="status" aria-live="polite" aria-atomic="true" :data-generation-status="stream.status.value">
@@ -124,9 +126,6 @@ function saveEdit(): void {
           <span v-else-if="stream.status.value === 'completed'" class="sr-only">Antwort abgeschlossen.</span>
         </div>
         <p v-if="chat.storageWarning.value" role="alert" class="px-4 pb-3 text-center text-xs text-warning">{{ chat.storageWarning.value }}</p>
-        <div v-if="chat.importAvailable.value" class="px-4 pb-2 text-center">
-          <UButton color="neutral" variant="link" label="Lokale Chats importieren" @click="importOpen = true" />
-        </div>
       </div>
     </main>
     <UModal v-model:open="editOpen" title="Nachricht bearbeiten" description="Deine ursprüngliche Frage und ihre Antworten bleiben als Variante erhalten.">
@@ -143,11 +142,6 @@ function saveEdit(): void {
         </div>
       </template>
     </UModal>
-    <UModal v-model:open="importOpen" title="Lokale Chats importieren" description="Überträgt die bisherigen Browser-Chats einschließlich Varianten, Titeln und Entwürfen in die Datenbank. Die lokale Sicherung bleibt erhalten. Bei Konflikten wird der Import abgebrochen.">
-      <template #footer>
-        <UButton color="neutral" variant="ghost" label="Abbrechen" @click="importOpen = false" />
-        <UButton label="Import ausdrücklich starten" :loading="chat.importBusy.value" @click="chat.importLocalChats().finally(() => { importOpen = false })" />
-      </template>
-    </UModal>
+    <SettingsDialog v-model:open="settingsOpen" :import-available="Boolean(transport.backend) && chat.importAvailable.value" :import-ready="chat.backendReady.value" :import-busy="chat.importBusy.value" :import-local-chats="chat.importLocalChats" :import-feedback="chat.storageWarning.value" />
   </div>
 </template>

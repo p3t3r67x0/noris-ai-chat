@@ -259,8 +259,9 @@ Zugangsdaten sowie `NORIS_LLM_ALLOWED_ORIGINS` für die Caddy-Origin; migriere m
 bleibt im Backend. Alle Zugangsberechtigten teilen im ausdrücklich begrenzten
 Single-Owner-Modus dieselben Chats. Nutze genau einen Backend-Worker.
 
-Browserlokale Chats werden über „Lokale Chats importieren“ nach einem
-Hinweisdialog und ausdrücklichem Start übernommen. Der ursprüngliche localStorage-Bestand bleibt
+Browserlokale Chats werden unter „Einstellungen → Datenkontrollen → Lokale Chats
+importieren“ nach einem Hinweisdialog und ausdrücklichem Start übernommen.
+Der ursprüngliche localStorage-Bestand bleibt
 stehen. Rückkehr zur Demo mit `NUXT_PUBLIC_CHAT_TRANSPORT=mock` liest diese
 Sicherung; neue PostgreSQL-Änderungen werden dadurch nicht zurückkopiert. Sichere
 vor einem Datenbank-Downgrade die DB: Migration 0002 entfernt beim Downgrade die
