@@ -2,8 +2,9 @@
 import { ref } from 'vue'
 
 defineProps<{ demo?: boolean }>()
-defineEmits<{ home: [], search: [], archive: [] }>()
+const emit = defineEmits<{ home: [], search: [], archive: [], settings: [] }>()
 const accountOpen = ref(false)
+function showSettings(): void { accountOpen.value = false; emit('settings') }
 </script>
 
 <template>
@@ -29,6 +30,7 @@ const accountOpen = ref(false)
           <p class="text-sm font-medium">Noris AI Chat</p>
           <p class="text-xs text-muted">{{ demo === false ? 'Dein Arbeitsbereich' : 'Lokale Demo · Anmeldung noch nicht verfügbar' }}</p>
           <UColorModeSelect aria-label="Darstellung im Kontomenü" class="w-full" :ui="{ base: 'min-h-11' }" />
+          <UButton icon="i-lucide-settings" color="neutral" variant="ghost" label="Einstellungen" class="min-h-11 w-full" @click="showSettings" />
         </div>
       </template>
     </UPopover>

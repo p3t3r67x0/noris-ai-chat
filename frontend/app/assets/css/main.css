@@ -128,7 +128,7 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 .composer-submit:not(:disabled):hover { background: color-mix(in srgb, var(--ui-bg-inverted) 85%, var(--noris-composer-background)); }
 .composer-dock { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; padding: 0.625rem var(--noris-content-padding) max(var(--noris-composer-bottom-gap), env(safe-area-inset-bottom)); }
 .chat-content[data-empty="true"] .composer-dock { padding-top: 0; }
-.composer-note { margin: 0 0 0.4375rem; font-size: var(--noris-caption-font-size); line-height: 1.25; color: var(--noris-text-secondary); text-align: center; }
+.composer-note { max-width: var(--noris-composer-max-width); margin: 0.625rem 0 0; font-size: var(--noris-caption-font-size); line-height: 1.25; color: var(--noris-text-secondary); text-align: center; overflow-wrap: anywhere; }
 .chat-history { position: relative; display: flex; flex: 1; min-height: 0; min-width: 0; }
 .chat-scroll { flex: 1; min-width: 0; min-height: 0; max-width: 100%; padding-inline: var(--noris-content-padding); overflow-y: auto; overscroll-behavior-y: contain; overflow-anchor: none; }
 .chat-timeline { width: 100%; max-width: var(--noris-chat-max-width); margin-inline: auto; padding: 1.5rem 0 2rem; }

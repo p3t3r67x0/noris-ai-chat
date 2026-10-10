@@ -33,7 +33,9 @@ for (const theme of ['light', 'dark']) {
       expect(geometry.composer.centerX).toBeCloseTo(geometry.main.centerX, 0)
       expect(geometry.composer.height).toBe(viewport.width > 640 ? 70 : 60)
       expect(geometry.textarea.centerY).toBeCloseTo(geometry.composer.centerY, 0)
-      expect(geometry.note.y + geometry.note.height).toBeLessThan(geometry.composer.y)
+      expect(geometry.note.y).toBeGreaterThanOrEqual(geometry.composer.y + geometry.composer.height + 8)
+      expect(geometry.note.centerX).toBeCloseTo(geometry.composer.centerX, 0)
+      expect(geometry.note.y + geometry.note.height).toBeLessThanOrEqual(viewport.height)
       for (const control of geometry.controls) {
         expect(control.centerY).toBeCloseTo(geometry.composer.centerY, 0)
         expect(control.x).toBeGreaterThan(geometry.composer.x)

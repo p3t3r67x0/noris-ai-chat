@@ -47,6 +47,8 @@ test('conversation menu supports rename, search, archive and restore by keyboard
   await expect(page.getByRole('button', { name: 'Aktionen für Meine Notizen' })).toBeVisible()
   await page.getByRole('button', { name: 'Chats suchen' }).click()
   await page.getByPlaceholder('Chat suchen …').fill('Notizen')
+  await expect(page.getByRole('option', { name: 'Meine Notizen', exact: true })).toBeVisible()
+  await page.getByPlaceholder('Chat suchen …').press('ArrowDown')
   await page.keyboard.press('Enter')
   await expect(page.getByRole('dialog', { name: 'Chats suchen' })).not.toBeVisible()
   await openSidebar(page)

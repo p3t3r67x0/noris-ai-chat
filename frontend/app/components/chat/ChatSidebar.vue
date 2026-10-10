@@ -9,7 +9,7 @@ import ConversationTitle from './ConversationTitle.vue'
 
 const props = defineProps<{ demo?: boolean, pagination?: ReturnType<typeof useChatBackend>['pagination'] | undefined, conversations: readonly Conversation[], archived: readonly Conversation[], activeId: string | null, removeConversation: (id: string) => void | Promise<void> }>()
 const open = defineModel<boolean>('open', { required: true })
-const emit = defineEmits<{ newChat: [], select: [id: string], rename: [id: string, title: string], fitTitle: [id: string, expected: string, title: string], archive: [id: string], restore: [id: string] }>()
+const emit = defineEmits<{ newChat: [], select: [id: string], rename: [id: string, title: string], fitTitle: [id: string, expected: string, title: string], archive: [id: string], restore: [id: string], settings: [] }>()
 const groups = computed(() => groupConversations(props.conversations))
 const searchOpen = ref(false)
 const archiveOpen = ref(false)
@@ -94,6 +94,8 @@ function showArchive(): void {
   void loadArchive()
 }
 
+function showSettings(): void { closeOnMobile(); emit('settings') }
+
 function actions(conversation: Conversation): DropdownMenuItem[] {
   return [
     { label: 'Umbenennen', icon: 'i-lucide-pencil', onSelect: () => { closeOnMobile(); renameTarget.value = conversation; renameTitle.value = conversation.title } },
@@ -174,6 +176,7 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
     <template #footer>
       <div class="flex flex-col gap-2">
         <UButton icon="i-lucide-archive" color="neutral" variant="ghost" label="Archivierte Chats" class="min-h-11 justify-start lg:hidden" @click="showArchive" />
+        <UButton icon="i-lucide-settings" color="neutral" variant="ghost" label="Einstellungen" class="min-h-11 justify-start lg:hidden" @click="showSettings" />
         <UColorModeSelect aria-label="Darstellung" class="w-full" :ui="{ base: 'min-h-11' }" />
         <div class="flex items-center gap-3 px-2 pt-2 lg:hidden">
           <UAvatar text="N" size="sm" class="sidebar-account-avatar" />

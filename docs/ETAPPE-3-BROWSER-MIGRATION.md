@@ -6,7 +6,9 @@ importiert noch durch neue serverseitige Snapshots überschrieben.
 
 1. Bei Bedarf den alten Schlüssel über die Browser-Entwicklerwerkzeuge als JSON
    sichern. Er enthält private Gesprächsdaten und gehört nicht ins Repository.
-2. „Lokale Chats importieren“ öffnen. Der Dialog erklärt Übertragung und Sicherung.
+2. „Einstellungen → Datenkontrollen“ öffnen und bei „Lokale Chats importieren“
+   auf „Importieren“ klicken. Einstellungen sind im Desktop-Kontomenü und auf
+   Mobilgeräten in der Sidebar erreichbar. Der Dialog erklärt Übertragung und Sicherung.
 3. „Import ausdrücklich starten“ auslösen. Erst dann sendet der Browser Daten.
 4. Der Server prüft UUIDs, Rollen, Eltern, Zyklen, Titel, Blatt und Entwürfe vor
    dem Schreiben. Ein Import ist eine Transaktion. Bei Konflikten werden keine
