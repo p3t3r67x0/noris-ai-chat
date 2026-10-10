@@ -1,4 +1,5 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { modelDetails } from '../lib/chat/modelMetadata'
 import { responseError } from '../lib/chat/realTransport'
 import { CHAT_LIMITS, DEFAULT_CHAT_LIMITS, parseChatLimits } from '../lib/chat/limits'
 
@@ -44,7 +45,10 @@ export function useModelSelection(options: { mode?: 'mock' | 'real' | 'websocket
       for (const value of catalog.models as unknown[]) {
         if (!value || typeof value !== 'object' || !('id' in value) || typeof value.id !== 'string' || !('name' in value) || typeof value.name !== 'string' || !('available' in value) || !('streaming' in value)) throw new Error('Ungültige Modellkonfiguration')
         if (value.streaming === true && (value.available === true || isStale)) models.push({
-          id: value.id, label: value.name, description: 'description' in value && typeof value.description === 'string' ? value.description : '',
+          id: value.id, label: value.name, description: [
+            'description' in value && typeof value.description === 'string' ? value.description : '',
+            modelDetails(value as Record<string, unknown>, isStale),
+          ].filter(Boolean).join(' · '),
           category: 'category' in value && typeof value.category === 'string' ? value.category : '',
           virtual: 'virtual' in value && value.virtual === true, disabled: isStale || value.available !== true,
         })
