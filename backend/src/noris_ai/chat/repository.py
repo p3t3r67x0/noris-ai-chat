@@ -13,6 +13,7 @@ from sqlalchemy import delete, desc, insert, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from noris_ai.chat import pagination
 from noris_ai.chat.errors import ChatError
 from noris_ai.chat.models import (
     ChatConversation,
@@ -43,6 +44,7 @@ def utc_now() -> datetime:
 class ChatRepository:
     def __init__(self, database: ModelDatabase) -> None:
         self._database = database
+        self.database = database
 
     async def import_snapshot(
         self, owner_id: uuid.UUID, request: ChatImportRequest, ordered: list[ImportMessage]
@@ -421,23 +423,11 @@ class ChatRepository:
         self, owner_id: uuid.UUID, conversation_id: uuid.UUID
     ) -> Sequence[ChatMessage]:
         """Root-to-leaf walk of the active branch; server-side LLM context."""
-        messages = {
-            message.id: message for message in await self.list_messages(owner_id, conversation_id)
-        }
-        conversation = await self.get_conversation(owner_id, conversation_id)
-        leaf = conversation.active_leaf_message_id
-        if leaf is not None and leaf not in messages:
-            raise ChatError("INVALID_LEAF", 422)
-        path: list[ChatMessage] = []
-        current = leaf
-        while current is not None:
-            message = messages.get(current)
-            if message is None or len(path) > len(messages):
-                raise ChatError("INVALID_LEAF", 422)
-            path.append(message)
-            current = message.parent_message_id
-        path.reverse()
-        return path
+        async with self._database() as session:
+            conversation = await pagination.owned(session, owner_id, conversation_id)
+            return await pagination.full_path(
+                session, conversation_id, conversation.active_leaf_message_id
+            )
 
     # --- drafts and preferences ---------------------------------------
 
@@ -453,10 +443,17 @@ class ChatRepository:
             )
             await session.commit()
 
-    async def list_drafts(self, owner_id: uuid.UUID) -> Sequence[ChatDraft]:
+    async def list_drafts(
+        self, owner_id: uuid.UUID, keys: list[str] | None = None
+    ) -> Sequence[ChatDraft]:
         async with self._database() as session:
             return (
-                await session.scalars(select(ChatDraft).where(ChatDraft.owner_id == owner_id))
+                await session.scalars(
+                    select(ChatDraft).where(
+                        ChatDraft.owner_id == owner_id,
+                        *([ChatDraft.draft_key.in_(keys)] if keys is not None else []),
+                    )
+                )
             ).all()
 
     async def delete_draft(self, owner_id: uuid.UUID, key: str) -> None:
@@ -596,14 +593,6 @@ class ChatRepository:
             )
             if running is not None:
                 raise ChatError("GENERATION_ACTIVE", 409)
-            tree = {
-                m.id: m
-                for m in (
-                    await session.scalars(
-                        select(ChatMessage).where(ChatMessage.conversation_id == conversation.id)
-                    )
-                ).all()
-            }
             input_message = await session.get(ChatMessage, command.inputMessageId)
             if input_message is not None:
                 if (
@@ -614,13 +603,22 @@ class ChatRepository:
                 ):
                     raise ChatError("MESSAGE_EXISTS", 409)
             else:
-                parent = tree.get(command.parentMessageId) if command.parentMessageId else None
-                if command.parentMessageId and (parent is None or parent.role != "assistant"):
+                parent = (
+                    await session.get(ChatMessage, command.parentMessageId)
+                    if command.parentMessageId
+                    else None
+                )
+                if command.parentMessageId and (
+                    parent is None
+                    or parent.conversation_id != conversation.id
+                    or parent.role != "assistant"
+                ):
                     raise ChatError("INVALID_PARENT", 422)
                 if command.editedFromMessageId:
-                    original = tree.get(command.editedFromMessageId)
+                    original = await session.get(ChatMessage, command.editedFromMessageId)
                     if (
                         original is None
+                        or original.conversation_id != conversation.id
                         or original.role != "user"
                         or original.parent_message_id != command.parentMessageId
                     ):
@@ -639,22 +637,11 @@ class ChatRepository:
                 )
                 session.add(input_message)
                 await session.flush()
-                tree[input_message.id] = input_message
-            path: list[ChatMessage] = []
-            cursor: uuid.UUID | None = input_message.id
-            seen: set[uuid.UUID] = set()
-            while cursor is not None:
-                if cursor in seen or cursor not in tree:
-                    raise ChatError("INVALID_LEAF", 422)
-                seen.add(cursor)
-                node = tree[cursor]
-                path.append(node)
-                cursor = node.parent_message_id
-            path.reverse()
+            path = await pagination.full_path(session, conversation.id, input_message.id)
             prefix, continuation_count = "", 0
             if command.operation == "continue":
                 source = (
-                    tree.get(command.sourceAssistantMessageId)
+                    await session.get(ChatMessage, command.sourceAssistantMessageId)
                     if command.sourceAssistantMessageId
                     else None
                 )

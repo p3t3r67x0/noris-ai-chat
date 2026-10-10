@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url'
 import { compile } from 'json-schema-to-typescript-lite'
 
 /** @typedef {import('json-schema-to-typescript-lite').JSONSchema} JSONSchema */
-/** @typedef {{$ref?: string, oneOf?: ContractSchema[], anyOf?: ContractSchema[]}} ContractSchema */
-/** @typedef {{in: string, schema?: {type?: string}}} Parameter */
+/** @typedef {{$ref?: string, type?: string, items?: ContractSchema, oneOf?: ContractSchema[], anyOf?: ContractSchema[]}} ContractSchema */
+/** @typedef {{name: string, in: string, required?: boolean, schema?: ContractSchema}} Parameter */
 /** @typedef {{operationId: string, parameters?: Parameter[], requestBody?: {content: Record<string, {schema: ContractSchema}>}, responses: Record<string, {content?: Record<string, {schema: ContractSchema}>}>}} Operation */
 /** @typedef {{components: {schemas: Record<string, JSONSchema>}, paths: Record<string, Record<string, Operation>>}} ApiDocument */
 
@@ -44,12 +44,15 @@ try {
     }
     const variants = schema.oneOf ?? schema.anyOf
     if (variants?.length) return variants.map(schemaType).join(' | ')
+    if (schema.type === 'array' && schema.items) return `(${schemaType(schema.items)})[]`
+    if (schema.type === 'integer' || schema.type === 'number') return 'number'
+    if (['string', 'boolean', 'null'].includes(schema.type ?? '')) return schema.type ?? 'never'
     throw new Error('Unsupported inline schema; extend generation explicitly')
   }
   for (const [path, methods] of Object.entries(document.paths)) {
     lines.push(`  ${JSON.stringify(path)}: {`)
     for (const [method, operation] of Object.entries(methods)) {
-      if (!['get', 'post', 'put', 'patch', 'delete'].includes(method) || (operation.parameters?.length ?? 0) > 1) {
+      if (!['get', 'post', 'put', 'patch', 'delete'].includes(method)) {
         throw new Error(`Unsupported contract shape at ${method.toUpperCase()} ${path}; extend generation explicitly`)
       }
       const parameters = operation.parameters ?? []
@@ -57,10 +60,19 @@ try {
         throw new Error(`Unsupported parameter at ${method.toUpperCase()} ${path}; extend generation explicitly`)
       }
       lines.push(`    ${method}: {`)
-      const queryParameter = parameters.find(parameter => parameter.in === 'query')
-      if (queryParameter) {
-        const union = queryParameter.schema?.type === 'boolean' ? 'boolean' : 'string'
-        lines.push(`      parameters: { query: Record<string, ${union}> }`)
+      if (parameters.length) {
+        lines.push('      parameters: {')
+        for (const location of ['path', 'query']) {
+          const selected = parameters.filter(parameter => parameter.in === location)
+          if (!selected.length) continue
+          lines.push(`        ${location}: {`)
+          for (const parameter of selected) {
+            if (!parameter.schema) throw new Error(`Missing schema for ${parameter.name}`)
+            lines.push(`          ${JSON.stringify(parameter.name)}${parameter.required ? '' : '?'}: ${schemaType(parameter.schema)}`)
+          }
+          lines.push('        }')
+        }
+        lines.push('      }')
       }
       if (operation.requestBody) {
         const body = operation.requestBody.content['application/json']?.schema

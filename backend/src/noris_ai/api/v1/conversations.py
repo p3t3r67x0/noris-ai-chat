@@ -8,13 +8,14 @@ and service layer.
 from typing import Annotated, Any, cast
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.security import HTTPBasicCredentials
 
 from noris_ai.chat.errors import ChatError
 from noris_ai.chat.generation import GenerationManager
 from noris_ai.chat.repository import UNCHANGED
 from noris_ai.chat.schemas import (
+    ActivePathResponse,
     ChatImportRequest,
     ChatImportResponse,
     ConversationCreate,
@@ -63,10 +64,19 @@ ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
 async def list_conversations(
     access: ChatAccess,
     archived: bool = False,
+    archiveOnly: bool = False,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    cursor: Annotated[str | None, Query(max_length=2048)] = None,
+    q: Annotated[str, Query(max_length=200)] = "",
 ) -> ConversationListResponse:
     service, owner_id = access
-    return ConversationListResponse(
-        conversations=await service.list_conversations(owner_id, include_archived=archived)
+    return await service.conversation_page(
+        owner_id,
+        limit=limit,
+        cursor=cursor,
+        include_archived=archived,
+        archive_only=archiveOnly,
+        query=q.strip(),
     )
 
 
@@ -156,9 +166,36 @@ async def delete_conversation(
 async def list_conversation_messages(
     conversation_id: UUID,
     access: ChatAccess,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    cursor: Annotated[str | None, Query(max_length=2048)] = None,
 ) -> MessageListResponse:
     service, owner_id = access
-    return MessageListResponse(messages=await service.list_messages(owner_id, conversation_id))
+    return await service.message_page(owner_id, conversation_id, limit=limit, cursor=cursor)
+
+
+@router.get(
+    "/conversations/{conversation_id}/active-path",
+    operation_id="getConversationActivePath",
+    response_model=ActivePathResponse,
+    responses=ERROR_RESPONSES,
+)
+async def get_active_path(
+    conversation_id: UUID,
+    access: ChatAccess,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    cursor: Annotated[str | None, Query(max_length=2048)] = None,
+    messageId: UUID | None = None,
+    preferredLeafId: UUID | None = None,
+) -> ActivePathResponse:
+    service, owner_id = access
+    return await service.path_page(
+        owner_id,
+        conversation_id,
+        limit=limit,
+        cursor=cursor,
+        message=messageId,
+        preferred=preferredLeafId,
+    )
 
 
 @router.put(
@@ -185,9 +222,10 @@ async def upsert_draft(
 )
 async def list_drafts(
     access: ChatAccess,
+    keys: Annotated[list[str] | None, Query(max_length=101)] = None,
 ) -> DraftListResponse:
     service, owner_id = access
-    return DraftListResponse(drafts=await service.list_drafts(owner_id))
+    return DraftListResponse(drafts=await service.list_drafts(owner_id, keys))
 
 
 @router.put("/chat/drafts/new", operation_id="upsertNewChatDraft", response_model=DraftResponse)

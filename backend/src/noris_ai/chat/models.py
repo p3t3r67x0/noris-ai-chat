@@ -21,6 +21,7 @@ from sqlalchemy import (
     UniqueConstraint,
     Uuid,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -71,6 +72,26 @@ class ChatConversation(Base):
             use_alter=True,
         ),
         Index("ix_chat_conversation_owner_updated", "owner_id", "updated_at"),
+        Index(
+            "ix_chat_conversation_seek",
+            "owner_id",
+            text("updated_at DESC"),
+            text("id DESC"),
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+        Index(
+            "ix_chat_conversation_active_seek",
+            "owner_id",
+            text("updated_at DESC"),
+            text("id DESC"),
+            postgresql_where=text("deleted_at IS NULL AND archived_at IS NULL"),
+        ),
+        Index(
+            "ix_chat_conversation_title_search",
+            text("lower(title) gin_trgm_ops"),
+            postgresql_using="gin",
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=_uuid)
@@ -107,6 +128,15 @@ class ChatMessage(Base):
         UniqueConstraint("conversation_id", "id", name="uq_chat_message_conversation_id"),
         CheckConstraint("length(content) <= 1048576", name="content_length"),
         Index("ix_chat_message_conversation_created", "conversation_id", "created_at"),
+        Index("ix_chat_message_seek", "conversation_id", text("created_at DESC"), text("id DESC")),
+        Index(
+            "ix_chat_message_siblings",
+            "conversation_id",
+            "parent_message_id",
+            "role",
+            "created_at",
+            "id",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=_uuid)

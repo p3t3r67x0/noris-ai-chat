@@ -8,19 +8,24 @@ generation.py and reuses this service.
 import uuid
 from typing import cast
 
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
+from noris_ai.chat import pagination
 from noris_ai.chat.errors import ChatError
 from noris_ai.chat.models import ChatConversation, ChatMessage
 from noris_ai.chat.repository import ChatRepository
 from noris_ai.chat.schemas import (
+    ActivePathResponse,
     ChatImportRequest,
     ChatImportResponse,
+    ConversationListResponse,
     ConversationResponse,
     DraftResponse,
     ImportConflict,
     ImportConversation,
     ImportMessage,
+    MessageListResponse,
     MessageResponse,
     MessageRole,
     MessageStatus,
@@ -87,13 +92,31 @@ class ChatService:
             raise ChatError("INVALID_INPUT", 422) from error
         return conversation_response(conversation)
 
-    async def list_conversations(
-        self, owner_id: uuid.UUID, *, include_archived: bool
-    ) -> list[ConversationResponse]:
-        conversations = await self.repository.list_conversations(
-            owner_id, include_archived=include_archived
+    async def conversation_page(
+        self,
+        owner_id: uuid.UUID,
+        *,
+        limit: int = 50,
+        cursor: str | None = None,
+        include_archived: bool = False,
+        archive_only: bool = False,
+        query: str = "",
+    ) -> ConversationListResponse:
+        async with self.repository.database() as session:
+            rows, next_cursor = await pagination.conversation_page(
+                session,
+                owner_id,
+                limit=limit,
+                cursor=cursor,
+                archived=include_archived,
+                archive_only=archive_only,
+                query=query,
+            )
+        return ConversationListResponse(
+            conversations=[conversation_response(c) for c in rows],
+            nextCursor=next_cursor,
+            hasMore=next_cursor is not None,
         )
-        return [conversation_response(conversation) for conversation in conversations]
 
     async def get_conversation(
         self, owner_id: uuid.UUID, conversation_id: uuid.UUID
@@ -131,9 +154,7 @@ class ChatService:
     ) -> ConversationResponse:
         # The leaf must be a message of this conversation (repository enforces
         # ownership; the database FK enforces conversation binding).
-        messages = await self.repository.list_messages(owner_id, conversation_id)
-        if active_leaf_message_id not in {message.id for message in messages}:
-            raise ChatError("INVALID_LEAF", 422)
+        await self.repository.get_message(owner_id, conversation_id, active_leaf_message_id)
         conversation = await self.repository.update_conversation(
             owner_id,
             conversation_id,
@@ -145,26 +166,73 @@ class ChatService:
     async def delete_conversation(self, owner_id: uuid.UUID, conversation_id: uuid.UUID) -> None:
         await self.repository.soft_delete_conversation(owner_id, conversation_id)
 
-    async def list_messages(
-        self, owner_id: uuid.UUID, conversation_id: uuid.UUID
-    ) -> list[MessageResponse]:
-        messages = await self.repository.list_messages(owner_id, conversation_id)
-        return [message_response(message) for message in messages]
+    async def message_page(
+        self,
+        owner_id: uuid.UUID,
+        conversation_id: uuid.UUID,
+        *,
+        limit: int = 50,
+        cursor: str | None = None,
+    ) -> MessageListResponse:
+        async with self.repository.database() as session:
+            rows, next_cursor = await pagination.message_page(
+                session, owner_id, conversation_id, limit=limit, cursor=cursor
+            )
+        return MessageListResponse(
+            messages=[message_response(m) for m in rows],
+            nextCursor=next_cursor,
+            hasMore=next_cursor is not None,
+        )
+
+    async def path_page(
+        self,
+        owner_id: uuid.UUID,
+        conversation_id: uuid.UUID,
+        *,
+        limit: int = 50,
+        cursor: str | None = None,
+        message: uuid.UUID | None = None,
+        preferred: uuid.UUID | None = None,
+    ) -> ActivePathResponse:
+        async with self.repository.database() as session, session.begin():
+            # Read metadata, ancestors and variants from one consistent snapshot.
+            await session.execute(text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"))
+            row, leaf, messages, variants, next_cursor = await pagination.path_page(
+                session,
+                owner_id,
+                conversation_id,
+                limit=limit,
+                cursor=cursor,
+                message=message,
+                preferred=preferred,
+            )
+            result = ActivePathResponse(
+                conversation=conversation_response(row),
+                leafMessageId=leaf,
+                messages=[message_response(m) for m in messages],
+                variants=variants,
+                nextCursor=next_cursor,
+                hasMore=next_cursor is not None,
+                boundaryParentId=messages[0].parent_message_id if messages else None,
+            )
+        return result
 
     async def set_draft(self, owner_id: uuid.UUID, key: str, content: str) -> DraftResponse:
         if not key or len(key) > 64 or key != key.strip():
             raise ChatError("INVALID_INPUT", 422)
         await self.repository.set_draft(owner_id, key, content)
-        drafts = {draft.draft_key: draft for draft in await self.repository.list_drafts(owner_id)}
+        drafts = {draft.draft_key: draft for draft in await self.repository.list_drafts(owner_id, [key])}
         draft = drafts.get(key)
         if draft is None:  # pragma: no cover - upsert just succeeded
             raise ChatError("INTERNAL_ERROR", 500)
         return DraftResponse(key=draft.draft_key, content=draft.content, updatedAt=draft.updated_at)
 
-    async def list_drafts(self, owner_id: uuid.UUID) -> list[DraftResponse]:
+    async def list_drafts(
+        self, owner_id: uuid.UUID, keys: list[str] | None = None
+    ) -> list[DraftResponse]:
         return [
             DraftResponse(key=draft.draft_key, content=draft.content, updatedAt=draft.updated_at)
-            for draft in await self.repository.list_drafts(owner_id)
+            for draft in await self.repository.list_drafts(owner_id, keys)
         ]
 
     async def clear_draft(self, owner_id: uuid.UUID, key: str) -> None:
