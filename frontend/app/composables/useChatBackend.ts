@@ -322,6 +322,14 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     try {
       try { importAvailable.value = Boolean(localStorage.getItem(CHAT_STORAGE_KEY)) }
       catch { storageWarning.value = 'Der lokale Speicher ist nicht verfügbar.' }
+      const offline = localJson(OFFLINE_DRAFTS_KEY)
+      if (offline && typeof offline === 'object' && !Array.isArray(offline)) {
+        for (const [key, text] of Object.entries(offline)) if (typeof text === 'string' && text.length <= 64000 && (key === '__new__' || /^[0-9a-f-]{36}$/.test(key))) {
+          pendingDrafts[key] = text
+          state.drafts.records.value[key] = text
+        }
+        if (Object.keys(pendingDrafts).length) storageWarning.value = 'Ein lokal noch nicht gespeicherter Entwurf wurde wiederhergestellt.'
+      }
       await refresh()
       // Recover an explicitly saved reader position with bounded active-chat
       // paging. No inactive messages are loaded. At most 20 pages (1,000 rows).
@@ -343,14 +351,6 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
         if (value && typeof value === 'object' && 'preferredLeaves' in value && value.preferredLeaves && typeof value.preferredLeaves === 'object') {
           state.preferredLeaves.value = Object.fromEntries(Object.entries(value.preferredLeaves).filter(([node, leaf]) => /^[0-9a-f-]{36}$/.test(node) && typeof leaf === 'string' && /^[0-9a-f-]{36}$/.test(leaf)).slice(-2000))
         }
-      }
-      const offline = localJson(OFFLINE_DRAFTS_KEY)
-      if (offline && typeof offline === 'object' && !Array.isArray(offline)) {
-        for (const [key, text] of Object.entries(offline)) if (typeof text === 'string' && text.length <= 64000 && (key === '__new__' || /^[0-9a-f-]{36}$/.test(key))) {
-          pendingDrafts[key] = text
-          state.drafts.records.value[key] = text
-        }
-        if (Object.keys(pendingDrafts).length) storageWarning.value = 'Ein lokal noch nicht gespeicherter Entwurf wurde wiederhergestellt.'
       }
       const running = Object.values(state.messages.value).find(m => m.generationId && (m.status === 'streaming' || m.status === 'submitting'))
       if (running) state.resume(running.id)
@@ -375,10 +375,11 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     if (!id && previous) { cache.invalidate(previous); void loadConversation(previous, true, true); evict() }
   })
   watch(state.drafts.records, () => {
-    if (backendReady.value) {
-      for (const [key, content] of Object.entries(state.drafts.records.value)) if (sentDrafts[key] !== content) pendingDrafts[key] = content
-      savePendingDrafts()
+    let changed = false
+    for (const [key, content] of Object.entries(state.drafts.records.value)) if (sentDrafts[key] !== content && pendingDrafts[key] !== content) {
+      pendingDrafts[key] = content; changed = true
     }
+    if (changed) savePendingDrafts()
     clearTimeout(draftTimer)
     draftTimer = setTimeout(() => {
       if (!backendReady.value) return

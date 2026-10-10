@@ -143,6 +143,23 @@ describe('lazy chat resources', () => {
     expect(state.visible.value[0]?.content).toBe('Answer 99')
     expect(read).not.toHaveBeenCalled()
   })
+  it('preserves edits during initial loading together with inactive offline drafts', async () => {
+    localStorage.setItem('noris-ai:offline-drafts:v1', JSON.stringify({ [id(80)]: 'Offline inactive draft' }))
+    const { backend } = client(1)
+    let complete!: (value: ApiSchemas['ActivePathResponse']) => void
+    vi.spyOn(backend, 'path').mockImplementation(() => new Promise(resolve => { complete = resolve }))
+    const transport = { backend, stream: async function* () {} }
+    const state = createChatState(transport)
+    let sync!: ReturnType<typeof useChatBackend>
+    wrappers.push(mount(defineComponent({ setup() { sync = useChatBackend(state, transport); return () => h('div') } })))
+    await vi.waitFor(() => expect(state.conversations.activeId.value).toBe(id(1)))
+    state.drafts.records.value[id(1)] = 'Typed while loading'
+    complete(path(1))
+    await vi.waitFor(() => expect(sync.backendReady.value).toBe(true))
+    expect(state.drafts.records.value[id(1)]).toBe('Typed while loading')
+    expect(state.drafts.records.value[id(80)]).toBe('Offline inactive draft')
+    expect(JSON.parse(localStorage.getItem('noris-ai:offline-drafts:v1')!)).toMatchObject({ [id(1)]: 'Typed while loading', [id(80)]: 'Offline inactive draft' })
+  })
 })
 
 describe('bounded read cache', () => {
