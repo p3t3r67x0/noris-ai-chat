@@ -1,3 +1,4 @@
+import type { ApiSchemas } from '../types/generated/api'
 import { CHAT_LIMITS, MAX_SNAPSHOT_CHARS } from '../lib/chat/limits'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { createConversationState } from './useConversations'
@@ -20,7 +21,13 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
   const stream = useChatStream(transport)
   const id = dependencies.id ?? (() => globalThis.crypto.randomUUID())
   const now = dependencies.now ?? (() => new Date().toISOString())
-  const visible = computed(() => conversations.active.value ? visiblePath(messages.value, conversations.active.value.id, conversations.active.value.activeLeafMessageId) : [])
+  const pathBoundaries = ref<Record<string, string | null>>({})
+  const variantSummaries = ref<Record<string, ApiSchemas['VariantSummary']>>({})
+  function path(conversationId: string, leaf: string | null): ChatMessage[] {
+    if (transport.backend && leaf && !messages.value[leaf]) return []
+    return visiblePath(messages.value, conversationId, leaf, pathBoundaries.value[conversationId])
+  }
+  const visible = computed(() => conversations.active.value ? path(conversations.active.value.id, conversations.active.value.activeLeafMessageId) : [])
   const generatingConversationId = ref<string | null>(null)
   const drafts = useChatDrafts(conversations.activeId)
   const preferredLeaves = ref<Record<string, string>>({})
@@ -41,7 +48,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
   }
 
   function generate(input: ChatMessage, modelId: ChatModelId, attempt = 1, titleRequest?: ConversationTitleRequest): void {
-    const history = visiblePath(messages.value, input.conversationId, input.id).map(({ role, content }) => ({ role, content }))
+    const history = path(input.conversationId, input.id).map(({ role, content }) => ({ role, content }))
     const reply = append(input.conversationId, input.id, 'assistant', '')
     reply.modelId = modelId
     generatingConversationId.value = input.conversationId
@@ -56,7 +63,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
         if (next === 'streaming' && titleRequest) void titles.generate(titleRequest)
         const conversation = conversations.records.value[input.conversationId]
         if (next === 'completed' && messages.value[reply.id] === reply && conversation?.titleSource === 'fallback' && conversation.title === FALLBACK_TITLE) {
-          const context = visiblePath(messages.value, input.conversationId, reply.id).map(message => message.content).join('\n')
+          const context = path(input.conversationId, reply.id).map(message => message.content).join('\n')
           conversation.title = fallbackConversationTitle(context)
         }
       },
@@ -146,7 +153,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     const source = reply
     if (!reply.parentMessageId) return false
     const modelId = reply.modelId ?? fallbackModelId
-    const history = visiblePath(messages.value, reply.conversationId, reply.id).map(({ role, content }) => ({ role, content }))
+    const history = path(reply.conversationId, reply.id).map(({ role, content }) => ({ role, content }))
     const continuationCount = (source.continuationCount ?? 0) + 1
     if (transport.backend) {
       rememberBranch()
@@ -185,7 +192,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
   }
   const variantIndex = computed(() => indexSiblingVariants(messages.value))
   const variants = (messageId: string): readonly ChatMessage[] => variantIndex.value.get(messageId) ?? []
-  return { conversations, messages, visible, stream, titles, generatingConversationId, drafts, preferredLeaves, send, retry, canContinue, continueResponse, newChat, remove, selectVariant, regenerate, edit, variants, snapshot, hydrate, resume }
+  return { conversations, messages, pathBoundaries, variantSummaries, variantSummary: (id: string) => variantSummaries.value[id], visible, stream, titles, generatingConversationId, drafts, preferredLeaves, send, retry, canContinue, continueResponse, newChat, remove, selectVariant, regenerate, edit, variants, snapshot, hydrate, resume }
 }
 
 export function useChat(transport: ChatTransport) {
@@ -255,5 +262,5 @@ export function useChat(transport: ChatTransport) {
       window.removeEventListener('storage', externalChange)
     }
   })
-  return { ...state, storageWarning, backendReady: ref(true), importAvailable: ref(false), importBusy: ref(false), importLocalChats: async () => {} }
+  return { ...state, storageWarning, pagination: undefined, backendReady: ref(true), importAvailable: ref(false), importBusy: ref(false), importLocalChats: async () => {} }
 }

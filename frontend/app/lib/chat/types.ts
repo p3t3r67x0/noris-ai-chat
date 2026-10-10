@@ -58,11 +58,11 @@ export interface ChatTransport {
 export const NEW_CHAT_DRAFT = '__new__'
 export const isBusy = (status: GenerationStatus): boolean => status === 'submitting' || status === 'streaming'
 
-export function visiblePath(records: MessageRecords, conversationId: string, leafId: string | null): ChatMessage[] {
+export function visiblePath(records: MessageRecords, conversationId: string, leafId: string | null, boundaryParentId?: string | null): ChatMessage[] {
   const path: ChatMessage[] = []
   const seen = new Set<string>()
   let current = leafId
-  while (current !== null) {
+  while (current !== null && current !== boundaryParentId) {
     const message: ChatMessage | undefined = Object.hasOwn(records, current) ? records[current] : undefined
     if (!message || message.conversationId !== conversationId || seen.has(current)) throw new Error('Ungültiger Gesprächspfad')
     seen.add(current)
