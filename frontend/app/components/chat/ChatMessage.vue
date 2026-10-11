@@ -12,7 +12,7 @@ const emit = defineEmits<{ edit: [], regenerate: [], continue: [], rendered: [],
 const { copy, copied, copyError } = useCopy()
 const failedImages = ref<Record<string, boolean>>({})
 function imageFailed(id: string): void { failedImages.value[id] = true; emit('rendered') }
-function retryImage(id: string): void { delete failedImages.value[id] }
+function retryImage(id: string): void { failedImages.value[id] = false }
 </script>
 
 <template>
