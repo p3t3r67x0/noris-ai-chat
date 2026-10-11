@@ -64,11 +64,11 @@ def attachment_response(attachment: ChatAttachment) -> AttachmentResponse:
         sha256=attachment.sha256,
         status="ready" if attachment.status == "ready" else "stored",
         extractionStatus="extracted"
-        if attachment.extracted_text
+        if attachment.has_text
         else ("not_applicable" if attachment.mime_type.startswith("image/") else "no_text"),
         modelUsable=(
             attachment.status == "ready"
-            and bool(attachment.extracted_text)
+            and attachment.has_text
             and attachment.mime_type in ("text/plain", "text/markdown", "application/pdf")
         )
         or (

@@ -18,6 +18,7 @@ from pydantic import ValidationError
 from noris_ai.chat.attachments import AttachmentService
 from noris_ai.chat.errors import ChatError
 from noris_ai.chat.models import ChatMessage
+from noris_ai.chat.pdf_context import pdf_request
 from noris_ai.chat.repository import ChatRepository
 from noris_ai.chat.schemas import MessageRole
 from noris_ai.chat.service import ChatService, conversation_response, message_response
@@ -383,6 +384,13 @@ class GenerationManager:
             if live.cancellation_requested:
                 raise asyncio.CancelledError
             request = await self._image_request(request, path)
+            model = await self.gateway.catalog.require(request.modelId)
+            request = pdf_request(
+                request,
+                path,
+                self.config,
+                lambda candidate: self.gateway.check_input(candidate, model),
+            )
             if live.cancellation_requested:
                 raise asyncio.CancelledError
             await self.gateway.reserve(request)

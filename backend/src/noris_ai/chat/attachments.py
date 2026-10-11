@@ -12,8 +12,10 @@ from pathlib import Path
 from typing import cast
 from uuid import UUID, uuid4
 
+from pydantic import ValidationError
 from sqlalchemy import func, select
 
+from noris_ai.chat.attachment_content import ExtractedAttachment
 from noris_ai.chat.errors import ChatError
 from noris_ai.chat.models import ChatAttachment, ChatConversation, ChatMessage
 from noris_ai.chat.repository import ModelDatabase
@@ -58,16 +60,31 @@ class AttachmentService:
             raise ChatError("ATTACHMENT_NOT_FOUND", 404)
         return self.root / key
 
-    async def parse(self, path: Path, mime: str) -> str | None:
+    async def parse(self, path: Path, mime: str) -> ExtractedAttachment:
         result = await self._parse(path, mime)
-        text = result.get("text")
         if "text" not in result:
             raise ChatError("ATTACHMENT_INVALID", 422)
-        if text is None:
-            return None
-        if not isinstance(text, str) or len(text) > self.config.chat_attachment_max_text_chars:
+        try:
+            extracted = ExtractedAttachment.model_validate(result)
+        except ValidationError:
+            raise ChatError("ATTACHMENT_INVALID", 422) from None
+        if mime == "application/pdf":
+            if (
+                extracted.text is not None
+                or extracted.page_count is None
+                or extracted.page_count > self.config.chat_attachment_max_pdf_pages
+                or any(section.page > extracted.page_count for section in extracted.sections)
+                or sum(len(section.text) for section in extracted.sections)
+                > self.config.chat_attachment_max_pdf_text_chars
+            ):
+                raise ChatError("ATTACHMENT_INVALID", 422)
+        elif (
+            extracted.sections
+            or extracted.page_count is not None
+            or len(extracted.text or "") > self.config.chat_attachment_max_text_chars
+        ):
             raise ChatError("ATTACHMENT_INVALID", 422)
-        return text
+        return extracted
 
     async def image_input(
         self, owner: UUID, conversation_id: UUID, attachment_id: UUID
@@ -97,7 +114,11 @@ class AttachmentService:
                 "noris_ai.chat.attachment_parser",
                 str(path),
                 mime,
-                str(self.config.chat_attachment_max_text_chars),
+                str(
+                    self.config.chat_attachment_max_pdf_text_chars
+                    if mime == "application/pdf"
+                    else self.config.chat_attachment_max_text_chars
+                ),
                 str(self.config.chat_attachment_max_pdf_pages),
                 str(self.config.chat_attachment_max_image_pixels),
                 *extra,
@@ -107,15 +128,42 @@ class AttachmentService:
                 stderr=asyncio.subprocess.DEVNULL,
             )
             try:
+                output_limit = (
+                    750_000
+                    if extra
+                    else 6 * self.config.chat_attachment_max_pdf_text_chars + 65_536
+                    if mime == "application/pdf"
+                    else 200_000
+                )
                 async with asyncio.timeout(15):
-                    stdout, _ = await process.communicate()
-                if process.returncode != 0 or len(stdout) > (750_000 if extra else 200_000):
+                    if process.stdout is None:
+                        raise ChatError("ATTACHMENT_INVALID", 422)
+                    stdout = bytearray()
+                    while chunk := await process.stdout.read(65_536):
+                        stdout.extend(chunk)
+                        if len(stdout) > output_limit:
+                            raise ChatError("ATTACHMENT_PROCESSING_LIMIT", 422)
+                    await process.wait()
+                if process.returncode is not None and process.returncode < 0:
+                    raise ChatError("ATTACHMENT_PROCESSING_LIMIT", 422)
+                if process.returncode != 0:
                     raise ChatError("ATTACHMENT_INVALID", 422)
                 result: object = json.loads(stdout)
                 if not isinstance(result, dict):
                     raise ChatError("ATTACHMENT_INVALID", 422)
-                return cast(dict[str, object], result)
+                parsed = cast(dict[str, object], result)
+                code = parsed.get("error")
+                if isinstance(code, str) and code in {
+                    "ATTACHMENT_PDF_ENCRYPTED",
+                    "ATTACHMENT_PDF_PAGE_LIMIT",
+                    "ATTACHMENT_TEXT_LIMIT",
+                    "ATTACHMENT_PROCESSING_LIMIT",
+                }:
+                    raise ChatError(code, 422)
+                return parsed
             except TimeoutError:
+                raise ChatError("ATTACHMENT_PROCESSING_TIMEOUT", 422) from None
+            except (ValueError, UnicodeError):
                 raise ChatError("ATTACHMENT_INVALID", 422) from None
             finally:
                 if process.returncode is None:
@@ -194,8 +242,12 @@ class AttachmentService:
                     mime_type=mime,
                     size_bytes=size,
                     sha256=digest.hexdigest(),
-                    status="ready" if extracted else "stored",
-                    extracted_text=extracted,
+                    status="ready" if extracted.has_text else "stored",
+                    extracted_text=extracted.text,
+                    pdf_sections=[section.model_dump() for section in extracted.sections]
+                    if mime == "application/pdf"
+                    else None,
+                    pdf_page_count=extracted.page_count,
                 )
                 session.add(attachment)
                 await session.flush()
@@ -203,7 +255,7 @@ class AttachmentService:
             committed = True
             return response
         except TimeoutError:
-            raise ChatError("ATTACHMENT_INVALID", 408) from None
+            raise ChatError("ATTACHMENT_UPLOAD_TIMEOUT", 408) from None
         finally:
             if not committed:
                 path.unlink(missing_ok=True)
@@ -335,6 +387,7 @@ class AttachmentService:
                 raise ChatError("ATTACHMENT_IN_USE", 409)
             self.path(attachment.storage_key).unlink(missing_ok=True)
             attachment.status, attachment.extracted_text = "deleted", None
+            attachment.pdf_sections = None
 
     async def cleanup(self) -> None:
         cutoff = datetime.now(UTC) - timedelta(hours=self.config.chat_attachment_orphan_hours)
@@ -361,6 +414,7 @@ class AttachmentService:
             for attachment in rows:
                 self.path(attachment.storage_key).unlink(missing_ok=True)
                 attachment.status, attachment.extracted_text = "deleted", None
+                attachment.pdf_sections = None
             known = set((await session.scalars(select(ChatAttachment.storage_key))).all())
             if self.root.exists():
                 for path in self.root.iterdir():

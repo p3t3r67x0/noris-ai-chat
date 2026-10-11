@@ -40,18 +40,20 @@ def test_text_requires_utf8_and_bounded_plain_content(tmp_path: Path, content: b
 def test_pdf_text_page_limit_and_scanned_pdf(tmp_path: Path) -> None:
     path = tmp_path / "synthetic.pdf"
     path.write_bytes(synthetic_pdf())
-    assert "Synthetic attachment text" in (extract(path, "application/pdf", 1000, 20, 1000) or "")
+    extracted = extract(path, "application/pdf", 1000, 20, 1000)
+    assert "Synthetic attachment text" in extracted.sections[0].text
+    assert extracted.sections[0].page == 1
     path.write_bytes(synthetic_pdf(pages=2))
     with pytest.raises(ValueError):
         extract(path, "application/pdf", 1000, 1, 1000)
     path.write_bytes(synthetic_pdf(text=""))
-    assert extract(path, "application/pdf", 1000, 20, 1000) is None
+    assert not extract(path, "application/pdf", 1000, 20, 1000).has_text
 
 
 def test_images_require_valid_signatures_and_bounded_decoding(tmp_path: Path) -> None:
     path = tmp_path / "synthetic.png"
     path.write_bytes(synthetic_png())
-    assert extract(path, "image/png", 1000, 20, 1000) is None
+    assert not extract(path, "image/png", 1000, 20, 1000).has_text
     with pytest.raises(UnidentifiedImageError):
         extract(path, "image/jpeg", 1000, 20, 1000)
     with pytest.raises(Image.DecompressionBombError):
@@ -87,7 +89,7 @@ async def test_parser_process_rejects_invalid_content_without_leaking_errors(
         service = AttachmentService(llm_config, async_sessionmaker(engine))
         path = tmp_path / "synthetic.txt"
         path.write_bytes(b"Valid UTF-8 example")
-        assert await service.parse(path, "text/plain") == "Valid UTF-8 example"
+        assert (await service.parse(path, "text/plain")).text == "Valid UTF-8 example"
         path.write_bytes(b"\xff")
         with pytest.raises(ChatError) as error:
             await service.parse(path, "text/plain")
