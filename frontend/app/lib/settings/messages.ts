@@ -38,7 +38,11 @@ export const messages = {
   emptyConversations: ['Hier ist Platz für deine Gedanken. Deine Chats erscheinen hier.', 'Room for your ideas. Your chats appear here.'],
   moreChats: ['Weitere Chats laden', 'Load more chats'], rename: ['Umbenennen', 'Rename'], archive: ['Archivieren', 'Archive'],
   renameChat: ['Chat umbenennen', 'Rename chat'], chatTitle: ['Chat-Titel', 'Chat title'], save: ['Speichern', 'Save'],
-  searchPlaceholder: ['Chat suchen …', 'Search chats …'], noChats: ['Keine passenden Chats gefunden.', 'No matching chats found.'],
+  searchPlaceholder: ['Suchen...', 'Search...'], noChats: ['Keine Chats gefunden', 'No chats found'],
+  recentChats: ['Letzte Chats', 'Recent chats'], closeSearch: ['Suche schließen', 'Close search'],
+  searchLoading: ['Chats werden gesucht …', 'Searching chats …'], searchReady: ['Suche bereit', 'Search ready'],
+  searchError: ['Die Suche ist fehlgeschlagen. Bitte versuche es erneut.', 'Search failed. Please try again.'],
+  retrySearch: ['Suche erneut versuchen', 'Try searching again'],
 } as const
 
 export type MessageKey = keyof typeof messages

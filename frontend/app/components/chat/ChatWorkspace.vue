@@ -82,6 +82,10 @@ function onShortcut(event: KeyboardEvent): void {
   if (inSettings.value || event.defaultPrevented || document.querySelector('[role="menu"][data-state="open"]')) return
   if (event.isComposing || event.repeat) return
   if (document.querySelector('.delete-dialog[data-state="open"]')) return
+  if (document.querySelector('.chat-search-dialog[data-state="open"]')) {
+    if ((event.ctrlKey || event.metaKey) && ((!event.shiftKey && event.key.toLowerCase() === 'k') || (event.shiftKey && event.key.toLowerCase() === 'o'))) event.preventDefault()
+    return
+  }
   if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'o') {
     event.preventDefault(); newChat()
   }

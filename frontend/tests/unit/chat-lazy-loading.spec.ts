@@ -119,6 +119,28 @@ describe('lazy chat resources', () => {
     await vi.waitFor(() => expect(state.visible.value[0]?.content).toBe('Answer 2'))
     expect(sync.pagination.historyLoading.value).toBe(false)
   })
+  it('uses the existing server cursor for search and rejects aborted metadata without loading histories', async () => {
+    const { backend } = client(1)
+    const transport = { backend, stream: async function* () {} }
+    const state = createChatState(transport)
+    let sync!: ReturnType<typeof useChatBackend>
+    wrappers.push(mount(defineComponent({ setup() { sync = useChatBackend(state, transport); return () => h('div') } })))
+    await vi.waitFor(() => expect(sync.backendReady.value).toBe(true))
+    const result = { conversations: [conversation(999)], nextCursor: null, hasMore: false }
+    const pages = vi.spyOn(backend, 'page').mockResolvedValue(result)
+    const history = vi.spyOn(backend, 'path')
+    const aborted = new AbortController()
+    aborted.abort()
+    await sync.pagination.search('Chat', aborted.signal, 'server-cursor')
+    expect(pages).toHaveBeenLastCalledWith({ q: 'Chat', cursor: 'server-cursor' }, aborted.signal)
+    expect(state.conversations.records.value[id(999)]).toBeUndefined()
+    await sync.pagination.search('Chat', new AbortController().signal, 'server-cursor')
+    expect(state.conversations.records.value[id(999)]?.title).toBe('Chat 999')
+    expect(sync.pagination.conversations.value).toHaveLength(50)
+    expect(state.conversations.activeId.value).toBe(id(1))
+    expect(state.visible.value[0]?.content).toBe('Answer 1')
+    expect(history).not.toHaveBeenCalled()
+  })
   it('corrupt optional browser caches do not prevent database loading or socket connection', async () => {
     for (const key of [CHAT_CACHE_KEY, 'noris-ai:chat-scroll:v1', 'noris-ai:offline-drafts:v1']) localStorage.setItem(key, '{broken')
     const { backend } = client(1)
