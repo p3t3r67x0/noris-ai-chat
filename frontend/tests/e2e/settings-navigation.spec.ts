@@ -136,7 +136,7 @@ test('generation continues while settings replace the chat view', async ({ page 
   const rail = page.locator('.chat-rail')
   if (await rail.isVisible()) {
     await rail.getByRole('button', { name: 'Lokaler Arbeitsbereich' }).click()
-    await page.getByRole('button', { name: 'Einstellungen', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Einstellungen', exact: true }).click()
   }
   else {
     await page.getByRole('button', { name: 'Sidebar öffnen', exact: true }).click()

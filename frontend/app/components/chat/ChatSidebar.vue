@@ -7,6 +7,7 @@ import type { Conversation } from '../../lib/chat/conversations'
 import { compareConversations, groupConversations } from '../../lib/chat/conversations'
 import DeleteConversationDialog from './DeleteConversationDialog.vue'
 import ConversationTitle from './ConversationTitle.vue'
+import ProfileMenu from './ProfileMenu.vue'
 const { t } = useAppLocale()
 
 const props = defineProps<{ demo?: boolean, pagination?: ReturnType<typeof useChatBackend>['pagination'] | undefined, conversations: readonly Conversation[], archived: readonly Conversation[], activeId: string | null, removeConversation: (id: string) => void | Promise<void> }>()
@@ -180,10 +181,7 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
         <UButton icon="i-lucide-archive" color="neutral" variant="ghost" :label="t('archived')" class="min-h-11 justify-start lg:hidden" @click="showArchive" />
         <UButton icon="i-lucide-settings" color="neutral" variant="ghost" :label="t('settings')" class="min-h-11 justify-start lg:hidden" @click="showSettings" />
         <UColorModeSelect aria-label="Darstellung" class="w-full" :ui="{ base: 'min-h-11' }" />
-        <div class="flex items-center gap-3 px-2 pt-2 lg:hidden">
-          <UAvatar text="N" size="sm" class="sidebar-account-avatar" />
-          <div class="min-w-0"><p class="sidebar-account-label font-medium">Dein Arbeitsbereich</p><p class="sidebar-account-caption text-muted">{{ demo === false ? 'Dein Arbeitsbereich' : 'Lokale Demo' }}</p></div>
-        </div>
+        <div class="lg:hidden"><ProfileMenu :demo="demo" :compact="false" /></div>
       </div>
     </template>
   </USidebar>

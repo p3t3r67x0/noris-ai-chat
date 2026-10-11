@@ -268,3 +268,34 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+/* Locally measured reference proportions; shared theme tokens. */
+.profile-menu {
+  width: clamp(16.5rem, 15.52083vw, 18.625rem);
+  max-width: calc(100vw - 1rem);
+  max-height: var(--reka-dropdown-menu-content-available-height);
+  padding: 0.75rem;
+  border: 1px solid var(--noris-border);
+  border-radius: 1.5rem;
+  background: var(--noris-composer-background);
+  color: var(--noris-text-primary);
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 10%), 0 0.125rem 0.25rem rgb(0 0 0 / 4%);
+  overflow-y: auto;
+}
+.profile-help-menu { width: clamp(17.375rem, 16.35417vw, 19.625rem); }
+.profile-menu-viewport { padding: 0; }
+.profile-menu-identity { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem 1rem; font-size: var(--noris-settings-font-size); }
+.profile-menu-identity p { margin: 0; line-height: 1.3; font-weight: 500; }
+.profile-menu-identity small { display: block; color: var(--noris-text-secondary); font-size: 0.85em; line-height: 1.4; }
+.profile-menu-group { padding: 0.25rem 0; }
+.profile-menu-group + .profile-menu-group { border-top: 1px solid var(--noris-border); }
+.profile-menu-item { min-height: max(2.75rem, 2.5vw); gap: 0.625rem; padding: 0.5rem 0.75rem; border-radius: 0.875rem; font-size: var(--noris-settings-font-size); color: var(--noris-text-primary); }
+.profile-menu-item:hover, .profile-menu-item[data-highlighted], .profile-menu-item[data-state="open"] { background: var(--noris-hover-background); color: var(--noris-text-primary); }
+.profile-menu-icon { width: 1.375rem; height: 1.375rem; color: inherit; }
+.profile-menu-label { white-space: normal; overflow-wrap: anywhere; }
+.profile-trigger { border-radius: 999px; }
+.profile-trigger-wide { display: flex; width: 100%; min-height: 3.5rem; gap: 0.75rem; padding: 0.5rem; border-radius: 0.875rem; text-align: left; }
+.profile-trigger-copy { display: flex; flex-direction: column; align-items: flex-start; font-size: var(--noris-account-label-font-size); }
+.profile-trigger-copy small { font-size: var(--noris-account-caption-font-size); color: var(--noris-text-secondary); }
+/* Keep the trigger clickable while Reka contains focus and disables outside pointers. */
+.profile-trigger[data-state="open"] { pointer-events: auto; }

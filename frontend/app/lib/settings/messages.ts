@@ -25,7 +25,7 @@ export const messages = {
   sendMessage: ['Nachricht senden', 'Send message'], newline: ['Zeilenumbruch', 'New line'], chatSearch: ['Chat-Suche öffnen', 'Open chat search'],
   newChat: ['Neuer Chat', 'New chat'], stopResponse: ['Antwort stoppen', 'Stop response'],
   account: ['Dein Arbeitsbereich', 'Your workspace'], localAccount: ['Lokaler Arbeitsbereich', 'Local workspace'],
-  demo: ['Lokale Demo', 'Local demo'], singleOwner: ['Single-Owner-Zugang · HTTP Basic', 'Single-owner access · HTTP Basic'],
+  demo: ['Lokale Demo', 'Local demo'], singleOwner: ['Single-Owner-Modus', 'Single-owner mode'],
   help: ['Hilfe', 'Help'], documentation: ['Dokumentation', 'Documentation'], shortcuts: ['Tastaturkürzel', 'Keyboard shortcuts'],
   reportBug: ['Fehler melden', 'Report a bug'], back: ['Zurück', 'Back'],
   home: ['Noris Home – neuer Chat', 'Noris Home – new chat'], searchChats: ['Chats suchen', 'Search chats'],

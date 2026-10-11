@@ -49,7 +49,7 @@ watch(modelId, value => { if (transport.backend && preferencesRestored && value)
 watch(stream.errorCode, (code) => { if (code === 'MODEL_UNAVAILABLE' || code === 'PROVIDER_AUTH_FAILED') void refreshModels() })
 const { draft } = chat.drafts
 const { sidebarOpen } = useSidebarPreference()
-const chatSidebarOpen = computed({ get: () => sidebarOpen.value && !inSettings.value, set: (value: boolean) => { if (!inSettings.value) sidebarOpen.value = value } })
+const chatSidebarOpen = computed({ get: () => sidebarOpen.value && !inSettings.value, set: (value: boolean) => { if (!inSettings.value || (import.meta.client && window.matchMedia('(max-width: 1023px)').matches)) sidebarOpen.value = value } })
 const sidebar = ref<InstanceType<typeof ChatSidebar> | null>(null)
 const composer = ref<InstanceType<typeof ChatComposer> | null>(null)
 const { viewportStyle } = useChatViewport()
@@ -107,7 +107,7 @@ function saveEdit(): void {
 <template>
   <div class="chat-workspace" :class="{ 'settings-workspace': inSettings }" :style="viewportStyle" :data-ready="ready" :inert="!ready" :aria-busy="!ready">
     <a :href="inSettings ? '#settings-main' : '#chat-main'" class="sr-only z-50 rounded-md bg-default p-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4">{{ inSettings ? t('skipSettings') : t('skipChat') }}</a>
-    <ChatRail :demo="mode === 'mock'" @home="inSettings ? router.push('/') : newChat()" @search="router.push('/').then(() => sidebar?.openSearch())" @archive="router.push('/settings/archived')" @settings="openSettings" />
+    <ChatRail :demo="mode === 'mock'" @home="inSettings ? router.push('/') : newChat()" @search="router.push('/').then(() => sidebar?.openSearch())" @archive="router.push('/settings/archived')" />
     <div v-show="!inSettings" class="chat-sidebar-container" :inert="inSettings" :aria-hidden="inSettings || undefined">
       <ChatSidebar
         ref="sidebar" v-model:open="chatSidebarOpen"
