@@ -147,9 +147,11 @@ for (const theme of ['light', 'dark']) {
     await page.getByRole('menuitem', { name: 'Hilfe', exact: true }).click()
     const menu = page.locator('.profile-menu:not(.profile-help-menu)')
     if (info.project.name === 'desktop') {
-      await expect(page.locator('.profile-help-menu')).toBeVisible()
-      expect((await menu.boundingBox())!.width).toBeCloseTo(298, 0)
-      expect((await page.locator('.profile-help-menu').boundingBox())!.width).toBeCloseTo(314, 0)
+      const submenu = page.locator('.profile-help-menu')
+      await expect(submenu).toBeVisible()
+      // Visible menus can still be scaling in; measure their final geometry.
+      await expect.poll(async () => (await menu.boundingBox())?.width).toBeCloseTo(298, 0)
+      await expect.poll(async () => (await submenu.boundingBox())?.width).toBeCloseTo(314, 0)
       const box = (await menu.boundingBox())!
       expect(box.y + box.height).toBeLessThan((await trigger.boundingBox())!.y)
     }
