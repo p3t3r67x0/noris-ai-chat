@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { useAppLocale } from '../../composables/useAppLocale'
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import type { useChatBackend } from '../../composables/useChatBackend'
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { Conversation } from '../../lib/chat/conversations'
-import { compareConversations, groupConversations } from '../../lib/chat/conversations'
+import { groupConversations } from '../../lib/chat/conversations'
 import DeleteConversationDialog from './DeleteConversationDialog.vue'
 import ConversationTitle from './ConversationTitle.vue'
 import ProfileMenu from './ProfileMenu.vue'
+import ChatSearchDialog from './ChatSearchDialog.vue'
 const { t } = useAppLocale()
 
 const props = defineProps<{ demo?: boolean, pagination?: ReturnType<typeof useChatBackend>['pagination'] | undefined, conversations: readonly Conversation[], archived: readonly Conversation[], activeId: string | null, removeConversation: (id: string) => void | Promise<void> }>()
@@ -16,40 +17,12 @@ const emit = defineEmits<{ newChat: [], select: [id: string], rename: [id: strin
 const groups = computed(() => groupConversations(props.conversations))
 const searchOpen = ref(false)
 const archiveOpen = ref(false)
-const searchTerm = ref('')
-const searchResults = ref<Conversation[]>([])
-const searchLoading = ref(false)
-const searchError = ref<string | null>(null)
-const searchCursor = ref<string | null>(null)
+const searchReturnFocus = ref<HTMLElement | null>(null)
 const archiveLoading = ref(false)
 const archiveError = ref<string | null>(null)
 const archiveCursor = ref<string | null>(null)
 const archiveResults = ref<Conversation[]>([])
 const archivedRows = computed(() => props.pagination ? archiveResults.value : props.archived)
-let searchTimer: ReturnType<typeof setTimeout> | undefined
-let searchAbort: AbortController | undefined
-let searchRevision = 0
-
-async function runSearch(): Promise<void> {
-  if (!props.pagination || !searchOpen.value) return
-  searchAbort?.abort()
-  const controller = new AbortController()
-  searchAbort = controller
-  const revision = ++searchRevision
-  searchLoading.value = true; searchError.value = null
-  try {
-    const result = await props.pagination.search(searchTerm.value, controller.signal)
-    if (revision !== searchRevision || controller.signal.aborted) return
-    searchResults.value = result.conversations.map(c => ({ ...c, titleGenerationAttempted: c.titleSource !== 'fallback' }))
-    searchCursor.value = result.nextCursor ?? null
-  }
-  catch { if (!controller.signal.aborted) searchError.value = 'Die Suche ist fehlgeschlagen. Bitte versuche es erneut.' }
-  finally { if (revision === searchRevision) searchLoading.value = false }
-}
-watch([searchTerm, searchOpen], () => {
-  searchAbort?.abort(); clearTimeout(searchTimer)
-  if (searchOpen.value) searchTimer = setTimeout(() => { void runSearch() }, 200)
-})
 async function loadArchive(more = false): Promise<void> {
   if (!props.pagination || archiveLoading.value) return
   archiveLoading.value = true; archiveError.value = null
@@ -62,7 +35,6 @@ async function loadArchive(more = false): Promise<void> {
   catch { archiveError.value = 'Das Archiv konnte nicht geladen werden.' }
   finally { archiveLoading.value = false }
 }
-onUnmounted(() => { searchAbort?.abort(); clearTimeout(searchTimer) })
 const renameTarget = ref<Conversation | null>(null)
 const deleteTarget = ref<Conversation | null>(null)
 const deleteReturnFocus = ref<HTMLElement | null>(null)
@@ -76,8 +48,8 @@ function closeOnMobile(): void {
 }
 
 function selectChat(id: string): void {
-  emit('select', id)
   searchOpen.value = false
+  emit('select', id)
   closeOnMobile()
 }
 
@@ -86,7 +58,9 @@ function newChat(): void {
   closeOnMobile()
 }
 
-function showSearch(): void {
+function showSearch(event?: Event): void {
+  if (searchOpen.value) return
+  searchReturnFocus.value = event?.currentTarget instanceof HTMLElement ? event.currentTarget : document.activeElement as HTMLElement | null
   closeOnMobile()
   searchOpen.value = true
 }
@@ -119,14 +93,6 @@ function showDelete(conversation: Conversation, trigger: HTMLElement | null): vo
   archiveOpen.value = false
   deleteTarget.value = conversation
 }
-
-const searchGroups = computed(() => [{
-  id: 'conversations', label: 'Gespräche',
-  ignoreFilter: Boolean(props.pagination),
-  items: [...(props.pagination ? searchResults.value : props.conversations)].sort(compareConversations).map(conversation => ({
-    id: conversation.id, label: conversation.title, icon: 'i-lucide-square-pen', onSelect: () => selectChat(conversation.id),
-  })),
-}])
 
 defineExpose({ openSearch: showSearch, openArchive: showArchive })
 </script>
@@ -186,15 +152,10 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
     </template>
   </USidebar>
 
-  <UModal v-model:open="searchOpen" :title="t('searchChats')" :ui="{ content: 'max-w-xl', body: 'p-0 sm:p-0' }">
-    <template #body>
-      <p v-if="searchError" role="alert" class="p-3 text-sm text-warning">{{ searchError }} <UButton label="Suche erneut versuchen" variant="link" @click="runSearch" /></p>
-      <p v-if="searchCursor" role="status" class="px-3 pt-3 text-xs text-muted">Weitere Treffer vorhanden. Grenze die Suche ein.</p>
-      <UCommandPalette v-model:search-term="searchTerm" :groups="searchGroups" :fuse="pagination ? { resultLimit: 50 } : {}" :loading="searchLoading" :placeholder="t('searchPlaceholder')" :autofocus="true">
-        <template #empty>{{ t('noChats') }}</template>
-      </UCommandPalette>
-    </template>
-  </UModal>
+  <ChatSearchDialog
+    v-model:open="searchOpen" :conversations="conversations" :pagination="pagination"
+    :return-focus="searchReturnFocus" @select="selectChat"
+  />
 
   <UModal v-model:open="renameOpen" :title="t('renameChat')">
     <template #body>

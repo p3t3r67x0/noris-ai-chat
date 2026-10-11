@@ -87,7 +87,7 @@ test('search, deletion and persisted navigation remain keyboard usable', async (
   await page.keyboard.press('Enter')
   await expect(dialog).not.toBeVisible()
   await page.keyboard.press('Control+k')
-  await page.getByPlaceholder('Chat suchen …').fill('Gedanken 1')
+  await page.getByPlaceholder('Suchen...').fill('Gedanken 1')
   await expect(page.getByRole('option', { name: 'Gedanken 1', exact: true })).toHaveCount(0)
   await page.keyboard.press('Escape')
   if (await toggle.getAttribute('aria-expanded') === 'true') await toggle.click()

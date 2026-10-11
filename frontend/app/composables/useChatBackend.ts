@@ -216,9 +216,9 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     catch (error) { if (state.conversations.activeId.value === id) historyError.value = error instanceof Error ? error.message : 'Ältere Nachrichten konnten nicht geladen werden.' }
     finally { olderLoading.value = false; olderConversation = undefined }
   }
-  async function search(query: string, signal: AbortSignal): Promise<ApiSchemas['ConversationListResponse']> {
-    const result = await backend.page({ q: query }, signal)
-    if (!disposed) mergeMetadata(result.conversations)
+  async function search(query: string, signal: AbortSignal, cursor?: string): Promise<ApiSchemas['ConversationListResponse']> {
+    const result = await backend.page({ q: query, ...(cursor ? { cursor } : {}) }, signal)
+    if (!disposed && !signal.aborted) mergeMetadata(result.conversations)
     return result
   }
   async function loadArchive(cursor?: string): Promise<ApiSchemas['ConversationListResponse']> {
