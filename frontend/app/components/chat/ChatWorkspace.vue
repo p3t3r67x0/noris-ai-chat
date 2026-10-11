@@ -19,10 +19,11 @@ import { useChatAttachments } from '../../composables/useChatAttachments'
 const { transport, mode } = useChatTransport()
 const chat = useChat(transport)
 const { conversations, stream } = chat
-const attachments = useChatAttachments(transport.backend, conversations.active, chat.backendReady, conversations.create)
-watch(stream.status, status => { if (status === 'failed') void attachments.refresh() })
 const selection = useModelSelection({ mode })
 const { modelId, error: modelError, notice: modelNotice, loading: modelsLoading, canSend: modelCanSend, fallbackId, refresh: refreshModels, chooseFallback } = selection
+const supportsImages = computed(() => !modelsLoading.value && !selection.stale.value && !modelError.value && selection.models.some(model => model.id === modelId.value && !model.disabled && model.imageInput === true))
+const attachments = useChatAttachments(transport.backend, conversations.active, chat.backendReady, conversations.create, supportsImages)
+watch(stream.status, status => { if (status === 'failed') void attachments.refresh() })
 provide(workspaceKey, { chat, selection, mode, importAvailable: computed(() => Boolean(transport.backend) && chat.importAvailable.value) })
 const { t } = useAppLocale()
 const route = useRoute()
@@ -146,7 +147,7 @@ function saveEdit(): void {
             <UButton color="neutral" variant="link" label="Modelle neu laden" :loading="modelsLoading" @click="refreshModels" />
           </div>
           <p class="composer-note">{{ t('disclaimer') }}</p>
-          <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" :busy="stream.busy.value" :model-unavailable="!canSend" :input-error="chat.drafts.error.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" :files="attachments.files.value" :upload-available="attachments.available.value" :upload-blocked="attachments.blocked.value" :upload-error="attachments.error.value" @files="attachments.add" @remove-file="attachments.remove" @retry-file="attachments.retry" @send="send" @stop="stop" />
+          <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" :busy="stream.busy.value" :model-unavailable="!canSend" :input-error="chat.drafts.error.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" :files="attachments.files.value" :upload-available="attachments.available.value" :upload-blocked="attachments.blocked.value" :image-supported="attachments.imageCompatible.value" :upload-error="attachments.error.value" @files="attachments.add" @remove-file="attachments.remove" @retry-file="attachments.retry" @send="send" @stop="stop" />
           <p v-if="chat.drafts.error.value" role="alert" class="mt-2 text-center text-xs text-error">{{ chat.drafts.error.value }}</p>
         </div>
         <div class="chat-status" :data-attention="stream.status.value === 'failed' || (stream.busy.value && chat.generatingConversationId.value !== conversations.activeId.value)" role="status" aria-live="polite" aria-atomic="true" :data-generation-status="stream.status.value">

@@ -8,7 +8,7 @@ import { useComposerAutosize } from '../../composables/useComposerAutosize'
 import type { UploadEntry } from '../../composables/useChatAttachments'
 const { t } = useAppLocale()
 
-const props = defineProps<{ busy: boolean, streaming: boolean, cancellationRequested: boolean, modelUnavailable?: boolean, inputError?: string | null, files?: UploadEntry[], uploadAvailable?: boolean, uploadBlocked?: boolean, uploadError?: string | null }>()
+const props = defineProps<{ busy: boolean, streaming: boolean, cancellationRequested: boolean, modelUnavailable?: boolean, inputError?: string | null, files?: UploadEntry[], uploadAvailable?: boolean, uploadBlocked?: boolean, uploadError?: string | null, imageSupported?: boolean }>()
 const text = defineModel<string>({ required: true })
 const model = defineModel<ChatModelId>('model', { required: true })
 const emit = defineEmits<{ send: [text: string], stop: [], files: [files: File[]], removeFile: [key: string], retryFile: [key: string] }>()
@@ -67,8 +67,9 @@ defineExpose({ focus })
                 <template v-if="file.status === 'uploading'">Wird hochgeladen …</template>
                 <template v-else-if="file.status === 'removing'">Wird entfernt …</template>
                 <template v-else-if="file.status === 'failed'">{{ file.error }}</template>
+                <template v-else-if="file.mime.startsWith('image/') && file.attachment?.modelUsable && imageSupported">Gespeichert · Für Bildanalyse bereit</template>
+                <template v-else-if="file.mime.startsWith('image/')">Gespeichert · Wähle ein Modell mit Bildeingabe</template>
                 <template v-else-if="file.attachment?.modelUsable">Gespeichert · Text extrahiert</template>
-                <template v-else-if="file.mime.startsWith('image/')">Gespeichert · Bildanalyse derzeit nicht verfügbar</template>
                 <template v-else>Gespeichert · Kein extrahierbarer Text</template>
               </p>
               <progress v-if="file.status === 'uploading'" :value="file.progress" max="100" :aria-label="`Uploadfortschritt: ${file.filename}`" class="w-full" />

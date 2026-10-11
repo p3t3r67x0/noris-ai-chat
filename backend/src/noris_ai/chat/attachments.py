@@ -20,6 +20,7 @@ from noris_ai.chat.repository import ModelDatabase
 from noris_ai.chat.schemas import AttachmentResponse
 from noris_ai.chat.service import attachment_response
 from noris_ai.core.config import Settings
+from noris_ai.llm.vision import VisionImage
 
 MIME_EXTENSIONS = {
     "text/plain": (".txt",),
@@ -58,6 +59,37 @@ class AttachmentService:
         return self.root / key
 
     async def parse(self, path: Path, mime: str) -> str | None:
+        result = await self._parse(path, mime)
+        text = result.get("text")
+        if "text" not in result:
+            raise ChatError("ATTACHMENT_INVALID", 422)
+        if text is None:
+            return None
+        if not isinstance(text, str) or len(text) > self.config.chat_attachment_max_text_chars:
+            raise ChatError("ATTACHMENT_INVALID", 422)
+        return text
+
+    async def image_input(
+        self, owner: UUID, conversation_id: UUID, attachment_id: UUID
+    ) -> VisionImage:
+        attachment = await self.get(owner, attachment_id)
+        if (
+            attachment.conversation_id != conversation_id
+            or attachment.status != "stored"
+            or attachment.mime_type not in ("image/png", "image/jpeg")
+            or attachment.extracted_text
+        ):
+            raise ChatError("ATTACHMENT_INCOMPATIBLE", 422)
+        result = await self._parse(
+            self.path(attachment.storage_key),
+            attachment.mime_type,
+            "vision",
+            str(attachment.size_bytes),
+            attachment.sha256,
+        )
+        return VisionImage.model_validate(result)
+
+    async def _parse(self, path: Path, mime: str, *extra: str) -> dict[str, object]:
         async with self.parsers:
             process = await asyncio.create_subprocess_exec(
                 sys.executable,
@@ -68,6 +100,7 @@ class AttachmentService:
                 str(self.config.chat_attachment_max_text_chars),
                 str(self.config.chat_attachment_max_pdf_pages),
                 str(self.config.chat_attachment_max_image_pixels),
+                *extra,
                 # No inherited environment: provider keys cannot enter the parser.
                 env={"LANG": "C.UTF-8"},
                 stdout=asyncio.subprocess.PIPE,
@@ -76,18 +109,12 @@ class AttachmentService:
             try:
                 async with asyncio.timeout(15):
                     stdout, _ = await process.communicate()
-                if process.returncode != 0 or len(stdout) > 200_000:
+                if process.returncode != 0 or len(stdout) > (750_000 if extra else 200_000):
                     raise ChatError("ATTACHMENT_INVALID", 422)
                 result: object = json.loads(stdout)
-                if not isinstance(result, dict) or "text" not in result:
+                if not isinstance(result, dict):
                     raise ChatError("ATTACHMENT_INVALID", 422)
-                text: object = cast(dict[str, object], result)["text"]
-                if text is not None and (
-                    not isinstance(text, str)
-                    or len(text) > self.config.chat_attachment_max_text_chars
-                ):
-                    raise ChatError("ATTACHMENT_INVALID", 422)
-                return text
+                return cast(dict[str, object], result)
             except TimeoutError:
                 raise ChatError("ATTACHMENT_INVALID", 422) from None
             finally:

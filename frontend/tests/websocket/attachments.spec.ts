@@ -1,12 +1,18 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
+const fixtureOrigin = `http://127.0.0.1:${Number(process.env.NORIS_E2E_PROVIDER_PORT ?? 8591)}`
+const fixtureModels = ['fixture-alpha', 'fixture-beta', 'fixture-long']
 test.beforeEach(async ({ request }) => {
+  await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: fixtureModels } })
   const result = await request.get('/api/v1/conversations', { params: { archived: true, limit: 100 } })
   expect(result.ok()).toBe(true)
   for (const conversation of (await result.json()).conversations) await request.delete(`/api/v1/conversations/${conversation.id}`)
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
+})
+test.afterEach(async ({ request }) => {
+  await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: fixtureModels } })
 })
 
 const textFile = { name: 'synthetic.txt', mimeType: 'text/plain', buffer: Buffer.from('Synthetic upload context for the local simulator.') }
@@ -135,13 +141,69 @@ for (const width of [1701, 1440, 390]) {
 }
 
 
-test('a validated image is stored but never advertised as usable vision input', async ({ page }) => {
+const imageFile = { name: 'synthetic.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGMMLJ7CQApgIkn1qIZRDUNKAwBO2QF44IsoTQAAAABJRU5ErkJggg==', 'base64') }
+
+test('a validated image requires explicit selection of a compatible model', async ({ page }) => {
   await page.goto('/')
-  await selectFiles(page, [{ name: 'synthetic.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGMMLJ7CQApgIkn1qIZRDUNKAwBO2QF44IsoTQAAAABJRU5ErkJggg==', 'base64') }])
-  await expect(page.locator('[data-upload-status="uploaded"]')).toContainText('Bildanalyse derzeit nicht verfügbar')
+  await selectFiles(page, [imageFile])
+  await expect(page.locator('[data-upload-status="uploaded"]')).toContainText('Wähle ein Modell mit Bildeingabe')
   await page.getByRole('textbox', { name: 'Nachricht', exact: true }).fill('Describe this synthetic image')
   await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeDisabled()
   await page.reload()
-  await expect(page.locator('[data-upload-status="uploaded"]')).toContainText('Bildanalyse derzeit nicht verfügbar')
+  await expect(page.locator('[data-upload-status="uploaded"]')).toContainText('Wähle ein Modell mit Bildeingabe')
   await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeDisabled()
+})
+
+test('vision attachments survive model changes and reload and reach the provider as image parts', async ({ page, request }) => {
+  await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: fixtureModels, imageIds: ['fixture-beta'] } })
+  await page.goto('/')
+  const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
+  await input.evaluate(element => { element.dataset.instance = 'original-vision-composer' })
+  await selectFiles(page, [imageFile])
+  await input.fill('Describe this synthetic image')
+  await expect(page.locator('.composer-submit')).toBeDisabled()
+  await page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true }).click()
+  await page.getByRole('option', { name: 'Fixture Beta' }).click()
+  await expect(page.locator('[data-upload-status="uploaded"]')).toContainText('Für Bildanalyse bereit')
+  await expect(input).toHaveAttribute('data-instance', 'original-vision-composer')
+  await expect(page.locator('.composer-submit')).toBeEnabled()
+  await page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true }).click()
+  await page.getByRole('option', { name: 'Fixture Alpha' }).click()
+  await expect(page.locator('.composer-submit')).toBeDisabled()
+  await expect(page.locator('.attachment-preview')).toHaveCount(1)
+  await page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true }).click()
+  await page.getByRole('option', { name: 'Fixture Beta' }).click()
+  await page.reload()
+  await expect(page.locator('[data-upload-status="uploaded"]')).toContainText('Für Bildanalyse bereit')
+  await expect(input).toHaveValue('Describe this synthetic image')
+  await input.press('Enter')
+  await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
+  await expect(page.locator('.message-attachments a')).toHaveCount(1)
+  const state = await (await request.get(`${fixtureOrigin}/fixture/state`)).json()
+  const call = state.calls.at(-1)
+  expect(call.model).toBe('fixture-beta')
+  expect(call.messages[0].content[0].type).toBe('text')
+  expect(call.messages[0].content[1].image_url.url).toMatch(/^data:image\/jpeg;base64,/)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.reload()
+  await expect(page.locator('.message-attachments a')).toHaveCount(1)
+})
+
+test('stopping a vision response preserves the composer and saved attachment', async ({ page, request }) => {
+  await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: fixtureModels, imageIds: ['fixture-beta'] } })
+  await page.goto('/')
+  await selectFiles(page, [imageFile])
+  await page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true }).click()
+  await page.getByRole('option', { name: 'Fixture Beta' }).click()
+  const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
+  await input.evaluate(element => { element.dataset.instance = 'vision-stop' })
+  await input.fill('/slow Describe this synthetic image')
+  await expect(page.locator('.composer-submit')).toBeEnabled()
+  await input.press('Enter')
+  await expect(page.locator('[data-generation-status="streaming"]')).toBeAttached()
+  await page.getByRole('button', { name: 'Antwort stoppen', exact: true }).click()
+  await expect(page.locator('[data-generation-status="cancelled"]')).toBeAttached()
+  await expect(input).toBeFocused()
+  await expect(input).toHaveAttribute('data-instance', 'vision-stop')
+  await expect(page.locator('.message-attachments a')).toHaveCount(1)
 })

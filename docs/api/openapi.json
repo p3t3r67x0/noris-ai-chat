@@ -94,8 +94,7 @@
             "type": "integer"
           },
           "visionSupported": {
-            "const": false,
-            "default": false,
+            "default": true,
             "title": "Visionsupported",
             "type": "boolean"
           }
@@ -143,7 +142,8 @@
             "enum": [
               "extracted",
               "no_text",
-              "unsupported"
+              "unsupported",
+              "not_applicable"
             ],
             "title": "Extractionstatus",
             "type": "string"

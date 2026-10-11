@@ -64,10 +64,17 @@ def attachment_response(attachment: ChatAttachment) -> AttachmentResponse:
         status="ready" if attachment.status == "ready" else "stored",
         extractionStatus="extracted"
         if attachment.extracted_text
-        else ("unsupported" if attachment.mime_type.startswith("image/") else "no_text"),
-        modelUsable=attachment.status == "ready"
-        and bool(attachment.extracted_text)
-        and attachment.mime_type in ("text/plain", "text/markdown", "application/pdf"),
+        else ("not_applicable" if attachment.mime_type.startswith("image/") else "no_text"),
+        modelUsable=(
+            attachment.status == "ready"
+            and bool(attachment.extracted_text)
+            and attachment.mime_type in ("text/plain", "text/markdown", "application/pdf")
+        )
+        or (
+            attachment.status == "stored"
+            and not attachment.extracted_text
+            and attachment.mime_type in ("image/png", "image/jpeg")
+        ),
         createdAt=attachment.created_at,
     )
 

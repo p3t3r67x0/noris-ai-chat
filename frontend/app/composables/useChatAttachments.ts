@@ -20,14 +20,15 @@ export interface UploadEntry {
 
 const extensions: Record<string, string> = { txt: 'text/plain', md: 'text/markdown', markdown: 'text/markdown', pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg' }
 
-export function useChatAttachments(backend: ChatBackend | undefined, active: Ref<Conversation | null>, ready: Ref<boolean>, createConversation: () => Conversation) {
+export function useChatAttachments(backend: ChatBackend | undefined, active: Ref<Conversation | null>, ready: Ref<boolean>, createConversation: () => Conversation, supportsImages: Ref<boolean> = ref(false)) {
   const records = ref<Record<string, UploadEntry[]>>({})
   const limits = ref<ApiSchemas['AttachmentLimitsResponse'] | null>(null)
   const error = ref<string | null>(null)
   const pending = new Map<string, XMLHttpRequest>()
   const files = computed(() => active.value ? records.value[active.value.id] ?? [] : [])
   const available = computed(() => Boolean(backend && ready.value && limits.value))
-  const blocked = computed(() => files.value.some(file => file.status !== 'uploaded' || !file.attachment?.modelUsable))
+  const imageCompatible = computed(() => limits.value?.visionSupported === true && supportsImages.value)
+  const blocked = computed(() => files.value.some(file => file.status !== 'uploaded' || !file.attachment?.modelUsable || (file.attachment.mimeType.startsWith('image/') && !imageCompatible.value)))
   const confirmed = computed(() => files.value.flatMap(file => file.attachment && file.status === 'uploaded' ? [file.attachment] : []))
   let revision = 0
 
@@ -123,5 +124,5 @@ export function useChatAttachments(backend: ChatBackend | undefined, active: Ref
   }
   function sent(conversationId: string): void { records.value[conversationId] = [] }
   onUnmounted(() => { ++revision; for (const request of pending.values()) request.abort() })
-  return { files, limits, error, available, blocked, confirmed, add, remove, retry, refresh, sent }
+  return { files, limits, error, available, blocked, imageCompatible, confirmed, add, remove, retry, refresh, sent }
 }

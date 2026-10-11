@@ -18,8 +18,12 @@ from noris_ai.chat.models import ChatAttachment
 from noris_ai.chat.repository import ModelDatabase
 from noris_ai.core.config import Settings
 from noris_ai.llm.gateway import LLMGateway
+from noris_ai.llm.provider import provider_payload
+from noris_ai.llm.provider_models import ProviderModel
+from noris_ai.llm.vision import VisionMessage
 from noris_ai.main import create_app
 from tests.fixtures.attachments import synthetic_pdf, synthetic_png
+from tests.fixtures.provider_catalog import provider_model
 from tests.integration.test_chat_websocket import AUTH, ORIGIN, Simulator, generate, protocols
 
 pytestmark = pytest.mark.integration
@@ -27,7 +31,11 @@ pytestmark = pytest.mark.integration
 
 @pytest.fixture
 def simulator() -> Simulator:
-    return Simulator()
+    class VisionSimulator(Simulator):
+        async def discover_models(self) -> list[ProviderModel]:
+            return [provider_model("fixture-alpha"), provider_model("fixture-beta", vision=True)]
+
+    return VisionSimulator()
 
 
 @pytest.fixture
@@ -159,7 +167,9 @@ def test_pending_count_and_owner_storage_quotas(client: TestClient) -> None:
     assert upload(client, second["conversationId"], b"x" * 100).status_code == 413
 
 
-def test_pdf_and_image_status_never_claim_unsupported_analysis(client: TestClient) -> None:
+def test_pdf_extraction_and_image_storage_do_not_authorize_text_only_models(
+    client: TestClient,
+) -> None:
     payload = generate(client)
     pdf = upload(
         client, payload["conversationId"], synthetic_pdf(), "synthetic.pdf", "application/pdf"
@@ -168,7 +178,8 @@ def test_pdf_and_image_status_never_claim_unsupported_analysis(client: TestClien
     assert pdf.json()["extractionStatus"] == "extracted"
     image = upload(client, payload["conversationId"], synthetic_png(), "synthetic.png", "image/png")
     assert image.status_code == 201
-    assert image.json()["status"] == "stored" and image.json()["modelUsable"] is False
+    assert image.json()["status"] == "stored" and image.json()["modelUsable"] is True
+    assert image.json()["extractionStatus"] == "not_applicable"
     payload["attachmentIds"] = [image.json()["id"]]
     with client.websocket_connect(
         "/api/v1/chat/ws", subprotocols=protocols(client), headers=ORIGIN.copy()
@@ -177,8 +188,8 @@ def test_pdf_and_image_status_never_claim_unsupported_analysis(client: TestClien
         socket.send_json(payload)
         assert socket.receive_json()["code"] == "ATTACHMENT_INCOMPATIBLE"
 
-    # Recheck the allowed modality even if an inconsistent database row claims
-    # extraction succeeded; an image must never enter the text provider contract.
+    # A corrupt row cannot route image data through the text contract, even with vision.
+    payload["modelId"] = "fixture-beta"
     database = cast(ModelDatabase, cast(FastAPI, client.app).state.chat_database)
 
     async def inconsistent_extraction() -> None:
@@ -233,6 +244,93 @@ def test_websocket_binding_reconstructs_context_and_preserves_download_after_rel
         == 204
     )
     assert list(service.root.iterdir()) == []
+
+
+def test_image_provider_input_and_history_survive_reload_without_websocket_binary(
+    client: TestClient, simulator: Simulator
+) -> None:
+    payload = generate(client, "Describe synthetic pixels") | {"modelId": "fixture-beta"}
+    original = synthetic_png()
+    attached = upload(
+        client, payload["conversationId"], original, "synthetic.png", "image/png"
+    ).json()
+    payload["attachmentIds"] = [attached["id"]]
+    path = f"/api/v1/conversations/{payload['conversationId']}"
+    with client.websocket_connect(
+        "/api/v1/chat/ws", subprotocols=protocols(client), headers=ORIGIN.copy()
+    ) as socket:
+        socket.receive_json()
+        socket.send_json(payload)
+        while True:
+            event = socket.receive_json()
+            assert "data:image" not in str(event)
+            if event["type"] == "chat.generation.completed":
+                break
+    sent = simulator.calls[-1][0]
+    assert isinstance(sent, VisionMessage)
+    assert provider_payload(sent)["role"] == "user"
+    assert sent.images[0].data_url.startswith("data:image/jpeg;base64,")
+    messages = client.get(path + "/messages", auth=AUTH).json()["messages"]
+    assert messages[0]["attachments"][0]["id"] == attached["id"]
+    assert (
+        client.get(f"/api/v1/chat/attachments/{attached['id']}/content", auth=AUTH).content
+        == original
+    )
+
+    # Restored history cannot silently drop its image when a text model is chosen.
+    conversation = client.get(path, auth=AUTH).json()
+    followup = payload | {
+        "requestId": str(uuid4()),
+        "inputMessageId": str(uuid4()),
+        "assistantMessageId": str(uuid4()),
+        "parentMessageId": payload["assistantMessageId"],
+        "conversationVersion": conversation["version"],
+        "modelId": "fixture-alpha",
+        "content": "Follow up",
+        "attachmentIds": [],
+    }
+    before = len(simulator.calls)
+    with client.websocket_connect(
+        "/api/v1/chat/ws", subprotocols=protocols(client), headers=ORIGIN.copy()
+    ) as socket:
+        socket.receive_json()
+        socket.send_json(followup)
+        assert socket.receive_json()["code"] == "ATTACHMENT_INCOMPATIBLE"
+    assert len(simulator.calls) == before
+
+    # A compatible follow-up receives the original image again from owned storage.
+    followup["modelId"] = "fixture-beta"
+    with client.websocket_connect(
+        "/api/v1/chat/ws", subprotocols=protocols(client), headers=ORIGIN.copy()
+    ) as socket:
+        socket.receive_json()
+        socket.send_json(followup)
+        while socket.receive_json()["type"] != "chat.generation.completed":
+            pass
+    assert isinstance(simulator.calls[-1][0], VisionMessage)
+
+
+def test_tampered_image_storage_fails_before_provider_generation(
+    client: TestClient, simulator: Simulator
+) -> None:
+    payload = generate(client, "Describe synthetic pixels") | {"modelId": "fixture-beta"}
+    attached = upload(
+        client, payload["conversationId"], synthetic_png(), "synthetic.png", "image/png"
+    ).json()
+    service = cast(AttachmentService, cast(FastAPI, client.app).state.chat_attachments)
+    next(service.root.iterdir()).write_bytes(b"Synthetic storage tampering")
+    payload["attachmentIds"] = [attached["id"]]
+    with client.websocket_connect(
+        "/api/v1/chat/ws", subprotocols=protocols(client), headers=ORIGIN.copy()
+    ) as socket:
+        socket.receive_json()
+        socket.send_json(payload)
+        while True:
+            event = socket.receive_json()
+            if event["type"] == "chat.generation.failed":
+                assert event["code"] == "ATTACHMENT_INVALID"
+                break
+    assert not simulator.calls
 
 
 def test_attachment_ownership_conversation_and_orphan_cleanup(client: TestClient) -> None:

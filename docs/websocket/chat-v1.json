@@ -248,7 +248,8 @@
               "enum": [
                 "extracted",
                 "no_text",
-                "unsupported"
+                "unsupported",
+                "not_applicable"
               ],
               "title": "Extractionstatus",
               "type": "string"

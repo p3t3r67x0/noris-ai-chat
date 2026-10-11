@@ -1,11 +1,11 @@
 """Synthetic account-free metadata for local simulators; never a live entitlement."""
 
-from noris_ai.llm.provider_models import ProviderModel
+from noris_ai.llm.provider_models import ProviderModality, ProviderModel
 
 
-def provider_model(model_id: str) -> ProviderModel:
+def provider_model(model_id: str, *, vision: bool = False) -> ProviderModel:
     kind = "embeddings" if "harrier" in model_id else "rerank" if "reranker" in model_id else "text"
-    return ProviderModel.model_validate(
+    model = ProviderModel.model_validate(
         {
             "id": model_id,
             "schema_version": "2.4",
@@ -33,7 +33,17 @@ def provider_model(model_id: str) -> ProviderModel:
             ],
         }
     )
+    if vision:
+        model = model.model_copy(
+            update={
+                "input_modalities": [
+                    *(model.input_modalities or []),
+                    ProviderModality(type="image"),
+                ]
+            }
+        )
+    return model
 
 
-def provider_data(model_id: str) -> dict[str, object]:
-    return provider_model(model_id).model_dump(mode="json", exclude_none=True)
+def provider_data(model_id: str, *, vision: bool = False) -> dict[str, object]:
+    return provider_model(model_id, vision=vision).model_dump(mode="json", exclude_none=True)

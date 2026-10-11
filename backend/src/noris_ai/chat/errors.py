@@ -24,7 +24,8 @@ MESSAGES = {
     ),
     "ATTACHMENT_INCOMPATIBLE": (
         "Diese Datei kann vom gewählten Modell nicht verwendet werden. "
-        "Bilder und PDFs ohne Text können derzeit nur gespeichert werden."
+        "Bilder benötigen ein Modell mit bestätigter Bildeingabe. "
+        "PDFs ohne extrahierbaren Text können nur gespeichert werden."
     ),
     "NOT_FOUND": "Diese Unterhaltung existiert nicht.",
     "ACCESS_DENIED": "Bitte melde dich für den Chatzugriff an.",

@@ -72,7 +72,7 @@ class AttachmentResponse(JsonApiSchema):
     sizeBytes: int
     sha256: str
     status: Literal["ready", "stored"]
-    extractionStatus: Literal["extracted", "no_text", "unsupported"]
+    extractionStatus: Literal["extracted", "no_text", "unsupported", "not_applicable"]
     modelUsable: bool
     createdAt: datetime
 
@@ -86,7 +86,7 @@ class AttachmentLimitsResponse(JsonApiSchema):
     maxFiles: int
     ownerQuotaBytes: int
     mimeTypes: list[str]
-    visionSupported: Literal[False] = False
+    visionSupported: bool = True
 
 
 class MessageResponse(JsonApiSchema):

@@ -5,6 +5,19 @@ import { CHAT_MODELS, useModelSelection } from '../../app/composables/useModelSe
 import { DEFAULT_CHAT_LIMITS } from '../../app/lib/chat/limits'
 
 describe('Configured model catalog', () => {
+  it('requires both provider image modality and vision capability without changing the selected model', async () => {
+    localStorage.clear()
+    const wrapper = mount(defineComponent({ setup: () => useModelSelection({ mode: 'real', fetcher: async () => Response.json({ models: [
+      { id: 'text', name: 'Text', available: true, streaming: true, vision: false, input_modalities: ['text'] },
+      { id: 'image', name: 'Image', available: true, streaming: true, vision: true, input_modalities: ['text', 'image'] },
+      { id: 'unconfirmed', name: 'Unconfirmed', available: true, streaming: true, vision: true, input_modalities: ['text'] },
+      { id: 'image-only', name: 'Image only', available: true, streaming: true, vision: true, input_modalities: ['image'] },
+    ], default_model: 'text', limits: DEFAULT_CHAT_LIMITS }) }), template: '<div />' }))
+    await flushPromises()
+    expect(CHAT_MODELS.map(model => model.imageInput)).toEqual([false, true, false, false])
+    expect(wrapper.vm.modelId).toBe('text')
+    wrapper.unmount()
+  })
   it('exposes provider limits and unavailable models without changing composer permissions', async () => {
     const wrapper = mount(defineComponent({ setup: () => useModelSelection({ mode: 'real', fetcher: async () => Response.json({ models: [
       { id: 'alpha', name: 'Alpha', description: 'Provider description', available: true, streaming: true, provider_context_window: 131072, effective_max_output_tokens: 8192 },

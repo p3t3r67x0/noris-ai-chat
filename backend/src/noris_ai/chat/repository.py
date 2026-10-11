@@ -548,7 +548,7 @@ class ChatRepository:
             return count
 
     async def begin_generation(
-        self, owner_id: uuid.UUID, command: "GenerateIncomingMessage"
+        self, owner_id: uuid.UUID, command: "GenerateIncomingMessage", *, allow_images: bool = False
     ) -> tuple[ChatGeneration, list[ChatMessage], bool]:
         """Lock the conversation; accept input and generation atomically, once."""
         async with self._database() as session, session.begin():
@@ -665,16 +665,29 @@ class ChatRepository:
             for attachment in attachments:
                 if attachment.message_id not in (None, input_message.id):
                     raise ChatError("ATTACHMENT_IN_USE", 409)
-                if (
-                    attachment.status != "ready"
-                    or not attachment.extracted_text
-                    or attachment.mime_type not in ("text/plain", "text/markdown", "application/pdf")
-                ):
+                text_ready = (
+                    attachment.status == "ready"
+                    and bool(attachment.extracted_text)
+                    and attachment.mime_type in ("text/plain", "text/markdown", "application/pdf")
+                )
+                image_ready = (
+                    allow_images
+                    and attachment.status == "stored"
+                    and not attachment.extracted_text
+                    and attachment.mime_type in ("image/png", "image/jpeg")
+                )
+                if not (text_ready or image_ready):
                     raise ChatError("ATTACHMENT_INCOMPATIBLE", 422)
                 attachment.message_id = input_message.id
             input_message.attachments = attachments
             await session.flush()
             path = await pagination.full_path(session, conversation.id, input_message.id)
+            if not allow_images and any(
+                a.mime_type in ("image/png", "image/jpeg") and a.status != "deleted"
+                for message in path
+                for a in message.attachments
+            ):
+                raise ChatError("ATTACHMENT_INCOMPATIBLE", 422)
             prefix, continuation_count = "", 0
             if command.operation == "continue":
                 source = (

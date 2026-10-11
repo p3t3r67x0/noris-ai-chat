@@ -9,7 +9,7 @@ const MOCK_MODELS = [
   { id: 'fast', label: 'noris Fast', description: 'Für schnelle Ideen' },
 ]
 
-export interface ChatModel { id: string, label: string, description: string, category?: string, virtual?: boolean, disabled?: boolean, providerDescription?: string, contextWindow?: number, effectiveOutputLimit?: number }
+export interface ChatModel { id: string, label: string, description: string, category?: string, virtual?: boolean, disabled?: boolean, providerDescription?: string, contextWindow?: number, effectiveOutputLimit?: number, imageInput?: boolean }
 export const CHAT_MODELS = reactive<ChatModel[]>(MOCK_MODELS.map(model => ({ ...model })))
 export type ChatModelId = string
 export function isChatModelId(value: unknown): value is ChatModelId {
@@ -53,6 +53,7 @@ export function useModelSelection(options: { mode?: 'mock' | 'real' | 'websocket
           ].filter(Boolean).join(' · '),
           category: 'category' in value && typeof value.category === 'string' ? value.category : '',
           virtual: 'virtual' in value && value.virtual === true, disabled: isStale || value.available !== true || value.streaming !== true,
+          imageInput: 'vision' in value && value.vision === true && 'input_modalities' in value && Array.isArray(value.input_modalities) && value.input_modalities.includes('image') && value.input_modalities.includes('text'),
           ...('description' in value && typeof value.description === 'string' ? { providerDescription: value.description } : {}),
           ...('provider_context_window' in value && typeof value.provider_context_window === 'number' && value.provider_context_window > 0 ? { contextWindow: value.provider_context_window } : {}),
           ...('effective_max_output_tokens' in value && typeof value.effective_max_output_tokens === 'number' && value.effective_max_output_tokens > 0 ? { effectiveOutputLimit: value.effective_max_output_tokens } : {}),

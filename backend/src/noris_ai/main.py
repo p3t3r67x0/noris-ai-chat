@@ -69,7 +69,7 @@ def create_app(
         application.state.chat_service = ChatService(repository)
         application.state.chat_tickets = WsTicketStore(config.chat_ws_ticket_ttl_seconds)
         application.state.chat_generations = GenerationManager(
-            config, repository, application.state.llm_gateway
+            config, repository, application.state.llm_gateway, attachments
         )
         # Startup recovery: generations orphaned by a restart are never
         # reported as completed.

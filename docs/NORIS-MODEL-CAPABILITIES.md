@@ -1,5 +1,7 @@
 # Provider-native Modellfähigkeiten
 
+Aktualisierung 2026-10-11: Zwei reine authentifizierte GETs des Schema-2.4-Katalogs melden jetzt `image`-Eingabe für DeepSeek V4.1 Flash, GLM 5.3 Flash, Qwen3.8 27B, Gemma 4 31B und Qwen3.6 27B. GPT-OSS 120B und GLM 5.2 bleiben textbasiert. Die frühere Bestandsaufnahme unten ist historisch. Der [dokumentierte Noris-Vision-Vertrag](https://noris.cloud/nai/how-tos/multimodal/) ist jetzt für privat gespeicherte PNG/JPEG-Anhänge angebunden; siehe [Dateianhänge](CHAT-ATTACHMENTS.md). Lokale Kontext-/Output-/Budgetpolicies bleiben unverändert und können eine Bildanfrage trotz gemeldeter Bildfähigkeit begrenzen. Es wurden keine kostenpflichtigen Generierungen und auf Nutzeranweisung keine neuen Tests ausgeführt.
+
 Stand: 2026-10-10. Katalogangaben sind Providerberichte, keine erfolgreichen Generierungsproben. Zwei reine GET-Prüfungen über die validierte Serverkonfiguration bestätigten Schema 2.4, Modellmetadaten und Feldstrukturen. Keine Generierung wurde für diese Änderung gegen Noris ausgeführt. Die Referenzpreise unten sind historische USD-Katalogangaben; der Browser zeigt jeweils den aktuellen **Abrufzeitpunkt** seines Backend-Katalogs. Readiness und Zugriff gelten höchstens für dessen Cache-TTL.
 
 ## Bestandsaufnahme auf main

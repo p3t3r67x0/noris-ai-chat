@@ -31,6 +31,7 @@ async def state() -> dict[str, object]:
 
 
 catalog_ids = ["fixture-alpha", "fixture-beta", "fixture-long"]
+image_ids: list[str] = []
 catalog_status = 200
 native_catalog = {
     item["id"]: item
@@ -45,7 +46,10 @@ async def models(request: Request) -> JSONResponse:
     return JSONResponse(
         {
             "object": "list",
-            "data": [native_catalog.get(value, provider_data(value)) for value in catalog_ids],
+            "data": [
+                native_catalog.get(value, provider_data(value, vision=value in image_ids))
+                for value in catalog_ids
+            ],
         },
         status_code=catalog_status,
     )
@@ -53,10 +57,11 @@ async def models(request: Request) -> JSONResponse:
 
 @app.post("/fixture/catalog")
 async def configure_catalog(request: Request) -> dict[str, str]:
-    global catalog_ids, catalog_status
+    global catalog_ids, catalog_status, image_ids
     body = await request.json()
     catalog_ids = body["ids"]
     catalog_status = body.get("status", 200)
+    image_ids = body.get("imageIds", [])
     return {"status": "ok"}
 
 
@@ -73,7 +78,12 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
     )
     is_continuation = body["messages"][0]["role"] == "system" and not is_title
     (title_calls if is_title else calls).append(body)
-    prompt = str(body["messages"][-1]["content"])
+    content = body["messages"][-1]["content"]
+    prompt = (
+        "".join(part["text"] for part in content if part.get("type") == "text")
+        if isinstance(content, list)
+        else str(content)
+    )
     if not is_title:
         attempts[prompt] = attempts.get(prompt, 0) + 1
     if (not is_title and prompt.startswith("/retry") and attempts[prompt] == 1) or (

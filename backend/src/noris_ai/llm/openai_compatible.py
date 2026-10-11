@@ -9,11 +9,12 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 
 from noris_ai.core.config import Settings
 from noris_ai.llm.errors import LLMError
-from noris_ai.llm.provider import ProviderMessage
+from noris_ai.llm.provider import ProviderMessage, provider_payload
 from noris_ai.llm.provider_models import ProviderModel, ProviderModels
 from noris_ai.llm.schemas import LLMModel
 from noris_ai.llm.sse import SSEDecoder
 from noris_ai.llm.titles import TitleInstruction
+from noris_ai.llm.vision import VisionMessage, supports_images
 
 
 class ProviderDelta(BaseModel):
@@ -128,9 +129,12 @@ class OpenAICompatibleProvider:
         base = self._config.llm_base_url
         if key is None or base is None:
             raise LLMError("LLM_DISABLED", 503)
+        has_images = any(isinstance(message, VisionMessage) for message in messages)
+        if has_images and not supports_images(model):
+            raise LLMError("MODEL_UNAVAILABLE", 400)
         body: dict[str, object] = {
             "model": model.id,
-            "messages": [message.model_dump() for message in messages],
+            "messages": [provider_payload(message) for message in messages],
             "stream": True,
         }
         if model.token_limit_parameter is None:
@@ -152,6 +156,10 @@ class OpenAICompatibleProvider:
                 body["chat_template_kwargs"] = {"reasoning_effort": effort}
             else:
                 body["reasoning_effort"] = effort
+        if has_images and len(json.dumps(body, ensure_ascii=False).encode("utf-8")) > (
+            self._config.llm_max_request_bytes
+        ):
+            raise LLMError("REQUEST_TOO_LARGE", 413)
         try:
             async with self._client.stream(
                 "POST",

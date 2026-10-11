@@ -6,6 +6,7 @@ from tokenizers import Tokenizer
 
 from noris_ai.core.config import Settings
 from noris_ai.llm.provider import ProviderMessage
+from noris_ai.llm.vision import IMAGE_TOKEN_RESERVE, VisionMessage
 
 
 class EncodedTokens(Protocol):
@@ -52,6 +53,11 @@ class TokenCounter:
             content_tokens = ceil(content_tokens * 11 / 10)
         return (
             content_tokens
+            + sum(
+                IMAGE_TOKEN_RESERVE * len(message.images)
+                for message in messages
+                if isinstance(message, VisionMessage)
+            )
             + 32 * len(messages)
             + 64
             + self.config.llm_context_safety_tokens
