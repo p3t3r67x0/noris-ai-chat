@@ -1,5 +1,11 @@
 # Adaptiver Chat-Composer
 
+## CI-Nachprüfung vom 2026-10-11
+
+Der abgeschlossene [Compose-Browserjob 114435754381](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/38127803240/job/114435754381?pr=43) meldete 16 Suchdialog-Screenshotabweichungen bei 257 erfolgreichen Tests. Die bisherigen Baselines enthielten noch den alten Composer und den Hinweis unterhalb des Composers. Die synthetischen Expected/Actual/Diff-Artefakte wurden lokal verglichen: Die relevante Geometrieänderung liegt im Hintergrund-Composer; Suchfeld, Dialoggeometrie und Trefferlayout bleiben erhalten. In acht Bildern unterscheidet sich zusätzlich die Rasterung eines einzelnen Zeichens im unveränderten synthetischen Treffernamen. Alle Actual-Bilder stimmen pixelgenau mit dem jeweiligen CI-Retry überein. Nur diese 16 synthetischen Baselines wurden aus den bereits vorhandenen CI-Aufnahmen übernommen; Toleranzen und Assertions bleiben bestehen.
+
+Zwei mobile Settings-Navigationstests scheiterten zunächst und bestanden beim Retry. Der Helper wartet jetzt nach jeder Kategorieauswahl auf die neue Seitenüberschrift und beim Öffnen der mobilen Navigation auf `aria-expanded=true`. Dadurch kann die noch laufende vorherige Route die gerade wieder geöffnete Navigation nicht schließen. Auf ausdrücklichen Nutzerwunsch wurden keine weiteren Tests oder Docker-Läufe gestartet und keine CI-Ergebnisse abgewartet.
+
 Der bestehende `ChatComposer.vue` verwendet weiterhin eine einzige `UChatPrompt`-Instanz und deren native Textarea, Enter-/Shift+Enter- und IME-Behandlung. Das CSS-Grid wechselt zwischen einer gemeinsamen Zeile und Texteingabe über der unteren Aktionszeile. Es gibt keine zweite Composer-Instanz und keinen Remount beim Layoutwechsel.
 
 ## Referenz und Geometrie
