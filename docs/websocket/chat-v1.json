@@ -522,6 +522,13 @@
               "title": "Content",
               "type": "string"
             },
+            "continuationCount": {
+              "default": 0,
+              "maximum": 20,
+              "minimum": 0,
+              "title": "Continuationcount",
+              "type": "integer"
+            },
             "conversationId": {
               "format": "uuid",
               "title": "Conversationid",
@@ -562,6 +569,7 @@
             "messageId",
             "seq",
             "content",
+            "continuationCount",
             "type"
           ],
           "title": "GenerationCancelledEvent",
@@ -573,6 +581,13 @@
             "content": {
               "title": "Content",
               "type": "string"
+            },
+            "continuationCount": {
+              "default": 0,
+              "maximum": 20,
+              "minimum": 0,
+              "title": "Continuationcount",
+              "type": "integer"
             },
             "conversationId": {
               "format": "uuid",
@@ -614,6 +629,7 @@
             "messageId",
             "seq",
             "content",
+            "continuationCount",
             "type"
           ],
           "title": "GenerationCompletedEvent",
@@ -622,6 +638,13 @@
         "GenerationDeltaEvent": {
           "additionalProperties": false,
           "properties": {
+            "continuationCount": {
+              "default": 0,
+              "maximum": 20,
+              "minimum": 0,
+              "title": "Continuationcount",
+              "type": "integer"
+            },
             "conversationId": {
               "format": "uuid",
               "title": "Conversationid",
@@ -666,7 +689,8 @@
             "conversationId",
             "messageId",
             "seq",
-            "delta"
+            "delta",
+            "continuationCount"
           ],
           "title": "GenerationDeltaEvent",
           "type": "object"
@@ -681,6 +705,13 @@
             "content": {
               "title": "Content",
               "type": "string"
+            },
+            "continuationCount": {
+              "default": 0,
+              "maximum": 20,
+              "minimum": 0,
+              "title": "Continuationcount",
+              "type": "integer"
             },
             "conversationId": {
               "format": "uuid",
@@ -726,6 +757,7 @@
             "messageId",
             "seq",
             "content",
+            "continuationCount",
             "type",
             "code",
             "message"
@@ -736,9 +768,28 @@
         "GenerationIncompleteEvent": {
           "additionalProperties": false,
           "properties": {
+            "code": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Code"
+            },
             "content": {
               "title": "Content",
               "type": "string"
+            },
+            "continuationCount": {
+              "default": 0,
+              "maximum": 20,
+              "minimum": 0,
+              "title": "Continuationcount",
+              "type": "integer"
             },
             "conversationId": {
               "format": "uuid",
@@ -749,6 +800,18 @@
               "format": "uuid",
               "title": "Generationid",
               "type": "string"
+            },
+            "message": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Message"
             },
             "messageId": {
               "format": "uuid",
@@ -786,8 +849,11 @@
             "messageId",
             "seq",
             "content",
+            "continuationCount",
             "type",
-            "reason"
+            "reason",
+            "code",
+            "message"
           ],
           "title": "GenerationIncompleteEvent",
           "type": "object"
@@ -798,6 +864,13 @@
             "content": {
               "title": "Content",
               "type": "string"
+            },
+            "continuationCount": {
+              "default": 0,
+              "maximum": 20,
+              "minimum": 0,
+              "title": "Continuationcount",
+              "type": "integer"
             },
             "conversationId": {
               "format": "uuid",
@@ -839,6 +912,7 @@
             "messageId",
             "seq",
             "content",
+            "continuationCount",
             "type"
           ],
           "title": "GenerationInterruptedEvent",
@@ -847,6 +921,13 @@
         "GenerationStartedEvent": {
           "additionalProperties": false,
           "properties": {
+            "continuationCount": {
+              "default": 0,
+              "maximum": 20,
+              "minimum": 0,
+              "title": "Continuationcount",
+              "type": "integer"
+            },
             "conversationId": {
               "format": "uuid",
               "title": "Conversationid",
@@ -890,7 +971,8 @@
             "conversationId",
             "messageId",
             "modelId",
-            "seq"
+            "seq",
+            "continuationCount"
           ],
           "title": "GenerationStartedEvent",
           "type": "object"
@@ -1158,9 +1240,28 @@
         "ResumeSnapshotEvent": {
           "additionalProperties": false,
           "properties": {
+            "code": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Code"
+            },
             "content": {
               "title": "Content",
               "type": "string"
+            },
+            "continuationCount": {
+              "default": 0,
+              "maximum": 20,
+              "minimum": 0,
+              "title": "Continuationcount",
+              "type": "integer"
             },
             "conversationId": {
               "format": "uuid",
@@ -1175,6 +1276,18 @@
             "lastSequence": {
               "title": "Lastsequence",
               "type": "integer"
+            },
+            "message": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Message"
             },
             "messageId": {
               "format": "uuid",
@@ -1215,7 +1328,10 @@
             "messageId",
             "status",
             "content",
-            "lastSequence"
+            "lastSequence",
+            "continuationCount",
+            "code",
+            "message"
           ],
           "title": "ResumeSnapshotEvent",
           "type": "object"

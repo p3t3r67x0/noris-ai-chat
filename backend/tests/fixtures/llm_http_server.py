@@ -122,6 +122,13 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
                     str(message["content"]).startswith("/long-stop") for message in body["messages"]
                 ):
                     chunks += [" weiterer Text"] * 100
+            # Three segments deliberately exceed the browser test cap (2),
+            # leaving manual continuation available under the existing total cap.
+            if any(str(m["content"]).startswith("/auto-limit") for m in body["messages"]):
+                previous = str(body["messages"][-2]["content"]) if is_continuation else ""
+                index = previous.count("Teil ")
+                chunks = [f"Teil {index}. "]
+                finish = "length" if index < 3 else "stop"
             if prompt == "Erkläre in zwei Sätzen, was ein MCP-Server ist.":
                 chunks = [
                     "Ein MCP-Server stellt ",

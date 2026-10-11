@@ -50,7 +50,8 @@ child.on('exit', () => { if (!stopping) process.exit(1) })
 let ready = false
 for (let attempt = 0; attempt < 100; attempt++) {
   try {
-    const response = await fetch(`http://127.0.0.1:${nodePort}/`, { signal: AbortSignal.timeout(300) })
+    // Initial SSR can take over a second when local browser suites share the host.
+    const response = await fetch(`http://127.0.0.1:${nodePort}/`, { signal: AbortSignal.timeout(3000) })
     await response.body?.cancel()
     if (response.ok) { ready = true; break }
   }

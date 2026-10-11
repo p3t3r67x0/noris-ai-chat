@@ -135,7 +135,7 @@ test('continuation creates an immutable sibling and persists selected variants a
   await page.getByRole('button', { name: 'Modell auswählen', exact: true }).click()
   await page.getByRole('option', { name: 'Fixture Long' }).click()
   const composer = page.getByRole('textbox', { name: 'Nachricht' })
-  await composer.fill(`/length ws ${info.project.name}`)
+  await composer.fill(`/auto-limit ws ${info.project.name}`)
   await composer.press('Enter')
   await expect(page.locator('.message-assistant')).toHaveAttribute('data-status', 'incomplete')
   const original = await page.locator('.message-assistant').getAttribute('data-message-id')
@@ -148,8 +148,10 @@ test('continuation creates an immutable sibling and persists selected variants a
   expect(continued).not.toBe(original)
   const c = (await (await request.get('/api/v1/conversations')).json()).conversations[0]
   const rows = (await (await request.get(`/api/v1/conversations/${c.id}/messages`)).json()).messages
-  expect(rows.find((m: { id: string }) => m.id === original).content).toBe(' token'.repeat(9000))
-  expect(rows.find((m: { id: string }) => m.id === continued).content.startsWith(' token'.repeat(9000))).toBe(true)
+  expect(rows.find((m: { id: string }) => m.id === original).content).toBe('Teil 0. Teil 1. Teil 2. ')
+  expect(rows.find((m: { id: string }) => m.id === original).continuationCount).toBe(2)
+  expect(rows.find((m: { id: string }) => m.id === continued).content).toBe('Teil 0. Teil 1. Teil 2. Teil 3. ')
+  expect(rows.find((m: { id: string }) => m.id === continued).continuationCount).toBe(3)
   await page.getByRole('button', { name: 'Vorherige Antwortvariante' }).click()
   await expect.poll(async () => (await (await request.get(`/api/v1/conversations/${c.id}`)).json()).activeLeafMessageId).toBe(original)
   await page.reload()

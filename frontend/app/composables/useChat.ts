@@ -58,6 +58,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     void stream.start({ generationId: reply.generationId, conversationId: input.conversationId, inputMessageId: input.id, modelId, messages: history, attempt, input: { ...input }, assistantMessageId: reply.id, conversation: { ...conversations.records.value[input.conversationId]! } }, {
       delta: text => { reply.content += text },
       replace: text => { reply.content = text },
+      continuation: count => { reply.continuationCount = count },
       status: next => {
         reply.status = next
         if (next === 'failed' && transport.backend && !reply.content) drafts.records.value[input.conversationId] = input.content
@@ -81,6 +82,8 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     reply.content = ''
     void stream.start({ generationId: reply.generationId, conversationId: conversation.id, inputMessageId: input.id, assistantMessageId: reply.id, input: { ...input }, conversation: { ...conversation }, modelId: reply.modelId ?? '', messages: [], attempt: 1, resume: true }, {
       delta: text => { reply.content += text }, replace: text => { reply.content = text }, status: next => { reply.status = next },
+      continuation: count => { reply.continuationCount = count },
+      failure: (code, message) => { reply.errorCode = code; reply.errorMessage = message },
     }).finally(() => { generatingConversationId.value = null })
   }
 
@@ -171,6 +174,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     void stream.start({ generationId: reply.generationId ?? id(), conversationId: reply.conversationId, inputMessageId: source.parentMessageId!, assistantMessageId: reply.id, modelId, messages: history, attempt: 1, operation: 'continue', continuationCount, ...(transport.backend ? { sourceAssistantMessageId: source.id, input: { ...messages.value[source.parentMessageId!]! }, conversation: { ...conversations.records.value[source.conversationId]! } } : {}) }, {
       delta: text => { reply.content += text },
       replace: text => { reply.content = text },
+      continuation: count => { reply.continuationCount = count },
       status: next => { reply.status = next },
       failure: (code, message) => { reply.errorCode = code; reply.errorMessage = message },
     }).finally(() => { generatingConversationId.value = null })

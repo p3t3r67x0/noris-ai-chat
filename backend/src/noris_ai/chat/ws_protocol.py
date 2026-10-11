@@ -86,6 +86,7 @@ class GenerationStartedEvent(ServerEnvelope):
     messageId: UUID
     modelId: str
     seq: int
+    continuationCount: int = Field(default=0, ge=0, le=20)
 
 
 class GenerationDeltaEvent(ServerEnvelope):
@@ -95,6 +96,7 @@ class GenerationDeltaEvent(ServerEnvelope):
     messageId: UUID
     seq: int = Field(ge=1)
     delta: str
+    continuationCount: int = Field(default=0, ge=0, le=20)
 
 
 class GenerationTerminalEvent(ServerEnvelope):
@@ -105,6 +107,7 @@ class GenerationTerminalEvent(ServerEnvelope):
     messageId: UUID
     seq: int = Field(ge=1)
     content: str
+    continuationCount: int = Field(default=0, ge=0, le=20)
 
 
 class GenerationCompletedEvent(GenerationTerminalEvent):
@@ -114,6 +117,8 @@ class GenerationCompletedEvent(GenerationTerminalEvent):
 class GenerationIncompleteEvent(GenerationTerminalEvent):
     type: Literal["chat.generation.incomplete"] = "chat.generation.incomplete"
     reason: Literal["output_limit"] = "output_limit"
+    code: str | None = None
+    message: str | None = None
 
 
 class GenerationFailedEvent(GenerationTerminalEvent):
@@ -156,6 +161,9 @@ class ResumeSnapshotEvent(ServerEnvelope):
     status: GenerationStatus
     content: str
     lastSequence: int
+    continuationCount: int = Field(default=0, ge=0, le=20)
+    code: str | None = None
+    message: str | None = None
 
 
 class ErrorEvent(ServerEnvelope):

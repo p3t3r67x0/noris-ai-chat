@@ -35,6 +35,7 @@ export type Status1 = ("pending" | "streaming" | "completed" | "incomplete" | "c
 export type Updatedat = string
 export type Type1 = "chat.message.created"
 export type Version1 = 1
+export type Continuationcount1 = number
 export type Conversationid3 = string
 export type Generationid1 = string
 export type Messageid1 = string
@@ -42,6 +43,7 @@ export type Modelid1 = string
 export type Seq = number
 export type Type2 = "chat.generation.started"
 export type Version2 = 1
+export type Continuationcount2 = number
 export type Conversationid4 = string
 export type Delta = string
 export type Generationid2 = string
@@ -50,30 +52,36 @@ export type Seq1 = number
 export type Type3 = "chat.generation.delta"
 export type Version3 = 1
 export type Content1 = string
+export type Continuationcount3 = number
 export type Conversationid5 = string
 export type Generationid3 = string
 export type Messageid3 = string
 export type Seq2 = number
 export type Type4 = "chat.generation.completed"
 export type Version4 = 1
+export type Code = (string | null)
 export type Content2 = string
+export type Continuationcount4 = number
 export type Conversationid6 = string
 export type Generationid4 = string
+export type Message = (string | null)
 export type Messageid4 = string
 export type Reason = "output_limit"
 export type Seq3 = number
 export type Type5 = "chat.generation.incomplete"
 export type Version5 = 1
-export type Code = string
+export type Code1 = string
 export type Content3 = string
+export type Continuationcount5 = number
 export type Conversationid7 = string
 export type Generationid5 = string
-export type Message = string
+export type Message1 = string
 export type Messageid5 = string
 export type Seq4 = number
 export type Type6 = "chat.generation.failed"
 export type Version6 = 1
 export type Content4 = string
+export type Continuationcount6 = number
 export type Conversationid8 = string
 export type Generationid6 = string
 export type Messageid6 = string
@@ -81,6 +89,7 @@ export type Seq5 = number
 export type Type7 = "chat.generation.cancelled"
 export type Version7 = 1
 export type Content5 = string
+export type Continuationcount7 = number
 export type Conversationid9 = string
 export type Generationid7 = string
 export type Messageid7 = string
@@ -107,16 +116,19 @@ export type Generationid8 = string
 export type Lastreceivedseq = number
 export type Type11 = "chat.resume.accepted"
 export type Version12 = 1
+export type Code2 = (string | null)
 export type Content6 = string
+export type Continuationcount8 = number
 export type Conversationid11 = string
 export type Generationid9 = string
 export type Lastsequence = number
+export type Message2 = (string | null)
 export type Messageid8 = string
 export type Status2 = ("queued" | "running" | "completed" | "incomplete" | "cancelled" | "failed" | "interrupted")
 export type Type12 = "chat.resume.snapshot"
 export type Version13 = 1
-export type Code1 = string
-export type Message1 = string
+export type Code3 = string
+export type Message3 = string
 export type Requestid = (string | null)
 export type Type13 = "chat.error"
 export type Version14 = 1
@@ -173,6 +185,7 @@ export interface TextReference {
   text: Text
 }
 export interface GenerationStartedEvent {
+  continuationCount: Continuationcount1
   conversationId: Conversationid3
   generationId: Generationid1
   messageId: Messageid1
@@ -182,6 +195,7 @@ export interface GenerationStartedEvent {
   version: Version2
 }
 export interface GenerationDeltaEvent {
+  continuationCount: Continuationcount2
   conversationId: Conversationid4
   delta: Delta
   generationId: Generationid2
@@ -192,6 +206,7 @@ export interface GenerationDeltaEvent {
 }
 export interface GenerationCompletedEvent {
   content: Content1
+  continuationCount: Continuationcount3
   conversationId: Conversationid5
   generationId: Generationid3
   messageId: Messageid3
@@ -200,9 +215,12 @@ export interface GenerationCompletedEvent {
   version: Version4
 }
 export interface GenerationIncompleteEvent {
+  code: Code
   content: Content2
+  continuationCount: Continuationcount4
   conversationId: Conversationid6
   generationId: Generationid4
+  message: Message
   messageId: Messageid4
   reason: Reason
   seq: Seq3
@@ -210,11 +228,12 @@ export interface GenerationIncompleteEvent {
   version: Version5
 }
 export interface GenerationFailedEvent {
-  code: Code
+  code: Code1
   content: Content3
+  continuationCount: Continuationcount5
   conversationId: Conversationid7
   generationId: Generationid5
-  message: Message
+  message: Message1
   messageId: Messageid5
   seq: Seq4
   type: Type6
@@ -222,6 +241,7 @@ export interface GenerationFailedEvent {
 }
 export interface GenerationCancelledEvent {
   content: Content4
+  continuationCount: Continuationcount6
   conversationId: Conversationid8
   generationId: Generationid6
   messageId: Messageid6
@@ -231,6 +251,7 @@ export interface GenerationCancelledEvent {
 }
 export interface GenerationInterruptedEvent {
   content: Content5
+  continuationCount: Continuationcount7
   conversationId: Conversationid9
   generationId: Generationid7
   messageId: Messageid7
@@ -268,18 +289,21 @@ export interface ResumeAcceptedEvent {
   version: Version12
 }
 export interface ResumeSnapshotEvent {
+  code: Code2
   content: Content6
+  continuationCount: Continuationcount8
   conversationId: Conversationid11
   generationId: Generationid9
   lastSequence: Lastsequence
+  message: Message2
   messageId: Messageid8
   status: Status2
   type: Type12
   version: Version13
 }
 export interface ErrorEvent {
-  code: Code1
-  message: Message1
+  code: Code3
+  message: Message3
   requestId: Requestid
   type: Type13
   version: Version14

@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from noris_ai.chat.attachments import AttachmentService
+from noris_ai.chat.generation import GenerationManager
 from noris_ai.chat.models import ChatAttachment
 from noris_ai.chat.repository import ModelDatabase
 from noris_ai.core.config import Settings
@@ -64,7 +65,13 @@ def complete(client: TestClient, payload: dict[str, object], terminal: str = "co
             event = socket.receive_json()
             assert event["type"] != "chat.generation.failed", event
             assert event["type"] != "chat.error", event
-            if event["type"] == "chat.generation." + terminal:
+            if event["type"] in {
+                "chat.generation.completed",
+                "chat.generation.incomplete",
+                "chat.generation.cancelled",
+                "chat.generation.interrupted",
+            }:
+                assert event["type"] == "chat.generation." + terminal, event
                 break
 
 
@@ -145,6 +152,8 @@ def test_large_pdf_storage_retrieval_restart_followup_and_cleanup(
 def test_pdf_context_survives_regeneration_and_continuation(
     client: TestClient, simulator: Simulator, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    manager = cast(GenerationManager, cast(FastAPI, client.app).state.chat_generations)
+    manager.config = manager.config.model_copy(update={"chat_auto_continue_max": 0})
     normal_stream = simulator.stream
 
     async def limited_stream(
@@ -188,6 +197,36 @@ def test_pdf_context_survives_regeneration_and_continuation(
     answer = next(row for row in rows if row["id"] == continued["assistantMessageId"])
     assert answer["content"].startswith("Teilantwort mit Quellenangabe [large.pdf, Seite 29]. ")
     assert answer["content"].endswith("Fortsetzung.")
+
+
+def test_automatic_continuations_reuse_selected_pdf_context_on_one_node(
+    client: TestClient, simulator: Simulator
+) -> None:
+    payload = generate(client, "/auto Welche Schlussklausel gilt?")
+    attachment = upload(
+        client, payload["conversationId"], large_pdf(), "large.pdf", "application/pdf"
+    ).json()
+    payload["attachmentIds"] = [attachment["id"]]
+    complete(client, payload)
+
+    assert len(simulator.calls) == 3
+    inputs = [
+        next(message for message in call if message.role == "user") for call in simulator.calls
+    ]
+    assert all(message.content == inputs[0].content for message in inputs)
+    assert inputs[0].content.count("PDF-Inhalte (untrusted input)") == 1
+    assert '"page": 29' in inputs[0].content and "98765" in inputs[0].content
+    assert "Anfangsklausel" not in inputs[0].content
+    assert [call[-2].content for call in simulator.calls[1:]] == ["Teil 0. ", "Teil 0. Teil 1. "]
+
+    rows = client.get(
+        f"/api/v1/conversations/{payload['conversationId']}/messages", auth=AUTH
+    ).json()["messages"]
+    assert len(rows) == 2
+    assert rows[0]["content"] == payload["content"]
+    assert rows[1]["id"] == payload["assistantMessageId"]
+    assert rows[1]["status"] == "completed" and rows[1]["continuationCount"] == 2
+    assert rows[1]["content"] == "Teil 0. Teil 1. Teil 2. "
 
 
 @pytest.mark.parametrize(

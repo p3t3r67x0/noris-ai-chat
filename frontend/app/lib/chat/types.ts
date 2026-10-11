@@ -40,14 +40,14 @@ export interface ChatRequest {
   resume?: boolean
   sourceAssistantMessageId?: string
 }
-export type StreamEvent = { seq: number } & (
+export type StreamEvent = { seq: number, continuationCount?: number } & (
   | { type: 'response.started' }
   | { type: 'response.output_text.delta', delta: string }
-  | { type: 'response.completed' }
-  | { type: 'response.incomplete', reason: 'output_limit' }
-  | { type: 'response.cancelled' }
-  | { type: 'response.failed', code: string, message: string }
-  | { type: 'response.snapshot', content: string, status: Exclude<GenerationStatus, 'idle'> }
+  | { type: 'response.completed', content?: string }
+  | { type: 'response.incomplete', reason: 'output_limit', content?: string, code?: string | null, message?: string | null }
+  | { type: 'response.cancelled', content?: string }
+  | { type: 'response.failed', code: string, message: string, content?: string }
+  | { type: 'response.snapshot', content: string, status: Exclude<GenerationStatus, 'idle'>, code?: string | null, message?: string | null }
 )
 export interface ChatTransport {
   stream: (request: ChatRequest, signal: AbortSignal) => AsyncIterable<StreamEvent>

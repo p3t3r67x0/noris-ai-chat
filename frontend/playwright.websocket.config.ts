@@ -10,7 +10,7 @@ export default defineConfig({
   use: { ...llm.use, ...(process.env.NORIS_E2E_COMPOSE_URL ? { baseURL: process.env.NORIS_E2E_COMPOSE_URL } : {}), trace: 'retain-on-failure' },
   projects: [{ name: 'desktop', use: { ...devices['Desktop Chrome'] } }, { name: 'mobile', use: { ...devices['Pixel 7'] } }],
   webServer: process.env.NORIS_E2E_COMPOSE_URL ? [] : servers.map(server => {
-    if (server.command.includes('noris_ai.main')) return { ...server, env: { ...server.env, NORIS_DATABASE_URL: process.env.NORIS_DATABASE_URL!, NORIS_MIGRATION_DATABASE_URL: process.env.NORIS_DATABASE_URL!, NORIS_CHAT_WS_ALLOWED_HOSTS: JSON.stringify([`127.0.0.1:${backendPort}`]) } }
+    if (server.command.includes('noris_ai.main')) return { ...server, env: { ...server.env, NORIS_DATABASE_URL: process.env.NORIS_DATABASE_URL!, NORIS_MIGRATION_DATABASE_URL: process.env.NORIS_DATABASE_URL!, NORIS_CHAT_WS_ALLOWED_HOSTS: JSON.stringify([`127.0.0.1:${backendPort}`]), NORIS_CHAT_AUTO_CONTINUE_MAX: '2' } }
     if (server.command.includes('serve-browser-fixture.mjs')) return { ...server, env: { ...server.env, NUXT_PUBLIC_CHAT_TRANSPORT: 'websocket', NUXT_PUBLIC_CHAT_WEBSOCKET_URL: `ws://127.0.0.1:${backendPort}/api/v1/chat/ws` } }
     return server
   }),

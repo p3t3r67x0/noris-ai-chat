@@ -118,7 +118,7 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
               if (!Number.isSafeInteger(event.lastSequence) || event.lastSequence < received || typeof event.content !== 'string') throw new TransportError('INVALID_RESPONSE')
               received = event.lastSequence
               const status = event.status === 'queued' ? 'submitting' : event.status === 'running' ? 'streaming' : event.status === 'interrupted' ? 'failed' : event.status
-              yield { type: 'response.snapshot', seq: received, content: event.content, status }
+              yield { type: 'response.snapshot', seq: received, content: event.content, status, continuationCount: event.continuationCount, code: event.code, message: event.message }
               if (status !== 'submitting' && status !== 'streaming') return
               continue
             }
@@ -133,14 +133,14 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
               case 'chat.generation.delta':
                 if (typeof event.delta !== 'string') throw new TransportError('INVALID_RESPONSE')
                 output = { type: 'response.output_text.delta', seq: received, delta: event.delta }; break
-              case 'chat.generation.completed': output = { type: 'response.completed', seq: received }; break
-              case 'chat.generation.incomplete': output = { type: 'response.incomplete', seq: received, reason: 'output_limit' }; break
-              case 'chat.generation.cancelled': output = { type: 'response.cancelled', seq: received }; break
-              case 'chat.generation.failed': output = { type: 'response.failed', seq: received, code: event.code, message: event.message }; break
-              case 'chat.generation.interrupted': output = { type: 'response.failed', seq: received, code: 'INTERRUPTED', message: 'Die Generierung wurde unterbrochen. Der gespeicherte Antwortstand bleibt erhalten.' }; break
+              case 'chat.generation.completed': output = { type: 'response.completed', seq: received, content: event.content }; break
+              case 'chat.generation.incomplete': output = { type: 'response.incomplete', seq: received, reason: 'output_limit', content: event.content, code: event.code, message: event.message }; break
+              case 'chat.generation.cancelled': output = { type: 'response.cancelled', seq: received, content: event.content }; break
+              case 'chat.generation.failed': output = { type: 'response.failed', seq: received, code: event.code, message: event.message, content: event.content }; break
+              case 'chat.generation.interrupted': output = { type: 'response.failed', seq: received, code: 'INTERRUPTED', message: 'Die Generierung wurde unterbrochen. Der gespeicherte Antwortstand bleibt erhalten.', content: event.content }; break
               default: throw new TransportError('INVALID_RESPONSE')
             }
-            yield output
+            yield { ...output, continuationCount: event.continuationCount }
             if (output.type === 'response.completed' || output.type === 'response.incomplete' || output.type === 'response.cancelled' || output.type === 'response.failed') return
           }
         }
