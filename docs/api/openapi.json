@@ -82,6 +82,11 @@
             "title": "Maxfiles",
             "type": "integer"
           },
+          "maxReferenceChars": {
+            "default": 32000,
+            "title": "Maxreferencechars",
+            "type": "integer"
+          },
           "mimeTypes": {
             "items": {
               "type": "string"
@@ -192,6 +197,16 @@
             ],
             "title": "Status",
             "type": "string"
+          },
+          "textReference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TextReference"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -2169,6 +2184,68 @@
         "title": "StartedEvent",
         "type": "object"
       },
+      "TextReference": {
+        "additionalProperties": false,
+        "properties": {
+          "sourceConversationId": {
+            "format": "uuid",
+            "title": "Sourceconversationid",
+            "type": "string"
+          },
+          "sourceMessageId": {
+            "format": "uuid",
+            "title": "Sourcemessageid",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 32000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sourceMessageId",
+          "sourceConversationId",
+          "text"
+        ],
+        "title": "TextReference",
+        "type": "object"
+      },
+      "TextReferenceCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "conversationId": {
+            "format": "uuid",
+            "title": "Conversationid",
+            "type": "string"
+          },
+          "sourceConversationId": {
+            "format": "uuid",
+            "title": "Sourceconversationid",
+            "type": "string"
+          },
+          "sourceMessageId": {
+            "format": "uuid",
+            "title": "Sourcemessageid",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 32000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sourceMessageId",
+          "sourceConversationId",
+          "text",
+          "conversationId"
+        ],
+        "title": "TextReferenceCreate",
+        "type": "object"
+      },
       "TicketResponse": {
         "additionalProperties": false,
         "properties": {
@@ -2725,6 +2802,132 @@
           }
         ],
         "summary": "Limits",
+        "tags": [
+          "Chat attachments"
+        ]
+      }
+    },
+    "/api/v1/chat/attachments/references": {
+      "post": {
+        "operationId": "createChatTextReference",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TextReferenceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBasic": []
+          }
+        ],
+        "summary": "Create Reference",
         "tags": [
           "Chat attachments"
         ]

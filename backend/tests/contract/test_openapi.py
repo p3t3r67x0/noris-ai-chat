@@ -28,6 +28,7 @@ def test_foundation_and_llm_endpoints_are_exposed() -> None:
         "/api/v1/chat/ws-ticket",
         "/api/v1/chat/preferences",
         "/api/v1/chat/attachments",
+        "/api/v1/chat/attachments/references",
         "/api/v1/chat/attachments/limits",
         "/api/v1/chat/attachments/{attachment_id}",
         "/api/v1/chat/attachments/{attachment_id}/content",

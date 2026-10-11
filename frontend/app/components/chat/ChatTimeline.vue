@@ -4,9 +4,10 @@ import type { ChatMessage } from '../../lib/chat/types'
 import { computed, nextTick, ref, toRef, watch } from 'vue'
 import { useChatScroll } from '../../composables/useChatScroll'
 import ChatMessageView from './ChatMessage.vue'
+import ChatTextSelection from './ChatTextSelection.vue'
 
 const props = defineProps<{ messages: readonly ChatMessage[], conversationId: string | null, busy: boolean, variants: (id: string) => readonly ChatMessage[], variantSummary?: (id: string) => ApiSchemas['VariantSummary'] | undefined, persistentScroll?: boolean, hasOlder?: boolean | undefined, olderLoading?: boolean | undefined, loadOlder?: (() => Promise<void>) | undefined, canContinue?: (id: string) => boolean }>()
-const emit = defineEmits<{ edit: [id: string], regenerate: [id: string], continue: [id: string], selectVariant: [id: string] }>()
+const emit = defineEmits<{ edit: [id: string], regenerate: [id: string], continue: [id: string], selectVariant: [id: string], reference: [value: ApiSchemas['TextReference']] }>()
 const scroller = ref<HTMLElement | null>(null)
 const content = ref<HTMLElement | null>(null)
 const turns = computed(() => {
@@ -34,6 +35,7 @@ watch(() => props.messages.at(-1)?.content, scroll.contentChanged, { flush: 'pos
 
 <template>
   <div class="chat-history">
+    <ChatTextSelection :scroller="scroller" :conversation-id="conversationId" @reference="emit('reference', $event)" />
     <div ref="scroller" class="chat-scroll" role="region" aria-label="Nachrichtenverlauf" tabindex="0" @scroll.passive="scroll.onScroll" @wheel.passive="scroll.onWheel" @keydown="scroll.onKeydown" @touchstart.passive="scroll.onTouchstart" @touchmove.passive="scroll.onTouchmove">
       <div ref="content" class="chat-timeline">
         <UButton v-if="hasOlder" color="neutral" variant="ghost" label="Ältere Nachrichten laden" :loading="olderLoading" :disabled="busy" @click="older" />

@@ -15,6 +15,7 @@ import ChatRail from './ChatRail.vue'
 import { workspaceKey } from '../../composables/useWorkspace'
 import { useAppLocale } from '../../composables/useAppLocale'
 import { useChatAttachments } from '../../composables/useChatAttachments'
+import type { ApiSchemas } from '../../types/generated/api'
 
 const { transport, mode } = useChatTransport()
 const chat = useChat(transport)
@@ -72,6 +73,10 @@ function send(text: string): void {
   }
 }
 function stop(): void { stream.stop(); composer.value?.focus() }
+function addReference(value: ApiSchemas['TextReference']): void {
+  void attachments.addReference(value)
+  composer.value?.focus()
+}
 function newChat(): void { chat.newChat(); if (inSettings.value) void router.push('/'); else composer.value?.focus() }
 async function continueResponse(id: string): Promise<void> {
   if (modelsLoading.value) await refreshModels()
@@ -139,7 +144,7 @@ function saveEdit(): void {
           <UButton color="neutral" variant="link" label="Chat erneut laden" @click="chat.pagination.retryHistory" />
         </div>
         <EmptyChatState v-if="chat.visible.value.length === 0 && !chat.pagination?.historyLoading.value && !chat.pagination?.historyError.value" />
-        <ChatTimeline v-show="chat.visible.value.length > 0" :messages="chat.visible.value" :conversation-id="conversations.activeId.value" :busy="stream.busy.value || Boolean(chat.pagination?.historyLoading.value)" :variants="chat.variants" :variant-summary="chat.variantSummary" :persistent-scroll="Boolean(chat.pagination)" :has-older="chat.pagination?.hasOlder.value" :older-loading="chat.pagination?.olderLoading.value" :load-older="chat.pagination?.loadOlder" :can-continue="chat.canContinue" @continue="continueResponse" @edit="beginEdit" @regenerate="regenerateResponse" @select-variant="chat.selectVariant" />
+        <ChatTimeline v-show="chat.visible.value.length > 0" :messages="chat.visible.value" :conversation-id="conversations.activeId.value" :busy="stream.busy.value || Boolean(chat.pagination?.historyLoading.value)" :variants="chat.variants" :variant-summary="chat.variantSummary" :persistent-scroll="Boolean(chat.pagination)" :has-older="chat.pagination?.hasOlder.value" :older-loading="chat.pagination?.olderLoading.value" :load-older="chat.pagination?.loadOlder" :can-continue="chat.canContinue" @reference="addReference" @continue="continueResponse" @edit="beginEdit" @regenerate="regenerateResponse" @select-variant="chat.selectVariant" />
         <div class="composer-dock">
           <div v-if="modelError || modelNotice" role="status" aria-live="polite" class="px-4 pb-2 text-sm text-muted">
             <p>{{ modelError || modelNotice }}</p>

@@ -14,6 +14,7 @@ from noris_ai.chat.schemas import (
     AttachmentLimitsResponse,
     AttachmentListResponse,
     AttachmentResponse,
+    TextReferenceCreate,
 )
 from noris_ai.core.config import Settings
 
@@ -37,6 +38,7 @@ async def limits(request: Request, access: ChatAccess) -> AttachmentLimitsRespon
         maxFiles=config.chat_attachment_max_files,
         ownerQuotaBytes=config.chat_attachment_owner_quota_bytes,
         mimeTypes=list(MIME_EXTENSIONS),
+        maxReferenceChars=config.chat_attachment_max_text_chars,
     )
 
 
@@ -81,6 +83,22 @@ async def list_attachments(
 ) -> AttachmentListResponse:
     _, owner = access
     return AttachmentListResponse(attachments=await service(request).list(owner, conversationId))
+
+
+@router.post(
+    "/references",
+    operation_id="createChatTextReference",
+    response_model=AttachmentResponse,
+    status_code=201,
+    responses=ERROR_RESPONSES,
+)
+async def create_reference(
+    request: Request,
+    access: ChatAccess,
+    value: TextReferenceCreate,
+) -> AttachmentResponse:
+    _, owner = access
+    return await service(request).reference(owner, value)
 
 
 @router.delete(
@@ -132,6 +150,12 @@ async def download(
             content=base64.b64decode(image.data_url.split(",", 1)[1], validate=True),
             media_type="image/jpeg",
             headers=headers | {"Content-Disposition": "inline"},
+        )
+    if attachment.source_message_id is not None:
+        return Response(
+            content=(attachment.extracted_text or "").encode("utf-8"),
+            media_type="application/octet-stream",
+            headers=headers | {"Content-Disposition": 'attachment; filename="selected-text.txt"'},
         )
     path = attachments.path(attachment.storage_key)
     if path.is_symlink() or not path.is_file():

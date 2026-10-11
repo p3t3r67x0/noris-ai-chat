@@ -15,9 +15,9 @@ from uuid import UUID, uuid4
 from sqlalchemy import func, select
 
 from noris_ai.chat.errors import ChatError
-from noris_ai.chat.models import ChatAttachment, ChatConversation
+from noris_ai.chat.models import ChatAttachment, ChatConversation, ChatMessage
 from noris_ai.chat.repository import ModelDatabase
-from noris_ai.chat.schemas import AttachmentResponse
+from noris_ai.chat.schemas import AttachmentResponse, TextReferenceCreate
 from noris_ai.chat.service import attachment_response
 from noris_ai.core.config import Settings
 from noris_ai.llm.vision import VisionImage
@@ -230,6 +230,75 @@ class AttachmentService:
                 .limit(200)
             )
             return [attachment_response(a) for a in rows]
+
+    async def reference(self, owner: UUID, value: TextReferenceCreate) -> AttachmentResponse:
+        # Browser-selected rendered Markdown is user content, not an assertion of
+        # the source's authority. Preserve its exact whitespace, without parsing it.
+        try:
+            data = value.text.encode("utf-8")
+        except UnicodeEncodeError:
+            raise ChatError("ATTACHMENT_INVALID", 422) from None
+        if not value.text.strip() or len(value.text) > self.config.chat_attachment_max_text_chars:
+            raise ChatError("ATTACHMENT_INVALID", 422)
+        if len(data) > self.config.chat_attachment_max_file_bytes:
+            raise ChatError("ATTACHMENT_SIZE", 413)
+        async with self.database() as session, session.begin():
+            await session.execute(select(func.pg_advisory_xact_lock(owner.int % (2**63))))
+            target = await session.scalar(
+                select(ChatConversation)
+                .where(
+                    ChatConversation.id == value.conversationId,
+                    ChatConversation.owner_id == owner,
+                    ChatConversation.deleted_at.is_(None),
+                    ChatConversation.archived_at.is_(None),
+                )
+                .with_for_update()
+            )
+            source = await session.scalar(
+                select(ChatMessage)
+                .join(ChatConversation, ChatMessage.conversation_id == ChatConversation.id)
+                .where(
+                    ChatMessage.id == value.sourceMessageId,
+                    ChatMessage.conversation_id == value.sourceConversationId,
+                    ChatConversation.owner_id == owner,
+                    ChatConversation.deleted_at.is_(None),
+                )
+            )
+            if target is None or source is None:
+                raise ChatError("NOT_FOUND", 404)
+            active = (
+                await session.scalars(
+                    select(ChatAttachment).where(
+                        ChatAttachment.owner_id == owner,
+                        ChatAttachment.status != "deleted",
+                    )
+                )
+            ).all()
+            if (
+                len(active) >= 200
+                or sum(a.conversation_id == target.id and a.message_id is None for a in active)
+                >= self.config.chat_attachment_max_files
+                or sum(a.size_bytes for a in active) + len(data)
+                > self.config.chat_attachment_owner_quota_bytes
+            ):
+                raise ChatError("ATTACHMENT_QUOTA", 413)
+            attachment = ChatAttachment(
+                id=uuid4(),
+                owner_id=owner,
+                conversation_id=target.id,
+                original_filename="Markierter Text",
+                storage_key=uuid4().hex,
+                mime_type="text/plain",
+                size_bytes=len(data),
+                sha256=hashlib.sha256(data).hexdigest(),
+                status="ready",
+                extracted_text=value.text,
+                source_message_id=source.id,
+                source_conversation_id=source.conversation_id,
+            )
+            session.add(attachment)
+            await session.flush()
+            return attachment_response(attachment)
 
     async def get(self, owner: UUID, attachment_id: UUID) -> ChatAttachment:
         async with self.database() as session:

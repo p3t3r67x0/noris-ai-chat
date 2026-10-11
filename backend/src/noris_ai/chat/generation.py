@@ -44,7 +44,19 @@ logger = logging.getLogger(__name__)
 
 def attachment_context(message: ChatMessage) -> str:
     files = [
-        {"filename": a.original_filename, "text": a.extracted_text}
+        {
+            "filename": a.original_filename,
+            "text": a.extracted_text,
+            **(
+                {
+                    "kind": "text_reference",
+                    "sourceMessageId": str(a.source_message_id),
+                    "sourceConversationId": str(a.source_conversation_id),
+                }
+                if a.source_message_id is not None
+                else {}
+            ),
+        }
         for a in message.attachments
         if a.status == "ready" and a.extracted_text
     ]
@@ -127,7 +139,11 @@ class GenerationManager:
             ):
                 raise ChatError("ATTACHMENT_INCOMPATIBLE", 422)
             generation, path, created = await self.repository.begin_generation(
-                self.config.chat_owner_id, command, allow_images=supports_images(model)
+                self.config.chat_owner_id,
+                command,
+                allow_images=supports_images(model),
+                max_attachments=self.config.chat_attachment_max_files,
+                attachment_quota_bytes=self.config.chat_attachment_owner_quota_bytes,
             )
             if created:
                 live = LiveGeneration(command, peers={peer})

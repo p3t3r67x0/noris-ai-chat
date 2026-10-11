@@ -57,25 +57,30 @@ defineExpose({ focus })
       @input="autosize.resize"
     >
       <template v-if="hasAttachments" #header>
-        <ul class="attachment-list" aria-label="Dateianhänge">
+        <ul class="attachment-list" aria-label="Anhänge und Textreferenzen">
           <li v-for="file in files" :key="file.key" class="attachment-preview" :data-upload-status="file.status">
             <UIcon :name="file.mime.startsWith('image/') ? 'i-lucide-image' : 'i-lucide-file-text'" class="size-6 shrink-0" aria-hidden="true" />
             <div class="attachment-copy">
               <p class="attachment-filename" :title="file.filename">{{ file.filename }}</p>
-              <p class="attachment-detail">{{ file.mime || 'Datei' }} · {{ sizeLabel(file.size) }}</p>
+              <details v-if="file.reference || file.attachment?.textReference" class="text-reference-details">
+                <summary class="text-reference-excerpt" :title="(file.reference || file.attachment?.textReference)?.text" aria-label="Vollständigen markierten Text anzeigen">„{{ (file.reference || file.attachment?.textReference)?.text }}“</summary>
+                <p class="text-reference-full">{{ (file.reference || file.attachment?.textReference)?.text }}</p>
+              </details>
+              <p v-else class="attachment-detail">{{ file.mime || 'Datei' }} · {{ sizeLabel(file.size) }}</p>
               <p role="status" aria-live="polite" aria-atomic="true" class="attachment-detail">
                 <template v-if="file.status === 'uploading'">Wird hochgeladen …</template>
                 <template v-else-if="file.status === 'removing'">Wird entfernt …</template>
                 <template v-else-if="file.status === 'failed'">{{ file.error }}</template>
                 <template v-else-if="file.mime.startsWith('image/') && file.attachment?.modelUsable && imageSupported">Gespeichert · Für Bildanalyse bereit</template>
                 <template v-else-if="file.mime.startsWith('image/')">Gespeichert · Wähle ein Modell mit Bildeingabe</template>
+                <template v-else-if="file.attachment?.textReference"><span class="sr-only">Textreferenz übernommen</span></template>
                 <template v-else-if="file.attachment?.modelUsable">Gespeichert · Text extrahiert</template>
                 <template v-else>Gespeichert · Kein extrahierbarer Text</template>
               </p>
               <progress v-if="file.status === 'uploading'" :value="file.progress" max="100" :aria-label="`Uploadfortschritt: ${file.filename}`" class="w-full" />
             </div>
-            <UButton v-if="file.status === 'failed' && file.file" icon="i-lucide-rotate-cw" color="neutral" variant="ghost" class="touch-control" :aria-label="`${file.filename} erneut hochladen`" @click="retryFile(file.key)" />
-            <UButton icon="i-lucide-x" color="neutral" variant="ghost" class="touch-control" :disabled="file.status === 'removing'" :aria-label="`${file.filename} entfernen`" @click="removeFile(file.key)" />
+            <UButton v-if="file.status === 'failed' && (file.file || file.reference)" icon="i-lucide-rotate-cw" color="neutral" variant="ghost" class="touch-control" :aria-label="`${file.filename} erneut hochladen`" @click="retryFile(file.key)" />
+            <UButton icon="i-lucide-x" color="neutral" variant="ghost" class="touch-control" :disabled="file.status === 'removing' || (file.status === 'uploading' && !!file.reference)" :aria-label="`${file.filename} entfernen`" @click="removeFile(file.key)" />
           </li>
         </ul>
       </template>

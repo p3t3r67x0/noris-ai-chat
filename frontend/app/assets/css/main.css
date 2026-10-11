@@ -311,11 +311,20 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 .attachment-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0.25rem; list-style: none; max-height: min(10rem, 20cqh); overflow-y: auto; }
 .attachment-preview { display: flex; align-items: center; gap: 0.5rem; min-width: 0; width: min(100%, 23rem); padding: 0.5rem; border: 1px solid var(--noris-border); border-radius: 1rem; }
 .attachment-copy { flex: 1; min-width: 0; }
+.text-reference-details { min-width: 0; width: 100%; }
+.text-reference-excerpt { cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; line-height: 1.5; color: var(--noris-text-secondary); }
+.text-reference-excerpt:focus-visible { outline: 2px solid var(--noris-text-primary); outline-offset: 2px; border-radius: 0.25rem; }
+.text-reference-full { max-height: 10rem; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.8125rem; line-height: 1.5; padding-block: 0.5rem; }
+.text-selection-action { position: fixed; inset: auto; margin: 0; padding: 0; max-width: calc(100vw - 1rem); border: 1px solid var(--noris-border); border-radius: 0.75rem; background: var(--noris-composer-background); color: var(--noris-text-primary); box-shadow: 0 4px 16px #00000020; z-index: 60; }
+.text-selection-action button { display: flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 2.75rem; padding: 0.5rem 0.875rem; font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; cursor: pointer; border-radius: inherit; }
+.text-selection-action button:hover { background: var(--noris-hover-background); }
+.text-selection-action button:focus-visible { outline: 2px solid var(--noris-text-primary); outline-offset: -3px; }
 .attachment-filename { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.875rem; }
 .attachment-detail { font-size: 0.75rem; line-height: 1.4; color: var(--noris-text-secondary); overflow-wrap: anywhere; }
 .attachment-preview[data-upload-status="failed"] { border-color: var(--ui-error); }
 .message-attachments { max-width: 100%; list-style: none; padding: 0; margin-top: 0.5rem; }
 .message-attachment { display: flex; align-items: center; gap: 0.5rem; max-width: 100%; min-height: 2.75rem; padding: 0.5rem 0.75rem; border: 1px solid var(--noris-border); border-radius: 1rem; text-decoration: none; }
+details.message-attachment { display: block; }
 .message-attachments li + li { margin-top: 0.5rem; }
 .message-attachment-image { display: block; width: 16rem; height: 16rem; max-width: 100%; object-fit: contain; margin-bottom: 0.5rem; border: 1px solid var(--noris-border); border-radius: 1rem; }
 .message-image-error { display: flex; align-items: center; flex-wrap: wrap; max-width: 100%; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--noris-text-secondary); }

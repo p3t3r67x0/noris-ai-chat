@@ -1,5 +1,6 @@
 import type { ApiSchemas } from '../../app/types/generated/api'
 import { expect, test } from '@playwright/test'
+import { selectText } from '../e2e/text-selection-helpers'
 
 test.beforeEach(async ({ request }) => {
   let cursor: string | null = null
@@ -12,6 +13,56 @@ test.beforeEach(async ({ request }) => {
   } while (cursor)
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
+})
+
+test('text selection preserves drafts and references through PostgreSQL reload, send, regeneration and editing', async ({ page, request }) => {
+  await page.goto('/')
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+  const composer = page.getByRole('textbox', { name: 'Nachricht', exact: true })
+  await composer.fill('Eine Quelle mit mehreren Zeilen\nund weiterem Kontext')
+  await composer.press('Enter')
+  await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
+  await composer.fill('Kannst du das genauer erklären?')
+  const text = await selectText(page, '.assistant-content [data-selectable-message] p')
+  await page.getByRole('button', { name: 'noris AI fragen', exact: true }).click()
+  await expect(page.locator('.attachment-preview')).toHaveAttribute('data-upload-status', 'uploaded')
+  await expect(composer).toHaveValue('Kannst du das genauer erklären?')
+  await expect(composer).toBeFocused()
+  await selectText(page, '.user-bubble')
+  await page.getByRole('button', { name: 'noris AI fragen', exact: true }).click()
+  await expect(page.locator('.attachment-preview')).toHaveCount(2)
+  await expect(page.locator('.attachment-preview').last()).toHaveAttribute('data-upload-status', 'uploaded')
+  await page.locator('.attachment-preview').last().getByRole('button', { name: 'Markierter Text entfernen' }).click()
+  await expect(page.locator('.attachment-preview')).toHaveCount(1)
+  const data: ApiSchemas['ConversationListResponse'] = await (await request.get('/api/v1/conversations')).json()
+  const conversation = data.conversations[0]!
+  await expect.poll(async () => {
+    const drafts: ApiSchemas['DraftListResponse'] = await (await request.get('/api/v1/chat/drafts')).json()
+    return drafts.drafts.find(draft => draft.key === conversation.id)?.content
+  }).toBe('Kannst du das genauer erklären?')
+  await page.reload()
+  await expect(composer).toHaveValue('Kannst du das genauer erklären?')
+  await expect(page.locator('.attachment-preview .text-reference-full')).toHaveText(text)
+  await composer.press('Enter')
+  await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
+  const user = page.locator('.message-user').last()
+  const inputId = await user.getAttribute('data-message-id')
+  await expect(user.locator('.text-reference-full')).toHaveText(text)
+  const messages: ApiSchemas['MessageListResponse'] = await (await request.get(`/api/v1/conversations/${conversation.id}/messages`)).json()
+  expect(messages.messages.find(message => message.id === inputId)?.attachments?.[0]?.textReference?.text).toBe(text)
+  await page.reload()
+  await expect(user.locator('.text-reference-full')).toHaveText(text)
+  await page.locator('.message-assistant').last().getByRole('button', { name: 'Antwort erneut generieren', exact: true }).click()
+  await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
+  await expect(user.locator('.text-reference-full')).toHaveText(text)
+  await user.getByRole('button', { name: 'Nachricht bearbeiten', exact: true }).click()
+  await page.getByRole('textbox', { name: 'Nachricht bearbeiten', exact: true }).fill('Bearbeitete Frage zur Referenz')
+  await page.getByRole('button', { name: 'Speichern und senden', exact: true }).click()
+  await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
+  await expect(user.locator('.text-reference-full')).toHaveText(text)
+  expect(await user.getAttribute('data-message-id')).not.toBe(inputId)
+  await page.reload()
+  await expect(user.locator('.text-reference-full')).toHaveText(text)
 })
 
 test('persists incremental streaming, drafts and generated title through reload', async ({ page, request }) => {

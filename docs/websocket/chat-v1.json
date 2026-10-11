@@ -298,6 +298,17 @@
               ],
               "title": "Status",
               "type": "string"
+            },
+            "textReference": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/TextReference"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
             }
           },
           "required": [
@@ -1207,6 +1218,34 @@
             "lastSequence"
           ],
           "title": "ResumeSnapshotEvent",
+          "type": "object"
+        },
+        "TextReference": {
+          "additionalProperties": false,
+          "properties": {
+            "sourceConversationId": {
+              "format": "uuid",
+              "title": "Sourceconversationid",
+              "type": "string"
+            },
+            "sourceMessageId": {
+              "format": "uuid",
+              "title": "Sourcemessageid",
+              "type": "string"
+            },
+            "text": {
+              "maxLength": 32000,
+              "minLength": 1,
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "sourceMessageId",
+            "sourceConversationId",
+            "text"
+          ],
+          "title": "TextReference",
           "type": "object"
         },
         "TitleUpdatedEvent": {

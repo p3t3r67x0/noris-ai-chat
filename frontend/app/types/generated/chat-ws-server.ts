@@ -15,6 +15,9 @@ export type Originalfilename = string
 export type Sha256 = string
 export type Sizebytes = number
 export type Status = ("ready" | "stored")
+export type Sourceconversationid = string
+export type Sourcemessageid = string
+export type Text = string
 export type Attachments = AttachmentResponse[]
 export type Content = string
 export type Continuationcount = number
@@ -162,6 +165,12 @@ export interface AttachmentResponse {
   sha256: Sha256
   sizeBytes: Sizebytes
   status: Status
+  textReference?: (TextReference | null)
+}
+export interface TextReference {
+  sourceConversationId: Sourceconversationid
+  sourceMessageId: Sourcemessageid
+  text: Text
 }
 export interface GenerationStartedEvent {
   conversationId: Conversationid3

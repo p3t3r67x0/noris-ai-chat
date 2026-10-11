@@ -161,7 +161,10 @@ class ChatMessage(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     attachments: Mapped[list["ChatAttachment"]] = relationship(
-        lazy="selectin", viewonly=True, foreign_keys="ChatAttachment.message_id"
+        lazy="selectin",
+        viewonly=True,
+        foreign_keys="ChatAttachment.message_id",
+        order_by="ChatAttachment.created_at, ChatAttachment.id",
     )
 
 
@@ -176,6 +179,10 @@ class ChatAttachment(Base):
         UniqueConstraint("storage_key", name="uq_chat_attachment_storage_key"),
         CheckConstraint("size_bytes > 0", name="attachment_size"),
         CheckConstraint("status IN ('ready', 'stored', 'deleted')", name="attachment_status"),
+        CheckConstraint(
+            "(source_message_id IS NULL) = (source_conversation_id IS NULL)",
+            name="attachment_reference_source",
+        ),
         Index("ix_chat_attachment_owner_created", "owner_id", "created_at"),
         Index("ix_chat_attachment_conversation_message", "conversation_id", "message_id"),
     )
@@ -193,6 +200,9 @@ class ChatAttachment(Base):
     sha256: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(Text, nullable=False)
     extracted_text: Mapped[str | None] = mapped_column(Text)
+    # Snapshot provenance intentionally survives deletion of the source conversation.
+    source_message_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    source_conversation_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

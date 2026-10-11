@@ -35,6 +35,7 @@ export class ChatBackend {
   versions = new Map<string, number>()
   preferredModelId: string | null = null
   onConversation?: (conversation: ServerConversation) => void
+  onMessage?: (message: ServerMessage) => void
   initialPage: ApiSchemas['ConversationListResponse'] | null = null
   initialPath: ApiSchemas['ActivePathResponse'] | null = null
   onMetadata?: (conversations: ServerConversation[], activeId: string | null) => void

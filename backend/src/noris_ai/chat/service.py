@@ -31,6 +31,7 @@ from noris_ai.chat.schemas import (
     MessageRole,
     MessageStatus,
     PreferencesResponse,
+    TextReference,
     TitleSource,
 )
 
@@ -76,6 +77,15 @@ def attachment_response(attachment: ChatAttachment) -> AttachmentResponse:
             and attachment.mime_type in ("image/png", "image/jpeg")
         ),
         createdAt=attachment.created_at,
+        textReference=TextReference(
+            sourceMessageId=attachment.source_message_id,
+            sourceConversationId=attachment.source_conversation_id,
+            text=attachment.extracted_text,
+        )
+        if attachment.source_message_id is not None
+        and attachment.source_conversation_id is not None
+        and attachment.extracted_text is not None
+        else None,
     )
 
 
