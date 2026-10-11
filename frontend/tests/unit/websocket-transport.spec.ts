@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createWebSocketTransport } from '../../app/lib/chat/webSocketTransport'
 import { ChatBackend } from '../../app/lib/chat/backend'
 import { useChatStream } from '../../app/composables/useChatStream'
@@ -37,6 +37,28 @@ function fixture() {
 }
 
 describe('WebSocketTransport', () => {
+  it('buys a fresh authenticated ticket for each WSS connection on an HTTPS page', async () => {
+    Socket.instances = []
+    vi.stubGlobal('location', { protocol: 'https:', host: 'chat.oklabflensburg.de' })
+    let issued = 0
+    const fetcher = vi.fn(async () => Response.json({ ticketId: `fixture-ticket-${++issued}` }))
+    const transport = createWebSocketTransport({ backend: new ChatBackend(fetcher), socket: Socket as unknown as typeof WebSocket })
+    try {
+      await transport.connect?.()
+      const first = Socket.instances.at(-1)!
+      expect(fetcher).toHaveBeenCalledWith('/api/v1/chat/ws-ticket', expect.objectContaining({ method: 'POST', credentials: 'same-origin', body: '{}' }))
+      expect(first.url).toBe('wss://chat.oklabflensburg.de/api/v1/chat/ws')
+      expect(first.protocols).toEqual(['noris-chat.v1', 'ticket.fixture-ticket-1'])
+      first.close()
+      await transport.connect?.()
+      expect(Socket.instances.at(-1)!.protocols).toEqual(['noris-chat.v1', 'ticket.fixture-ticket-2'])
+      expect(fetcher).toHaveBeenCalledTimes(2)
+    }
+    finally {
+      transport.dispose?.()
+      vi.unstubAllGlobals()
+    }
+  })
   it('streams before completion, ignores duplicates and sends references without history', async () => {
     const transport = fixture()
     const input = request()

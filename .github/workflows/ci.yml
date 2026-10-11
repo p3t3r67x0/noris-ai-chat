@@ -70,7 +70,15 @@ jobs:
           docker exec -i --env NORIS_APP_DB_PASSWORD="$NORIS_APP_DB_PASSWORD"
           "${{ job.services.postgres.id }}" sh < infrastructure/docker/postgres-init.sh
       - name: Database integration and migration checks
+        env:
+          NORIS_TEST_CADDY_BINARY: ${{ runner.temp }}/noris-test-caddy
         run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y nginx
+          docker pull caddy:2.10.2-alpine
+          caddy_container=$(docker create caddy:2.10.2-alpine)
+          docker cp "$caddy_container:/usr/bin/caddy" "$NORIS_TEST_CADDY_BINARY"
+          docker rm "$caddy_container"
           make test-integration
           make migrate
       - name: Desktop and mobile browser tests

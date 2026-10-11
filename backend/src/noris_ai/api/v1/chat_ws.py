@@ -2,10 +2,11 @@
 
 import asyncio
 import json
+import logging
 import time
 from collections import deque
 from contextlib import suppress
-from typing import Annotated, cast
+from typing import Annotated, Literal, cast
 from urllib.parse import urlsplit
 
 import anyio
@@ -25,6 +26,38 @@ from noris_ai.llm.errors import LLMError
 
 router = APIRouter(tags=["Chat"])
 commands: TypeAdapter[ClientMessage] = TypeAdapter(ClientMessage)
+logger = logging.getLogger(__name__)
+
+HandshakeRejection = Literal[
+    "ORIGIN_NOT_ALLOWED",
+    "HOST_NOT_ALLOWED",
+    "INVALID_SCHEME",
+    "MISSING_SUBPROTOCOL",
+    "MISSING_TICKET_SUBPROTOCOL",
+    "MULTIPLE_TICKET_SUBPROTOCOLS",
+    "TICKET_INVALID_OR_EXPIRED",
+    "CONNECTION_LIMIT",
+]
+
+
+async def _reject_handshake(
+    socket: WebSocket, reason: HandshakeRejection, code: int = 1008
+) -> None:
+    # Only fixed categories reach logs. Even Origin/Host/forwarded headers can
+    # contain attacker-supplied secrets, so never echo headers, URLs or protocols.
+    scheme = socket.scope.get("scheme")
+    forwarded_proto = socket.headers.get("x-forwarded-proto")
+    forwarded_category = "missing" if forwarded_proto is None else "invalid"
+    if forwarded_proto in ("ws", "wss", "http", "https"):
+        forwarded_category = forwarded_proto
+    logger.warning(
+        "Chat WebSocket handshake rejected: reason=%s scheme=%s forwarded_proto=%s",
+        reason,
+        scheme if scheme in ("ws", "wss", "http", "https") else "invalid",
+        forwarded_category,
+        extra={"ws_rejection_reason": reason},
+    )
+    await socket.close(code=code)
 
 
 class TicketResponse(JsonApiSchema):
@@ -43,12 +76,14 @@ async def ticket(
     manager = cast(GenerationManager, request.app.state.chat_generations)
     if len(manager.peers) >= 64:
         raise LLMError("RATE_LIMIT", 429)
+    # Retention cleanup may wait on the database. Start the ticket's TTL only
+    # afterwards so the response carries a fresh, redeemable ticket.
+    await manager.repository.prune_stream_events(config.chat_stream_event_retention_hours)
     store = cast(WsTicketStore, request.app.state.chat_tickets)
     try:
         issued = store.issue()
     except PermissionError:
         raise LLMError("RATE_LIMIT", 429) from None
-    await manager.repository.prune_stream_events(config.chat_stream_event_retention_hours)
     return TicketResponse(ticketId=issued.id, expiresInSeconds=config.chat_ws_ticket_ttl_seconds)
 
 
@@ -62,19 +97,29 @@ async def websocket_chat(socket: WebSocket) -> None:
     protocols = socket.scope.get("subprotocols", [])
     ticket_protocols = [p.removeprefix("ticket.") for p in protocols if p.startswith("ticket.")]
     store = cast(WsTicketStore, socket.app.state.chat_tickets)
-    if (
-        origin not in config.llm_allowed_origins
-        or socket.headers.get("host") not in allowed_hosts
-        or (config.environment == "production" and socket.url.scheme != "wss")
-        or "noris-chat.v1" not in protocols
-        or len(ticket_protocols) != 1
-        or not store.redeem(ticket_protocols[0])
-    ):
-        await socket.close(code=1008)
+    reason: HandshakeRejection | None = None
+    if origin not in config.llm_allowed_origins:
+        reason = "ORIGIN_NOT_ALLOWED"
+    elif socket.headers.get("host") not in allowed_hosts:
+        reason = "HOST_NOT_ALLOWED"
+    elif config.environment == "production" and socket.scope.get("scheme") != "wss":
+        # Uvicorn maps https -> wss for trusted proxies. Do not independently
+        # trust X-Forwarded-Proto here: that would bypass its proxy trust policy.
+        reason = "INVALID_SCHEME"
+    elif "noris-chat.v1" not in protocols:
+        reason = "MISSING_SUBPROTOCOL"
+    elif not ticket_protocols:
+        reason = "MISSING_TICKET_SUBPROTOCOL"
+    elif len(ticket_protocols) != 1:
+        reason = "MULTIPLE_TICKET_SUBPROTOCOLS"
+    elif not store.redeem(ticket_protocols[0]):
+        reason = "TICKET_INVALID_OR_EXPIRED"
+    if reason is not None:
+        await _reject_handshake(socket, reason)
         return
     manager = cast(GenerationManager, socket.app.state.chat_generations)
     if len(manager.peers) >= 64:
-        await socket.close(code=1013)
+        await _reject_handshake(socket, "CONNECTION_LIMIT", code=1013)
         return
     await socket.accept(subprotocol="noris-chat.v1")
     peer = Peer(asyncio.Queue(maxsize=config.chat_ws_queue_size))

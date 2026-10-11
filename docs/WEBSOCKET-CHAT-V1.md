@@ -23,6 +23,84 @@ pro Verbindung. Eingehende Frames maximal 262144 Bytes. Queue: 256 Ereignisse;
 Sende-Timeout: 15 Sekunden; ausgehendes Ereignis maximal 8 MiB. Überlauf/langsame
 Clients werden mit 1013 getrennt. Uvicorn begrenzt zusätzlich Frames und Queue.
 
+## Sichere Handshake-Diagnose
+
+Ein `close()` vor `accept()` wird von Uvicorn als HTTP 403 ausgegeben, auch bei
+Verbindungsüberlastung (Close-Code 1013). Der Backend-Logger
+`noris_ai.api.v1.chat_ws` nennt jetzt die erste fehlgeschlagene Prüfung in dieser
+Reihenfolge:
+
+| `reason` | Bedeutung |
+| --- | --- |
+| `ORIGIN_NOT_ALLOWED` | Origin fehlt oder entspricht keiner erlaubten Origin. |
+| `HOST_NOT_ALLOWED` | Host fehlt oder entspricht keinem erlaubten Host inklusive Port. |
+| `INVALID_SCHEME` | In Produktion ist das ASGI-Scheme nicht `wss`. |
+| `MISSING_SUBPROTOCOL` | `noris-chat.v1` fehlt. |
+| `MISSING_TICKET_SUBPROTOCOL` | Kein `ticket.`-Subprotokoll vorhanden. |
+| `MULTIPLE_TICKET_SUBPROTOCOLS` | Mehr als ein `ticket.`-Subprotokoll vorhanden. |
+| `TICKET_INVALID_OR_EXPIRED` | Ticket leer, unbekannt, abgelaufen oder bereits verbraucht. |
+| `CONNECTION_LIMIT` | Bereits 64 Verbindungen aktiv. |
+
+Beispiel: `reason=INVALID_SCHEME scheme=ws forwarded_proto=https`. `scheme`
+und `forwarded_proto` enthalten ausschließlich `http`, `https`, `ws`, `wss`,
+`missing` oder `invalid`. Rohheader, URLs, Subprotokollwerte, Ticketwerte und
+Zugangsdaten werden nicht protokolliert. Proxy- und Debuglogs dürfen ebenfalls
+keine Authorization- oder `Sec-WebSocket-Protocol`-Header enthalten.
+
+Bei leerem `NORIS_CHAT_WS_ALLOWED_HOSTS=[]` werden Hosts aus den freigegebenen
+Origins abgeleitet. Compose reicht eine explizite Liste nun an das Backend
+weiter. `X-Forwarded-Host` ersetzt den tatsächlichen `Host` nicht; nginx muss den
+öffentlichen Host erhalten. Die bestehende Caddy-Konfiguration im Repository
+ist eine lokale HTTP-Vorlage und enthält keine nginx-Vertrauenskonfiguration.
+Eine davon abweichende Produktionskonfiguration muss separat geprüft werden.
+
+[Uvicorn 0.54.0](https://github.com/encode/uvicorn/blob/0.54.0/uvicorn/middleware/proxy_headers.py)
+übersetzt bei WebSockets vertrauenswürdiges `X-Forwarded-Proto: https` in
+ASGI-`wss`; `http` wird `ws`. Auch `ws`/`wss` werden verstanden. Ein einzelner
+Wert ist erforderlich, keine kommaseparierte Protokollliste. Uvicorn ändert
+dabei nicht den Host. Der Handler vertraut ausschließlich dem ASGI-Scheme
+und wertet Forwarded-Header nicht eigenständig als Freigabe aus.
+[Caddy](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#defaults)
+übernimmt eingehende Forwarded-Header nur von konfigurierten vertrauenswürdigen
+Proxies. nginx muss `X-Forwarded-Proto` selbst setzen; Caddy muss genau diesen
+nginx-Peer vertrauen. Der Backend-Port darf nur für den bestehenden Proxy
+erreichbar sein, da der Containerstart `--forwarded-allow-ips '*'` verwendet.
+
+Das authentifizierte Ticket-POST prüft Basic-Zugangsdaten, Schreib-Origin und
+Kapazität, bereinigt Stream-Events und erzeugt erst danach das Ticket. Damit
+verkürzt eine langsame Bereinigung nicht mehr die zugesagte Ticketgültigkeit.
+Das Frontend kauft vor jeder neuen Verbindung ein frisches Ticket über
+`credentials: 'same-origin'`, wählt bei HTTPS `wss:` und sendet genau die beiden
+vereinbarten Subprotokolle. Das Ticket wird erst nach bestandener Origin-,
+Host-, Scheme- und Subprotokollprüfung einmalig eingelöst. Tickets sind
+prozesslokal: Neustarts oder unterschiedliche Worker zwischen POST und Upgrade
+führen ebenfalls zu `TICKET_INVALID_OR_EXPIRED`.
+
+Die Diagnose bestätigt den konkreten Live-Ablehnungsgrund erst anhand des
+neuen Logeintrags; der bisherige generische HTTP 403 belegt keinen einzelnen
+dieser Gründe. Keine Änderung an den Sicherheitsprüfungen oder Proxy-Trust-
+Grenzen und keine automatische Umstellung des Produktionsservers.
+
+Die Unit-Regressionen prüfen den Produktionshandler mit der echten
+Uvicorn-Proxy-Middleware, alle Ablehnungskategorien, Ablauf und Logredaktion.
+Zusätzlich startet der folgende Integrationstest ausschließlich lokale nginx-
+und Caddy-Prozesse, einen Uvicorn-Server und verwendet eine wegwerfbare
+PostgreSQL-Datenbank. Ein temporäres Zertifikat wird explizit vertraut; die
+TLS-Prüfung bleibt aktiv. Erfolg liefert HTTP 101 und `chat.connected`; Ablauf,
+Replay, falsche Origins/Hosts und gefälschtes HTTPS über einen HTTP-Eingang
+liefern HTTP 403.
+
+```sh
+# nginx/openssl installieren; Caddy 2.10.2 als lokale Binärdatei bereitstellen.
+export NORIS_TEST_CADDY_BINARY=/pfad/zu/caddy
+# NORIS_TEST_DATABASE_URL muss auf eine wegwerfbare DB mit Suffix _test zeigen.
+uv run --project backend --locked pytest backend/tests/integration/test_chat_ws_proxy.py
+```
+
+Die CI stellt Caddy aus dem bereits verwendeten Image `caddy:2.10.2-alpine`
+bereit und führt diese Tests mit den übrigen Datenbanktests aus. Lokal werden
+sie bei fehlenden Proxy-Testwerkzeugen übersprungen.
+
 ## Generieren
 
 ```json
