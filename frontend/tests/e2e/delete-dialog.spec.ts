@@ -13,6 +13,7 @@ async function start(page: Page, theme = 'light', targetTitle = title) {
   snapshot.drafts.main = 'Synthetischer Entwurf bleibt erhalten'
   snapshot.drafts['conversation-1'] = 'Unabhängiger Entwurf'
   await seedChat(page, snapshot, theme)
+  await page.clock.setFixedTime(new Date('2026-10-10T12:00:00Z'))
   await page.goto('/')
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   return snapshot

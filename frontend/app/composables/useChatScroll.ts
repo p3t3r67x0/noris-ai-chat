@@ -1,11 +1,11 @@
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { Ref } from 'vue'
-import { distanceToBottom, followingAfterScroll } from '../lib/chat/scroll'
+import { distanceToBottom, followingAfterScroll, scrollButtonVisible } from '../lib/chat/scroll'
 
 export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HTMLElement | null>, conversationId: Ref<string | null>, turnId: Ref<string | null>, persistent = false) {
   const following = ref(true)
   const distance = ref(0)
-  const showScrollButton = computed(() => !following.value || distance.value > 64)
+  const showScrollButton = ref(false)
   const positions = new Map<string, { top: number, following: boolean }>()
   let lastTop = 0
   let frame: number | undefined
@@ -56,6 +56,8 @@ export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HT
     const element = scroller.value
     if (!element) return
     distance.value = distanceToBottom({ top: element.scrollTop, height: element.scrollHeight, viewport: element.clientHeight })
+    // Hysteresis keeps small resize/Markdown changes from flashing the arrow.
+    showScrollButton.value = scrollButtonVisible(showScrollButton.value, distance.value)
     const timeline = content.value
     const style = timeline ? getComputedStyle(timeline) : undefined
     const padding = style ? (Number.parseFloat(style.paddingTop) || 0) + (Number.parseFloat(style.paddingBottom) || 0) : 0

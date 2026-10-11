@@ -29,7 +29,7 @@ export default defineConfig({
     },
     {
       // Validate the shipped client, including reload and streaming cancellation.
-      command: 'node node_modules/nuxt/bin/nuxt.mjs build && node ../scripts/serve-browser-fixture.mjs',
+      command: process.env.NORIS_E2E_REUSE_BUILD === '1' ? 'node ../scripts/serve-browser-fixture.mjs' : 'node node_modules/nuxt/bin/nuxt.mjs build && node ../scripts/serve-browser-fixture.mjs',
       url: `http://127.0.0.1:${frontendPort}`, reuseExistingServer: false, timeout: 180_000,
       env: { NORIS_E2E_BACKEND_PORT: String(backendPort), NORIS_E2E_FRONTEND_PORT: String(frontendPort), NUXT_PUBLIC_CHAT_TRANSPORT: 'real', NUXT_TELEMETRY_DISABLED: '1', NORIS_NUXT_BUILD_DIR: '.nuxt-llm' },
     },

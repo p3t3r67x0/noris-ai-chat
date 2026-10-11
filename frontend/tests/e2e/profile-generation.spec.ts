@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 
 test('Escape closes only the profile menu while a response continues', async ({ page }) => {
   await page.goto('/')
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   await page.getByRole('textbox', { name: 'Nachricht', exact: true }).fill('/lang')
   await page.getByRole('textbox', { name: 'Nachricht', exact: true }).press('Enter')
   const status = page.locator('[data-generation-status]')

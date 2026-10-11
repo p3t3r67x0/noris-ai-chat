@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { distanceToBottom, followingAfterScroll } from '../../app/lib/chat/scroll'
+import { distanceToBottom, followingAfterScroll, scrollButtonVisible } from '../../app/lib/chat/scroll'
 
 describe('scroll decisions', () => {
+  it('hides at the reading edge and uses different show/hide thresholds', () => {
+    expect(scrollButtonVisible(false, 97)).toBe(true)
+    expect(scrollButtonVisible(true, 95)).toBe(true)
+    expect(scrollButtonVisible(false, 95)).toBe(false)
+    expect(scrollButtonVisible(true, 32)).toBe(false)
+    expect(scrollButtonVisible(true, 0)).toBe(false)
+  })
   it('treats a short turn as the bottom and clamps overscroll', () => {
     expect(distanceToBottom({ top: 0, height: 400, viewport: 600 })).toBe(0)
     expect(distanceToBottom({ top: 1400, height: 1800, viewport: 600 })).toBe(0)
