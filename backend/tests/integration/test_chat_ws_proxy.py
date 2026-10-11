@@ -35,12 +35,18 @@ AUTH = ("fixture-user", "fixture-application-password-never-real")
 
 
 @contextmanager
-def proxy_process(args: list[str], directory: Path) -> Iterator[None]:
+def proxy_process(
+    args: list[str], directory: Path, extra_environment: dict[str, str] | None = None
+) -> Iterator[None]:
     # Executables are selected by the test operator, never by application input.
-    environment = os.environ | {
-        "XDG_CONFIG_HOME": str(directory / "config"),
-        "XDG_DATA_HOME": str(directory / "data"),
-    }
+    environment = (
+        os.environ
+        | {
+            "XDG_CONFIG_HOME": str(directory / "config"),
+            "XDG_DATA_HOME": str(directory / "data"),
+        }
+        | (extra_environment or {})
+    )
     with subprocess.Popen(  # noqa: S603
         args, cwd=directory, env=environment, stdout=subprocess.DEVNULL
     ) as process:
@@ -67,6 +73,7 @@ class ProxyChain:
     tls: ssl.SSLContext
     tls_port: int
     plain_port: int
+    caddy_port: int
 
     def protocols(self) -> list[Subprotocol]:
         with httpx.Client(verify=self.tls, trust_env=False) as client:
@@ -82,7 +89,9 @@ class ProxyChain:
 
 
 @pytest.fixture
-def proxy_chain(tmp_path: Path, migration_config: AlembicConfig) -> Iterator[ProxyChain]:
+def proxy_chain(
+    tmp_path: Path, migration_config: AlembicConfig, request: pytest.FixtureRequest
+) -> Iterator[ProxyChain]:
     caddy = os.environ.get("NORIS_TEST_CADDY_BINARY") or shutil.which("caddy")
     nginx = shutil.which("nginx")
     openssl = shutil.which("openssl")
@@ -151,13 +160,29 @@ def proxy_chain(tmp_path: Path, migration_config: AlembicConfig) -> Iterator[Pro
 
         stack.callback(stop_backend)
         caddyfile = tmp_path / "Caddyfile"
+        # Exercise the deployed template, including its proxy trust settings.
+        template = (
+            Path(__file__).resolve().parents[3] / "infrastructure/proxy/Caddyfile"
+        ).read_text()
+        test_options = "{\n admin off\n auto_https off\n"
+        if template.startswith("{\n"):
+            template = template.replace("{\n", test_options, 1)
+        else:
+            template = test_options + "}\n" + template
         caddyfile.write_text(
-            "{\n admin off\n auto_https off\n servers {\n"
-            "  trusted_proxies static 127.0.0.1/32\n }\n}\n"
-            f":{caddy_port} {{\n bind 127.0.0.1\n"
-            f" reverse_proxy 127.0.0.1:{backend_port}\n}}\n"
+            template.replace(":8080 {", f":{caddy_port} {{\n bind 127.0.0.1")
+            .replace("backend:8000", f"127.0.0.1:{backend_port}")
+            .replace("frontend:3000", f"127.0.0.1:{backend_port}")
         )
-        stack.enter_context(proxy_process([caddy, "run", "--config", str(caddyfile)], tmp_path))
+        trusted_peers = getattr(request, "param", "127.0.0.1/32")
+        assert isinstance(trusted_peers, str)
+        stack.enter_context(
+            proxy_process(
+                [caddy, "run", "--config", str(caddyfile)],
+                tmp_path,
+                {"NORIS_CADDY_TRUSTED_PROXIES": trusted_peers},
+            )
+        )
         nginx_conf = tmp_path / "nginx.conf"
         nginx_conf.write_text(
             f"pid {tmp_path}/nginx.pid;\nerror_log stderr warn;\nevents {{}}\n"
@@ -188,7 +213,7 @@ def proxy_chain(tmp_path: Path, migration_config: AlembicConfig) -> Iterator[Pro
                 time.sleep(0.05)
             else:
                 pytest.fail("Isolated nginx/Caddy/Uvicorn chain did not become ready")
-        yield ProxyChain(origin, tls, tls_port, plain_port)
+        yield ProxyChain(origin, tls, tls_port, plain_port, caddy_port)
 
 
 async def test_https_ticket_then_wss_through_both_proxies(proxy_chain: ProxyChain) -> None:
@@ -261,4 +286,46 @@ async def test_proxy_handshakes_still_reject_unsafe_connections(
         "scheme": "INVALID_SCHEME",
     }
     assert f"reason={reasons[failure]}" in caplog.text
+    assert all(protocol not in caplog.text for protocol in protocols[1:])
+
+
+@pytest.mark.parametrize(
+    "proxy_chain", ["", "192.0.2.1/32"], indirect=True, ids=["no-trust", "wrong-peer"]
+)
+async def test_https_without_trusted_nginx_reproduces_live_rejection(
+    proxy_chain: ProxyChain, caplog: pytest.LogCaptureFixture
+) -> None:
+    protocols = proxy_chain.protocols()
+    with pytest.raises(InvalidStatus) as rejected:
+        async with connect(
+            proxy_chain.origin.replace("https:", "wss:") + "/api/v1/chat/ws",
+            origin=Origin(proxy_chain.origin),
+            subprotocols=protocols,
+            ssl=proxy_chain.tls,
+            proxy=None,
+        ):
+            pass
+    assert rejected.value.response.status_code == 403
+    assert "reason=INVALID_SCHEME scheme=ws forwarded_proto=http" in caplog.text
+    assert all(protocol not in caplog.text for protocol in protocols[1:])
+
+
+async def test_untrusted_caddy_client_cannot_spoof_https(
+    proxy_chain: ProxyChain, caplog: pytest.LogCaptureFixture
+) -> None:
+    protocols = proxy_chain.protocols()
+    with pytest.raises(InvalidStatus) as rejected:
+        async with connect(
+            proxy_chain.origin.replace("https:", "ws:") + "/api/v1/chat/ws",
+            origin=Origin(proxy_chain.origin),
+            subprotocols=protocols,
+            additional_headers={"X-Forwarded-Proto": "https", "X-Forwarded-For": "127.0.0.1"},
+            proxy=None,
+            host="127.0.0.1",
+            port=proxy_chain.caddy_port,
+            local_addr=("127.0.0.2", 0),
+        ):
+            pass
+    assert rejected.value.response.status_code == 403
+    assert "reason=INVALID_SCHEME scheme=ws forwarded_proto=http" in caplog.text
     assert all(protocol not in caplog.text for protocol in protocols[1:])

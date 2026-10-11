@@ -51,8 +51,8 @@ Bei leerem `NORIS_CHAT_WS_ALLOWED_HOSTS=[]` werden Hosts aus den freigegebenen
 Origins abgeleitet. Compose reicht eine explizite Liste nun an das Backend
 weiter. `X-Forwarded-Host` ersetzt den tatsächlichen `Host` nicht; nginx muss den
 öffentlichen Host erhalten. Die bestehende Caddy-Konfiguration im Repository
-ist eine lokale HTTP-Vorlage und enthält keine nginx-Vertrauenskonfiguration.
-Eine davon abweichende Produktionskonfiguration muss separat geprüft werden.
+liest vertrauenswürdige nginx-Peers aus `NORIS_CADDY_TRUSTED_PROXIES`. Eine davon
+abweichende Produktionskonfiguration muss separat geprüft werden.
 
 [Uvicorn 0.54.0](https://github.com/encode/uvicorn/blob/0.54.0/uvicorn/middleware/proxy_headers.py)
 übersetzt bei WebSockets vertrauenswürdiges `X-Forwarded-Proto: https` in
@@ -76,10 +76,68 @@ Host-, Scheme- und Subprotokollprüfung einmalig eingelöst. Tickets sind
 prozesslokal: Neustarts oder unterschiedliche Worker zwischen POST und Upgrade
 führen ebenfalls zu `TICKET_INVALID_OR_EXPIRED`.
 
-Die Diagnose bestätigt den konkreten Live-Ablehnungsgrund erst anhand des
-neuen Logeintrags; der bisherige generische HTTP 403 belegt keinen einzelnen
-dieser Gründe. Keine Änderung an den Sicherheitsprüfungen oder Proxy-Trust-
-Grenzen und keine automatische Umstellung des Produktionsservers.
+Der Produktionslog `reason=INVALID_SCHEME scheme=ws forwarded_proto=http`
+belegt, dass der HTTPS-Header vor dem Backend verloren geht. Uvicorn bildet
+den erhaltenen HTTP-Wert korrekt auf `ws` ab; der Produktionshandler lehnt
+deshalb vor der Ticketeinlösung ab. Der Log allein unterscheidet nicht, ob
+nginx bereits `http` setzt oder Caddy einen nicht vertrauten nginx-Peer sieht.
+Die bisherigen Ticket- und Sicherheitsprüfungen bleiben aktiv.
+
+## HTTPS hinter nginx und Caddy
+
+nginx terminiert TLS und spricht mit Caddy über HTTP. Ohne passenden
+`trusted_proxies`-Eintrag ersetzt Caddy einen eingehenden
+`X-Forwarded-Proto: https` durch das Scheme dieser internen Verbindung,
+also `http`. Die ursprüngliche Repository-Vorlage hatte keine solche
+Vertrauenskonfiguration; die Integrationstests reproduzieren damit exakt
+den obigen Ablehnungslog.
+
+In der aktiven nginx-Location für den API-/WebSocket-Pfad müssen die
+bereits vorhandenen Upgrade-Header und der öffentliche Host erhalten bleiben.
+Der Scheme-Header muss vom TLS-terminierenden nginx selbst gesetzt werden:
+
+```nginx
+proxy_set_header Host $http_host;
+proxy_set_header X-Forwarded-Proto $scheme;
+```
+
+Die Zeilen müssen auch in einer spezifischen WebSocket-Location wirksam sein:
+nginx [erbt `proxy_set_header`](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_set_header)
+nur, wenn auf der aktuellen Ebene keine eigenen `proxy_set_header`-Direktiven
+stehen. Ein vom Browser gelieferter Scheme-Header
+darf diese Werte nicht ersetzen.
+
+Compose reicht die folgende Variable ausschließlich an Caddy weiter. Sie ist
+eine **durch Leerzeichen getrennte Liste von IPs/CIDRs**, keine JSON-Liste:
+
+```dotenv
+# Beispiel für einen verifizierten Peer; NICHT ungeprüft übernehmen:
+NORIS_CADDY_TRUSTED_PROXIES=192.0.2.10/32
+```
+
+Bei nginx auf dem Docker-Host sieht Caddy häufig die Bridge-Gateway-IP als
+Peer, obwohl nginx `127.0.0.1:8080` adressiert. `127.0.0.1/32` im Container
+vertraut dann nicht diesem nginx. Der folgende reine Lesebefehl zeigt nur die
+Gateway-Adressen des Proxy-Containers, keine Umgebungsvariablen oder Header:
+
+```sh
+proxy_id="$(sh infrastructure/scripts/compose.sh ps -q proxy)"
+docker inspect --format '{{range .NetworkSettings.Networks}}{{.Gateway}}{{"\n"}}{{end}}' "$proxy_id"
+```
+
+Die Adresse ist mit dem tatsächlichen nginx-Peer abzugleichen. Nur diese
+einzelne IPv4-Adresse mit `/32` beziehungsweise IPv6-Adresse mit `/128`
+freigeben; keine pauschalen privaten Netze oder `0.0.0.0/0`. Bei leerer Liste
+vertraut Caddy weiterhin keinem Proxy. `trusted_proxies_strict` wertet
+angehängte `X-Forwarded-For`-Ketten von rechts nach links aus und verwendet die
+erste nicht vertraute Adresse als Client-IP.
+
+Eine spätere manuelle Inbetriebnahme muss die neue Caddyfile **und** die
+Proxy-Umgebungsvariable laden. Ein bloßer Caddy-Reload übernimmt keine in
+Compose geänderten Container-Umgebungsvariablen. Der Agent verändert den
+Produktionsserver nicht und führt keinen automatischen Merge durch.
+
+## Regressionstests für die Proxy-Kette
 
 Die Unit-Regressionen prüfen den Produktionshandler mit der echten
 Uvicorn-Proxy-Middleware, alle Ablehnungskategorien, Ablauf und Logredaktion.
@@ -88,7 +146,10 @@ und Caddy-Prozesse, einen Uvicorn-Server und verwendet eine wegwerfbare
 PostgreSQL-Datenbank. Ein temporäres Zertifikat wird explizit vertraut; die
 TLS-Prüfung bleibt aktiv. Erfolg liefert HTTP 101 und `chat.connected`; Ablauf,
 Replay, falsche Origins/Hosts und gefälschtes HTTPS über einen HTTP-Eingang
-liefern HTTP 403.
+liefern HTTP 403. Die Tests verwenden die Repository-Caddyfile und prüfen
+zusätzlich leere beziehungsweise falsche Proxy-Freigaben und einen direkten
+nicht vertrauten Caddy-Client mit gefälschten Forwarded-Headern. Diese Fälle
+müssen weiterhin HTTP 403 mit `INVALID_SCHEME` ergeben.
 
 ```sh
 # nginx/openssl installieren; Caddy 2.10.2 als lokale Binärdatei bereitstellen.

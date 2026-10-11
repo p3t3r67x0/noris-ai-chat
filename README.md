@@ -35,6 +35,8 @@ curl --fail http://127.0.0.1:8080/api/v1/health/ready
 
 Die Anwendung ist unter **http://127.0.0.1:8080** erreichbar. Caddy führt Frontend und `/api/*` unter derselben Origin zusammen. Die Datenbank besitzt in dieser Konfiguration keinen veröffentlichten Port. PostgreSQL 18 speichert seine Daten im Volume unter `/var/lib/postgresql`.
 
+Bei vorgeschaltetem nginx mit TLS muss `NORIS_CADDY_TRUSTED_PROXIES` die konkrete nginx-Peer-IP aus Sicht des Caddy-Containers enthalten. nginx setzt `X-Forwarded-Proto $scheme`; Caddy übernimmt diesen Header ausschließlich von den konfigurierten Peers. Die leere Voreinstellung vertraut keinem Proxy. [Konfiguration und Diagnose](docs/WEBSOCKET-CHAT-V1.md#https-hinter-nginx-und-caddy) erläutern insbesondere die Docker-Bridge-Adresse.
+
 Der einmalige `migrate`-Dienst führt `alembic upgrade head` nach dem Datenbankstart aus. Der PostgreSQL-Healthcheck prüft TCP auf `127.0.0.1:5432`, damit der temporäre Unix-Socket-Server während der Initialisierung nicht bereits als bereit gilt. Das Backend startet erst nach erfolgreicher Migration. Die Baseline `0001_foundation` verwaltet ausschließlich den Alembic-Revisionsstand; die Chat-Migrationen 0002–0004 ergänzen Persistenz, immutable Topologie und Fortsetzungsvarianten.
 
 `noris_migrator` ist der lokale Bootstrap-/Migrationsbenutzer. Die Anwendung verbindet sich als `noris_app`, ohne Superuser- oder `BYPASSRLS`-Rechte. Das Init-Skript vergibt für die Foundation nur Verbindungs-, Schema-Nutzungs- und Tabellen-Leserechte. Die Chat-Migration vergibt gezielte DML-Rechte auf die sechs Chat-Tabellen; Ownership prüft die Domain-Schicht. RLS und OIDC-Multi-User sind noch nicht implementiert. Die Migration-Zugangsdaten werden dem Backend-Container nicht übergeben.
