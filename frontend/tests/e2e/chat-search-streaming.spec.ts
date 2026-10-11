@@ -13,7 +13,18 @@ test('search owns keyboard focus without cancelling a response or changing its c
   const dialog = page.getByRole('dialog', { name: 'Chats suchen', exact: true })
   const input = dialog.getByPlaceholder('Suchen...')
   await expect(input).toBeFocused()
+  await page.evaluate(() => {
+    const input = document.getElementById('chat-search-input')!
+    const observe = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'o') {
+        input.dataset.shortcutPrevented = String(event.defaultPrevented)
+        window.removeEventListener('keydown', observe)
+      }
+    }
+    window.addEventListener('keydown', observe)
+  })
   await input.press('Control+Shift+o')
+  await expect(input).toHaveAttribute('data-shortcut-prevented', 'true')
   await expect(dialog).toBeVisible()
   await expect(page.locator('.message-user')).toHaveAttribute('data-message-id', question!)
   await page.keyboard.press('Escape')

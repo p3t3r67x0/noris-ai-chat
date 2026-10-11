@@ -44,7 +44,9 @@ unrelated application chrome or private conversation text.
   the query and focuses its labeled input, without a transition or layout shift.
 - That same global handler yields while search owns focus. Escape closes search
   without stopping a running response, and other workspace shortcuts cannot
-  change its active conversation. No second global handler is added.
+  change its active conversation. Repeated Ctrl/Cmd+K keeps the query and focus;
+  reserved shortcuts still prevent browser defaults. No second global handler
+  is added.
 - Dialog text uses the existing German/English interface language setting.
 - Nuxt UI/Reka supplies ArrowUp/Down, Enter, active descendant, pointer highlight,
   Escape, outside dismissal and the Tab/Shift+Tab focus trap. A hidden dialog
@@ -101,9 +103,11 @@ Local validation on 2026-10-11:
 - `make test-unit`: 286 backend and 265 frontend tests passed.
 - PostgreSQL integration suite: 30 tests passed against a disposable local DB.
 - Full browser suite (`pnpm test:e2e --workers=2`): 257 passed, 18 intentional
-  project skips. Final production build: all 58 affected search/streaming/profile
-  generation cases passed, including the mobile drawer's completed cleanup and
-  all 16 synthetic snapshots, without updating snapshots in that final run.
+  project skips. All 58 affected search/streaming/profile generation cases passed,
+  including the mobile drawer's completed cleanup and all 16 synthetic snapshots,
+  without updating snapshots in that run. After the final shortcut adjustment,
+  all six affected desktop/mobile keyboard cases passed against a fresh production
+  build; lint, typecheck, API contracts and all 551 unit tests passed again.
 - Provider simulator browser suite: 55 passed, 5 intentional project skips.
 - WebSocket suite: 40 passed in the full run; its two existing load/stream timing
   failures passed when repeated serially against that same build. No timeout or

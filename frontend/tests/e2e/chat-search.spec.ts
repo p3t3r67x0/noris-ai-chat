@@ -52,6 +52,20 @@ test('focus, shortcuts, dismissal, reset and a trapped Tab sequence', async ({ p
   await page.keyboard.press('Meta+k')
   await expect(input).toBeFocused()
   await input.fill('Gedanken')
+  await page.evaluate(() => {
+    const input = document.getElementById('chat-search-input')!
+    const observe = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        input.dataset.shortcutPrevented = String(event.defaultPrevented)
+        window.removeEventListener('keydown', observe)
+      }
+    }
+    window.addEventListener('keydown', observe)
+  })
+  await page.keyboard.press('Control+k')
+  await expect(input).toHaveAttribute('data-shortcut-prevented', 'true')
+  await expect(input).toHaveValue('Gedanken')
+  await expect(input).toBeFocused()
   await dialog.getByRole('button', { name: 'Suche schließen' }).click()
   await page.keyboard.press('Control+k')
   await expect(input).toHaveValue('')
