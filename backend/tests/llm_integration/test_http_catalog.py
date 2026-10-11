@@ -20,6 +20,7 @@ async def test_catalog_over_actual_http(llm_config: Settings, scenario: str) -> 
     upstream = FastAPI()
     ids = [MODEL_ID]
     discovery_calls = 0
+    stream_closed = asyncio.Event()
 
     async def discover(request: Request) -> JSONResponse | StreamingResponse:
         nonlocal discovery_calls
@@ -30,8 +31,11 @@ async def test_catalog_over_actual_http(llm_config: Settings, scenario: str) -> 
         if scenario == "timeout":
 
             async def waiting() -> AsyncIterator[bytes]:
-                yield b"{"
-                await asyncio.Event().wait()
+                try:
+                    yield b"{"
+                    await asyncio.Event().wait()
+                finally:
+                    stream_closed.set()
 
             return StreamingResponse(waiting(), media_type="application/json")
         return JSONResponse(
@@ -44,7 +48,8 @@ async def test_catalog_over_actual_http(llm_config: Settings, scenario: str) -> 
             update={
                 "llm_base_url": base + "/v1",
                 "llm_models": (),
-                "llm_discovery_timeout_seconds": 0.05 if scenario == "timeout" else 10,
+                # Allow real socket setup and CI scheduling before timing out the blocked body.
+                "llm_discovery_timeout_seconds": 1 if scenario == "timeout" else 10,
             }
         )
         app = create_app(config)
@@ -61,10 +66,19 @@ async def test_catalog_over_actual_http(llm_config: Settings, scenario: str) -> 
             response = results[0]
             assert "secret-not-forwarded" not in response.text
             if scenario in ("auth", "timeout"):
-                assert response.status_code == (502 if scenario == "auth" else 504)
-                assert response.json()["error"]["code"] == (
-                    "PROVIDER_AUTH_FAILED" if scenario == "auth" else "TIMEOUT"
-                )
+                for result in results:
+                    assert result.status_code == (502 if scenario == "auth" else 504)
+                    assert result.json()["error"]["code"] == (
+                        "PROVIDER_AUTH_FAILED" if scenario == "auth" else "TIMEOUT"
+                    )
+                if scenario == "timeout":
+                    async with asyncio.timeout(5):
+                        await stream_closed.wait()
+                    # The timeout closes the upstream stream and keeps the retry cooldown.
+                    retry = await client.get("/api/v1/llm/models")
+                    assert retry.status_code == 504
+                    assert retry.json()["error"]["code"] == "TIMEOUT"
+                    assert discovery_calls == 1
             else:
                 assert response.status_code == 200
                 assert len(response.json()["models"]) == (0 if scenario == "empty" else 1)

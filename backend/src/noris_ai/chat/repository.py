@@ -730,7 +730,7 @@ class ChatRepository:
                     raise ChatError("ATTACHMENT_IN_USE", 409)
                 text_ready = (
                     attachment.status == "ready"
-                    and bool(attachment.extracted_text)
+                    and attachment.has_text
                     and attachment.mime_type in ("text/plain", "text/markdown", "application/pdf")
                 )
                 image_ready = (
