@@ -1,9 +1,10 @@
-"""Loopback-only HTTP fixture for browser tests and explicit compose.test.yaml."""
+"""Local HTTP fixture for browser tests and explicit compose.test.yaml."""
 
 import asyncio
 import json
 from collections.abc import AsyncIterator
 from pathlib import Path
+from typing import cast
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -80,7 +81,11 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
     (title_calls if is_title else calls).append(body)
     content = body["messages"][-1]["content"]
     prompt = (
-        "".join(part["text"] for part in content if part.get("type") == "text")
+        "".join(
+            str(part["text"])
+            for part in cast(list[dict[str, object]], content)
+            if part.get("type") == "text"
+        )
         if isinstance(content, list)
         else str(content)
     )

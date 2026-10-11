@@ -1,5 +1,13 @@
 # Prüfstand: Composer und Dateianhänge
 
+## CI-Korrekturen anhand der verlinkten Läufe
+
+Der [Compose-Job 114442495993](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/38130112040/job/114442495993?pr=44) bestand 42 WebSocket-Fälle; sämtliche 26 Attachment-Fälle scheiterten bereits im Setup mit `ECONNREFUSED 127.0.0.1:8591`. Playwright lief auf dem Host, während der Simulator nur im Backend-Netzwerknamespace lauschte. Ausschließlich `compose.test.yaml` veröffentlicht jetzt dessen Port über den Backend-Service an `127.0.0.1:${NORIS_E2E_PROVIDER_PORT:-8591}`; der Simulator bindet innerhalb dieses Namespace an `0.0.0.0:8591`, damit Docker den Hostport erreichen kann. Backend-Provider-URL und Allowlist bleiben auf Loopback beschränkt. Der kurze Katalogcache und Discovery-Retry entsprechen mit je einer Sekunde der lokalen Browserkonfiguration, damit die Vision-Fälle geänderte Fähigkeiten zeitnah laden. Der normale Produktions-Compose-Stack und Caddy erhalten keinen Simulatorzugriff.
+
+Der [Checks-Job 114442496164](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/38130112040/job/114442496164?pr=44) stoppte an drei strikten Pyright-Diagnosen in der Multimodal-Promptauswertung des Simulators. Die JSON-Content-Liste wird jetzt ausdrücklich als `list[dict[str, object]]` typisiert; Textteile werden als Strings verbunden. Typprüfungsregeln bleiben unverändert.
+
+Die mobile Sidebar-Synchronisation, die Suchdialog-Schließ-/Fokusfolge und die 20 anhand beider abgeschlossener Composer-CI-Läufe geprüften synthetischen Screenshotbaselines werden aus PR #43 übernommen; dessen genauer Nachtrag steht in `ADAPTIVE-COMPOSER.md`. Die Korrekturen sind durch Code- und vorhandene Artefaktprüfung begründet, aber gemäß bestehender Nutzeranweisung wurden keine neuen Tests, Docker-Aufrufe oder CI-Wartezeiten durchgeführt. Erfolgreiche Upload-/Vision-Browserabnahme und vollständige neue Gates bleiben offen; beide PRs bleiben Drafts.
+
 ## Nachtrag: Bildanbindung und CI-Evidenz
 
 Die nachfolgende Tabelle beschreibt den Stand **vor** der ergänzten Vision-Implementierung. Der Nutzer untersagte anschließend ausdrücklich weitere Tests und Docker-Läufe sowie das Warten auf CI. Die neue Bildanbindung wurde deshalb ausschließlich durch Quellen-/Codeprüfung bearbeitet; neue synthetische Unit-, PostgreSQL-/WebSocket- und Browserfälle wurden geschrieben, aber nicht ausgeführt. HTTP-/WebSocket-Verträge wurden als Codegenerierung aktualisiert. Keine tatsächliche Noris-Generierung fand statt. Zwei reine Modellkatalog-GETs bestätigten aktuelle Bildeingaben; die Payload folgt der offiziellen Noris-Dokumentation. Ein erfolgreicher Modellaufruf bleibt unbestätigt.

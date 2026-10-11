@@ -1,7 +1,10 @@
-# Explicit CI/local test override. Uses only synthetic credentials and loopback
-# provider traffic. Never use this override for a public deployment.
+# Explicit CI/local test override. Uses only synthetic credentials and a local
+# provider in the backend network namespace, with host access bound to loopback.
+# Never use this override for a public deployment.
 services:
   backend:
+    ports:
+      - "127.0.0.1:${NORIS_E2E_PROVIDER_PORT:-8591}:8591"
     environment:
       NORIS_ENVIRONMENT: test
       NORIS_LLM_PROVIDER: openai-compatible
@@ -13,6 +16,8 @@ services:
       NORIS_LLM_ALLOWED_ORIGINS: '["http://127.0.0.1:8080"]'
       NORIS_LLM_MODELS: '[{"id":"fixture-alpha","name":"Fixture Alpha","category":"CHAT","token_limit_parameter":"max_tokens","sources":["fixture:local"],"evidence":{"category":"VERIFIED","streaming":"VERIFIED","token_limit_parameter":"VERIFIED"}},{"id":"fixture-beta","name":"Fixture Beta","category":"CHAT","token_limit_parameter":"max_tokens","sources":["fixture:local"],"evidence":{"category":"VERIFIED","streaming":"VERIFIED","token_limit_parameter":"VERIFIED"}},{"id":"fixture-long","name":"Fixture Long","category":"CHAT","context_window":131072,"provider_context_window":131072,"max_output_tokens":32768,"provider_max_output_tokens":32768,"provider_limit_evidence":"Local simulator only","token_limit_parameter":"max_tokens","sources":["fixture:local"],"evidence":{"category":"VERIFIED","streaming":"VERIFIED","token_limit_parameter":"VERIFIED"}}]'
       NORIS_LLM_DEFAULT_MODEL: fixture-alpha
+      NORIS_LLM_CATALOG_TTL_SECONDS: '1'
+      NORIS_LLM_DISCOVERY_RETRY_AFTER_SECONDS: '1'
       NORIS_LLM_MAX_OUTPUT_TOKENS: '32768'
       NORIS_LLM_REQUESTS_PER_MINUTE: '120'
       NORIS_LLM_DAILY_TOKEN_BUDGET: '10000000'
@@ -30,7 +35,7 @@ services:
       NORIS_ENVIRONMENT: test
       NORIS_LLM_PROVIDER: disabled
       NORIS_LLM_MODELS: '[]'
-    command: ["uvicorn", "tests.fixtures.llm_http_server:app", "--host", "127.0.0.1", "--port", "8591"]
+    command: ["uvicorn", "tests.fixtures.llm_http_server:app", "--host", "0.0.0.0", "--port", "8591"]
     depends_on:
       backend:
         condition: service_healthy
