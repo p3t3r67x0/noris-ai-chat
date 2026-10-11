@@ -33,3 +33,7 @@ The two existing mobile drawer baselines were visually reviewed and updated for
 the accessible profile trigger replacing the static footer identity. Changes are
 limited to that supported identity/action and its compact footer spacing; all
 existing screenshot tolerances and assertions remain unchanged.
+
+While any menu owns keyboard focus, global chat shortcuts are suspended. Escape
+therefore dismisses the profile menu without also cancelling an ongoing response;
+an explicit regression test covers this on desktop and mobile.

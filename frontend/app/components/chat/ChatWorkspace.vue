@@ -79,7 +79,7 @@ function selectRunningChat(): void {
   if (id) conversations.select(id)
 }
 function onShortcut(event: KeyboardEvent): void {
-  if (inSettings.value) return
+  if (inSettings.value || event.defaultPrevented || document.querySelector('[role="menu"][data-state="open"]')) return
   if (event.isComposing || event.repeat) return
   if (document.querySelector('.delete-dialog[data-state="open"]')) return
   if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'o') {

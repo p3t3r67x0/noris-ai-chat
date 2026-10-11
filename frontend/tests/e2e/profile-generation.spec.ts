@@ -1,0 +1,21 @@
+import { expect, test } from '@playwright/test'
+
+test('Escape closes only the profile menu while a response continues', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('textbox', { name: 'Nachricht', exact: true }).fill('/lang')
+  await page.getByRole('textbox', { name: 'Nachricht', exact: true }).press('Enter')
+  const status = page.locator('[data-generation-status]')
+  await expect(status).toHaveAttribute('data-generation-status', 'streaming')
+  const mobile = await page.evaluate(() => !matchMedia('(min-width: 1024px)').matches)
+  if (mobile) await page.getByRole('button', { name: 'Sidebar öffnen', exact: true }).click()
+  const trigger = page.locator('.profile-trigger:visible')
+  await trigger.click()
+  await expect(page.locator('.profile-menu')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.profile-menu')).toBeHidden()
+  await expect(trigger).toBeFocused()
+  await expect(status).toHaveAttribute('data-generation-status', 'streaming')
+  if (mobile) await page.getByRole('button', { name: 'Gesprächsliste schließen', exact: true }).click()
+  await page.getByRole('button', { name: 'Antwort stoppen', exact: true }).click()
+  await expect(status).toHaveAttribute('data-generation-status', 'cancelled')
+})
