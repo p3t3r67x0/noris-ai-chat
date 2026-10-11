@@ -6,7 +6,7 @@ const frontendPort = Number(process.env.NORIS_E2E_FRONTEND_PORT ?? 3000)
 export default defineConfig({
   testDir: './tests/e2e',
   outputDir: './test-results/mock',
-  workers: process.env.NORIS_E2E_WORKERS ? Number(process.env.NORIS_E2E_WORKERS) : undefined,
+  ...(process.env.NORIS_E2E_WORKERS ? { workers: Number(process.env.NORIS_E2E_WORKERS) } : {}),
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
