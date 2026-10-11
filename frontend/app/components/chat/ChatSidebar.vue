@@ -18,6 +18,7 @@ const groups = computed(() => groupConversations(props.conversations))
 const searchOpen = ref(false)
 const archiveOpen = ref(false)
 const searchReturnFocus = ref<HTMLElement | null>(null)
+let searchDrawerHandoff = false
 const archiveLoading = ref(false)
 const archiveError = ref<string | null>(null)
 const archiveCursor = ref<string | null>(null)
@@ -61,8 +62,17 @@ function newChat(): void {
 function showSearch(event?: Event): void {
   if (searchOpen.value) return
   searchReturnFocus.value = event?.currentTarget instanceof HTMLElement ? event.currentTarget : document.activeElement as HTMLElement | null
+  if (window.matchMedia('(max-width: 1023px)').matches && document.querySelector('[role="dialog"] .sidebar-primary-actions')) searchDrawerHandoff = true
   closeOnMobile()
   searchOpen.value = true
+}
+
+function finishSearchDrawerHandoff(event: Event): void {
+  if (!searchDrawerHandoff) return
+  searchDrawerHandoff = false
+  // The drawer's delayed cleanup must not reclaim focus from search or the
+  // composer when search has already closed. Its normal dismissal is unchanged.
+  event.preventDefault()
 }
 
 function showArchive(): void {
@@ -102,7 +112,7 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
     id="chat-sidebar" v-model:open="open" :title="t('conversations')" description="Deine Chats mit noris AI"
     collapsible="offcanvas" mode="slideover" :aria-hidden="!open" :inert="!open"
     class="conversation-sidebar" style="--sidebar-width: var(--noris-sidebar-width)"
-    :menu="{ side: 'left', ui: { content: 'max-w-[min(23.5rem,90vw)] bg-[var(--noris-sidebar-background)]' } }"
+    :menu="{ side: 'left', content: { onCloseAutoFocus: finishSearchDrawerHandoff }, ui: { content: 'max-w-[min(23.5rem,90vw)] bg-[var(--noris-sidebar-background)]' } }"
     :ui="{
       container: 'h-[var(--chat-viewport-height,100dvh)] bottom-auto',
       inner: 'bg-[var(--noris-sidebar-background)] divide-transparent',

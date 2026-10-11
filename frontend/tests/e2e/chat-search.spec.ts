@@ -64,6 +64,7 @@ test('focus, shortcuts, dismissal, reset and a trapped Tab sequence', async ({ p
   await expect(input).toBeFocused()
   await page.keyboard.press('Escape')
   await expect(dialog).not.toBeVisible()
+  await expect(page.locator('[role="dialog"][data-state="closed"]').filter({ has: page.locator('.sidebar-primary-actions') })).not.toBeVisible()
   if (await trigger.isVisible()) await expect(trigger).toBeFocused()
   else await expect(page.getByRole('textbox', { name: 'Nachricht', exact: true })).toBeFocused()
 })

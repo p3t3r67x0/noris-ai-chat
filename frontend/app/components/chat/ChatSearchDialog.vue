@@ -71,7 +71,7 @@ function restoreFocus(event: Event): void {
   // that cleanup and the conversation render, so neither can take focus back.
   void nextTick(() => requestAnimationFrame(() => {
     if (open.value || revision !== focusRevision) return
-    if (!chosen && trigger?.isConnected && !trigger.closest('[inert]') && trigger.getClientRects().length) trigger.focus({ preventScroll: true })
+    if (!chosen && trigger?.isConnected && !trigger.closest('[inert], [role="dialog"][data-state="closed"]') && trigger.getClientRects().length) trigger.focus({ preventScroll: true })
     else (document.querySelector<HTMLElement>('.composer-input') ?? document.querySelector<HTMLElement>('#chat-main'))?.focus({ preventScroll: true })
   }))
 }
@@ -129,10 +129,11 @@ const content = computed(() => ({
 </template>
 
 <style>
-.chat-search-overlay { position: fixed; inset: 0; background: rgb(0 0 0 / 4%); }
+.chat-search-overlay { position: fixed; inset: 0; z-index: 60; background: rgb(0 0 0 / 4%); }
 .dark .chat-search-overlay { background: rgb(0 0 0 / 24%); }
 .chat-search-dialog {
   position: fixed;
+  z-index: 70;
   left: 50%;
   top: calc(var(--chat-viewport-offset, 0px) + var(--chat-viewport-height, 100dvh) / 2 - 1rem);
   transform: translate(-50%, -50%);
