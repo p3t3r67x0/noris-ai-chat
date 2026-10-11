@@ -6,6 +6,10 @@ Der abgeschlossene [Compose-Browserjob 114435754381](https://github.com/p3t3r67x
 
 Zwei mobile Settings-Navigationstests scheiterten zunächst und bestanden beim Retry. Der Helper wartet jetzt nach jeder Kategorieauswahl auf die neue Seitenüberschrift und beim Öffnen der mobilen Navigation auf `aria-expanded=true`. Dadurch kann die noch laufende vorherige Route die gerade wieder geöffnete Navigation nicht schließen. Auf ausdrücklichen Nutzerwunsch wurden keine weiteren Tests oder Docker-Läufe gestartet und keine CI-Ergebnisse abgewartet.
 
+Der anschließend vom Nutzer verlinkte abgeschlossene [Job 114437614648](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/38128449260/job/114437614648?pr=43) bestand Lint/Typprüfung, 286 Backend- und 266 Frontend-Unit-Tests, 30 Integrationstests und 275 Mock-Browserfälle. Im SSE-Browserlauf bestanden 51 Fälle; vier Screenshotfälle scheiterten jeweils beim ersten Modell. Die vier vorhandenen synthetischen Light-/Dark-Aufnahmen für Desktop/Mobile wurden einzeln geprüft: Die alten Bilder zeigen den Composer in der Seitenmitte, die Actual-Aufnahmen den beauftragten unteren Dock und den Hinweis darüber. Nur diese vier geprüften Modell-0-Baselines wurden übernommen. Die übrigen 20 Modell-/Mehrzeilen-/Streamingbilder wurden wegen des ersten Fehlers nicht aufgenommen und bleiben unverändert, bis tatsächliche neue Aufnahmen vorliegen.
+
+Die bestehenden Screenshotzustände sind jetzt unabhängige Testfälle, damit eine Abweichung die weiteren Aufnahmen nicht verhindert. Sämtliche Geometrie-, Text-, Modelllabel-, Overflow- und Stop-Assertions sowie die Screenshotnamen und Toleranzen bleiben erhalten. Stop wird auch nach einer fehlschlagenden Streamingaufnahme geprüft. Ein neuer lokaler Testlauf wurde nicht ausgeführt.
+
 Der bestehende `ChatComposer.vue` verwendet weiterhin eine einzige `UChatPrompt`-Instanz und deren native Textarea, Enter-/Shift+Enter- und IME-Behandlung. Das CSS-Grid wechselt zwischen einer gemeinsamen Zeile und Texteingabe über der unteren Aktionszeile. Es gibt keine zweite Composer-Instanz und keinen Remount beim Layoutwechsel.
 
 ## Referenz und Geometrie
