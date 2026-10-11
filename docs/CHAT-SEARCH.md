@@ -42,6 +42,7 @@ unrelated application chrome or private conversation text.
 
 - The workspace's existing Ctrl/Cmd+K handler opens the search. Every open clears
   the query and focuses its labeled input, without a transition or layout shift.
+- Dialog text uses the existing German/English interface language setting.
 - Nuxt UI/Reka supplies ArrowUp/Down, Enter, active descendant, pointer highlight,
   Escape, outside dismissal and the Tab/Shift+Tab focus trap. A hidden dialog
   title labels the dialog; `aria-modal` is explicit. Full titles remain in the
@@ -77,3 +78,10 @@ Baseline changes must be inspected locally before acceptance. Keep the existing
 visual tolerance unchanged. Run the normal lint, typecheck, API, unit, browser,
 WebSocket and build targets. PostgreSQL can run locally for these checks; Docker
 tests and waiting for CI are excluded from this task.
+
+After integrating the latest settings/profile changes from `main`, all 16 new
+synthetic baseline interiors were compared against the previously reviewed
+images: dialog pixels remained identical. Existing unrelated baselines and
+visual tolerances are unchanged. Synthetic fixture timestamps use a relative
+two-day offset to keep sidebar date groups stable without freezing DOM-event
+timestamps, which would interfere with Vue's bubbled keyboard-event guards.

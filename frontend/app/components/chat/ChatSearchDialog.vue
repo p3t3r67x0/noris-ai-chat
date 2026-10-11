@@ -3,6 +3,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import type { useChatBackend } from '../../composables/useChatBackend'
 import { useConversationSearch } from '../../composables/useConversationSearch'
 import { useChatViewport } from '../../composables/useChatViewport'
+import { useAppLocale } from '../../composables/useAppLocale'
 import type { Conversation } from '../../lib/chat/conversations'
 import { compareConversations } from '../../lib/chat/conversations'
 
@@ -15,16 +16,17 @@ const open = defineModel<boolean>('open', { required: true })
 const emit = defineEmits<{ select: [id: string] }>()
 const { query, results, loading, error, cursor, search } = useConversationSearch(open, () => props.conversations, () => props.pagination)
 const { viewportStyle } = useChatViewport()
+const { t } = useAppLocale()
 const selected = ref(false)
 const selectionVisible = ref(false)
 let focusRevision = 0
 watch(query, () => { selectionVisible.value = false }, { flush: 'sync' })
 // UCommandPalette forwards this object to UInput, including native attributes.
-const input = {
-  id: 'chat-search-input', 'aria-label': 'Chats suchen', role: 'combobox',
+const input = computed(() => ({
+  id: 'chat-search-input', 'aria-label': t('searchChats'), role: 'combobox',
   'aria-expanded': true, 'aria-controls': 'chat-search-listbox', 'aria-autocomplete': 'list',
   ui: { root: () => 'chat-search-input', base: () => 'chat-search-input-base', trailing: () => 'chat-search-input-trailing' },
-}
+}))
 
 function select(id: string): void {
   selected.value = true
@@ -33,7 +35,7 @@ function select(id: string): void {
 }
 
 const groups = computed(() => [{
-  id: 'recent-chats', label: 'Letzte Chats', ignoreFilter: Boolean(props.pagination),
+  id: 'recent-chats', label: t('recentChats'), ignoreFilter: Boolean(props.pagination),
   items: [...(props.pagination ? results.value : props.conversations)].sort(compareConversations).map(conversation => ({
     id: conversation.id, label: conversation.title, icon: 'i-lucide-message-circle', onSelect: () => select(conversation.id),
   })),
@@ -48,7 +50,7 @@ function initialFocus(event: Event): void {
   // Reka listbox so the input's controls relationship targets the actual popup.
   const listbox = document.querySelector<HTMLElement>('.chat-search-dialog [role="listbox"]')
   listbox?.setAttribute('id', 'chat-search-listbox')
-  listbox?.setAttribute('aria-label', 'Letzte Chats')
+  listbox?.setAttribute('aria-label', t('recentChats'))
   document.querySelector<HTMLInputElement>('#chat-search-input')?.focus({ preventScroll: true })
 }
 
@@ -82,7 +84,7 @@ const content = computed(() => ({
 
 <template>
   <UModal
-    v-model:open="open" title="Chats suchen" :transition="false" :content="content"
+    v-model:open="open" :title="t('searchChats')" :transition="false" :content="content"
     :ui="{ overlay: () => 'chat-search-overlay', content: () => 'chat-search-dialog' }"
   >
     <!-- UModal's content slot keeps DialogTitle visually hidden. Reka owns the
@@ -90,7 +92,7 @@ const content = computed(() => ({
     <template #content>
       <UCommandPalette
         v-model:search-term="query" :groups="groups" :icon="false" :autofocus="false" :data-selection-visible="selectionVisible"
-        :fuse="{ resultLimit: Number.MAX_SAFE_INTEGER }" placeholder="Suchen..."
+        :fuse="{ resultLimit: Number.MAX_SAFE_INTEGER }" :placeholder="t('searchPlaceholder')"
         :input="input"
         :ui="{
           root: () => 'chat-search-palette', input: () => 'chat-search-input',
@@ -106,20 +108,20 @@ const content = computed(() => ({
           <span class="chat-search-loading" aria-hidden="true">
             <UIcon v-if="loading" name="i-lucide-loader-circle" class="size-4 motion-safe:animate-spin" />
           </span>
-          <UButton icon="i-lucide-x" color="neutral" variant="ghost" aria-label="Suche schließen" class="chat-search-close" @click="open = false" />
+          <UButton icon="i-lucide-x" color="neutral" variant="ghost" :aria-label="t('closeSearch')" class="chat-search-close" @click="open = false" />
         </template>
         <template #item-label="{ item }"><span :title="item.label">{{ item.label }}</span></template>
         <template #empty>
-          <p class="chat-search-label">Letzte Chats</p>
-          <p v-if="!loading && !error" role="status" class="chat-search-message">Keine Chats gefunden</p>
+          <p class="chat-search-label">{{ t('recentChats') }}</p>
+          <p v-if="!loading && !error" role="status" class="chat-search-message">{{ t('noChats') }}</p>
         </template>
         <template #footer>
-          <p role="status" aria-live="polite" class="sr-only">{{ loading ? 'Chats werden gesucht …' : 'Suche bereit' }}</p>
+          <p role="status" aria-live="polite" class="sr-only">{{ loading ? t('searchLoading') : t('searchReady') }}</p>
           <p v-if="error" role="alert" class="chat-search-message">
-            {{ error }}
-            <UButton color="neutral" variant="ghost" label="Suche erneut versuchen" class="min-h-11" @click="search(Boolean(cursor))" />
+            {{ t('searchError') }}
+            <UButton color="neutral" variant="ghost" :label="t('retrySearch')" class="min-h-11" @click="search(Boolean(cursor))" />
           </p>
-          <UButton v-if="cursor" color="neutral" variant="ghost" label="Weitere Chats laden" :loading="loading" :disabled="loading" class="min-h-11" @click="search(true)" />
+          <UButton v-if="cursor" color="neutral" variant="ghost" :label="t('moreChats')" :loading="loading" :disabled="loading" class="min-h-11" @click="search(true)" />
         </template>
       </UCommandPalette>
     </template>
