@@ -19,8 +19,13 @@ export async function openDataControls(page: Page) {
 
 export async function openSettingsCategory(page: Page, name: string) {
   const toggle = page.locator('.settings-mobile-toggle')
-  if (await toggle.isVisible() && await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
+  if (await toggle.isVisible() && await toggle.getAttribute('aria-expanded') === 'false') {
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  }
   await page.locator('.settings-sidebar').getByRole('link', { name, exact: true }).click()
+  // Finish this route transition before the next call can reopen mobile navigation.
+  await expect(page.getByRole('main', { name: 'Einstellungen', exact: true }).getByRole('heading', { name, exact: true, level: 1 })).toBeVisible()
 }
 
 export async function returnToChat(page: Page) {

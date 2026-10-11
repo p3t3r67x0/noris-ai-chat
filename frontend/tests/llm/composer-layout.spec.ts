@@ -44,50 +44,73 @@ test.beforeEach(async ({ page, request }) => {
   } }))
 })
 
+async function openComposer(page: Page, theme: string, project: string): Promise<void> {
+  await page.setViewportSize(project === 'desktop' ? { width: 1701, height: 863 } : { width: 390, height: 844 })
+  await page.addInitScript(value => localStorage.setItem('noris-ai-theme', value), theme)
+  await page.goto('/')
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+}
+
+// Each visual state is a separate test so one stale baseline cannot prevent
+// the other models, multiline input and Stop from producing CI evidence.
 for (const theme of ['light', 'dark']) {
-  test(`model changes preserve composer geometry and visual states ${theme}`, async ({ page }, info) => {
-    await page.setViewportSize(info.project.name === 'desktop' ? { width: 1701, height: 863 } : { width: 390, height: 844 })
-    await page.addInitScript(value => localStorage.setItem('noris-ai-theme', value), theme)
-    await page.goto('/')
-    await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
-    const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
-    const composer = page.locator('.chat-composer')
-    const before = await composer.boundingBox()
-    await input.fill('Testentwurf')
-    for (const [index, name] of names.entries()) {
-      await selectModel(page, name)
-      await expect(input).toHaveValue('Testentwurf')
-      await expect(page.getByRole('button', { name: 'Modell auswählen', exact: true })).toContainText(name)
-      expect(await composer.boundingBox()).toEqual(before)
-      const label = await page.locator('.composer-model .model-label').evaluate(element => ({
-        whiteSpace: getComputedStyle(element).whiteSpace,
-        height: element.getBoundingClientRect().height,
-        lineHeight: Number.parseFloat(getComputedStyle(element).lineHeight),
-        clipped: element.scrollWidth > element.clientWidth,
-      }))
-      expect(label.whiteSpace).toBe('nowrap')
-      expect(label.height).toBeLessThanOrEqual(label.lineHeight + 1)
-      if (info.project.name === 'desktop' && index < 3) expect(label.clipped).toBe(false)
-      const textBox = await page.locator('.composer-model .model-label').boundingBox()
-      const chevron = await page.locator('.composer-model [data-slot="trailing"]').boundingBox()
-      expect(textBox!.x + textBox!.width).toBeLessThan(chevron!.x)
-      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  for (const [captureIndex, captureName] of names.entries()) {
+    test(`model changes preserve composer geometry: ${captureName} ${theme}`, async ({ page }, info) => {
+      await openComposer(page, theme, info.project.name)
+      const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
+      const composer = page.locator('.chat-composer')
+      const before = await composer.boundingBox()
+      await input.fill('Testentwurf')
+      for (const [index, name] of names.entries()) {
+        await selectModel(page, name)
+        await expect(input).toHaveValue('Testentwurf')
+        await expect(page.getByRole('button', { name: 'Modell auswählen', exact: true })).toContainText(name)
+        expect(await composer.boundingBox()).toEqual(before)
+        const label = await page.locator('.composer-model .model-label').evaluate(element => ({
+          whiteSpace: getComputedStyle(element).whiteSpace,
+          height: element.getBoundingClientRect().height,
+          lineHeight: Number.parseFloat(getComputedStyle(element).lineHeight),
+          clipped: element.scrollWidth > element.clientWidth,
+        }))
+        expect(label.whiteSpace).toBe('nowrap')
+        expect(label.height).toBeLessThanOrEqual(label.lineHeight + 1)
+        if (info.project.name === 'desktop' && index < 3) expect(label.clipped).toBe(false)
+        const textBox = await page.locator('.composer-model .model-label').boundingBox()
+        const chevron = await page.locator('.composer-model [data-slot="trailing"]').boundingBox()
+        expect(textBox!.x + textBox!.width).toBeLessThan(chevron!.x)
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+      }
+      await selectModel(page, captureName)
       await input.focus()
-      await expect(page).toHaveScreenshot(`composer-model-${index}-${theme}.png`, { animations: 'disabled', caret: 'hide' })
-    }
-    await selectModel(page, names[0]!)
+      await expect(page).toHaveScreenshot(`composer-model-${captureIndex}-${theme}.png`, { animations: 'disabled', caret: 'hide' })
+    })
+  }
+
+  test(`multiline composer visual state ${theme}`, async ({ page }, info) => {
+    await openComposer(page, theme, info.project.name)
+    const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
     await input.fill('Erste synthetische Zeile\nZweite synthetische Zeile\nDritte synthetische Zeile')
     await input.focus()
     await expect(page).toHaveScreenshot(`composer-multiline-${theme}.png`, { animations: 'disabled', caret: 'hide' })
+  })
+
+  test(`streaming composer visual state and Stop ${theme}`, async ({ page }, info) => {
+    await openComposer(page, theme, info.project.name)
+    const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
+    await input.fill('Erste synthetische Zeile\nZweite synthetische Zeile\nDritte synthetische Zeile')
     await input.fill('/quiet composer-layout')
     await input.press('Enter')
     const stop = page.getByRole('button', { name: 'Antwort stoppen', exact: true })
     await expect(stop).toBeVisible()
     await expect(page.locator('[data-generation-status="streaming"]')).toBeAttached()
-    await expect(page).toHaveScreenshot(`composer-streaming-${theme}.png`, { animations: 'disabled', caret: 'hide' })
-    await stop.click()
-    await expect(page.locator('[data-generation-status="cancelled"]')).toBeAttached()
-    await expect(input).toBeFocused()
+    try {
+      await expect(page).toHaveScreenshot(`composer-streaming-${theme}.png`, { animations: 'disabled', caret: 'hide' })
+    }
+    finally {
+      await stop.click()
+      await expect(page.locator('[data-generation-status="cancelled"]')).toBeAttached()
+      await expect(input).toBeFocused()
+    }
   })
 }
 

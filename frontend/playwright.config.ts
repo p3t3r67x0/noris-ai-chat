@@ -5,6 +5,8 @@ const frontendPort = Number(process.env.NORIS_E2E_FRONTEND_PORT ?? 3000)
 
 export default defineConfig({
   testDir: './tests/e2e',
+  outputDir: './test-results/mock',
+  ...(process.env.NORIS_E2E_WORKERS ? { workers: Number(process.env.NORIS_E2E_WORKERS) } : {}),
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
@@ -25,7 +27,7 @@ export default defineConfig({
       env: { NORIS_LLM_PROVIDER: 'disabled', NORIS_LLM_MODELS: '[]' },
     },
     {
-      command: 'node node_modules/nuxt/bin/nuxt.mjs build && node ../scripts/serve-browser-fixture.mjs',
+      command: process.env.NORIS_E2E_REUSE_BUILD === '1' ? 'node ../scripts/serve-browser-fixture.mjs' : 'node node_modules/nuxt/bin/nuxt.mjs build && node ../scripts/serve-browser-fixture.mjs',
       url: `http://127.0.0.1:${frontendPort}`,
       reuseExistingServer: false,
       timeout: 180_000,

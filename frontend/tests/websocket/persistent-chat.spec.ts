@@ -117,7 +117,11 @@ test('manual title, archive, restore and deletion are persisted from the existin
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   const c = (await (await request.get('/api/v1/conversations')).json()).conversations[0]
   const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
-  const sidebar = async () => { if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click() }
+  const sidebar = async () => {
+    await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+    if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  }
   await sidebar()
   const row = page.locator(`[data-conversation-id="${c.id}"]`)
   await row.getByRole('button', { name: /^Aktionen für/ }).click()
