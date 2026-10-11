@@ -142,6 +142,47 @@ async def test_documented_multimodal_payload_streams_without_a_live_provider(
         "data:image/jpeg;base64,"
     )
     assert body["max_tokens"] == llm_config.llm_models[0].max_output_tokens
+    assert body["model"] == "fixture-alpha"
+    image_url = body["messages"][0]["content"][1]["image_url"]["url"]
+    with Image.open(io.BytesIO(base64.b64decode(image_url.split(",", 1)[1]))) as image:
+        image.load()
+        assert image.format == "JPEG" and image.size == (16, 16)
+        # Verify that real synthetic pixels reach HTTP, not just a filename or metadata.
+        pixel = image.convert("RGB").getpixel((8, 8))
+        assert isinstance(pixel, tuple)
+        assert all(
+            abs(actual - expected) <= 3
+            for actual, expected in zip(pixel, (81, 115, 148), strict=True)
+        )
+
+
+async def test_provider_error_echoes_do_not_expose_images_or_private_text(
+    tmp_path: Path, llm_config: Settings, caplog: pytest.LogCaptureFixture
+) -> None:
+    message = image_message(tmp_path).model_copy(update={"content": "Synthetic private prompt"})
+
+    def handler(upstream: httpx.Request) -> httpx.Response:
+        if upstream.method == "GET":
+            return httpx.Response(200, json={"data": [provider_data("fixture-alpha", vision=True)]})
+        return httpx.Response(
+            400,
+            json={"error": {"message": message.content, "request": provider_payload(message)}},
+        )
+
+    provider = OpenAICompatibleProvider(llm_config, transport=httpx.MockTransport(handler))
+    gateway = LLMGateway(llm_config, provider)
+    payload = request(message)
+    try:
+        await gateway.reserve(payload)
+        events = [event async for event in gateway.events(payload)]
+    finally:
+        await provider.aclose()
+    last = events[-1]
+    assert last is not None and last.type == "response.failed" and last.code == "PROVIDER_ERROR"
+    public = str(events) + caplog.text
+    assert message.content not in public
+    assert "data:image" not in public
+    assert "fixture-provider-key-never-real" not in public
 
 
 async def test_deepseek_uses_reported_context_for_images_without_increasing_output_or_budget(

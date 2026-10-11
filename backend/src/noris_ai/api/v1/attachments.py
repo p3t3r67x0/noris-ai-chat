@@ -1,10 +1,11 @@
 """Authenticated raw file upload. One bounded stream per selected file."""
 
+import base64
 from typing import Annotated, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Query, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 from noris_ai.api.v1.conversations import ERROR_RESPONSES, ChatAccess
 from noris_ai.chat.attachments import MIME_EXTENSIONS, AttachmentService
@@ -101,15 +102,38 @@ async def remove(request: Request, access: ChatAccess, attachment_id: UUID) -> N
         **ERROR_RESPONSES,
         200: {
             "content": {
-                "application/octet-stream": {"schema": {"type": "string", "format": "binary"}}
+                "application/octet-stream": {"schema": {"type": "string", "format": "binary"}},
+                "image/jpeg": {"schema": {"type": "string", "format": "binary"}},
             }
         },
     },
 )
-async def download(request: Request, access: ChatAccess, attachment_id: UUID) -> FileResponse:
+async def download(
+    request: Request,
+    access: ChatAccess,
+    attachment_id: UUID,
+    preview: Annotated[
+        bool, Query(description="Normalisierte Vorschau für PNG/JPEG-Bilder")
+    ] = False,
+) -> Response:
     _, owner = access
-    attachment = await service(request).get(owner, attachment_id)
-    path = service(request).path(attachment.storage_key)
+    attachments = service(request)
+    attachment = await attachments.get(owner, attachment_id)
+    headers = {
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "sandbox; default-src 'none'",
+    }
+    if preview:
+        if attachment.mime_type not in ("image/png", "image/jpeg"):
+            raise ChatError("ATTACHMENT_TYPE", 415)
+        image = await attachments.image_input(owner, attachment.conversation_id, attachment_id)
+        return Response(
+            content=base64.b64decode(image.data_url.split(",", 1)[1], validate=True),
+            media_type="image/jpeg",
+            headers=headers | {"Content-Disposition": "inline"},
+        )
+    path = attachments.path(attachment.storage_key)
     if path.is_symlink() or not path.is_file():
         raise ChatError("ATTACHMENT_NOT_FOUND", 404)
     return FileResponse(
@@ -117,9 +141,5 @@ async def download(request: Request, access: ChatAccess, attachment_id: UUID) ->
         filename=attachment.original_filename,
         media_type="application/octet-stream",
         content_disposition_type="attachment",
-        headers={
-            "Cache-Control": "private, no-store",
-            "X-Content-Type-Options": "nosniff",
-            "Content-Security-Policy": "sandbox; default-src 'none'",
-        },
+        headers=headers,
     )

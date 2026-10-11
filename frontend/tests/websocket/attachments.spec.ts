@@ -184,9 +184,45 @@ test('vision attachments survive model changes and reload and reach the provider
   expect(call.model).toBe('fixture-beta')
   expect(call.messages[0].content[0].type).toBe('text')
   expect(call.messages[0].content[1].image_url.url).toMatch(/^data:image\/jpeg;base64,/)
+  const image = page.getByRole('img', { name: 'Angehängtes Bild: synthetic.png', exact: true })
+  await expect(image).toBeVisible()
+  await expect.poll(() => image.evaluate(element => (element as HTMLImageElement).naturalWidth)).toBe(16)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.reload()
   await expect(page.locator('.message-attachments a')).toHaveCount(1)
+  await expect(image).toBeVisible()
+  await expect.poll(() => image.evaluate(element => (element as HTMLImageElement).naturalWidth)).toBe(16)
+})
+
+test('a failed saved-image preview retries without changing the chat or model', async ({ page, request }) => {
+  await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: fixtureModels, imageIds: ['fixture-beta'] } })
+  let failed = false
+  await page.route('**/api/v1/chat/attachments/*/content?preview=true', async route => {
+    if (!failed) {
+      failed = true
+      await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' })
+    }
+    else await route.continue()
+  })
+  await page.goto('/')
+  await selectFiles(page, [imageFile])
+  await page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true }).click()
+  await page.getByRole('option', { name: 'Fixture Beta' }).click()
+  const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
+  await input.fill('Describe this synthetic image')
+  await input.press('Enter')
+  await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
+  await expect(page.locator('.message-image-error')).toContainText('Bildvorschau konnte nicht geladen werden')
+  await expect(page.locator('.message-attachments a')).toHaveCount(1)
+  const conversationId = (await (await request.get('/api/v1/conversations')).json()).conversations[0].id
+  const before = (await (await request.get(`${fixtureOrigin}/fixture/state`)).json()).calls.length
+  await page.getByRole('button', { name: 'synthetic.png: Bildvorschau erneut laden', exact: true }).click()
+  const image = page.getByRole('img', { name: 'Angehängtes Bild: synthetic.png', exact: true })
+  await expect.poll(() => image.evaluate(element => (element as HTMLImageElement).naturalWidth)).toBe(16)
+  await expect(page.locator('.message-image-error')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true })).toContainText('Fixture Beta')
+  expect((await (await request.get('/api/v1/conversations')).json()).conversations[0].id).toBe(conversationId)
+  expect((await (await request.get(`${fixtureOrigin}/fixture/state`)).json()).calls.length).toBe(before)
 })
 
 test('stopping a vision response preserves the composer and saved attachment', async ({ page, request }) => {

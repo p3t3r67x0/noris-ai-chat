@@ -2864,12 +2864,30 @@
               "title": "Attachment Id",
               "type": "string"
             }
+          },
+          {
+            "description": "Normalisierte Vorschau für PNG/JPEG-Bilder",
+            "in": "query",
+            "name": "preview",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Normalisierte Vorschau für PNG/JPEG-Bilder",
+              "title": "Preview",
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
           "200": {
             "content": {
               "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "image/jpeg": {
                 "schema": {
                   "format": "binary",
                   "type": "string"

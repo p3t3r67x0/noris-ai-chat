@@ -695,6 +695,9 @@ export interface ApiPaths {
         path: {
           "attachment_id": string
         }
+        query: {
+          "preview"?: boolean
+        }
       }
       responses: {
       200: Blob

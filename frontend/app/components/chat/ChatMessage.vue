@@ -5,10 +5,14 @@ import MarkdownContent from './MarkdownContent'
 import type { ApiSchemas } from '../../types/generated/api'
 import MessageVariants from './MessageVariants.vue'
 import { CHAT_LIMITS } from '../../lib/chat/limits'
+import { ref } from 'vue'
 
 withDefaults(defineProps<{ message: ChatMessage, summary?: ApiSchemas['VariantSummary'] | undefined, variants?: readonly ChatMessage[], busy?: boolean, canContinue?: boolean }>(), { summary: undefined, variants: () => [], busy: false, canContinue: false })
 const emit = defineEmits<{ edit: [], regenerate: [], continue: [], rendered: [], selectVariant: [id: string] }>()
 const { copy, copied, copyError } = useCopy()
+const failedImages = ref<Record<string, boolean>>({})
+function imageFailed(id: string): void { failedImages.value[id] = true; emit('rendered') }
+function retryImage(id: string): void { delete failedImages.value[id] }
 </script>
 
 <template>
@@ -16,8 +20,15 @@ const { copy, copied, copyError } = useCopy()
     <p v-if="message.role === 'user'" class="user-bubble">{{ message.content }}</p>
     <ul v-if="message.role === 'user' && message.attachments?.length" class="message-attachments" aria-label="Gesendete Dateien">
       <li v-for="file in message.attachments" :key="file.id">
+        <template v-if="file.mimeType === 'image/png' || file.mimeType === 'image/jpeg'">
+          <img v-if="!failedImages[file.id]" :src="`/api/v1/chat/attachments/${encodeURIComponent(file.id)}/content?preview=true`" :alt="`Angehängtes Bild: ${file.originalFilename}`" class="message-attachment-image" width="256" height="256" loading="lazy" decoding="async" @load="emit('rendered')" @error="imageFailed(file.id)">
+          <div v-else role="status" class="message-image-error">
+            <span>Bildvorschau konnte nicht geladen werden.</span>
+            <UButton color="neutral" variant="link" :aria-label="`${file.originalFilename}: Bildvorschau erneut laden`" label="Erneut laden" @click="retryImage(file.id)" />
+          </div>
+        </template>
         <a :href="`/api/v1/chat/attachments/${encodeURIComponent(file.id)}/content`" class="message-attachment" :title="file.originalFilename" download>
-          <UIcon name="i-lucide-file-text" aria-hidden="true" class="size-5 shrink-0" />
+          <UIcon :name="file.mimeType.startsWith('image/') ? 'i-lucide-image' : 'i-lucide-file-text'" aria-hidden="true" class="size-5 shrink-0" />
           <span class="min-w-0 truncate">{{ file.originalFilename }}</span>
           <span class="shrink-0 text-xs text-muted">{{ Math.ceil(file.sizeBytes / 1024) }} KB</span>
         </a>

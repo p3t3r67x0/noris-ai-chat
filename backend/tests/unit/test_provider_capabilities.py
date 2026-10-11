@@ -14,6 +14,7 @@ from noris_ai.llm.pricing import estimate_cost, model_cost
 from noris_ai.llm.provider_models import ProviderModel
 from noris_ai.llm.registry import REGISTRY, chat_compatible, resolve_model
 from noris_ai.llm.schemas import LLMModel
+from noris_ai.llm.vision import supports_images
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures/noris-models-2.4.json"
 DEEPSEEK = "vllm/qsu/deepseek-v41-flash"
@@ -306,6 +307,30 @@ async def test_malformed_entry_and_duplicate_are_isolated(llm_config: Settings) 
         assert len(models) == 9 and all(item.id not in (DEEPSEEK, "broken") for item in models)
     finally:
         await provider.aclose()
+
+
+@pytest.mark.parametrize(
+    "model_id,expected",
+    [
+        ("vllm/release/gpt-oss-120b", False),
+        ("vllm/release/glm-5-2", False),
+        ("vllm/qsu/qwen3.8-27b", True),
+        ("vllm/release/gemma-4-31b-it", True),
+        ("vllm/release/qwen3.6-27b", True),
+        ("vllm/qsu/glm-5-3-flash", True),
+        ("vllm/qsu/deepseek-v41-flash", True),
+    ],
+)
+def test_image_permission_follows_modalities_when_catalog_changes(
+    llm_config: Settings, model_id: str, expected: bool
+) -> None:
+    data = next(item for item in payload()["data"] if item["id"] == model_id)
+    assert supports_images(resolve(data, llm_config)) is expected
+    # The same ID and local policy immediately lose image permission when facts change.
+    data["input_modalities"] = [
+        item for item in data["input_modalities"] if item["type"] != "image"
+    ]
+    assert supports_images(resolve(data, llm_config)) is False
 
 
 def test_vision_and_reasoning_require_evidence(llm_config: Settings) -> None:

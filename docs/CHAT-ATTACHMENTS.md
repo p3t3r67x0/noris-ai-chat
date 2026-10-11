@@ -9,6 +9,7 @@ Der Plus-Button öffnet das vorhandene Nuxt-UI-Aktionsmenü mit „Dateien hinzu
 - `GET /api/v1/chat/attachments?conversationId=<UUID>`: bestätigte Metadaten für die Unterhaltung, einschließlich ungesendeter Anhänge zur Wiederherstellung nach Reload.
 - `DELETE /api/v1/chat/attachments/<UUID>`: entfernt einen ungesendeten Anhang und seine gespeicherten Bytes. Bereits einer Nachricht zugeordnete Anhänge liefern `409`.
 - `GET /api/v1/chat/attachments/<UUID>/content`: kontrollierter Download nach Besitzprüfung, mit `Content-Disposition: attachment`, `nosniff`, Sandbox-CSP und `no-store`.
+- Derselbe Endpunkt mit `?preview=true` liefert nur für PNG/JPEG eine normalisierte, authentifizierte JPEG-Vorschau. Gesendete Bilder werden damit in `ChatMessage.vue` dargestellt; Fehler können ohne erneute Generierung wiederholt werden. Das Original bleibt über den normalen Download verfügbar.
 
 Die Alembic-Migration `0006_chat_attachments` ergänzt `chat_attachment`, ohne bestehende Gespräche oder Nachrichten zu löschen. PostgreSQL enthält Besitz, Unterhaltung, Nachrichtenzuordnung, Anzeigenamen, zufälligen Storage-Key, MIME-Typ, Größe, SHA-256, Status, Erstellungszeit und begrenzten extrahierten Text. Binärinhalte werden nicht in Chat-Nachrichten oder WebSocket-JSON gespeichert. API-Antworten enthalten keine Storage-Pfade, extrahierten Inhalte oder Provider-Zugangsdaten.
 
@@ -64,5 +65,7 @@ PDF-/Bildparser laufen in separaten, begrenzten Prozessen ohne geerbte Anwendung
 Abgebrochene oder ungültige Uploads hinterlassen keine bestätigten Metadaten und räumen die temporären Bytes auf. Die Bereinigung läuft beim Start, stündlich und nach Gesprächslöschung. Sie entfernt abgelaufene ungesendete Dateien, Dateiinhalt gelöschter Gespräche und alte, unbekannte zufällige Storage-Keys. Extrahierter Text wird dabei ebenfalls entfernt. Die bestehende Gesprächslöschung bleibt eine Soft-Delete-Operation. Ein Absturz zwischen Dateischreiben und Datenbankcommit wird durch die Bereinigung unbekannter Dateien aufgefangen.
 
 ## Tests
+
+Die ergänzte Bestandsaufnahme, wiederverwendeten Komponenten und offenen Einschränkungen stehen in [MULTIMODAL-AUDIT.md](MULTIMODAL-AUDIT.md). Nachträgliche Vision-/Vorschau-Testfälle sind geschrieben, aber auf Nutzerwunsch nicht ausgeführt; erfolgreicher Live-Modellbetrieb wird damit nicht behauptet.
 
 Unit-Tests erzeugen ausschließlich synthetische TXT-, PDF- und Bilddateien. PostgreSQL-/WebSocket-Integrationstests prüfen Uploadbestätigung, Besitz, Herkunft, MIME/Signaturen, Größen- und Speicherquoten, Abbruch/Rollback, Downloadrechte, Neustartpersistenz, Bereinigung, tatsächlichen Modellkontext und dessen vorhandenes Limit. Browsertests verwenden die reale API und den lokalen Provider-Simulator für Mehrfachauswahl, Wiederherstellung, Fehler/Wiederholung, Entfernen, Grenzen, adaptive Vorschau und mobile Geometrie. Keine CI-Prüfung ruft kostenpflichtige Noris-Modelle auf.

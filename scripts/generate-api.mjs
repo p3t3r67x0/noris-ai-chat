@@ -83,8 +83,8 @@ try {
       lines.push('      responses: {')
       for (const [status, response] of Object.entries(operation.responses)) {
         const content = response.content
-        const binary = content?.['application/octet-stream']?.schema
-        if (binary?.type === 'string' && binary.format === 'binary' && Object.keys(content ?? {}).length === 1) {
+        const binary = content && Object.keys(content).length > 0 && Object.entries(content).every(([type, value]) => ['application/octet-stream', 'image/jpeg'].includes(type) && value.schema.type === 'string' && value.schema.format === 'binary')
+        if (binary) {
           lines.push(`      ${status}: Blob`)
           continue
         }

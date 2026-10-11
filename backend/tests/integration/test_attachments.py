@@ -1,4 +1,5 @@
 import asyncio
+import io
 import os
 from collections.abc import AsyncIterator, Iterator
 from datetime import UTC, datetime, timedelta
@@ -11,6 +12,7 @@ from alembic import command
 from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from PIL import Image
 from sqlalchemy import select, update
 
 from noris_ai.chat.attachments import AttachmentService
@@ -158,6 +160,40 @@ def test_invalid_uploads_leave_no_metadata_or_files(
     assert not storage.exists() or list(storage.iterdir()) == []
 
 
+def test_owned_image_preview_is_normalized_and_preserves_the_original(client: TestClient) -> None:
+    payload = generate(client)
+    original = synthetic_png(40, 20)
+    attachment = upload(
+        client, payload["conversationId"], original, "synthetic.png", "image/png"
+    ).json()
+    path = f"/api/v1/chat/attachments/{attachment['id']}/content"
+    assert client.get(path, params={"preview": True}).status_code == 401
+    preview = client.get(path, params={"preview": True}, auth=AUTH)
+    assert preview.status_code == 200
+    assert preview.headers["content-type"] == "image/jpeg"
+    assert preview.headers["content-disposition"] == "inline"
+    assert preview.headers["cache-control"] == "private, no-store"
+    assert preview.headers["x-content-type-options"] == "nosniff"
+    assert preview.headers["content-security-policy"] == "sandbox; default-src 'none'"
+    with Image.open(io.BytesIO(preview.content)) as image:
+        image.load()
+        assert image.format == "JPEG" and image.size == (40, 20)
+        assert not image.getexif()
+    assert client.get(path, auth=AUTH).content == original
+    assert (
+        client.delete(f"/api/v1/chat/attachments/{attachment['id']}", auth=AUTH).status_code == 204
+    )
+    assert client.get(path, params={"preview": True}, auth=AUTH).status_code == 404
+
+
+def test_non_images_cannot_be_served_as_inline_previews(client: TestClient) -> None:
+    payload = generate(client)
+    attachment = upload(client, payload["conversationId"]).json()
+    path = f"/api/v1/chat/attachments/{attachment['id']}/content"
+    assert client.get(path, params={"preview": True}, auth=AUTH).status_code == 415
+    assert client.get(path, auth=AUTH).content == b"Synthetic attachment content"
+
+
 def test_pending_count_and_owner_storage_quotas(client: TestClient) -> None:
     first = generate(client)
     for _ in range(2):
@@ -276,6 +312,14 @@ def test_image_provider_input_and_history_survive_reload_without_websocket_binar
         client.get(f"/api/v1/chat/attachments/{attached['id']}/content", auth=AUTH).content
         == original
     )
+    assert (
+        client.get(
+            f"/api/v1/chat/attachments/{attached['id']}/content",
+            params={"preview": True},
+            auth=AUTH,
+        ).status_code
+        == 200
+    )
 
     # Restored history cannot silently drop its image when a text model is chosen.
     conversation = client.get(path, auth=AUTH).json()
@@ -319,6 +363,14 @@ def test_tampered_image_storage_fails_before_provider_generation(
     ).json()
     service = cast(AttachmentService, cast(FastAPI, client.app).state.chat_attachments)
     next(service.root.iterdir()).write_bytes(b"Synthetic storage tampering")
+    assert (
+        client.get(
+            f"/api/v1/chat/attachments/{attached['id']}/content",
+            params={"preview": True},
+            auth=AUTH,
+        ).status_code
+        == 422
+    )
     payload["attachmentIds"] = [attached["id"]]
     with client.websocket_connect(
         "/api/v1/chat/ws", subprotocols=protocols(client), headers=ORIGIN.copy()
@@ -359,6 +411,14 @@ def test_attachment_ownership_conversation_and_orphan_cleanup(client: TestClient
     client.portal.call(change_owner)
     assert (
         client.get(f"/api/v1/chat/attachments/{attachment['id']}/content", auth=AUTH).status_code
+        == 404
+    )
+    assert (
+        client.get(
+            f"/api/v1/chat/attachments/{attachment['id']}/content",
+            params={"preview": True},
+            auth=AUTH,
+        ).status_code
         == 404
     )
 

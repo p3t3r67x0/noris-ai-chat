@@ -30,6 +30,32 @@ describe('message actions', () => {
     expect(wrapper.getComponent(Button).attributes('aria-label')).toBe('Nachricht kopiert')
     wrapper.unmount()
   })
+  it('renders persisted image pixels using the authenticated preview and reports layout changes', async () => {
+    const attachment = { id: 'image-id', conversationId: 'c', messageId: 'm', originalFilename: 'synthetic.png', mimeType: 'image/png', sizeBytes: 100, sha256: 'a'.repeat(64), status: 'stored' as const, extractionStatus: 'not_applicable' as const, modelUsable: true, createdAt: message.createdAt }
+    const wrapper = mount(ChatMessage, { props: { message: { ...message, attachments: [attachment] } }, global: { stubs: { UButton: Button, UIcon: true } } })
+    const preview = wrapper.get('.message-attachment-image')
+    expect(preview.attributes('src')).toBe('/api/v1/chat/attachments/image-id/content?preview=true')
+    expect(preview.attributes('alt')).toBe('Angehängtes Bild: synthetic.png')
+    expect(preview.attributes('loading')).toBe('lazy')
+    await preview.trigger('load')
+    expect(wrapper.emitted('rendered')).toEqual([[]])
+    expect(wrapper.get('.message-attachments a').attributes('href')).toBe('/api/v1/chat/attachments/image-id/content')
+    await wrapper.setProps({ message: { ...message, role: 'assistant', attachments: [attachment] } })
+    expect(wrapper.find('.message-attachment-image').exists()).toBe(false)
+    wrapper.unmount()
+  })
+  it('keeps the original download available when a preview fails and supports retry', async () => {
+    const attachment = { id: 'image-id', conversationId: 'c', messageId: 'm', originalFilename: 'synthetic.jpg', mimeType: 'image/jpeg', sizeBytes: 100, sha256: 'a'.repeat(64), status: 'stored' as const, extractionStatus: 'not_applicable' as const, modelUsable: true, createdAt: message.createdAt }
+    const wrapper = mount(ChatMessage, { props: { message: { ...message, attachments: [attachment] } }, global: { stubs: { UButton: Button, UIcon: true } } })
+    await wrapper.get('.message-attachment-image').trigger('error')
+    expect(wrapper.get('[role="status"]').text()).toContain('Bildvorschau konnte nicht geladen werden')
+    expect(wrapper.find('.message-attachment-image').exists()).toBe(false)
+    expect(wrapper.get('.message-attachments a').attributes('download')).toBeDefined()
+    await wrapper.get('[aria-label="synthetic.jpg: Bildvorschau erneut laden"]').trigger('click')
+    expect(wrapper.get('.message-attachment-image').attributes('src')).toBe('/api/v1/chat/attachments/image-id/content?preview=true')
+    expect(wrapper.find('.message-image-error').exists()).toBe(false)
+    wrapper.unmount()
+  })
   it('reports unavailable clipboard access without pretending to copy', async () => {
     vi.stubGlobal('navigator', {})
     const wrapper = mount(ChatMessage, { props: { message }, global: { stubs: { UButton: Button } } })
