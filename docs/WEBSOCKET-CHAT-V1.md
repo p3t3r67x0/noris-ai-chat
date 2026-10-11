@@ -201,6 +201,16 @@ Commit von Textsnapshot, Sequenz und Event wird gesendet. Batching: 100 ms oder
 512 Zeichen. Terminal: `completed`, `incomplete` (Ausgabelimit), `failed`,
 `cancelled` oder `interrupted`, jeweils mit vollständigem `content`.
 
+Bei `finish_reason=length` setzt der Worker die Antwort automatisch über das
+bestehende Gateway fort. Modell, Assistant-ID, Generierungs-ID und Sequenz bleiben
+gleich; nur neuer Text wird angehängt. Es gibt ein einziges `started` und ein
+abschließendes Terminalereignis. Während der Fortsetzungen bleibt der Status
+`running`/`streaming`. Alle Generierungsereignisse enthalten `continuationCount`;
+ein leeres Delta speichert und überträgt den Zähler eines zugelassenen Folgeaufrufs.
+`incomplete` enthält bei erreichtem Fortsetzungslimit zusätzlich `code` und
+`message`. Die Limits und ihre Konfiguration beschreibt
+[AUTO-CONTINUATION.md](AUTO-CONTINUATION.md).
+
 `chat.conversation.updated` liefert die Ressource inklusive neuer Version;
 `chat.title.updated` informiert über den automatischen Titel. `chat.error`
 enthält sichere Codes und gegebenenfalls `requestId`, keine Provider-Details.
@@ -221,6 +231,11 @@ Unvollständiges/zu großes Replay führt zu `chat.resume.snapshot` mit
 damit das gespeicherte Präfix erhalten bleibt. Snapshot ersetzt den lokalen
 Text vollständig. Sequenzen ≤ zuletzt verarbeiteter Sequenz werden ignoriert.
 Terminale Snapshots beenden die Generierung ohne zusätzliche Deltas.
+Snapshots enthalten außerdem `continuationCount`, `code` und `message`, damit
+Zähler und Fehler-/Limitstatus auch nach Replay-Bereinigung erhalten bleiben.
+Der Browser übernimmt den vollständigen Text aus Terminalereignissen; damit
+bleiben beim Stop auch bereits serverseitig gespeicherte, noch nicht angezeigte
+Textabschnitte erhalten.
 
 Der Browser versucht maximal sechs Wiederverbindungen mit 250-ms- bis
 5-s-Backoff. Bei verlorenem Annahmeereignis wiederholt er denselben Befehl mit

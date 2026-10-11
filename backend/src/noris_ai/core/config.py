@@ -64,6 +64,7 @@ class Settings(BaseSettings):
     chat_stream_flush_ms: int = Field(default=100, ge=20, le=2000)
     chat_stream_flush_characters: int = Field(default=512, ge=32, le=8192)
     chat_stream_event_retention_hours: int = Field(default=168, ge=1, le=8760)
+    chat_auto_continue_max: int = Field(default=8, ge=0, le=20)
     chat_attachment_storage_dir: str = Field(
         default_factory=lambda: str(Path(__file__).resolve().parents[3] / ".local" / "attachments")
     )

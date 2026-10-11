@@ -42,10 +42,10 @@ function retryImage(id: string): void { failedImages.value[id] = false }
       <div v-if="message.content" data-selectable-message><MarkdownContent :content="message.content" :streaming="message.status === 'streaming'" @rendered="emit('rendered')" /></div>
       <div v-else-if="message.status === 'submitting' || message.status === 'streaming'" class="thinking-dot" aria-hidden="true" />
       <p v-if="message.status === 'cancelled'" class="mt-3 text-xs text-muted">Antwort gestoppt.</p>
-      <p v-else-if="message.status === 'incomplete'" class="mt-3 text-xs text-muted">Ausgabelimit erreicht{{ canContinue ? ' – weiterschreiben' : '' }}</p>
+      <p v-else-if="message.status === 'incomplete'" class="mt-3 text-xs text-muted">{{ message.errorMessage ?? `Ausgabelimit erreicht${canContinue ? ' – weiterschreiben' : ''}` }}</p>
       <p v-else-if="message.status === 'failed'" class="mt-3 text-xs text-error">{{ message.errorMessage ?? 'Die Antwort konnte nicht vollständig übertragen werden.' }}</p>
       <UButton v-if="canContinue" color="neutral" variant="outline" label="Weiterschreiben" class="mt-3 min-h-11" :disabled="busy" @click="emit('continue')" />
-      <p v-if="message.status === 'incomplete' && (message.continuationCount ?? 0) >= CHAT_LIMITS.max_continuations" class="mt-3 text-xs text-muted">Fortsetzungslimit erreicht. Der bisherige Text bleibt erhalten.</p>
+      <p v-if="message.status === 'incomplete' && !message.errorMessage && (message.continuationCount ?? 0) >= CHAT_LIMITS.max_continuations" class="mt-3 text-xs text-muted">Fortsetzungslimit erreicht. Der bisherige Text bleibt erhalten.</p>
       <p v-else-if="message.status === 'incomplete' && message.content.length >= CHAT_LIMITS.max_response_chars" class="mt-3 text-xs text-muted">Die Größenbegrenzung dieser Antwort ist erreicht.</p>
     </div>
     <div v-if="message.content && message.status !== 'streaming' && message.status !== 'submitting'" class="message-actions">

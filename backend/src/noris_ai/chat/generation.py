@@ -265,6 +265,9 @@ class GenerationManager:
                         "content": message.content,
                         "status": generation.status,
                         "lastSequence": generation.last_sequence,
+                        "continuationCount": message.continuation_count,
+                        "code": message.error_code,
+                        "message": message.error_message,
                     }
                 )
             if live is not None:
@@ -337,6 +340,9 @@ class GenerationManager:
             "",
         )
         terminal, error_code = "completed", None
+        continuation_count = request.continuationCount
+        automatic_continuations = 0
+        segment_start = len(content)
         last_flush = time.monotonic()
         iterator = None
         pending: (
@@ -355,6 +361,7 @@ class GenerationManager:
                 "conversationId": str(command.conversationId),
                 "messageId": str(command.assistantMessageId),
                 "seq": sequence + 1,
+                "continuationCount": continuation_count,
             }
             if kind == "started":
                 payload["modelId"] = command.modelId
@@ -371,6 +378,8 @@ class GenerationManager:
                     payload.update(code=error.code, message=error.message)
                 if kind == "incomplete":
                     payload["reason"] = "output_limit"
+                    if error_code:
+                        payload.update(code=error_code, message=LLMError(error_code).message)
             async with live.lock:
                 await self.repository.persist_generation_event(
                     command.requestId, payload, content, status, error_code
@@ -379,15 +388,22 @@ class GenerationManager:
                 for peer in live.peers:
                     peer.offer(payload)
 
+        def check_cancellation() -> None:
+            if live.cancellation_requested:
+                raise asyncio.CancelledError
+            if (
+                live.detached_at is not None
+                and time.monotonic() - live.detached_at >= self.config.chat_disconnect_grace_seconds
+            ):
+                live.interruption = True
+                raise asyncio.CancelledError
+
         try:
-            if live.cancellation_requested:
-                raise asyncio.CancelledError
+            check_cancellation()
             request = await self._image_request(request, path)
-            if live.cancellation_requested:
-                raise asyncio.CancelledError
+            check_cancellation()
             await self.gateway.reserve(request)
-            if live.cancellation_requested:
-                raise asyncio.CancelledError
+            check_cancellation()
             iterator = self.gateway.events(request)
             await emit("started")
             conversation = await self.repository.get_conversation(
@@ -401,8 +417,7 @@ class GenerationManager:
                 }
             )
             while True:
-                if live.cancellation_requested:
-                    raise asyncio.CancelledError
+                check_cancellation()
                 if pending is None:
                     pending = asyncio.create_task(anext(iterator))
                 interval = self.config.chat_stream_flush_ms / 1000
@@ -410,20 +425,57 @@ class GenerationManager:
                     max(0.001, interval - (time.monotonic() - last_flush)) if buffered else interval
                 )
                 done, _ = await asyncio.wait({pending}, timeout=wait_seconds)
-                if live.cancellation_requested:
-                    raise asyncio.CancelledError
-                if (
-                    live.detached_at is not None
-                    and time.monotonic() - live.detached_at
-                    >= self.config.chat_disconnect_grace_seconds
-                ):
-                    live.interruption = True
-                    raise asyncio.CancelledError
+                check_cancellation()
                 if done:
                     try:
                         event = pending.result()
                     except StopAsyncIteration:
-                        break
+                        pending = None
+                        # The gateway has closed/released this provider call. Only
+                        # explicit output exhaustion permits another admitted call.
+                        if terminal != "incomplete":
+                            break
+                        if not content[segment_start:].strip():
+                            raise LLMError("DUPLICATE_CONTINUATION") from None
+                        if continuation_count >= self.config.llm_max_continuations:
+                            error_code = "CONTINUATION_LIMIT"
+                            break
+                        if automatic_continuations >= self.config.chat_auto_continue_max:
+                            error_code = "AUTO_CONTINUATION_LIMIT"
+                            break
+                        if buffered:
+                            await emit("delta", buffered)
+                            buffered = ""
+                        check_cancellation()
+                        messages = list(request.messages)
+                        if request.operation == "continue":
+                            messages.pop()
+                        messages.append(LLMMessage(role="assistant", content=content))
+                        # Separate admission IDs preserve the gateway's duplicate
+                        # guards; the persisted generation/message/sequence stay fixed.
+                        request = request.model_copy(
+                            update={
+                                "generationId": (
+                                    f"{command.requestId}_auto_{automatic_continuations + 1}"
+                                ),
+                                "assistantMessageId": str(command.assistantMessageId),
+                                "messages": messages,
+                                "operation": "continue",
+                                "continuationCount": continuation_count + 1,
+                            }
+                        )
+                        await self.gateway.reserve(request)
+                        continuation_count += 1
+                        automatic_continuations += 1
+                        check_cancellation()
+                        # Persist the admitted count even if the next call remains
+                        # quiet. An empty delta keeps existing streaming UI stable.
+                        await emit("delta")
+                        check_cancellation()
+                        segment_start = len(content)
+                        terminal, error_code = "completed", None
+                        iterator = self.gateway.events(request)
+                        continue
                     pending = None
                     if event is not None:
                         if event.type == "response.output_text.delta":
@@ -456,8 +508,9 @@ class GenerationManager:
             try:
                 if buffered:
                     await emit("delta", buffered)
-                if live.cancellation_requested and terminal == "completed":
+                if live.cancellation_requested:
                     terminal = "cancelled"
+                    error_code = None
                 await emit(terminal, status=terminal)
             finally:
                 self.live.pop(command.requestId, None)

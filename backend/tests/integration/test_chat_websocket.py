@@ -38,6 +38,7 @@ class Simulator:
     def __init__(self) -> None:
         self.calls: list[list[ProviderMessage]] = []
         self.finished = False
+        self.auto_closed = 0
 
     async def discover_models(self) -> list[ProviderModel]:
         return [
@@ -58,6 +59,18 @@ class Simulator:
             return
         self.calls.append(list(messages))
         self.finished = False
+        prompt = next(m.content for m in messages if m.role == "user")
+        if prompt.startswith("/auto"):
+            previous = messages[-2].content if messages[0].role == "system" else ""
+            index = previous.count("Teil ")
+            try:
+                yield f"Teil {index}. "
+                await asyncio.sleep(10 if prompt == "/auto-slow" and index else 0.25)
+                if index < 2:
+                    raise LLMError("OUTPUT_LIMIT")
+            finally:
+                self.auto_closed += 1
+            return
         if messages[0].role == "system":
             yield "Fortsetzung."
             return
@@ -441,9 +454,186 @@ def receive_terminal(
             return event
 
 
+def test_automatic_continuations_persist_one_answer_and_regenerated_variant(
+    client: TestClient, simulator: Simulator
+) -> None:
+    payload = generate(client, "/auto")
+    path = f"/api/v1/conversations/{payload['conversationId']}"
+    with client.websocket_connect(
+        "/api/v1/chat/ws", subprotocols=protocols(client), headers=ORIGIN.copy()
+    ) as socket:
+        socket.receive_json()
+        socket.send_json(payload)
+        events: list[dict[str, object]] = []
+        while True:
+            event = socket.receive_json()
+            if "seq" not in event:
+                continue
+            events.append(event)
+            assert event["generationId"] == payload["requestId"]
+            assert event["messageId"] == payload["assistantMessageId"]
+            if event.get("delta") == "Teil 1. ":
+                rows = client.get(path + "/messages", auth=AUTH).json()["messages"]
+                assert len(rows) == 2
+                assert rows[-1]["content"] == "Teil 0. Teil 1. "
+                assert rows[-1]["status"] == "streaming"
+                assert rows[-1]["continuationCount"] == 1
+            if event["type"] == "chat.generation.completed":
+                break
+        assert [e["seq"] for e in events] == list(range(1, len(events) + 1))
+        assert sum(e["type"] == "chat.generation.started" for e in events) == 1
+        assert not any(e["type"] == "chat.generation.incomplete" for e in events)
+        assert events[-1]["content"] == "Teil 0. Teil 1. Teil 2. "
+        # Resending the accepted command never starts another chain.
+        assert receive_terminal(socket, payload, "completed")["content"] == events[-1]["content"]
+        assert len(simulator.calls) == 3
+        regenerated = payload | {
+            "requestId": str(uuid4()),
+            "assistantMessageId": str(uuid4()),
+            "conversationVersion": client.get(path, auth=AUTH).json()["version"],
+        }
+        assert (
+            receive_terminal(socket, regenerated, "completed")["content"] == events[-1]["content"]
+        )
+    rows = client.get(path + "/messages", auth=AUTH).json()["messages"]
+    assert len(rows) == 3
+    assert all(m["continuationCount"] == 2 and m["status"] == "completed" for m in rows[1:])
+    assert rows[1]["content"] == rows[2]["content"]
+    assert len(simulator.calls) == simulator.auto_closed == 6
+
+
+def test_reconnect_during_automatic_continuation_replays_without_duplicates(
+    client: TestClient, simulator: Simulator
+) -> None:
+    payload = generate(client, "/auto")
+    received, text = 0, ""
+    with client.websocket_connect(
+        "/api/v1/chat/ws", subprotocols=protocols(client), headers=ORIGIN.copy()
+    ) as socket:
+        socket.receive_json()
+        socket.send_json(payload)
+        while "Teil 1" not in text:
+            event = socket.receive_json()
+            received = event.get("seq", received)
+            text += event.get("delta", "")
+    with client.websocket_connect(
+        "/api/v1/chat/ws", subprotocols=protocols(client), headers=ORIGIN.copy()
+    ) as socket:
+        socket.receive_json()
+        socket.send_json(
+            {
+                "version": 1,
+                "type": "chat.resume",
+                "generationId": payload["requestId"],
+                "lastReceivedSeq": received,
+            }
+        )
+        while True:
+            event = socket.receive_json()
+            if "seq" not in event:
+                continue
+            assert event["seq"] == received + 1
+            received = event["seq"]
+            text += event.get("delta", "")
+            if event["type"] == "chat.generation.completed":
+                assert event["content"] == text == "Teil 0. Teil 1. Teil 2. "
+                assert event["continuationCount"] == 2
+                break
+    assert len(simulator.calls) == 3
+
+
+def test_stop_during_automatic_continuation_persists_full_prefix(
+    client: TestClient, simulator: Simulator
+) -> None:
+    payload = generate(client, "/auto-slow")
+    with client.websocket_connect(
+        "/api/v1/chat/ws", subprotocols=protocols(client), headers=ORIGIN.copy()
+    ) as socket:
+        socket.receive_json()
+        socket.send_json(payload)
+        while True:
+            event = socket.receive_json()
+            if event.get("delta") == "Teil 1. ":
+                socket.send_json(
+                    {"version": 1, "type": "chat.cancel", "generationId": payload["requestId"]}
+                )
+            if event["type"] == "chat.generation.cancelled":
+                assert event["content"] == "Teil 0. Teil 1. "
+                assert event["continuationCount"] == 1
+                break
+    rows = client.get(
+        f"/api/v1/conversations/{payload['conversationId']}/messages", auth=AUTH
+    ).json()["messages"]
+    assert len(rows) == 2
+    assert rows[-1]["content"] == "Teil 0. Teil 1. "
+    assert rows[-1]["status"] == "cancelled"
+    assert rows[-1]["continuationCount"] == 1
+    assert simulator.auto_closed == len(simulator.calls) == 2
+
+
+def test_auto_limit_status_snapshot_and_manual_continuation(
+    client: TestClient, simulator: Simulator
+) -> None:
+    manager = cast(GenerationManager, cast(FastAPI, client.app).state.chat_generations)
+    manager.config = manager.config.model_copy(update={"chat_auto_continue_max": 1})
+    payload = generate(client, "/auto")
+    path = f"/api/v1/conversations/{payload['conversationId']}"
+    with client.websocket_connect(
+        "/api/v1/chat/ws", subprotocols=protocols(client), headers=ORIGIN.copy()
+    ) as socket:
+        socket.receive_json()
+        final = receive_terminal(socket, payload, "incomplete")
+        assert final["content"] == "Teil 0. Teil 1. "
+        assert final["code"] == "AUTO_CONTINUATION_LIMIT"
+        rows = client.get(path + "/messages", auth=AUTH).json()["messages"]
+        assert rows[-1]["errorCode"] == final["code"]
+        assert rows[-1]["errorMessage"] == final["message"]
+        assert rows[-1]["continuationCount"] == 1
+
+        async def remove_replay() -> None:
+            database = cast(ModelDatabase, cast(FastAPI, client.app).state.chat_database)
+            async with database() as session, session.begin():
+                await session.execute(delete(ChatStreamEvent))
+
+        assert client.portal is not None
+        client.portal.call(remove_replay)
+        socket.send_json(
+            {
+                "version": 1,
+                "type": "chat.resume",
+                "generationId": payload["requestId"],
+                "lastReceivedSeq": 0,
+            }
+        )
+        assert socket.receive_json()["type"] == "chat.resume.accepted"
+        snapshot = socket.receive_json()
+        assert snapshot["status"] == "incomplete"
+        assert snapshot["continuationCount"] == 1
+        assert snapshot["code"] == final["code"]
+        assert snapshot["message"] == final["message"]
+        continued = payload | {
+            "requestId": str(uuid4()),
+            "assistantMessageId": str(uuid4()),
+            "conversationVersion": client.get(path, auth=AUTH).json()["version"],
+            "operation": "continue",
+            "sourceAssistantMessageId": payload["assistantMessageId"],
+        }
+        assert (
+            receive_terminal(socket, continued, "completed")["content"]
+            == "Teil 0. Teil 1. Teil 2. "
+        )
+    rows = client.get(path + "/messages", auth=AUTH).json()["messages"]
+    assert len(rows) == 3
+    assert rows[-2]["status"] == "incomplete"
+    assert rows[-1]["status"] == "completed" and rows[-1]["continuationCount"] == 2
+    assert len(simulator.calls) == 3
+
+
 def test_incomplete_continuation_preserves_original_and_snapshot_prefix(
     client: TestClient, simulator: Simulator
 ) -> None:
+    manager = cast(GenerationManager, cast(FastAPI, client.app).state.chat_generations)
+    manager.config = manager.config.model_copy(update={"chat_auto_continue_max": 0})
     payload = generate(client, "/length")
     path = f"/api/v1/conversations/{payload['conversationId']}"
     with client.websocket_connect(

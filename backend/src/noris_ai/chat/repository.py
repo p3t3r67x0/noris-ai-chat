@@ -851,6 +851,8 @@ class ChatRepository:
             message.updated_at = utc_now()
             message.error_code = error_code
             message.error_message = str(payload["message"]) if "message" in payload else None
+            if "continuationCount" in payload:
+                message.continuation_count = int(str(payload["continuationCount"]))
             session.add(
                 ChatStreamEvent(
                     generation_id=generation.id,

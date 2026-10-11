@@ -8,6 +8,7 @@ export interface StreamCallbacks {
   status: (status: Exclude<GenerationStatus, 'idle'>) => void
   failure?: (code: string, message: string) => void
   replace?: (text: string) => void
+  continuation?: (count: number) => void
 }
 
 export function useChatStream(transport: ChatTransport) {
@@ -44,6 +45,11 @@ export function useChatStream(transport: ChatTransport) {
           sequence = event.seq
           length = event.content.length
           callbacks.replace?.(event.content)
+          if (event.continuationCount !== undefined) callbacks.continuation?.(event.continuationCount)
+          if (event.code && event.message) {
+            error.value = event.message; errorCode.value = event.code
+            callbacks.failure?.(event.code, event.message)
+          }
           transition(event.status)
           if (!isBusy(status.value)) break
           continue
@@ -52,6 +58,12 @@ export function useChatStream(transport: ChatTransport) {
         if (event.seq !== sequence + 1) throw new Error('Die Antwort wurde unvollständig übertragen.')
         sequence = event.seq
         if (signal.aborted && event.type !== 'response.cancelled') continue
+        if (event.continuationCount !== undefined) callbacks.continuation?.(event.continuationCount)
+        if ('content' in event && event.content !== undefined) {
+          if (event.content.length > maxResponseChars) throw new Error('Die Antwort überschreitet die zulässige Länge.')
+          length = event.content.length
+          callbacks.replace?.(event.content)
+        }
         switch (event.type) {
           case 'response.started':
             if (status.value !== 'submitting') throw new Error('Die Antwort wurde mehrfach gestartet.')
@@ -67,7 +79,12 @@ export function useChatStream(transport: ChatTransport) {
             callbacks.delta(event.delta)
             break
           case 'response.completed': transition('completed'); break
-          case 'response.incomplete': transition('incomplete'); break
+          case 'response.incomplete':
+            if (event.code && event.message) {
+              error.value = event.message; errorCode.value = event.code
+              callbacks.failure?.(event.code, event.message)
+            }
+            transition('incomplete'); break
           case 'response.cancelled': transition('cancelled'); break
           case 'response.failed':
             error.value = event.message; errorCode.value = event.code

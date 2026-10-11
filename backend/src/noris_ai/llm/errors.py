@@ -36,6 +36,9 @@ MESSAGES = {
     ),
     "STREAM_SIZE_LIMIT": "Die Übertragung hat die konfigurierte Größenbegrenzung erreicht.",
     "CONTINUATION_LIMIT": "Die maximale Anzahl Fortsetzungen ist erreicht.",
+    "AUTO_CONTINUATION_LIMIT": (
+        "Das Limit für automatische Fortsetzungen ist erreicht. Der bisherige Text bleibt erhalten."
+    ),
     "DUPLICATE_CONTINUATION": (
         "Das Modell hat vorhandenen Text wiederholt. Die bisherige Antwort bleibt erhalten."
     ),
