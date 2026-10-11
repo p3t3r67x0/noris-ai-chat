@@ -71,7 +71,15 @@ jobs:
           make check-api
           make test-unit
       - name: Database integration and migration checks
+        env:
+          NORIS_TEST_CADDY_BINARY: ${{ runner.temp }}/noris-test-caddy
         run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y nginx
+          docker pull caddy:2.10.2-alpine
+          caddy_container=$(docker create caddy:2.10.2-alpine)
+          docker cp "$caddy_container:/usr/bin/caddy" "$NORIS_TEST_CADDY_BINARY"
+          docker rm "$caddy_container"
           make test-integration
           make migrate
       - name: Desktop and mobile browser tests
