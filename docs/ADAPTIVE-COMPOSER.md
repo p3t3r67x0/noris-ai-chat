@@ -14,6 +14,10 @@ Der anschließend vom Nutzer verlinkte abgeschlossene [Lauf 38130007749](https:/
 
 Der verlinkte [Compose-Job 114442197518](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/38130007749/job/114442197518?pr=43) bestand 275 Produktions-Browserfälle und 41 WebSocket-Fälle. Ein mobiler Verwaltungsfall scheiterte nach Reload: Der Trace liest `aria-expanded=true` aus dem noch nicht hydrierten DOM; später ist die mobile Sidebar geschlossen. Der vorhandene Testhelfer wartet jetzt vor der Zustandsprüfung auf `data-ready=true` und bestätigt nach dem Öffnen `aria-expanded=true`. Die bestehenden Persistenzassertions und Timeouts bleiben erhalten. Es wurden keine neuen Tests oder Docker-Aufrufe ausgeführt und nicht auf CI gewartet.
 
+Die 20 übernommenen Modell-/Mehrzeilen-/Streamingaufnahmen wurden zusätzlich mit dem bereits abgeschlossenen zweiten [Lauf 38130011080](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/38130011080) desselben Commits `2791496` verglichen: Alle 20 stimmen pixelgenau überein.
+
+Im Produktionslauf von PR #44 bestand der Suchdialog-Fokusfall erst im Retry. Dessen Trace zeigt eine erneute Öffnung direkt nach dem Schließen, noch vor abgeschlossenem Fokus-Cleanup; der unmittelbar folgende Außenklick schloss den Dialog nicht. Der bestehende Test wartet jetzt auf den verschwundenen Dialog und zurückgegebenen Composer-Fokus, bevor er wieder öffnet, sowie auf Suchfeld-Fokus vor dem Außenklick. Die bestehenden Dismissal-Assertions und Timeouts bleiben erhalten. Diese Ergänzung wurde ausschließlich anhand vorhandener CI-Artefakte und Code geprüft; keine neuen Tests, Docker-Aufrufe oder CI-Wartezeiten wurden durchgeführt.
+
 Der bestehende `ChatComposer.vue` verwendet weiterhin eine einzige `UChatPrompt`-Instanz und deren native Textarea, Enter-/Shift+Enter- und IME-Behandlung. Das CSS-Grid wechselt zwischen einer gemeinsamen Zeile und Texteingabe über der unteren Aktionszeile. Es gibt keine zweite Composer-Instanz und keinen Remount beim Layoutwechsel.
 
 ## Referenz und Geometrie
