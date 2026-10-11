@@ -1,11 +1,19 @@
+{
+	servers {
+		# Space-separated IPs/CIDRs of the immediate ingress proxy; empty trusts none.
+		trusted_proxies static {$NORIS_CADDY_TRUSTED_PROXIES}
+		trusted_proxies_strict
+	}
+}
+
 :8080 {
-  @api path /api/*
-  handle @api {
-    reverse_proxy backend:8000 {
-      flush_interval -1
-    }
-  }
-  handle {
-    reverse_proxy frontend:3000
-  }
+	@api path /api/*
+	handle @api {
+		reverse_proxy backend:8000 {
+			flush_interval -1
+		}
+	}
+	handle {
+		reverse_proxy frontend:3000
+	}
 }

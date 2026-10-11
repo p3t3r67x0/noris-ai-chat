@@ -121,6 +121,8 @@ services:
 
   proxy:
     image: caddy:2.10.2-alpine
+    environment:
+      NORIS_CADDY_TRUSTED_PROXIES: ${NORIS_CADDY_TRUSTED_PROXIES:-}
     ports:
       - "127.0.0.1:${NORIS_HTTP_PORT:-8080}:8080"
     volumes:
