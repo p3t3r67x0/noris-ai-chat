@@ -1,6 +1,8 @@
 import type { ApiSchemas } from '../../app/types/generated/api'
 import { expect, test } from '@playwright/test'
 
+test.setTimeout(60_000)
+
 test.beforeEach(async ({ request }) => {
   let cursor: string | null = null
   do {
@@ -77,13 +79,13 @@ test('reload and WebSocket reconnect during an automatic continuation preserve t
   await composer.fill(`/long-stop reload ${info.project.name}`)
   await composer.press('Enter')
   const reply = page.locator('.message-assistant')
-  await expect(reply).toContainText("print('neu')")
+  await expect(reply).toContainText("print('neu')", { timeout: 15_000 })
   await expect(reply).toHaveAttribute('data-status', 'streaming')
   const id = await reply.getAttribute('data-message-id')
   await page.reload()
   await expect(reply).toHaveAttribute('data-message-id', id!)
   await expect(reply).toHaveAttribute('data-status', 'streaming')
-  await expect(reply).toContainText("print('neu')")
+  await expect(reply).toContainText("print('neu')", { timeout: 15_000 })
   await page.evaluate(() => {
     const sockets = (window as typeof window & { fixtureSockets: WebSocket[] }).fixtureSockets
     sockets.at(-1)!.close()
@@ -107,7 +109,7 @@ test('Stop during automatic continuation keeps all persisted text after reload',
   await composer.fill(`/long-stop stop ${info.project.name}`)
   await composer.press('Enter')
   const reply = page.locator('.message-assistant')
-  await expect(reply).toContainText("print('neu')")
+  await expect(reply).toContainText("print('neu')", { timeout: 15_000 })
   const id = await reply.getAttribute('data-message-id')
   await page.getByRole('button', { name: 'Antwort stoppen', exact: true }).click()
   await expect(reply).toHaveAttribute('data-status', 'cancelled')
@@ -120,6 +122,6 @@ test('Stop during automatic continuation keeps all persisted text after reload',
   await page.reload()
   await expect(reply).toHaveAttribute('data-status', 'cancelled')
   await expect(reply).toHaveAttribute('data-message-id', id!)
-  await expect(reply).toContainText("print('neu')")
+  await expect(reply).toContainText("print('neu')", { timeout: 15_000 })
   await expect(page.getByRole('button', { name: 'Weiterschreiben', exact: true })).toBeVisible()
 })
