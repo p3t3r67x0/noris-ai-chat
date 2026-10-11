@@ -9,7 +9,8 @@ export async function openDataControls(page: Page) {
   else {
     await page.getByRole('button', { name: 'Sidebar öffnen', exact: true }).click()
   }
-  await page.getByRole('button', { name: 'Einstellungen', exact: true }).click()
+  if (await page.locator('.profile-menu').isVisible()) await page.getByRole('menuitem', { name: 'Einstellungen', exact: true }).click()
+  else await page.getByRole('button', { name: 'Einstellungen', exact: true }).click()
   const settings = page.getByRole('main', { name: 'Einstellungen', exact: true })
   await expect(settings).toBeVisible()
   await openSettingsCategory(page, 'Datenkontrollen')
