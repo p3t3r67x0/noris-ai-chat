@@ -59,25 +59,25 @@ async def test_full_24_catalog_and_account_entitlements(llm_config: Settings) ->
 
 
 @pytest.mark.parametrize(
-    "model_id,context",
+    "model_id,context,provider_output",
     [
-        (DEEPSEEK, 1048576),
-        ("vllm/qsu/glm-5-3-flash", 1048576),
-        ("vllm/release/glm-5-2", 1048576),
-        ("vllm/release/gpt-oss-120b", 131072),
-        (QWEN, 131072),
-        ("vllm/release/gemma-4-31b-it", 131072),
-        ("vllm/release/qwen3.6-27b", 131072),
+        (DEEPSEEK, 1048576, 1048576),
+        ("vllm/qsu/glm-5-3-flash", 1048576, 1048576),
+        ("vllm/release/glm-5-2", 1048576, 1048576),
+        ("vllm/release/gpt-oss-120b", 131072, 131072),
+        (QWEN, 131072, 131072),
+        ("vllm/release/gemma-4-31b-it", 131072, 131072),
+        ("vllm/release/qwen3.6-27b", 131072, 8192),
     ],
 )
 def test_reported_context_is_used_without_increasing_output(
-    llm_config: Settings, model_id: str, context: int
+    llm_config: Settings, model_id: str, context: int, provider_output: int
 ) -> None:
     model = resolve(raw(model_id), llm_config)
     assert model.provider_context_window == context
     assert model.context_window == model.effective_context_window == context
     assert model.max_output_tokens == REGISTRY[model_id].max_output_tokens
-    assert model.provider_max_output_tokens == context
+    assert model.provider_max_output_tokens == provider_output
     assert model.verified_max_output_tokens is None
     assert model.provenance["provider_context_window"] == "PROVIDER"
     assert model.provenance["effective_context_window"] == "PROVIDER"
@@ -325,6 +325,11 @@ def test_image_permission_follows_modalities_when_catalog_changes(
     llm_config: Settings, model_id: str, expected: bool
 ) -> None:
     data = next(item for item in payload()["data"] if item["id"] == model_id)
+    # The historical catalog fixture reports text only. Image-capable cases
+    # explicitly simulate updated provider facts rather than infer from IDs.
+    assert supports_images(resolve(data, llm_config)) is False
+    if expected:
+        data["input_modalities"].append({"type": "image"})
     assert supports_images(resolve(data, llm_config)) is expected
     # The same ID and local policy immediately lose image permission when facts change.
     data["input_modalities"] = [

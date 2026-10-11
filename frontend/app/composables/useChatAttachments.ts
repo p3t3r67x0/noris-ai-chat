@@ -94,10 +94,10 @@ export function useChatAttachments(backend: ChatBackend | undefined, active: Ref
   async function add(selected: File[]): Promise<void> {
     if (!available.value || !limits.value) return
     error.value = null
+    if (files.value.length + selected.length > limits.value.maxFiles) { error.value = `Maximal ${limits.value.maxFiles} Dateien pro Nachricht.`; return }
     const conversation = active.value ?? createConversation()
     records.value[conversation.id] ??= []
     const list = records.value[conversation.id]!
-    if (list.length + selected.length > limits.value.maxFiles) { error.value = `Maximal ${limits.value.maxFiles} Dateien pro Nachricht.`; return }
     // Reserve all slots synchronously before starting asynchronous uploads.
     const added = selected.map(file => ({ key: crypto.randomUUID(), filename: file.name, mime: file.type || extensions[file.name.split('.').at(-1)?.toLowerCase() ?? ''] || '', size: file.size, status: 'uploading' as const, progress: 0, file }))
     list.push(...added)

@@ -96,11 +96,14 @@ test('removing an in-flight upload aborts its request without leaving a preview'
   await expect(page.locator('.composer-container')).toHaveAttribute('data-layout', 'compact')
 })
 
-test('file count, type and size limits are visible and never create usable attachments', async ({ page }) => {
+test('file count, type and size limits are visible and never create usable attachments', async ({ page, request }) => {
   await page.goto('/')
   await selectFiles(page, Array.from({ length: 6 }, (_, i) => ({ ...textFile, name: `synthetic-${i}.txt` })))
   await expect(page.getByRole('alert')).toContainText('Maximal 5 Dateien')
   await expect(page.locator('.attachment-preview')).toHaveCount(0)
+  const conversations = await request.get('/api/v1/conversations')
+  expect(conversations.ok()).toBe(true)
+  expect((await conversations.json()).conversations).toHaveLength(0)
   await selectFiles(page, [{ name: 'synthetic.zip', mimeType: 'application/zip', buffer: Buffer.from('Synthetic invalid archive') }])
   await expect(page.locator('[data-upload-status="failed"]')).toContainText('Dateityp wird nicht unterstützt')
   await page.getByRole('button', { name: 'synthetic.zip entfernen' }).click()
