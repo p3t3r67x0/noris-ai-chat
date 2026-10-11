@@ -185,7 +185,7 @@ test('keeps loaded ancestors after streaming and restores a saved reader anchor 
   await expect(page.locator('[data-message-id]')).toHaveCount(100)
   const composer = page.getByRole('textbox', { name: 'Nachricht' })
   await composer.fill('Full context through a lazy window')
-  await composer.press('Enter')
+  await page.getByRole('button', { name: 'Nachricht senden', exact: true }).click()
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   await expect(page.locator('[data-message-id]')).toHaveCount(102)
   await scroller.evaluate(element => { element.scrollTop = 0 })

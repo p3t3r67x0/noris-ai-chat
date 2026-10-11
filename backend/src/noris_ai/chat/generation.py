@@ -80,7 +80,6 @@ class LiveGeneration:
     task: asyncio.Task[None] | None = None
     interruption: bool = False
     cancellation_requested: bool = False
-    started: bool = False
 
 
 class GenerationManager:
@@ -197,6 +196,10 @@ class GenerationManager:
         for generation_id, live in list(self.live.items()):
             if live.command.conversationId == conversation_id:
                 await self.cancel(generation_id)
+                # Conversation deletion must wait for the final write before
+                # removing the rows that the worker is still using.
+                if live.task is not None:
+                    await asyncio.gather(live.task, return_exceptions=True)
 
     async def resume(self, peer: Peer, generation_id: UUID, last_sequence: int) -> None:
         live = self.live.get(generation_id)
@@ -259,9 +262,9 @@ class GenerationManager:
         )
         live = self.live.get(generation_id)
         if live is not None and live.task is not None:
+            # The worker observes this between committed events. Cancelling its
+            # task could interrupt a commit before the local sequence advances.
             live.cancellation_requested = True
-            if live.started:
-                live.task.cancel()
 
     async def close(self) -> None:
         tasks: list[asyncio.Task[None]] = list(self.tasks)
@@ -311,7 +314,6 @@ class GenerationManager:
     async def _run(
         self, live: LiveGeneration, request: ChatRequest, path: list[ChatMessage]
     ) -> None:
-        live.started = True
         command = live.command
         sequence, content, buffered = (
             0,
@@ -365,7 +367,11 @@ class GenerationManager:
             if live.cancellation_requested:
                 raise asyncio.CancelledError
             request = await self._image_request(request, path)
+            if live.cancellation_requested:
+                raise asyncio.CancelledError
             await self.gateway.reserve(request)
+            if live.cancellation_requested:
+                raise asyncio.CancelledError
             iterator = self.gateway.events(request)
             await emit("started")
             conversation = await self.repository.get_conversation(
@@ -379,6 +385,8 @@ class GenerationManager:
                 }
             )
             while True:
+                if live.cancellation_requested:
+                    raise asyncio.CancelledError
                 if pending is None:
                     pending = asyncio.create_task(anext(iterator))
                 interval = self.config.chat_stream_flush_ms / 1000
@@ -386,6 +394,8 @@ class GenerationManager:
                     max(0.001, interval - (time.monotonic() - last_flush)) if buffered else interval
                 )
                 done, _ = await asyncio.wait({pending}, timeout=wait_seconds)
+                if live.cancellation_requested:
+                    raise asyncio.CancelledError
                 if (
                     live.detached_at is not None
                     and time.monotonic() - live.detached_at
@@ -430,6 +440,8 @@ class GenerationManager:
             try:
                 if buffered:
                     await emit("delta", buffered)
+                if live.cancellation_requested and terminal == "completed":
+                    terminal = "cancelled"
                 await emit(terminal, status=terminal)
             finally:
                 self.live.pop(command.requestId, None)
