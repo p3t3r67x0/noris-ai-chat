@@ -64,19 +64,82 @@ async def test_full_24_catalog_and_account_entitlements(llm_config: Settings) ->
         ("vllm/qsu/glm-5-3-flash", 1048576),
         ("vllm/release/glm-5-2", 1048576),
         ("vllm/release/gpt-oss-120b", 131072),
+        (QWEN, 131072),
+        ("vllm/release/gemma-4-31b-it", 131072),
+        ("vllm/release/qwen3.6-27b", 131072),
     ],
 )
-def test_reported_context_is_not_local_policy(
+def test_reported_context_is_used_without_increasing_output(
     llm_config: Settings, model_id: str, context: int
 ) -> None:
     model = resolve(raw(model_id), llm_config)
     assert model.provider_context_window == context
-    assert model.context_window == model.effective_context_window
-    assert model.context_window <= 16384
+    assert model.context_window == model.effective_context_window == context
+    assert model.max_output_tokens == REGISTRY[model_id].max_output_tokens
     assert model.provider_max_output_tokens == context
     assert model.verified_max_output_tokens is None
     assert model.provenance["provider_context_window"] == "PROVIDER"
+    assert model.provenance["effective_context_window"] == "PROVIDER"
+
+
+@pytest.mark.parametrize(
+    "caps,expected",
+    [
+        ({"context_window": 32768}, 32768),
+        ({"context_window": 2_000_000}, 1048576),
+        (
+            {
+                "provider_context_window": 65536,
+                "provider_limit_evidence": "Synthetic operator cap",
+            },
+            65536,
+        ),
+    ],
+)
+def test_explicit_operator_context_caps_do_not_replace_provider_facts(
+    llm_config: Settings, caps: dict[str, object], expected: int
+) -> None:
+    override = LLMModel.model_validate({"id": DEEPSEEK, "name": "DeepSeek"} | caps)
+    config = llm_config.model_copy(update={"llm_models": (override,)})
+    model = resolve(raw(), config)
+    assert model.context_window == model.effective_context_window == expected
+    assert model.provider_context_window == 1048576
     assert model.provenance["effective_context_window"] == "LOCAL_POLICY"
+    assert model.max_output_tokens == 4096
+
+
+def test_name_only_override_does_not_restore_the_8192_default_cap(llm_config: Settings) -> None:
+    override = LLMModel(id=DEEPSEEK, name="DeepSeek")
+    config = llm_config.model_copy(update={"llm_models": (override,)})
+    model = resolve(raw(), config)
+    assert model.context_window == 1048576
+    assert model.max_output_tokens == 4096
+    assert model.provenance["effective_context_window"] == "PROVIDER"
+
+
+def test_provider_context_reduction_is_respected(llm_config: Settings) -> None:
+    data = raw()
+    data["input_modalities"][0]["supported_inputs"]["max_context_length"]["value"] = 4096
+    model = resolve(data, llm_config)
+    assert model.context_window == model.provider_context_window == 4096
+    assert (
+        model.max_output_tokens
+        + model.reasoning_reserve_tokens
+        + llm_config.llm_context_safety_tokens
+        + llm_config.llm_system_reserved_tokens
+        + 97
+        <= 4096
+    )
+
+
+def test_provider_context_above_the_structural_ceiling_is_not_admitted(
+    llm_config: Settings,
+) -> None:
+    data = raw()
+    data["input_modalities"][0]["supported_inputs"]["max_context_length"]["value"] = 3_000_000
+    model = resolve(data, llm_config)
+    assert not model.available
+    assert not chat_compatible(model)
 
 
 @pytest.mark.parametrize(

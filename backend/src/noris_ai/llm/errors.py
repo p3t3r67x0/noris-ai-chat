@@ -14,7 +14,11 @@ MESSAGES = {
     "ORIGIN_DENIED": "Diese Herkunft ist für Modellanfragen nicht zugelassen.",
     "REQUEST_TOO_LARGE": "Die Anfrage überschreitet die zulässige Größe.",
     "INVALID_REQUEST": "Die Anfrage muss gültiges JSON enthalten.",
-    "CONTEXT_LIMIT": "Der Gesprächskontext ist zu groß für dieses Modell. Starte einen neuen Chat.",
+    "CONTEXT_LIMIT": (
+        "Die Anfrage überschreitet mit Gespräch, Anhängen und reservierter Antwort "
+        "das Kontextlimit dieses Modells. Kürze den Inhalt oder wähle ein Modell "
+        "mit größerem Kontext."
+    ),
     "MODEL_UNAVAILABLE": "Das ausgewählte Modell ist nicht verfügbar.",
     "RATE_LIMIT": "Zu viele Modellanfragen. Bitte versuche es später erneut.",
     "BUDGET_LIMIT": "Das konfigurierte tägliche Tokenbudget ist ausgeschöpft.",

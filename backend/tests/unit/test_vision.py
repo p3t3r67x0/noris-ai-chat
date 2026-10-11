@@ -144,6 +144,66 @@ async def test_documented_multimodal_payload_streams_without_a_live_provider(
     assert body["max_tokens"] == llm_config.llm_models[0].max_output_tokens
 
 
+async def test_deepseek_uses_reported_context_for_images_without_increasing_output_or_budget(
+    tmp_path: Path, llm_config: Settings
+) -> None:
+    model_id = "vllm/qsu/deepseek-v41-flash"
+    captured: list[httpx.Request] = []
+
+    def handler(upstream: httpx.Request) -> httpx.Response:
+        captured.append(upstream)
+        return httpx.Response(
+            200,
+            json={
+                "data": [
+                    {
+                        "id": model_id,
+                        "schema_version": "2.4",
+                        "is_ready": True,
+                        "input_modalities": [
+                            {
+                                "type": "text",
+                                "supported_inputs": {
+                                    "max_context_length": {"value": 1048576, "unit": "token"}
+                                },
+                            },
+                            {"type": "image"},
+                        ],
+                        "output_modalities": [
+                            {
+                                "type": "text",
+                                "streaming": True,
+                                "supported_parameters": {
+                                    "max_tokens": {"max": 1048576, "unit": "token"}
+                                },
+                            }
+                        ],
+                    }
+                ]
+            },
+        )
+
+    provider = OpenAICompatibleProvider(llm_config, transport=httpx.MockTransport(handler))
+    gateway = LLMGateway(llm_config, provider)
+    message = image_message(tmp_path)
+    message = message.model_copy(
+        update={"content": "Synthetic longer input " * 300, "images": message.images * 2}
+    )
+    payload = request(message).model_copy(update={"modelId": model_id})
+    try:
+        await gateway.reserve(payload)
+        model = await gateway.catalog.require(model_id)
+        assert model.context_window == model.effective_context_window == 1048576
+        assert model.max_output_tokens == 4096
+        assert model.provenance["effective_context_window"] == "PROVIDER"
+        assert gateway.config.llm_daily_token_budget == llm_config.llm_daily_token_budget
+        assert TokenCounter(llm_config).estimate(payload.messages, model_id) > 8192
+        assert all(upstream.method == "GET" for upstream in captured)
+    finally:
+        gateway.release(payload.generationId)
+        await provider.aclose()
+
+
 @pytest.mark.parametrize("failure", ["modality", "context", "bytes", "budget"])
 async def test_image_admission_rejects_incompatible_or_over_budget_requests_before_post(
     tmp_path: Path, llm_config: Settings, failure: str
