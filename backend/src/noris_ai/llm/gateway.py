@@ -1,4 +1,5 @@
 import asyncio
+import json
 from collections import deque
 from collections.abc import AsyncGenerator, AsyncIterator, Sequence
 from datetime import UTC, datetime
@@ -12,7 +13,7 @@ from noris_ai.llm.catalog import ModelCatalogService
 from noris_ai.llm.continuation import ContinuationFilter, continuation_messages, utf16_length
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.pricing import estimate_cost
-from noris_ai.llm.provider import LLMProvider, ProviderMessage
+from noris_ai.llm.provider import LLMProvider, ProviderMessage, provider_payload
 from noris_ai.llm.schemas import (
     ChatRequest,
     CompletedEvent,
@@ -27,6 +28,7 @@ from noris_ai.llm.schemas import (
 )
 from noris_ai.llm.titles import TitleInstruction, title_source, validate_title
 from noris_ai.llm.tokens import TokenCounter
+from noris_ai.llm.vision import VisionMessage, supports_images
 
 
 class LLMGateway:
@@ -83,6 +85,13 @@ class LLMGateway:
     ) -> LLMModel:
         if self.provider is None:
             raise LLMError("LLM_DISABLED", 503)
+        if any(isinstance(message, VisionMessage) for message in messages):
+            if not supports_images(model):
+                raise LLMError("MODEL_UNAVAILABLE", 400)
+            # Bound the actual inline image request separately from text/context tokens.
+            payload = json.dumps([provider_payload(m) for m in messages], ensure_ascii=False)
+            if len(payload.encode("utf-8")) + 2048 > self.config.llm_max_request_bytes:
+                raise LLMError("REQUEST_TOO_LARGE", 413)
         # UTF-8 byte count is a deliberately conservative bound, not a tokenizer claim.
         if output_limit is not None:
             model = model.model_copy(

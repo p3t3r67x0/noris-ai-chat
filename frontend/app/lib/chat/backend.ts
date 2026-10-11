@@ -26,6 +26,7 @@ export function messageFromServer(value: ServerMessage): ChatMessage {
     ...(value.generationId ? { generationId: value.generationId } : {}),
     ...(value.modelId ? { modelId: value.modelId } : {}),
     ...(value.editedFromMessageId ? { editedFromMessageId: value.editedFromMessageId } : {}),
+    ...(value.attachments?.length ? { attachments: value.attachments } : {}),
   }
 }
 

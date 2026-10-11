@@ -10,6 +10,23 @@ class ChatError(Exception):
 
 
 MESSAGES = {
+    "ATTACHMENT_NOT_FOUND": "Diese Datei ist nicht verfügbar oder gehört zu einem anderen Chat.",
+    "ATTACHMENT_TYPE": (
+        "Erlaubt sind UTF-8-Text, Markdown, PDF, PNG und JPEG mit passendem Dateiformat."
+    ),
+    "ATTACHMENT_INVALID": "Die Datei ist beschädigt oder überschreitet die Verarbeitungslimits.",
+    "ATTACHMENT_SIZE": "Die Datei ist leer oder überschreitet die erlaubte Dateigröße.",
+    "ATTACHMENT_QUOTA": (
+        "Die Datei- oder Speichergrenze ist erreicht. Entferne nicht mehr benötigte Dateien."
+    ),
+    "ATTACHMENT_IN_USE": (
+        "Eine gesendete Datei kann nur zusammen mit der Unterhaltung gelöscht werden."
+    ),
+    "ATTACHMENT_INCOMPATIBLE": (
+        "Diese Datei kann vom gewählten Modell nicht verwendet werden. "
+        "Bilder benötigen ein Modell mit bestätigter Bildeingabe. "
+        "PDFs ohne extrahierbaren Text können nur gespeichert werden."
+    ),
     "NOT_FOUND": "Diese Unterhaltung existiert nicht.",
     "ACCESS_DENIED": "Bitte melde dich für den Chatzugriff an.",
     "ORIGIN_DENIED": "Diese Herkunft ist für Chatanfragen nicht zugelassen.",

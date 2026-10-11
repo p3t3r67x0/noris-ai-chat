@@ -306,3 +306,19 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 .profile-trigger-copy small { font-size: var(--noris-account-caption-font-size); color: var(--noris-text-secondary); }
 /* Keep the trigger clickable while Reka contains focus and disables outside pointers. */
 .profile-trigger[data-state="open"] { pointer-events: auto; }
+
+.composer-files { grid-column: 1; grid-row: 1; width: 100%; min-width: 0; }
+.attachment-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0.25rem; list-style: none; max-height: min(10rem, 20cqh); overflow-y: auto; }
+.attachment-preview { display: flex; align-items: center; gap: 0.5rem; min-width: 0; width: min(100%, 23rem); padding: 0.5rem; border: 1px solid var(--noris-border); border-radius: 1rem; }
+.attachment-copy { flex: 1; min-width: 0; }
+.attachment-filename { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.875rem; }
+.attachment-detail { font-size: 0.75rem; line-height: 1.4; color: var(--noris-text-secondary); overflow-wrap: anywhere; }
+.attachment-preview[data-upload-status="failed"] { border-color: var(--ui-error); }
+.message-attachments { max-width: 100%; list-style: none; padding: 0; margin-top: 0.5rem; }
+.message-attachment { display: flex; align-items: center; gap: 0.5rem; max-width: 100%; min-height: 2.75rem; padding: 0.5rem 0.75rem; border: 1px solid var(--noris-border); border-radius: 1rem; text-decoration: none; }
+.message-attachments li + li { margin-top: 0.5rem; }
+.message-attachment-image { display: block; width: 16rem; height: 16rem; max-width: 100%; object-fit: contain; margin-bottom: 0.5rem; border: 1px solid var(--noris-border); border-radius: 1rem; }
+.message-image-error { display: flex; align-items: center; flex-wrap: wrap; max-width: 100%; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--noris-text-secondary); }
+
+.composer-expanded:has(.composer-files) { --noris-composer-input-max-height: min(10rem, 15cqh); }
+@container (max-height: 300px) { .composer-dock:has(.composer-files) .composer-note { display: none; } }

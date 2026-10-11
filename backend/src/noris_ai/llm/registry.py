@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 from noris_ai.llm.schemas import LLMModel, ModelCategory, TimeoutPolicy
 
-REGISTRY_VERSION = "2026-10-10.1"
+REGISTRY_VERSION = "2026-10-11.1"
 API_SOURCE = "https://noris.cloud/nai/api/chat-completions/"
 
 
@@ -342,7 +342,28 @@ def resolve_model(facts: "ProviderModel", config: "Settings") -> LLMModel:
     override = next((item for item in config.llm_models if item.id == facts.id), None)
     operator_context = override.provider_context_window if override else None
     operator_output = override.provider_max_output_tokens if override else None
-    effective_context = min(policy.context_window, context or 8192, operator_context or 2_000_000)
+    explicit_context = (
+        override.context_window
+        if override is not None and "context_window" in override.model_fields_set
+        else None
+    )
+    # Registry context values are conservative fallbacks, not provider capacities.
+    # A token-valued catalog fact authorizes its reported context, while explicitly
+    # configured operator caps and the schema's absolute ceiling still apply.
+    effective_context = min(
+        context if context is not None else min(policy.context_window, 8192),
+        explicit_context if explicit_context is not None else 2_000_000,
+        operator_context if operator_context is not None else 2_000_000,
+        2_000_000,
+    )
+    context_provenance = (
+        "PROVIDER"
+        if context is not None
+        and explicit_context is None
+        and operator_context is None
+        and effective_context == context
+        else "LOCAL_POLICY"
+    )
     verified = policy.verified_max_output_tokens
     effective_output = min(
         policy.max_output_tokens,
@@ -430,7 +451,7 @@ def resolve_model(facts: "ProviderModel", config: "Settings") -> LLMModel:
             "provider_context_window": "PROVIDER" if context else "UNKNOWN",
             "provider_max_output_tokens": "PROVIDER" if output else "UNKNOWN",
             "verified_max_output_tokens": "LIVE_TEST" if verified else "UNKNOWN",
-            "effective_context_window": "LOCAL_POLICY",
+            "effective_context_window": context_provenance,
             "effective_max_output_tokens": "LOCAL_POLICY",
             "chat_approved": "LOCAL_POLICY",
             "timeout_policy": "LOCAL_POLICY",

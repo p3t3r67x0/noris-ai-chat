@@ -14,6 +14,7 @@ from noris_ai.llm.pricing import estimate_cost, model_cost
 from noris_ai.llm.provider_models import ProviderModel
 from noris_ai.llm.registry import REGISTRY, chat_compatible, resolve_model
 from noris_ai.llm.schemas import LLMModel
+from noris_ai.llm.vision import supports_images
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures/noris-models-2.4.json"
 DEEPSEEK = "vllm/qsu/deepseek-v41-flash"
@@ -58,25 +59,88 @@ async def test_full_24_catalog_and_account_entitlements(llm_config: Settings) ->
 
 
 @pytest.mark.parametrize(
-    "model_id,context",
+    "model_id,context,provider_output",
     [
-        (DEEPSEEK, 1048576),
-        ("vllm/qsu/glm-5-3-flash", 1048576),
-        ("vllm/release/glm-5-2", 1048576),
-        ("vllm/release/gpt-oss-120b", 131072),
+        (DEEPSEEK, 1048576, 1048576),
+        ("vllm/qsu/glm-5-3-flash", 1048576, 1048576),
+        ("vllm/release/glm-5-2", 1048576, 1048576),
+        ("vllm/release/gpt-oss-120b", 131072, 131072),
+        (QWEN, 131072, 131072),
+        ("vllm/release/gemma-4-31b-it", 131072, 131072),
+        ("vllm/release/qwen3.6-27b", 131072, 8192),
     ],
 )
-def test_reported_context_is_not_local_policy(
-    llm_config: Settings, model_id: str, context: int
+def test_reported_context_is_used_without_increasing_output(
+    llm_config: Settings, model_id: str, context: int, provider_output: int
 ) -> None:
     model = resolve(raw(model_id), llm_config)
     assert model.provider_context_window == context
-    assert model.context_window == model.effective_context_window
-    assert model.context_window <= 16384
-    assert model.provider_max_output_tokens == context
+    assert model.context_window == model.effective_context_window == context
+    assert model.max_output_tokens == REGISTRY[model_id].max_output_tokens
+    assert model.provider_max_output_tokens == provider_output
     assert model.verified_max_output_tokens is None
     assert model.provenance["provider_context_window"] == "PROVIDER"
+    assert model.provenance["effective_context_window"] == "PROVIDER"
+
+
+@pytest.mark.parametrize(
+    "caps,expected",
+    [
+        ({"context_window": 32768}, 32768),
+        ({"context_window": 2_000_000}, 1048576),
+        (
+            {
+                "provider_context_window": 65536,
+                "provider_limit_evidence": "Synthetic operator cap",
+            },
+            65536,
+        ),
+    ],
+)
+def test_explicit_operator_context_caps_do_not_replace_provider_facts(
+    llm_config: Settings, caps: dict[str, object], expected: int
+) -> None:
+    override = LLMModel.model_validate({"id": DEEPSEEK, "name": "DeepSeek"} | caps)
+    config = llm_config.model_copy(update={"llm_models": (override,)})
+    model = resolve(raw(), config)
+    assert model.context_window == model.effective_context_window == expected
+    assert model.provider_context_window == 1048576
     assert model.provenance["effective_context_window"] == "LOCAL_POLICY"
+    assert model.max_output_tokens == 4096
+
+
+def test_name_only_override_does_not_restore_the_8192_default_cap(llm_config: Settings) -> None:
+    override = LLMModel(id=DEEPSEEK, name="DeepSeek")
+    config = llm_config.model_copy(update={"llm_models": (override,)})
+    model = resolve(raw(), config)
+    assert model.context_window == 1048576
+    assert model.max_output_tokens == 4096
+    assert model.provenance["effective_context_window"] == "PROVIDER"
+
+
+def test_provider_context_reduction_is_respected(llm_config: Settings) -> None:
+    data = raw()
+    data["input_modalities"][0]["supported_inputs"]["max_context_length"]["value"] = 4096
+    model = resolve(data, llm_config)
+    assert model.context_window == model.provider_context_window == 4096
+    assert (
+        model.max_output_tokens
+        + model.reasoning_reserve_tokens
+        + llm_config.llm_context_safety_tokens
+        + llm_config.llm_system_reserved_tokens
+        + 97
+        <= 4096
+    )
+
+
+def test_provider_context_above_the_structural_ceiling_is_not_admitted(
+    llm_config: Settings,
+) -> None:
+    data = raw()
+    data["input_modalities"][0]["supported_inputs"]["max_context_length"]["value"] = 3_000_000
+    model = resolve(data, llm_config)
+    assert not model.available
+    assert not chat_compatible(model)
 
 
 @pytest.mark.parametrize(
@@ -243,6 +307,35 @@ async def test_malformed_entry_and_duplicate_are_isolated(llm_config: Settings) 
         assert len(models) == 9 and all(item.id not in (DEEPSEEK, "broken") for item in models)
     finally:
         await provider.aclose()
+
+
+@pytest.mark.parametrize(
+    "model_id,expected",
+    [
+        ("vllm/release/gpt-oss-120b", False),
+        ("vllm/release/glm-5-2", False),
+        ("vllm/qsu/qwen3.8-27b", True),
+        ("vllm/release/gemma-4-31b-it", True),
+        ("vllm/release/qwen3.6-27b", True),
+        ("vllm/qsu/glm-5-3-flash", True),
+        ("vllm/qsu/deepseek-v41-flash", True),
+    ],
+)
+def test_image_permission_follows_modalities_when_catalog_changes(
+    llm_config: Settings, model_id: str, expected: bool
+) -> None:
+    data = next(item for item in payload()["data"] if item["id"] == model_id)
+    # The historical catalog fixture reports text only. Image-capable cases
+    # explicitly simulate updated provider facts rather than infer from IDs.
+    assert supports_images(resolve(data, llm_config)) is False
+    if expected:
+        data["input_modalities"].append({"type": "image"})
+    assert supports_images(resolve(data, llm_config)) is expected
+    # The same ID and local policy immediately lose image permission when facts change.
+    data["input_modalities"] = [
+        item for item in data["input_modalities"] if item["type"] != "image"
+    ]
+    assert supports_images(resolve(data, llm_config)) is False
 
 
 def test_vision_and_reasoning_require_evidence(llm_config: Settings) -> None:

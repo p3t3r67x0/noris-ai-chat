@@ -15,7 +15,7 @@ from sqlalchemy import delete
 from starlette.testclient import WebSocketTestSession
 from starlette.websockets import WebSocketDisconnect
 
-from noris_ai.chat.generation import GenerationManager
+from noris_ai.chat.generation import GenerationManager, Peer
 from noris_ai.chat.models import ChatStreamEvent
 from noris_ai.chat.repository import ModelDatabase
 from noris_ai.chat.service import ChatService
@@ -265,24 +265,91 @@ def test_stop_and_provider_error(client: TestClient) -> None:
         assert rows[-1]["status"] == terminal
 
 
+def test_cancel_during_committed_delta_preserves_sequence_and_terminal(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    payload = generate(client, "/slow")
+    manager = cast(GenerationManager, cast(FastAPI, client.app).state.chat_generations)
+    command_payload = GenerateIncomingMessage.model_validate(payload)
+
+    async def exercise() -> None:
+        committed = asyncio.Event()
+        release = asyncio.Event()
+        persist = manager.repository.persist_generation_event
+
+        async def hold_committed_delta(
+            generation_id: UUID,
+            event: dict[str, object],
+            content: str,
+            status: str = "running",
+            error_code: str | None = None,
+        ) -> None:
+            await persist(generation_id, event, content, status, error_code)
+            if event["type"] == "chat.generation.delta":
+                # Commit has finished, but the worker has not advanced its
+                # sequence or delivered this event to the socket yet.
+                committed.set()
+                await release.wait()
+
+        monkeypatch.setattr(manager.repository, "persist_generation_event", hold_committed_delta)
+        peer = Peer(asyncio.Queue(maxsize=16))
+        await manager.generate(peer, command_payload)
+        task = manager.live[command_payload.requestId].task
+        assert task is not None
+        try:
+            await asyncio.wait_for(committed.wait(), 2)
+            await manager.cancel(command_payload.requestId)
+            await manager.cancel(command_payload.requestId)
+            release.set()
+            await asyncio.wait_for(task, 2)
+        finally:
+            release.set()
+            if not task.done():
+                task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+        events = await manager.repository.list_stream_events(command_payload.requestId)
+        assert [event.sequence for event in events] == [1, 2, 3]
+        assert events[-1].event_type == "chat.generation.cancelled"
+        delivered: list[dict[str, object]] = []
+        while not peer.queue.empty():
+            event = peer.queue.get_nowait()
+            if "seq" in event:
+                delivered.append(event)
+        assert [event["seq"] for event in delivered] == [1, 2, 3]
+        assert delivered[-1]["type"] == "chat.generation.cancelled"
+        assert command_payload.requestId not in manager.live
+
+    assert client.portal is not None
+    client.portal.call(exercise)
+    rows = client.get(
+        f"/api/v1/conversations/{payload['conversationId']}/messages", auth=AUTH
+    ).json()["messages"]
+    assert rows[-1]["status"] == "cancelled"
+    assert rows[-1]["content"] == "Hallo 🌍 "
+
+
 def test_server_path_regeneration_and_edit_preserve_variants(
     client: TestClient, simulator: Simulator
 ) -> None:
     payload = generate(client)
 
-    def run(command_payload: dict[str, object]) -> None:
+    def run(command_payload: dict[str, object], wait_for_title: bool = False) -> None:
         with client.websocket_connect(
             "/api/v1/chat/ws", subprotocols=protocols(client), headers=ORIGIN.copy()
         ) as socket:
             socket.receive_json()
             socket.send_json(command_payload)
-            while True:
+            completed = False
+            title_ready = not wait_for_title
+            while not (completed and title_ready):
                 event = socket.receive_json()
                 assert event["type"] != "chat.error", event
                 if event["type"] == "chat.generation.completed":
-                    break
+                    completed = True
+                if event["type"] == "chat.title.updated":
+                    title_ready = True
 
-    run(payload)
+    run(payload, wait_for_title=True)
     path = f"/api/v1/conversations/{payload['conversationId']}"
     regenerated = payload | {
         "requestId": str(uuid4()),

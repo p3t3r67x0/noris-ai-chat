@@ -61,14 +61,15 @@ jobs:
         run: |
           make lint
           make typecheck
+      - name: Initialize application database
+        run: |
+          docker exec -i --env NORIS_APP_DB_PASSWORD="$NORIS_APP_DB_PASSWORD" \
+            "${{ job.services.postgres.id }}" sh < infrastructure/docker/postgres-init.sh
+          make migrate
       - name: Check API contract and unit tests
         run: |
           make check-api
           make test-unit
-      - name: Create application database role
-        run: >-
-          docker exec -i --env NORIS_APP_DB_PASSWORD="$NORIS_APP_DB_PASSWORD"
-          "${{ job.services.postgres.id }}" sh < infrastructure/docker/postgres-init.sh
       - name: Database integration and migration checks
         run: |
           make test-integration

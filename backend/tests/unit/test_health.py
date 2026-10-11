@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
 from uuid import UUID
@@ -5,7 +6,10 @@ from uuid import UUID
 import pytest
 from fastapi import FastAPI, Request
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.exc import SQLAlchemyError
 
+from noris_ai.chat.attachments import AttachmentService
+from noris_ai.chat.repository import ChatRepository
 from noris_ai.core.config import EnvironmentSettings
 from noris_ai.main import create_app
 
@@ -16,6 +20,29 @@ class FixedProbe:
 
     async def is_ready(self) -> bool:
         return self.ready
+
+
+async def test_attachment_cleanup_exits_when_driver_wraps_shutdown_cancellation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    started = asyncio.Event()
+
+    async def recovered(self: ChatRepository, owner: UUID) -> None:
+        return None
+
+    async def clean(self: AttachmentService) -> None:
+        started.set()
+        try:
+            await asyncio.Event().wait()
+        except asyncio.CancelledError:
+            raise SQLAlchemyError("Synthetic wrapped driver cancellation") from None
+
+    monkeypatch.setattr(ChatRepository, "mark_running_generations_interrupted", recovered)
+    monkeypatch.setattr(AttachmentService, "cleanup", clean)
+    application = create_app(EnvironmentSettings(environment="test"), FixedProbe(True))
+    async with asyncio.timeout(1):
+        async with application.router.lifespan_context(application):
+            await started.wait()
 
 
 @asynccontextmanager

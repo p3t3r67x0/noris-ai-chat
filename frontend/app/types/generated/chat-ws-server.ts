@@ -4,78 +4,90 @@ export type Heartbeatseconds = number
 export type Type = "chat.connected"
 export type Version = 1
 export type Conversationid = string
-export type Content = string
-export type Continuationcount = number
 export type Conversationid1 = string
 export type Createdat = string
+export type Extractionstatus = ("extracted" | "no_text" | "unsupported" | "not_applicable")
+export type Id = string
+export type Messageid = (string | null)
+export type Mimetype = string
+export type Modelusable = boolean
+export type Originalfilename = string
+export type Sha256 = string
+export type Sizebytes = number
+export type Status = ("ready" | "stored")
+export type Attachments = AttachmentResponse[]
+export type Content = string
+export type Continuationcount = number
+export type Conversationid2 = string
+export type Createdat1 = string
 export type Editedfrommessageid = (string | null)
 export type Errorcode = (string | null)
 export type Errormessage = (string | null)
 export type Generationid = (string | null)
-export type Id = string
+export type Id1 = string
 export type Modelid = (string | null)
 export type Parentmessageid = (string | null)
 export type Role = ("user" | "assistant")
-export type Status = ("pending" | "streaming" | "completed" | "incomplete" | "cancelled" | "failed")
+export type Status1 = ("pending" | "streaming" | "completed" | "incomplete" | "cancelled" | "failed")
 export type Updatedat = string
 export type Type1 = "chat.message.created"
 export type Version1 = 1
-export type Conversationid2 = string
+export type Conversationid3 = string
 export type Generationid1 = string
-export type Messageid = string
+export type Messageid1 = string
 export type Modelid1 = string
 export type Seq = number
 export type Type2 = "chat.generation.started"
 export type Version2 = 1
-export type Conversationid3 = string
+export type Conversationid4 = string
 export type Delta = string
 export type Generationid2 = string
-export type Messageid1 = string
+export type Messageid2 = string
 export type Seq1 = number
 export type Type3 = "chat.generation.delta"
 export type Version3 = 1
 export type Content1 = string
-export type Conversationid4 = string
+export type Conversationid5 = string
 export type Generationid3 = string
-export type Messageid2 = string
+export type Messageid3 = string
 export type Seq2 = number
 export type Type4 = "chat.generation.completed"
 export type Version4 = 1
 export type Content2 = string
-export type Conversationid5 = string
+export type Conversationid6 = string
 export type Generationid4 = string
-export type Messageid3 = string
+export type Messageid4 = string
 export type Reason = "output_limit"
 export type Seq3 = number
 export type Type5 = "chat.generation.incomplete"
 export type Version5 = 1
 export type Code = string
 export type Content3 = string
-export type Conversationid6 = string
+export type Conversationid7 = string
 export type Generationid5 = string
 export type Message = string
-export type Messageid4 = string
+export type Messageid5 = string
 export type Seq4 = number
 export type Type6 = "chat.generation.failed"
 export type Version6 = 1
 export type Content4 = string
-export type Conversationid7 = string
+export type Conversationid8 = string
 export type Generationid6 = string
-export type Messageid5 = string
+export type Messageid6 = string
 export type Seq5 = number
 export type Type7 = "chat.generation.cancelled"
 export type Version7 = 1
 export type Content5 = string
-export type Conversationid8 = string
+export type Conversationid9 = string
 export type Generationid7 = string
-export type Messageid6 = string
+export type Messageid7 = string
 export type Seq6 = number
 export type Type8 = "chat.generation.interrupted"
 export type Version8 = 1
 export type Activeleafmessageid = (string | null)
 export type Archivedat = (string | null)
-export type Createdat1 = string
-export type Id1 = string
+export type Createdat2 = string
+export type Id2 = string
 export type Lastmessageat = (string | null)
 export type Title = string
 export type Titlesource = ("fallback" | "generated" | "manual")
@@ -83,7 +95,7 @@ export type Updatedat1 = string
 export type Version9 = number
 export type Type9 = "chat.conversation.updated"
 export type Version10 = 1
-export type Conversationid9 = string
+export type Conversationid10 = string
 export type Title1 = string
 export type Titlesource1 = string
 export type Type10 = "chat.title.updated"
@@ -93,11 +105,11 @@ export type Lastreceivedseq = number
 export type Type11 = "chat.resume.accepted"
 export type Version12 = 1
 export type Content6 = string
-export type Conversationid10 = string
+export type Conversationid11 = string
 export type Generationid9 = string
 export type Lastsequence = number
-export type Messageid7 = string
-export type Status1 = ("queued" | "running" | "completed" | "incomplete" | "cancelled" | "failed" | "interrupted")
+export type Messageid8 = string
+export type Status2 = ("queued" | "running" | "completed" | "incomplete" | "cancelled" | "failed" | "interrupted")
 export type Type12 = "chat.resume.snapshot"
 export type Version13 = 1
 export type Code1 = string
@@ -122,53 +134,67 @@ export interface MessageCreatedEvent {
   version: Version1
 }
 export interface MessageResponse {
+  attachments?: Attachments
   content: Content
   continuationCount?: Continuationcount
-  conversationId: Conversationid1
-  createdAt: Createdat
+  conversationId: Conversationid2
+  createdAt: Createdat1
   editedFromMessageId: Editedfrommessageid
   errorCode?: Errorcode
   errorMessage?: Errormessage
   generationId: Generationid
-  id: Id
+  id: Id1
   modelId: Modelid
   parentMessageId: Parentmessageid
   role: Role
-  status: Status
+  status: Status1
   updatedAt: Updatedat
 }
-export interface GenerationStartedEvent {
-  conversationId: Conversationid2
-  generationId: Generationid1
+export interface AttachmentResponse {
+  conversationId: Conversationid1
+  createdAt: Createdat
+  extractionStatus: Extractionstatus
+  id: Id
   messageId: Messageid
+  mimeType: Mimetype
+  modelUsable: Modelusable
+  originalFilename: Originalfilename
+  sha256: Sha256
+  sizeBytes: Sizebytes
+  status: Status
+}
+export interface GenerationStartedEvent {
+  conversationId: Conversationid3
+  generationId: Generationid1
+  messageId: Messageid1
   modelId: Modelid1
   seq: Seq
   type: Type2
   version: Version2
 }
 export interface GenerationDeltaEvent {
-  conversationId: Conversationid3
+  conversationId: Conversationid4
   delta: Delta
   generationId: Generationid2
-  messageId: Messageid1
+  messageId: Messageid2
   seq: Seq1
   type: Type3
   version: Version3
 }
 export interface GenerationCompletedEvent {
   content: Content1
-  conversationId: Conversationid4
+  conversationId: Conversationid5
   generationId: Generationid3
-  messageId: Messageid2
+  messageId: Messageid3
   seq: Seq2
   type: Type4
   version: Version4
 }
 export interface GenerationIncompleteEvent {
   content: Content2
-  conversationId: Conversationid5
+  conversationId: Conversationid6
   generationId: Generationid4
-  messageId: Messageid3
+  messageId: Messageid4
   reason: Reason
   seq: Seq3
   type: Type5
@@ -177,28 +203,28 @@ export interface GenerationIncompleteEvent {
 export interface GenerationFailedEvent {
   code: Code
   content: Content3
-  conversationId: Conversationid6
+  conversationId: Conversationid7
   generationId: Generationid5
   message: Message
-  messageId: Messageid4
+  messageId: Messageid5
   seq: Seq4
   type: Type6
   version: Version6
 }
 export interface GenerationCancelledEvent {
   content: Content4
-  conversationId: Conversationid7
+  conversationId: Conversationid8
   generationId: Generationid6
-  messageId: Messageid5
+  messageId: Messageid6
   seq: Seq5
   type: Type7
   version: Version7
 }
 export interface GenerationInterruptedEvent {
   content: Content5
-  conversationId: Conversationid8
+  conversationId: Conversationid9
   generationId: Generationid7
-  messageId: Messageid6
+  messageId: Messageid7
   seq: Seq6
   type: Type8
   version: Version8
@@ -211,8 +237,8 @@ export interface ConversationUpdatedEvent {
 export interface ConversationResponse {
   activeLeafMessageId: Activeleafmessageid
   archivedAt: Archivedat
-  createdAt: Createdat1
-  id: Id1
+  createdAt: Createdat2
+  id: Id2
   lastMessageAt: Lastmessageat
   title: Title
   titleSource: Titlesource
@@ -220,7 +246,7 @@ export interface ConversationResponse {
   version: Version9
 }
 export interface TitleUpdatedEvent {
-  conversationId: Conversationid9
+  conversationId: Conversationid10
   title: Title1
   titleSource: Titlesource1
   type: Type10
@@ -234,11 +260,11 @@ export interface ResumeAcceptedEvent {
 }
 export interface ResumeSnapshotEvent {
   content: Content6
-  conversationId: Conversationid10
+  conversationId: Conversationid11
   generationId: Generationid9
   lastSequence: Lastsequence
-  messageId: Messageid7
-  status: Status1
+  messageId: Messageid8
+  status: Status2
   type: Type12
   version: Version13
 }

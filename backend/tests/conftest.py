@@ -27,6 +27,7 @@ def llm_config() -> Settings:
             LLMModel(
                 id="fixture-alpha",
                 name="Fixture Alpha",
+                context_window=8192,
                 category="CHAT",
                 token_limit_parameter="max_tokens",  # noqa: S106 - parameter name, no secret
                 reasoning=True,
@@ -43,6 +44,7 @@ def llm_config() -> Settings:
             LLMModel(
                 id="fixture-beta",
                 name="Fixture Beta",
+                context_window=8192,
                 category="CHAT",
                 token_limit_parameter="max_tokens",  # noqa: S106 - parameter name, no secret
                 sources=["fixture:local"],

@@ -1,5 +1,5 @@
 import type { ChatModelId } from '../../composables/useModelSelection'
-import type { ApiPaths } from '../../types/generated/api'
+import type { ApiPaths, ApiSchemas } from '../../types/generated/api'
 import type { Conversation } from './conversations'
 import type { ChatBackend } from './backend'
 
@@ -22,6 +22,7 @@ export interface ChatMessage {
   errorCode?: string
   errorMessage?: string
   generationId?: string
+  attachments?: ApiSchemas['AttachmentResponse'][]
 }
 export type MessageRecords = Record<string, ChatMessage>
 export interface ChatRequest {

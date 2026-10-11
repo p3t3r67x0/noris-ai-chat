@@ -13,10 +13,11 @@ from sqlalchemy.exc import IntegrityError
 
 from noris_ai.chat import pagination
 from noris_ai.chat.errors import ChatError
-from noris_ai.chat.models import ChatConversation, ChatMessage
+from noris_ai.chat.models import ChatAttachment, ChatConversation, ChatMessage
 from noris_ai.chat.repository import ChatRepository
 from noris_ai.chat.schemas import (
     ActivePathResponse,
+    AttachmentResponse,
     ChatImportRequest,
     ChatImportResponse,
     ConversationListResponse,
@@ -51,6 +52,33 @@ def conversation_response(conversation: ChatConversation) -> ConversationRespons
     )
 
 
+def attachment_response(attachment: ChatAttachment) -> AttachmentResponse:
+    return AttachmentResponse(
+        id=attachment.id,
+        conversationId=attachment.conversation_id,
+        messageId=attachment.message_id,
+        originalFilename=attachment.original_filename,
+        mimeType=attachment.mime_type,
+        sizeBytes=attachment.size_bytes,
+        sha256=attachment.sha256,
+        status="ready" if attachment.status == "ready" else "stored",
+        extractionStatus="extracted"
+        if attachment.extracted_text
+        else ("not_applicable" if attachment.mime_type.startswith("image/") else "no_text"),
+        modelUsable=(
+            attachment.status == "ready"
+            and bool(attachment.extracted_text)
+            and attachment.mime_type in ("text/plain", "text/markdown", "application/pdf")
+        )
+        or (
+            attachment.status == "stored"
+            and not attachment.extracted_text
+            and attachment.mime_type in ("image/png", "image/jpeg")
+        ),
+        createdAt=attachment.created_at,
+    )
+
+
 def message_response(message: ChatMessage) -> MessageResponse:
     return MessageResponse(
         id=message.id,
@@ -67,6 +95,7 @@ def message_response(message: ChatMessage) -> MessageResponse:
         editedFromMessageId=message.edited_from_message_id,
         createdAt=message.created_at,
         updatedAt=message.updated_at,
+        attachments=[attachment_response(a) for a in message.attachments if a.status != "deleted"],
     )
 
 

@@ -1,5 +1,7 @@
 # Provider-native Modellfähigkeiten
 
+Aktualisierung 2026-10-11: Zwei reine authentifizierte GETs des Schema-2.4-Katalogs melden jetzt `image`-Eingabe für DeepSeek V4.1 Flash, GLM 5.3 Flash, Qwen3.8 27B, Gemma 4 31B und Qwen3.6 27B. GPT-OSS 120B und GLM 5.2 bleiben textbasiert. Die frühere Bestandsaufnahme ist historisch. Der [dokumentierte Noris-Vision-Vertrag](https://noris.cloud/nai/how-tos/multimodal/) ist jetzt für privat gespeicherte PNG/JPEG-Anhänge angebunden; siehe [Dateianhänge](CHAT-ATTACHMENTS.md). Auf Nutzerwunsch folgt der effektive Kontext jetzt den gültigen Tokenangaben des frischen Providerkatalogs, begrenzt durch ausdrücklich konfigurierte Betreibergrenzen und das bestehende strukturelle Maximum. Output- und Tagesbudgetpolicies bleiben erhalten. Die Tabelle unten beschreibt diese neuen Kontextdefaults; die Prüfstände am Ende gelten für die frühere Implementierung. Es wurden keine kostenpflichtigen Generierungen und auf Nutzeranweisung keine neuen Tests ausgeführt.
+
 Stand: 2026-10-10. Katalogangaben sind Providerberichte, keine erfolgreichen Generierungsproben. Zwei reine GET-Prüfungen über die validierte Serverkonfiguration bestätigten Schema 2.4, Modellmetadaten und Feldstrukturen. Keine Generierung wurde für diese Änderung gegen Noris ausgeführt. Die Referenzpreise unten sind historische USD-Katalogangaben; der Browser zeigt jeweils den aktuellen **Abrufzeitpunkt** seines Backend-Katalogs. Readiness und Zugriff gelten höchstens für dessen Cache-TTL.
 
 ## Bestandsaufnahme auf main
@@ -21,7 +23,7 @@ Schema 2.4 sowie kompatible Versionen innerhalb von Major 2 werden strukturell g
 | Texteingabe + Textausgabe + explizites Streaming | Chat-Kandidat; erfordert zusätzlich lokale Chat-Endpunktfreigabe |
 | Ausgabe `embeddings` | EMBEDDING; aus Chat ausgeschlossen |
 | Ausgabe `rerank` | RERANKING; aus Chat ausgeschlossen |
-| Eingabe `image` | Visionfähigkeit; der vorhandene Chat sendet weiterhin Text |
+| Eingabe `image` | Visionfähigkeit; gespeicherte PNG/JPEG-Anhänge verwenden den bestätigten Vision-Vertrag |
 | Unterstütztes `reasoning_effort` oder dokumentierter Modellvertrag | Reasoningfähigkeit; keine ID-/Namensheuristik |
 | `supported_inputs.max_context_length.value`, `unit=token` | Gemeldetes Kontextfenster |
 | Tokenparameter `.max` und/oder `max_length.value`, `unit=token` | Kleinste anwendbare gemeldete Ausgabekapazität |
@@ -31,19 +33,21 @@ Textausgabe allein bestätigt keinen Chat-Completions-Vertrag. Die Registry enth
 
 ## Gemeldete und effektive Limits
 
-Die folgenden Defaults gelten ohne Betreiber-Overrides und bei den am 2026-10-10 gemeldeten Providerfakten:
+Die folgenden Defaults gelten seit der Kontextkorrektur vom 2026-10-11 ohne Betreiber-Overrides bei den gemeldeten Providerfakten:
 
 | Anzeigename / vollständige ID | Providerkontext | Providerausgabe | Lokaler Kontext | Lokale Ausgabe |
 | --- | ---: | ---: | ---: | ---: |
-| DeepSeek V4.1 Flash · `vllm/qsu/deepseek-v41-flash` | 1048576 | 1048576 | 8192 | 4096 |
-| GLM 5.3 Flash · `vllm/qsu/glm-5-3-flash` | 1048576 | 1048576 | 16384 | 8192 |
-| Qwen3.8 27B · `vllm/qsu/qwen3.8-27b` | 131072 | 131072 | 8192 | 4096 |
-| Gemma 4 31B · `vllm/release/gemma-4-31b-it` | 131072 | 131072 | 8192 | 2048 |
-| GLM 5.2 · `vllm/release/glm-5-2` | 1048576 | 1048576 | 16384 | 8192 |
-| GPT-OSS 120B · `vllm/release/gpt-oss-120b` | 131072 | 131072 | 8192 | 4096 |
-| Qwen3.6 27B · `vllm/release/qwen3.6-27b` | 131072 | 8192 | 8192 | 4096 |
+| DeepSeek V4.1 Flash · `vllm/qsu/deepseek-v41-flash` | 1048576 | 1048576 | 1048576 | 4096 |
+| GLM 5.3 Flash · `vllm/qsu/glm-5-3-flash` | 1048576 | 1048576 | 1048576 | 8192 |
+| Qwen3.8 27B · `vllm/qsu/qwen3.8-27b` | 131072 | 131072 | 131072 | 4096 |
+| Gemma 4 31B · `vllm/release/gemma-4-31b-it` | 131072 | 131072 | 131072 | 2048 |
+| GLM 5.2 · `vllm/release/glm-5-2` | 1048576 | 1048576 | 1048576 | 8192 |
+| GPT-OSS 120B · `vllm/release/gpt-oss-120b` | 131072 | 131072 | 131072 | 4096 |
+| Qwen3.6 27B · `vllm/release/qwen3.6-27b` | 131072 | 8192 | 131072 | 4096 |
 
 `provider_context_window` und `provider_max_output_tokens` sind dynamische Meldungen. `verified_max_output_tokens` ist eine explizit vom Betreiber dokumentierte Generierungsprüfgrenze; standardmäßig null. `effective_context_window`/`effective_max_output_tokens` sind die tatsächlich verwendeten Grenzen. Die bisherigen `context_window`/`max_output_tokens` bleiben als identische effektive Werte erhalten. `documented_context_window`/`supported_output_tokens` bleiben kompatible Aliasse für die gemeldeten Werte; `provenance` kennzeichnet die Herkunft. Ein Providerbericht erhält PROVIDER und DOCUMENTED, niemals automatisch LIVE_TEST/VERIFIED.
+
+Ohne explizite Kontextgrenze entspricht der effektive Kontext dem gültigen Providerwert (`provenance=PROVIDER`). Explizit in `NORIS_LLM_MODELS` gesetzte Kontextgrenzen bleiben zusätzliche Obergrenzen (`LOCAL_POLICY`), einschließlich Legacy-`provider_context_window`; fehlende Felder eines Namens-/Timeout-Overrides setzen keine versehentliche 8192-Grenze. Sinkende Providerkapazität wird beim nächsten frischen Katalog berücksichtigt. Unbekannte Einheiten oder fehlende Kapazitäten verwenden weiterhin höchstens 8192 Tokens. Die absolute strukturelle Obergrenze bleibt bei zwei Millionen Tokens.
 
 Die effektive Ausgabe ist das Minimum aus Modellpolicy, globalem `NORIS_LLM_MAX_OUTPUT_TOKENS`, gemeldeten Kapazitäten, gegebenenfalls Betreiber-/Live-Prüfgrenzen sowie Kontext nach Reasoning-, System- und Sicherheitsreserve. Ein Kontext von einer Million Tokens erhöht niemals die Ausgabe. Unbekannte Tokenunits liefern kein gemeldetes Maximum und erlauben keine automatische Erweiterung; konservative Rückfallgrenzen sind höchstens 8192 Kontext und 1024 Ausgabe. Ungültige/conflicting Konfigurationen bleiben gesperrt.
 
@@ -53,7 +57,7 @@ Pro Anfrage sendet der Provider exakt das durch Admission gebundene `max_output_
 
 `NORIS_LLM_MODELS` bleibt die bestehende serverseitige Override-Konfiguration. Exakte IDs mit `available=false` sperren Modelle. `context_window`, `max_output_tokens`, Reserven und Timeouts sind lokale Policies. Legacy-Konfigurationsfelder `provider_context_window` und `provider_max_output_tokens` mit `provider_limit_evidence` werden als **zusätzliche Betreibergrenzen** behandelt; sie überschreiben niemals Providerfakten. Eine neue Live-Prüfgrenze wird explizit mit `verified_max_output_tokens` plus `verified_output_evidence` (oder Legacy-`provider_limit_evidence`) mit nicht geheimem Prüfverweis/Datum gesetzt. Höhere Ausgabe erfordert zusätzlich eine bewusste Erhöhung des globalen Outputceilings, verifizierte Kapazitätsangaben und genügend Kontext. Tagesbudgets werden dabei nicht geändert.
 
-Beispiel einer bewussten, weiter konservativen Kontextanhebung:
+Beispiel einer ausdrücklich kleineren Betreibergrenze gegenüber dem Providerkontext:
 
 ```dotenv
 NORIS_LLM_MODELS=[{"id":"vllm/qsu/deepseek-v41-flash","name":"DeepSeek V4.1 Flash","context_window":32768,"provider_context_window":32768,"provider_limit_evidence":"Betreiberfreigabe 2026-10-10, Schema 2.4 geprüft","max_output_tokens":4096}]

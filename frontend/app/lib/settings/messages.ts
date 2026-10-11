@@ -33,7 +33,7 @@ export const messages = {
   chooseModel: ['Modell auswählen', 'Select model'], composerModel: ['Modell im Eingabefeld auswählen', 'Select composer model'],
   message: ['Nachricht', 'Message'], prompt: ['Frag noris AI …', 'Ask noris AI …'], welcome: ['Was möchtest du heute bewegen?', 'What would you like to work on today?'],
   disclaimer: ['noris AI kann Fehler machen. Prüfe wichtige Informationen.', 'noris AI can make mistakes. Check important information.'],
-  stopping: ['Abbruch läuft', 'Stopping'], attachment: ['Anhang hinzufügen – demnächst verfügbar', 'Add attachment – coming soon'],
+  stopping: ['Abbruch läuft', 'Stopping'], attachment: ['Dateien hinzufügen', 'Add files'],
   conversations: ['Gespräche', 'Conversations'], closeConversations: ['Gesprächsliste schließen', 'Close conversation list'],
   emptyConversations: ['Hier ist Platz für deine Gedanken. Deine Chats erscheinen hier.', 'Room for your ideas. Your chats appear here.'],
   moreChats: ['Weitere Chats laden', 'Load more chats'], rename: ['Umbenennen', 'Rename'], archive: ['Archivieren', 'Archive'],

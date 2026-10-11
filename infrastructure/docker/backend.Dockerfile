@@ -9,7 +9,7 @@ COPY backend/src ./src
 COPY backend/alembic.ini ./
 COPY backend/migrations ./migrations
 RUN uv sync --locked --no-dev
-RUN useradd --create-home --uid 10001 noris
+RUN useradd --create-home --uid 10001 noris && mkdir -p /var/lib/noris-ai/attachments && chown noris:noris /var/lib/noris-ai/attachments && chmod 700 /var/lib/noris-ai/attachments
 USER noris
 ENV PATH="/app/backend/.venv/bin:$PATH"
 EXPOSE 8000

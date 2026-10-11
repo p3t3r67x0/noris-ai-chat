@@ -112,6 +112,11 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     const controller = foreground && viewRequest?.id === id ? viewRequest.abort : new AbortController()
     if (foreground) { viewRequest = { id, abort: controller }; historyLoading.value = true; historyError.value = null }
     try {
+      const conversation = state.conversations.records.value[id]
+      // A file selection can create a chat before its first message. Wait for
+      // that chat's existing persistence queue before requesting its empty path.
+      if (conversation && !backend.versions.has(id)) await backend.ensure(conversation)
+      if (disposed || controller.signal.aborted || id === state.generatingConversationId.value) return
       await cache.read(id, async () => {
         const [result, drafts] = await Promise.all([
           backend.path(id, {}, controller.signal),

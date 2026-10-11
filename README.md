@@ -2,6 +2,8 @@
 
 Das Monorepo enthält die Foundation, die bestehende Chat-Oberfläche, die Noris-Anbindung und **Etappe 3: PostgreSQL-Persistenz mit WebSocket-Streaming**. Im WebSocket-Modus speichert das Backend Chats, Varianten, Titel und Entwürfe dauerhaft und lädt den LLM-Kontext aus PostgreSQL. Die credentialfreie Beispielkonfiguration bleibt eine lokale Mock-Demo. `/status` prüft Nuxt, API und PostgreSQL. [Architektur](docs/ETAPPE-3-ARCHITEKTUR.md), [WebSocket-Vertrag](docs/WEBSOCKET-CHAT-V1.md) und [Abnahmebericht](docs/ETAPPE-3-ABSCHLUSSBERICHT.md) beschreiben den Single-Owner-Betrieb und die Prüfungen. OIDC und öffentlicher TLS-Betrieb bleiben separat vorzubereiten.
 
+Der [adaptive Composer](docs/ADAPTIVE-COMPOSER.md) wechselt ohne Fokusverlust zwischen einer kompakten Zeile und einer wachsenden Texteingabe über der Aktionsleiste. [Dateianhänge](docs/CHAT-ATTACHMENTS.md) werden im WebSocket-Modus authentifiziert hochgeladen, privat gespeichert und nach Reload wiederhergestellt. Text, Markdown und extrahierbarer PDF-Text können im bestehenden Kontextbudget verarbeitet werden. PNG/JPEG-Bilder werden über den dokumentierten Noris-Vision-Vertrag an Modelle mit aktuell bestätigter Bildeingabe übertragen; die bestehenden Kontext- und Budgetgrenzen gelten weiterhin.
+
 ## Voraussetzungen und Versionen
 
 Für den vollständigen Containerstart: Docker Engine und Docker Compose v2 mit `--wait`. Für Entwicklung auf dem Host zusätzlich Python 3.13, uv ab 0.12.5 (Container: 0.12.23), Node.js 24 LTS und pnpm 11.1.3. Node 22 ab 22.22.3 wird ebenfalls unterstützt. `.python-version` und `.nvmrc` legen die empfohlenen Laufzeiten fest.

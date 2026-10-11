@@ -1,6 +1,10 @@
 /* Generated WebSocket v1 contract. Run pnpm api:generate. */
 export type ChatWsCommand = (GenerateIncomingMessage | CancelIncomingMessage | ResumeIncomingMessage | PingIncomingMessage)
 export type Assistantmessageid = string
+/**
+ * @maxItems 10
+ */
+export type Attachmentids = string[]
 export type Attempt = number
 export type Content = string
 export type Conversationid = string
@@ -26,6 +30,7 @@ export type Version3 = 1
 
 export interface GenerateIncomingMessage {
   assistantMessageId: Assistantmessageid
+  attachmentIds?: Attachmentids
   attempt?: Attempt
   content: Content
   conversationId: Conversationid
