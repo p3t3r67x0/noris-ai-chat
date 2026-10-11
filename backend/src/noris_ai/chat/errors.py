@@ -14,7 +14,13 @@ MESSAGES = {
     "ATTACHMENT_TYPE": (
         "Erlaubt sind UTF-8-Text, Markdown, PDF, PNG und JPEG mit passendem Dateiformat."
     ),
-    "ATTACHMENT_INVALID": "Die Datei ist beschädigt oder überschreitet die Verarbeitungslimits.",
+    "ATTACHMENT_INVALID": "Die Datei ist beschädigt oder entspricht nicht dem angegebenen Format.",
+    "ATTACHMENT_PDF_ENCRYPTED": "Verschlüsselte PDFs werden nicht unterstützt.",
+    "ATTACHMENT_PDF_PAGE_LIMIT": "Die PDF überschreitet die erlaubte Seitenzahl.",
+    "ATTACHMENT_TEXT_LIMIT": "Der extrahierte Text überschreitet die erlaubte Textmenge.",
+    "ATTACHMENT_PROCESSING_LIMIT": "Die Datei überschreitet die sicheren Verarbeitungslimits.",
+    "ATTACHMENT_PROCESSING_TIMEOUT": "Die Dateiverarbeitung hat zu lange gedauert.",
+    "ATTACHMENT_UPLOAD_TIMEOUT": "Die Übertragung der Datei hat zu lange gedauert.",
     "ATTACHMENT_SIZE": "Die Datei ist leer oder überschreitet die erlaubte Dateigröße.",
     "ATTACHMENT_QUOTA": (
         "Die Datei- oder Speichergrenze ist erreicht. Entferne nicht mehr benötigte Dateien."

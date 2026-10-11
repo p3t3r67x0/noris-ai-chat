@@ -7,6 +7,9 @@ Fortsetzung erneut durch `LLMGateway.reserve` zu. `continuation_messages`
 ergänzt die bestehende serverseitige Anweisung und die bisherige Antwort.
 Das Modell bleibt gleich. Es gibt keine zusätzliche User-/Assistant-Nachricht
 und keine zusätzliche Datenbank-Generierung innerhalb dieser automatischen Kette.
+Der vor dem ersten Aufruf ausgewählte PDF-Kontext bleibt in allen automatischen
+Folgeaufrufen erhalten. Die erneute Admission prüft ihn zusammen mit der jeweils
+gewachsenen Antwort gegen die bestehenden Kontext- und Budgetgrenzen.
 
 Die Provideraufrufe erhalten getrennte interne Admission-IDs, damit bestehende
 Duplikatsperren erhalten bleiben. Browser und PostgreSQL verwenden durchgehend
@@ -90,6 +93,9 @@ PostgreSQL-Datenbanken; es sind keine kostenpflichtigen Provideraufrufe nötig.
 - `backend/tests/integration/test_chat_websocket.py`: PostgreSQL-Snapshots,
   ein Nachrichtenknoten, Streamingstatus und Sequenzen, Idempotenz, Reconnect,
   Stop, Regeneration/Varianten, gespeicherte Limitmeldung und manuelles Fortsetzen.
+- `backend/tests/integration/test_pdf_documents.py`: unveränderter ausgewählter
+  PDF-Kontext über mehrere automatische Fortsetzungen auf demselben Knoten;
+  manuelle Fortsetzung und Regeneration weiterhin separat geprüft.
 - `frontend/tests/unit/websocket-transport.spec.ts`: durchgehender Streamingstatus,
   vollständiger Stop-Text und Metadaten aus Reconnect-Snapshots.
 - `frontend/tests/websocket/auto-continuation.spec.ts`: Desktop/Mobil, lange

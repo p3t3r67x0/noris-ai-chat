@@ -14,41 +14,60 @@ import sys
 import warnings
 from pathlib import Path
 
+from noris_ai.chat.attachment_content import (
+    PDF_SECTION_CHARS,
+    ExtractedAttachment,
+    ExtractionError,
+    PDFSection,
+)
 from noris_ai.llm.vision import IMAGE_MAX_BYTES, IMAGE_MAX_EDGE
 
 
 def extract(
     path: Path, mime: str, text_limit: int, page_limit: int, pixel_limit: int
-) -> str | None:
+) -> ExtractedAttachment:
     if mime in ("text/plain", "text/markdown"):
         text = path.read_bytes().decode("utf-8-sig", errors="strict")
         if any(ord(c) < 32 and c not in "\t\n\r" for c in text):
             raise ValueError("Binary content")
         if len(text) > text_limit:
-            raise ValueError("Text limit")
-        return text if text.strip() else None
+            raise ExtractionError("ATTACHMENT_TEXT_LIMIT")
+        return ExtractedAttachment(text=text if text.strip() else None)
     if mime == "application/pdf":
         from pypdf import PdfReader, filters
+        from pypdf.errors import LimitReachedError
 
         filters.ZLIB_MAX_OUTPUT_LENGTH = 8_388_608
+        filters.LZW_MAX_OUTPUT_LENGTH = 8_388_608
         if not path.read_bytes().startswith(b"%PDF-"):
             raise ValueError("PDF signature")
         reader = PdfReader(path, strict=True)
-        if reader.is_encrypted or len(reader.pages) > page_limit:
-            raise ValueError("PDF limit")
-        parts: list[str] = []
+        if reader.is_encrypted:
+            raise ExtractionError("ATTACHMENT_PDF_ENCRYPTED")
+        if len(reader.pages) > page_limit:
+            raise ExtractionError("ATTACHMENT_PDF_PAGE_LIMIT")
+        if not reader.pages:
+            raise ValueError("Empty PDF")
+        sections: list[PDFSection] = []
         length = 0
-        for page in reader.pages:
-            content = page.get_contents()
-            if content is not None and len(content.get_data()) > 8_388_608:
-                raise ValueError("PDF decompression limit")
-            text = page.extract_text() or ""
-            length += len(text) + 1
+        for number, page in enumerate(reader.pages, start=1):
+            try:
+                content = page.get_contents()
+                if content is not None and len(content.get_data()) > 8_388_608:
+                    raise ExtractionError("ATTACHMENT_PROCESSING_LIMIT")
+                text = page.extract_text() or ""
+            except LimitReachedError:
+                raise ExtractionError("ATTACHMENT_PROCESSING_LIMIT") from None
+            length += len(text)
             if length > text_limit:
-                raise ValueError("Text limit")
-            parts.append(text)
-        text = "\n".join(parts)
-        return text if text.strip() else None
+                raise ExtractionError("ATTACHMENT_TEXT_LIMIT")
+            if text.strip():
+                # Exact slices preserve every extracted character, including whitespace.
+                sections.extend(
+                    PDFSection(page=number, text=text[offset : offset + PDF_SECTION_CHARS])
+                    for offset in range(0, len(text), PDF_SECTION_CHARS)
+                )
+        return ExtractedAttachment(sections=sections, page_count=len(reader.pages))
     if mime in ("image/png", "image/jpeg"):
         from PIL import Image
 
@@ -63,7 +82,7 @@ def extract(
             image.verify()
         with Image.open(path, formats=[expected]) as image:
             image.load()
-        return None
+        return ExtractedAttachment()
     raise ValueError("Unsupported format")
 
 
@@ -112,8 +131,12 @@ def main() -> None:
             )
             print(json.dumps({"data_url": image}, ensure_ascii=True))
         else:
-            text = extract(Path(sys.argv[1]), sys.argv[2], *map(int, sys.argv[3:6]))
-            print(json.dumps({"text": text}, ensure_ascii=True))
+            result = extract(Path(sys.argv[1]), sys.argv[2], *map(int, sys.argv[3:6]))
+            print(result.model_dump_json())
+    except ExtractionError as error:
+        print(json.dumps({"error": error.code}))
+    except MemoryError:
+        print(json.dumps({"error": "ATTACHMENT_PROCESSING_LIMIT"}))
     except Exception:
         # Do not print parser exceptions, filenames, embedded text or metadata.
         sys.exit(1)

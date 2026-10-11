@@ -50,15 +50,8 @@ class LLMGateway:
         self._continuation_ids: set[str] = set()
 
     async def reserve(self, request: ChatRequest) -> None:
-        for message in request.messages:
-            limit = (
-                self.config.llm_max_message_chars
-                if message.role == "user"
-                else self.config.llm_max_response_chars
-            )
-            if utf16_length(message.content) > limit:
-                raise LLMError("REQUEST_TOO_LARGE", 413)
         model = await self.catalog.require(request.modelId)
+        self.check_input(request, model)
         target = (request.conversationId, request.assistantMessageId or request.generationId)
         if target in self._answer_targets.values():
             raise LLMError("GENERATION_ACTIVE", 409)
@@ -75,6 +68,35 @@ class LLMGateway:
         self._answer_targets[request.generationId] = target
         if request.operation == "continue":
             self._continuation_ids.add(request.generationId)
+
+    def check_input(self, request: ChatRequest, model: LLMModel) -> None:
+        """Side-effect-free admission checks, also used to fit PDF excerpts."""
+        for message in request.messages:
+            limit = (
+                self.config.llm_max_message_chars
+                if message.role == "user"
+                else self.config.llm_max_response_chars
+            )
+            if utf16_length(message.content) > limit:
+                raise LLMError("REQUEST_TOO_LARGE", 413)
+        messages = continuation_messages(request)
+        payload = json.dumps([provider_payload(m) for m in messages], ensure_ascii=False)
+        envelope_bytes = (
+            2048
+            if any(isinstance(m, VisionMessage) for m in messages)
+            else 256
+            + len(model.id.encode("utf-8"))
+            + len((model.reasoning_effort or "").encode("utf-8"))
+        )
+        if len(payload.encode("utf-8")) + envelope_bytes > self.config.llm_max_request_bytes:
+            raise LLMError("REQUEST_TOO_LARGE", 413)
+        reservation = (
+            self._counter.estimate(messages, model.id)
+            + model.max_output_tokens
+            + model.reasoning_reserve_tokens
+        )
+        if reservation > model.context_window:
+            raise LLMError("CONTEXT_LIMIT", 413)
 
     def _reserve(
         self,
