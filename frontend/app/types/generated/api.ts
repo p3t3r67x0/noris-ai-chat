@@ -22,6 +22,9 @@ export type Originalfilename = string
 export type Sha256 = string
 export type Sizebytes = number
 export type Status = ("ready" | "stored")
+export type Sourceconversationid = string
+export type Sourcemessageid = string
+export type Text = string
 export type Attachments = AttachmentResponse[]
 export type Content = string
 export type Continuationcount = number
@@ -47,6 +50,7 @@ export type Total = number
 export type Variants = VariantSummary[]
 export type Maxfilebytes = number
 export type Maxfiles = number
+export type Maxreferencechars = number
 export type Mimetypes = string[]
 export type Ownerquotabytes = number
 export type Visionsupported = boolean
@@ -226,6 +230,10 @@ export type Modelid5 = (string | null)
 export type Status5 = "ready"
 export type Seq5 = number
 export type Type5 = "response.started"
+export type Conversationid7 = string
+export type Sourceconversationid1 = string
+export type Sourcemessageid1 = string
+export type Text1 = string
 export type Expiresinseconds = number
 export type Ticketid = string
 
@@ -271,6 +279,8 @@ export interface ApiSchemas {
   PreferencesUpdate: PreferencesUpdate
   ReadinessResponse: ReadinessResponse
   StartedEvent: StartedEvent
+  TextReference: TextReference
+  TextReferenceCreate: TextReferenceCreate
   TicketResponse: TicketResponse
   TimeoutPolicy: TimeoutPolicy
   ValidationError: ValidationError
@@ -325,6 +335,12 @@ export interface AttachmentResponse {
   sha256: Sha256
   sizeBytes: Sizebytes
   status: Status
+  textReference?: (TextReference | null)
+}
+export interface TextReference {
+  sourceConversationId: Sourceconversationid
+  sourceMessageId: Sourcemessageid
+  text: Text
 }
 export interface VariantSummary {
   index: Index
@@ -336,6 +352,7 @@ export interface VariantSummary {
 export interface AttachmentLimitsResponse {
   maxFileBytes: Maxfilebytes
   maxFiles: Maxfiles
+  maxReferenceChars?: Maxreferencechars
   mimeTypes: Mimetypes
   ownerQuotaBytes: Ownerquotabytes
   visionSupported?: Visionsupported
@@ -608,6 +625,12 @@ export interface StartedEvent {
   seq: Seq5
   type?: Type5
 }
+export interface TextReferenceCreate {
+  conversationId: Conversationid7
+  sourceConversationId: Sourceconversationid1
+  sourceMessageId: Sourcemessageid1
+  text: Text1
+}
 export interface TicketResponse {
   expiresInSeconds: Expiresinseconds
   ticketId: Ticketid
@@ -658,6 +681,22 @@ export interface ApiPaths {
     get: {
       responses: {
       200: ApiSchemas["AttachmentLimitsResponse"]
+      400: ApiSchemas["ErrorResponse"]
+      401: ApiSchemas["ErrorResponse"]
+      403: ApiSchemas["ErrorResponse"]
+      404: ApiSchemas["ErrorResponse"]
+      409: ApiSchemas["ErrorResponse"]
+      413: ApiSchemas["ErrorResponse"]
+      422: ApiSchemas["ErrorResponse"]
+      500: ApiSchemas["ErrorResponse"]
+      503: ApiSchemas["ErrorResponse"]
+    } }
+  }
+  "/api/v1/chat/attachments/references": {
+    post: {
+      requestBody: ApiSchemas["TextReferenceCreate"]
+      responses: {
+      201: ApiSchemas["AttachmentResponse"]
       400: ApiSchemas["ErrorResponse"]
       401: ApiSchemas["ErrorResponse"]
       403: ApiSchemas["ErrorResponse"]

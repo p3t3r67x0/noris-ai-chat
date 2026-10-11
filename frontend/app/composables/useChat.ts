@@ -15,6 +15,7 @@ import { CHAT_STORAGE_KEY, parseChatSnapshot } from '../lib/chat/persistence'
 import type { ChatSnapshot } from '../lib/chat/persistence'
 import { CONVERSATIONS_STORAGE_KEY, parseConversationSnapshot } from '../lib/chat/conversations'
 import { useChatBackend } from './useChatBackend'
+import { messageContext } from '../lib/chat/textReferences'
 
 export function createChatState(transport: ChatTransport, dependencies: ConversationDependencies = {}, conversations = createConversationState(dependencies)) {
   const messages = ref<MessageRecords>({})
@@ -48,7 +49,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
   }
 
   function generate(input: ChatMessage, modelId: ChatModelId, attempt = 1, titleRequest?: ConversationTitleRequest): void {
-    const history = path(input.conversationId, input.id).map(({ role, content }) => ({ role, content }))
+    const history = path(input.conversationId, input.id).map(messageContext)
     const reply = append(input.conversationId, input.id, 'assistant', '')
     reply.modelId = modelId
     generatingConversationId.value = input.conversationId
@@ -127,6 +128,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     rememberBranch()
     const input = append(original.conversationId, original.parentMessageId, 'user', content)
     input.editedFromMessageId = original.id
+    if (original.attachments?.some(file => file.textReference)) input.attachments = original.attachments.filter(file => file.textReference)
     generate(input, modelId)
     return true
   }
@@ -154,7 +156,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     const source = reply
     if (!reply.parentMessageId) return false
     const modelId = reply.modelId ?? fallbackModelId
-    const history = path(reply.conversationId, reply.id).map(({ role, content }) => ({ role, content }))
+    const history = path(reply.conversationId, reply.id).map(messageContext)
     const continuationCount = (source.continuationCount ?? 0) + 1
     if (transport.backend) {
       rememberBranch()

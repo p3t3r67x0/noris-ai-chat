@@ -37,6 +37,7 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
         const event = JSON.parse(String(message.data)) as ChatWsEvent
         if (event.version !== 1) return
         if (event.type === 'chat.conversation.updated') backend.remember(event.conversation)
+        if (event.type === 'chat.message.created') backend.onMessage?.(event.message)
       }
       catch { socket.close(1002) }
     })
@@ -89,13 +90,14 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
           if (sent && (received > 0 || request.resume)) send(socket, { version: 1, type: 'chat.resume', generationId: request.generationId, lastReceivedSeq: received })
           else {
             if (signal.aborted) return
+            const attachmentIds = request.input.attachments?.filter(file => !request.input?.editedFromMessageId || file.messageId === request.input.id).map(file => file.id) ?? []
             send(socket, {
               version: 1, type: 'chat.generate', requestId: request.generationId, conversationId: request.conversationId,
               inputMessageId: request.inputMessageId, assistantMessageId: request.assistantMessageId,
               conversationVersion: version, modelId: request.modelId, attempt: request.attempt,
               content: request.input.content, parentMessageId: request.input.parentMessageId,
               operation: request.operation ?? 'generate',
-              ...(request.input.attachments?.length ? { attachmentIds: request.input.attachments.map(file => file.id) } : {}),
+              ...(attachmentIds.length ? { attachmentIds } : {}),
               ...(request.sourceAssistantMessageId ? { sourceAssistantMessageId: request.sourceAssistantMessageId } : {}),
               ...(request.input.editedFromMessageId ? { editedFromMessageId: request.input.editedFromMessageId } : {}),
             })

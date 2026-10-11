@@ -13,6 +13,10 @@ const OFFLINE_DRAFTS_KEY = 'noris-ai:offline-drafts:v1'
 /** Synchronizes the existing state through explicit resource operations. */
 export function useChatBackend(state: ReturnType<typeof createChatState>, transport: ChatTransport) {
   const backend = transport.backend!
+  backend.onMessage = (value) => {
+    const existing = state.messages.value[value.id]
+    if (existing) existing.attachments = value.attachments ?? []
+  }
   const storageWarning = ref<string | null>(null)
   const backendReady = ref(false)
   const importAvailable = ref(false)

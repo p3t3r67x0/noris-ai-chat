@@ -9,7 +9,7 @@ import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import delete, desc, insert, select, update
+from sqlalchemy import delete, desc, func, insert, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -548,10 +548,19 @@ class ChatRepository:
             return count
 
     async def begin_generation(
-        self, owner_id: uuid.UUID, command: "GenerateIncomingMessage", *, allow_images: bool = False
+        self,
+        owner_id: uuid.UUID,
+        command: "GenerateIncomingMessage",
+        *,
+        allow_images: bool = False,
+        max_attachments: int = 10,
+        attachment_quota_bytes: int = 104_857_600,
     ) -> tuple[ChatGeneration, list[ChatMessage], bool]:
         """Lock the conversation; accept input and generation atomically, once."""
         async with self._database() as session, session.begin():
+            if command.editedFromMessageId:
+                # Match attachment creation's lock order when copying snapshots.
+                await session.execute(select(func.pg_advisory_xact_lock(owner_id.int % (2**63))))
             conversation = await session.scalar(
                 select(ChatConversation)
                 .where(ChatConversation.id == command.conversationId)
@@ -581,7 +590,15 @@ class ChatRepository:
                     message is None
                     or message.content != command.content
                     or message.parent_message_id != command.parentMessageId
-                    or set(command.attachmentIds) != {a.id for a in message.attachments}
+                    or (
+                        set(command.attachmentIds) != {a.id for a in message.attachments}
+                        and not (
+                            command.editedFromMessageId == message.edited_from_message_id
+                            and command.editedFromMessageId is not None
+                            and not command.attachmentIds
+                            and all(a.source_message_id is not None for a in message.attachments)
+                        )
+                    )
                 ):
                     raise ChatError("MESSAGE_EXISTS", 409)
                 return existing, [], False
@@ -596,6 +613,7 @@ class ChatRepository:
             if running is not None:
                 raise ChatError("GENERATION_ACTIVE", 409)
             input_message = await session.get(ChatMessage, command.inputMessageId)
+            inherited: list[ChatAttachment] = []
             if input_message is not None:
                 if (
                     input_message.conversation_id != conversation.id
@@ -625,6 +643,49 @@ class ChatRepository:
                         or original.parent_message_id != command.parentMessageId
                     ):
                         raise ChatError("INVALID_PARENT", 422)
+                    # Editing keeps immutable text snapshots on the new branch.
+                    # Uploaded files keep their existing explicit attachment contract.
+                    if not command.attachmentIds:
+                        for attachment in original.attachments:
+                            if (
+                                attachment.source_message_id is None
+                                or attachment.status == "deleted"
+                            ):
+                                continue
+                            clone = ChatAttachment(
+                                id=uuid.uuid4(),
+                                owner_id=owner_id,
+                                conversation_id=conversation.id,
+                                message_id=command.inputMessageId,
+                                original_filename=attachment.original_filename,
+                                storage_key=uuid.uuid4().hex,
+                                mime_type=attachment.mime_type,
+                                size_bytes=attachment.size_bytes,
+                                sha256=attachment.sha256,
+                                status=attachment.status,
+                                extracted_text=attachment.extracted_text,
+                                source_message_id=attachment.source_message_id,
+                                source_conversation_id=attachment.source_conversation_id,
+                                created_at=attachment.created_at,
+                            )
+                            inherited.append(clone)
+                        if inherited:
+                            active = (
+                                await session.scalars(
+                                    select(ChatAttachment).where(
+                                        ChatAttachment.owner_id == owner_id,
+                                        ChatAttachment.status != "deleted",
+                                    )
+                                )
+                            ).all()
+                            if (
+                                len(inherited) > max_attachments
+                                or len(active) + len(inherited) > 200
+                                or sum(a.size_bytes for a in active)
+                                + sum(a.size_bytes for a in inherited)
+                                > attachment_quota_bytes
+                            ):
+                                raise ChatError("ATTACHMENT_QUOTA", 413)
                 elif command.parentMessageId != conversation.active_leaf_message_id:
                     raise ChatError("INVALID_LEAF", 422)
                 input_message = ChatMessage(
@@ -640,6 +701,7 @@ class ChatRepository:
                 )
                 session.add(input_message)
                 await session.flush()
+                session.add_all(inherited)
             if len(set(command.attachmentIds)) != len(command.attachmentIds):
                 raise ChatError("INVALID_INPUT", 422)
             attachments = list(
@@ -652,6 +714,7 @@ class ChatRepository:
                             ChatAttachment.conversation_id == conversation.id,
                             ChatAttachment.status != "deleted",
                         )
+                        .order_by(ChatAttachment.created_at, ChatAttachment.id)
                         .with_for_update()
                     )
                 ).all()
@@ -679,7 +742,7 @@ class ChatRepository:
                 if not (text_ready or image_ready):
                     raise ChatError("ATTACHMENT_INCOMPATIBLE", 422)
                 attachment.message_id = input_message.id
-            input_message.attachments = attachments
+            input_message.attachments = attachments + inherited
             await session.flush()
             path = await pagination.full_path(session, conversation.id, input_message.id)
             if not allow_images and any(

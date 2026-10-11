@@ -17,17 +17,21 @@ function retryImage(id: string): void { failedImages.value[id] = false }
 
 <template>
   <article :class="['chat-message', `message-${message.role}`]" :data-message-id="message.id" :data-status="message.status" :aria-label="message.role === 'user' ? 'Deine Nachricht' : 'Antwort von noris AI'">
-    <p v-if="message.role === 'user'" class="user-bubble">{{ message.content }}</p>
+    <p v-if="message.role === 'user'" class="user-bubble" data-selectable-message>{{ message.content }}</p>
     <ul v-if="message.role === 'user' && message.attachments?.length" class="message-attachments" aria-label="Gesendete Dateien">
       <li v-for="file in message.attachments" :key="file.id">
-        <template v-if="file.mimeType === 'image/png' || file.mimeType === 'image/jpeg'">
+        <details v-if="file.textReference" class="message-attachment text-reference-details">
+          <summary class="text-reference-excerpt" :title="file.textReference.text">📄 Markierter Text: „{{ file.textReference.text }}“</summary>
+          <p class="text-reference-full">{{ file.textReference.text }}</p>
+        </details>
+        <template v-else-if="file.mimeType === 'image/png' || file.mimeType === 'image/jpeg'">
           <img v-if="!failedImages[file.id]" :src="`/api/v1/chat/attachments/${encodeURIComponent(file.id)}/content?preview=true`" :alt="`Angehängtes Bild: ${file.originalFilename}`" class="message-attachment-image" width="256" height="256" loading="lazy" decoding="async" @load="emit('rendered')" @error="imageFailed(file.id)">
           <div v-else role="status" class="message-image-error">
             <span>Bildvorschau konnte nicht geladen werden.</span>
             <UButton color="neutral" variant="link" :aria-label="`${file.originalFilename}: Bildvorschau erneut laden`" label="Erneut laden" @click="retryImage(file.id)" />
           </div>
         </template>
-        <a :href="`/api/v1/chat/attachments/${encodeURIComponent(file.id)}/content`" class="message-attachment" :title="file.originalFilename" download>
+        <a v-if="!file.textReference" :href="`/api/v1/chat/attachments/${encodeURIComponent(file.id)}/content`" class="message-attachment" :title="file.originalFilename" download>
           <UIcon :name="file.mimeType.startsWith('image/') ? 'i-lucide-image' : 'i-lucide-file-text'" aria-hidden="true" class="size-5 shrink-0" />
           <span class="min-w-0 truncate">{{ file.originalFilename }}</span>
           <span class="shrink-0 text-xs text-muted">{{ Math.ceil(file.sizeBytes / 1024) }} KB</span>
@@ -35,7 +39,7 @@ function retryImage(id: string): void { failedImages.value[id] = false }
       </li>
     </ul>
     <div v-if="message.role === 'assistant'" class="assistant-content">
-      <MarkdownContent v-if="message.content" :content="message.content" :streaming="message.status === 'streaming'" @rendered="emit('rendered')" />
+      <div v-if="message.content" data-selectable-message><MarkdownContent :content="message.content" :streaming="message.status === 'streaming'" @rendered="emit('rendered')" /></div>
       <div v-else-if="message.status === 'submitting' || message.status === 'streaming'" class="thinking-dot" aria-hidden="true" />
       <p v-if="message.status === 'cancelled'" class="mt-3 text-xs text-muted">Antwort gestoppt.</p>
       <p v-else-if="message.status === 'incomplete'" class="mt-3 text-xs text-muted">Ausgabelimit erreicht{{ canContinue ? ' – weiterschreiben' : '' }}</p>

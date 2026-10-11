@@ -1,9 +1,10 @@
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { Ref } from 'vue'
 import type { ChatBackend } from '../lib/chat/backend'
 import type { Conversation } from '../lib/chat/conversations'
 import type { ApiSchemas } from '../types/generated/api'
 import { responseError } from '../lib/chat/realTransport'
+import { CHAT_LIMITS } from '../lib/chat/limits'
 
 export type ChatAttachment = ApiSchemas['AttachmentResponse']
 export interface UploadEntry {
@@ -15,6 +16,7 @@ export interface UploadEntry {
   progress: number
   error?: string
   attachment?: ChatAttachment
+  reference?: ApiSchemas['TextReference']
   file?: File
 }
 
@@ -31,6 +33,23 @@ export function useChatAttachments(backend: ChatBackend | undefined, active: Ref
   const blocked = computed(() => files.value.some(file => file.status !== 'uploaded' || !file.attachment?.modelUsable || (file.attachment.mimeType.startsWith('image/') && !imageCompatible.value)))
   const confirmed = computed(() => files.value.flatMap(file => file.attachment && file.status === 'uploaded' ? [file.attachment] : []))
   let revision = 0
+  const localKey = 'noris-ai:attachments:v1'
+  onMounted(() => {
+    if (backend) return
+    try {
+      const saved = JSON.parse(localStorage.getItem(localKey) ?? '{}') as Record<string, UploadEntry[]>
+      for (const [id, entries] of Object.entries(saved)) {
+        if (Array.isArray(entries) && entries.length <= 10) records.value[id] = entries.filter(entry => entry.status === 'uploaded' && typeof entry.attachment?.textReference?.text === 'string' && entry.attachment.textReference.text.length <= CHAT_LIMITS.max_message_chars)
+      }
+    }
+    catch { /* The local demo cache is optional. */ }
+  })
+  watch(records, value => {
+    if (!backend) {
+      try { localStorage.setItem(localKey, JSON.stringify(value)) }
+      catch { error.value = 'Die Anhänge konnten nicht lokal gesichert werden.' }
+    }
+  }, { deep: true })
 
   async function refresh(): Promise<void> {
     if (!backend || !ready.value) return
@@ -106,11 +125,43 @@ export function useChatAttachments(backend: ChatBackend | undefined, active: Ref
       if (current) await upload(current, conversation)
     }
   }
+  async function uploadReference(entry: UploadEntry, conversation: Conversation): Promise<void> {
+    if (!entry.reference) return
+    entry.status = 'uploading'; delete entry.error
+    try {
+      const reference = entry.reference
+      let attachment: ChatAttachment
+      if (backend) {
+        await backend.ensure(conversation)
+        attachment = await backend.request<ChatAttachment>('/chat/attachments/references', 'POST', { ...reference, conversationId: conversation.id })
+      }
+      else {
+        attachment = { id: entry.key, conversationId: conversation.id, messageId: null, originalFilename: 'Markierter Text', mimeType: 'text/plain', sizeBytes: entry.size, sha256: '', status: 'ready', extractionStatus: 'extracted', modelUsable: true, createdAt: new Date().toISOString(), textReference: reference }
+      }
+      entry.attachment = attachment; entry.status = 'uploaded'; entry.progress = 100
+      delete entry.reference
+    }
+    catch (cause) { entry.status = 'failed'; entry.error = cause instanceof Error ? cause.message : 'Referenz konnte nicht übernommen werden.' }
+  }
+  async function addReference(reference: ApiSchemas['TextReference']): Promise<void> {
+    if (!reference.text.trim() || (backend && !ready.value)) return
+    error.value = null
+    const maximum = limits.value?.maxReferenceChars ?? CHAT_LIMITS.max_message_chars
+    if (reference.text.length > maximum) { error.value = `Die Textreferenz darf höchstens ${maximum.toLocaleString('de-DE')} Zeichen enthalten. Bitte wähle einen kürzeren Abschnitt.`; return }
+    if (files.value.length >= (limits.value?.maxFiles ?? 10)) { error.value = `Maximal ${limits.value?.maxFiles ?? 10} Anhänge pro Nachricht.`; return }
+    const conversation = active.value ?? createConversation()
+    records.value[conversation.id] ??= []
+    const key = crypto.randomUUID()
+    records.value[conversation.id]!.push({ key, filename: 'Markierter Text', mime: 'text/plain', size: new TextEncoder().encode(reference.text).length, status: 'uploading', progress: 0, reference })
+    const entry = records.value[conversation.id]!.find(file => file.key === key)!
+    await uploadReference(entry, conversation)
+  }
   async function remove(key: string): Promise<void> {
     const conversation = active.value
     const entry = files.value.find(file => file.key === key)
     if (!entry || !conversation) return
     pending.get(key)?.abort()
+    if (entry.status === 'uploading' && entry.reference) return
     if (entry.attachment && backend) {
       entry.status = 'removing'
       try { await backend.request(`/chat/attachments/${entry.attachment.id}`, 'DELETE') }
@@ -121,8 +172,9 @@ export function useChatAttachments(backend: ChatBackend | undefined, active: Ref
   function retry(key: string): void {
     const entry = files.value.find(file => file.key === key)
     if (entry?.file && active.value) void upload(entry, active.value)
+    else if (entry?.reference && active.value) void uploadReference(entry, active.value)
   }
   function sent(conversationId: string): void { records.value[conversationId] = [] }
   onUnmounted(() => { ++revision; for (const request of pending.values()) request.abort() })
-  return { files, limits, error, available, blocked, imageCompatible, confirmed, add, remove, retry, refresh, sent }
+  return { files, limits, error, available, blocked, imageCompatible, confirmed, add, addReference, remove, retry, refresh, sent }
 }

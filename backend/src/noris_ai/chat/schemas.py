@@ -63,6 +63,16 @@ class ConversationListResponse(JsonApiSchema):
     hasMore: bool = False
 
 
+class TextReference(JsonApiSchema):
+    sourceMessageId: UUID
+    sourceConversationId: UUID
+    text: str = Field(min_length=1, max_length=MAX_MESSAGE_LENGTH)
+
+
+class TextReferenceCreate(TextReference):
+    conversationId: UUID
+
+
 class AttachmentResponse(JsonApiSchema):
     id: UUID
     conversationId: UUID
@@ -75,6 +85,7 @@ class AttachmentResponse(JsonApiSchema):
     extractionStatus: Literal["extracted", "no_text", "unsupported", "not_applicable"]
     modelUsable: bool
     createdAt: datetime
+    textReference: TextReference | None = None
 
 
 class AttachmentListResponse(JsonApiSchema):
@@ -87,6 +98,7 @@ class AttachmentLimitsResponse(JsonApiSchema):
     ownerQuotaBytes: int
     mimeTypes: list[str]
     visionSupported: bool = True
+    maxReferenceChars: int = MAX_MESSAGE_LENGTH
 
 
 class MessageResponse(JsonApiSchema):
