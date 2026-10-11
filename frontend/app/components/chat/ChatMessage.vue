@@ -14,7 +14,16 @@ const { copy, copied, copyError } = useCopy()
 <template>
   <article :class="['chat-message', `message-${message.role}`]" :data-message-id="message.id" :data-status="message.status" :aria-label="message.role === 'user' ? 'Deine Nachricht' : 'Antwort von noris AI'">
     <p v-if="message.role === 'user'" class="user-bubble">{{ message.content }}</p>
-    <div v-else class="assistant-content">
+    <ul v-if="message.role === 'user' && message.attachments?.length" class="message-attachments" aria-label="Gesendete Dateien">
+      <li v-for="file in message.attachments" :key="file.id">
+        <a :href="`/api/v1/chat/attachments/${encodeURIComponent(file.id)}/content`" class="message-attachment" :title="file.originalFilename" download>
+          <UIcon name="i-lucide-file-text" aria-hidden="true" class="size-5 shrink-0" />
+          <span class="min-w-0 truncate">{{ file.originalFilename }}</span>
+          <span class="shrink-0 text-xs text-muted">{{ Math.ceil(file.sizeBytes / 1024) }} KB</span>
+        </a>
+      </li>
+    </ul>
+    <div v-if="message.role === 'assistant'" class="assistant-content">
       <MarkdownContent v-if="message.content" :content="message.content" :streaming="message.status === 'streaming'" @rendered="emit('rendered')" />
       <div v-else-if="message.status === 'submitting' || message.status === 'streaming'" class="thinking-dot" aria-hidden="true" />
       <p v-if="message.status === 'cancelled'" class="mt-3 text-xs text-muted">Antwort gestoppt.</p>

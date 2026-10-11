@@ -63,6 +63,32 @@ class ConversationListResponse(JsonApiSchema):
     hasMore: bool = False
 
 
+class AttachmentResponse(JsonApiSchema):
+    id: UUID
+    conversationId: UUID
+    messageId: UUID | None
+    originalFilename: str
+    mimeType: str
+    sizeBytes: int
+    sha256: str
+    status: Literal["ready", "stored"]
+    extractionStatus: Literal["extracted", "no_text", "unsupported"]
+    modelUsable: bool
+    createdAt: datetime
+
+
+class AttachmentListResponse(JsonApiSchema):
+    attachments: list[AttachmentResponse]
+
+
+class AttachmentLimitsResponse(JsonApiSchema):
+    maxFileBytes: int
+    maxFiles: int
+    ownerQuotaBytes: int
+    mimeTypes: list[str]
+    visionSupported: Literal[False] = False
+
+
 class MessageResponse(JsonApiSchema):
     id: UUID
     conversationId: UUID
@@ -78,6 +104,9 @@ class MessageResponse(JsonApiSchema):
     editedFromMessageId: UUID | None
     createdAt: datetime
     updatedAt: datetime
+    attachments: list[AttachmentResponse] = Field(
+        default_factory=lambda: list[AttachmentResponse]()
+    )
 
 
 class MessageListResponse(JsonApiSchema):

@@ -11,6 +11,15 @@ const message: Message = { id: 'm', conversationId: 'c', parentMessageId: null, 
 afterEach(() => { vi.unstubAllGlobals() })
 
 describe('message actions', () => {
+  it('renders a user message once and keeps attachment downloads outside assistant markup', async () => {
+    const wrapper = mount(ChatMessage, { props: { message }, global: { stubs: { UButton: Button, MarkdownContent: true, UIcon: true } } })
+    expect(wrapper.find('.assistant-content').exists()).toBe(false)
+    expect(wrapper.get('.user-bubble').text()).toBe(message.content)
+    await wrapper.setProps({ message: { ...message, attachments: [{ id: 'file-id', conversationId: 'c', messageId: 'm', originalFilename: 'synthetic.txt', mimeType: 'text/plain', sizeBytes: 4, sha256: 'a'.repeat(64), status: 'ready', extractionStatus: 'extracted', modelUsable: true, createdAt: message.createdAt }] } })
+    expect(wrapper.find('.assistant-content').exists()).toBe(false)
+    expect(wrapper.get('.message-attachments a').attributes('href')).toBe('/api/v1/chat/attachments/file-id/content')
+    wrapper.unmount()
+  })
   it('copies the original text and confirms success', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     vi.stubGlobal('navigator', { clipboard: { writeText } })

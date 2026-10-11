@@ -24,7 +24,7 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from noris_ai.db.base import Base
 
@@ -158,6 +158,42 @@ class ChatMessage(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    attachments: Mapped[list["ChatAttachment"]] = relationship(
+        lazy="selectin", viewonly=True, foreign_keys="ChatAttachment.message_id"
+    )
+
+
+class ChatAttachment(Base):
+    __tablename__ = "chat_attachment"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["conversation_id", "message_id"],
+            ["chat_message.conversation_id", "chat_message.id"],
+            name="attachment_message",
+        ),
+        UniqueConstraint("storage_key", name="uq_chat_attachment_storage_key"),
+        CheckConstraint("size_bytes > 0", name="attachment_size"),
+        CheckConstraint("status IN ('ready', 'stored', 'deleted')", name="attachment_status"),
+        Index("ix_chat_attachment_owner_created", "owner_id", "created_at"),
+        Index("ix_chat_attachment_conversation_message", "conversation_id", "message_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=_uuid)
+    owner_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    conversation_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("chat_conversation.id"), nullable=False
+    )
+    message_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    original_filename: Mapped[str] = mapped_column(Text, nullable=False)
+    storage_key: Mapped[str] = mapped_column(Text, nullable=False)
+    mime_type: Mapped[str] = mapped_column(Text, nullable=False)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    sha256: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(Text, nullable=False)
+    extracted_text: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 

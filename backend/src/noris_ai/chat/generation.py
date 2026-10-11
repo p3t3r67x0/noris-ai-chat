@@ -6,15 +6,19 @@ snapshot. This process owns one worker; replicas require distributed admission.
 """
 
 import asyncio
+import json
 import logging
 import time
 from dataclasses import dataclass, field
+from typing import cast
 from uuid import UUID
 
 from pydantic import ValidationError
 
 from noris_ai.chat.errors import ChatError
+from noris_ai.chat.models import ChatMessage
 from noris_ai.chat.repository import ChatRepository
+from noris_ai.chat.schemas import MessageRole
 from noris_ai.chat.service import ChatService, conversation_response, message_response
 from noris_ai.chat.ws_protocol import GenerateIncomingMessage
 from noris_ai.core.config import Settings
@@ -34,6 +38,23 @@ from noris_ai.llm.schemas import (
 
 type Payload = dict[str, object]
 logger = logging.getLogger(__name__)
+
+
+def attachment_context(message: ChatMessage) -> str:
+    files = [
+        {"filename": a.original_filename, "text": a.extracted_text}
+        for a in message.attachments
+        if a.status == "ready" and a.extracted_text
+    ]
+    if not files:
+        return message.content
+    # File contents stay in the user role. They cannot become privileged system
+    # instructions, and the unchanged gateway counts their bytes/tokens/characters.
+    return (
+        message.content
+        + "\n\nDateiinhalte (untrusted input):\n"
+        + json.dumps(files, ensure_ascii=False)
+    )
 
 
 @dataclass(eq=False)
@@ -88,6 +109,12 @@ class GenerationManager:
                 raise LLMError("RATE_LIMIT", 429)
             if not command.content.strip():
                 raise ChatError("INVALID_INPUT", 422)
+            if len(command.attachmentIds) > self.config.chat_attachment_max_files:
+                raise ChatError("ATTACHMENT_QUOTA", 413)
+            if command.attachmentIds:
+                model = await self.gateway.catalog.require(command.modelId)
+                if model.input_modalities and "text" not in model.input_modalities:
+                    raise ChatError("ATTACHMENT_INCOMPATIBLE", 422)
             generation, path, created = await self.repository.begin_generation(
                 self.config.chat_owner_id, command
             )
@@ -109,7 +136,12 @@ class GenerationManager:
                         conversationId=str(command.conversationId),
                         inputMessageId=str(command.inputMessageId),
                         modelId=command.modelId,
-                        messages=[LLMMessage(role=m.role, content=m.content) for m in path],  # type: ignore[arg-type]
+                        messages=[
+                            LLMMessage(
+                                role=cast(MessageRole, m.role), content=attachment_context(m)
+                            )
+                            for m in path
+                        ],  # type: ignore[arg-type]
                         attempt=command.attempt,
                         operation=command.operation,
                         assistantMessageId=str(command.assistantMessageId)

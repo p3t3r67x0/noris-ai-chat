@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { compile } from 'json-schema-to-typescript-lite'
 
 /** @typedef {import('json-schema-to-typescript-lite').JSONSchema} JSONSchema */
-/** @typedef {{$ref?: string, type?: string, items?: ContractSchema, oneOf?: ContractSchema[], anyOf?: ContractSchema[]}} ContractSchema */
+/** @typedef {{$ref?: string, type?: string, format?: string, items?: ContractSchema, oneOf?: ContractSchema[], anyOf?: ContractSchema[]}} ContractSchema */
 /** @typedef {{name: string, in: string, required?: boolean, schema?: ContractSchema}} Parameter */
 /** @typedef {{operationId: string, parameters?: Parameter[], requestBody?: {content: Record<string, {schema: ContractSchema}>}, responses: Record<string, {content?: Record<string, {schema: ContractSchema}>}>}} Operation */
 /** @typedef {{components: {schemas: Record<string, JSONSchema>}, paths: Record<string, Record<string, Operation>>}} ApiDocument */
@@ -76,12 +76,18 @@ try {
       }
       if (operation.requestBody) {
         const body = operation.requestBody.content['application/json']?.schema
-        if (!body) throw new Error(`Unsupported request body at ${method} ${path}`)
-        lines.push(`      requestBody: ${schemaType(body)}`)
+        const binary = Object.values(operation.requestBody.content).every(value => value.schema.type === 'string' && value.schema.format === 'binary')
+        if (!body && !binary) throw new Error(`Unsupported request body at ${method} ${path}`)
+        lines.push(`      requestBody: ${body ? schemaType(body) : 'Blob'}`)
       }
       lines.push('      responses: {')
       for (const [status, response] of Object.entries(operation.responses)) {
         const content = response.content
+        const binary = content?.['application/octet-stream']?.schema
+        if (binary?.type === 'string' && binary.format === 'binary' && Object.keys(content ?? {}).length === 1) {
+          lines.push(`      ${status}: Blob`)
+          continue
+        }
         const schema = content?.['application/json']?.schema ?? content?.['text/event-stream']?.schema ?? null
         if (status === '204' && !content) {
           lines.push(`      ${status}: void`)
@@ -113,7 +119,7 @@ try {
     const union = JSON.parse(JSON.stringify(wsDocument.properties[direction]).replaceAll('#/$defs/', '#/definitions/'))
     union.definitions = union.$defs
     delete union.$defs
-    const wsTypes = await compile(union, direction === 'client' ? 'ChatWsCommand' : 'ChatWsEvent')
+    const wsTypes = await compile(union, direction === 'client' ? 'ChatWsCommand' : 'ChatWsEvent', { ignoreMinAndMaxItems: true })
     outputs.push({ path: join(root, `frontend/app/types/generated/chat-ws-${direction}.ts`), content: `/* Generated WebSocket v1 contract. Run pnpm api:generate. */\n${wsTypes}` })
   }
   outputs.push({ path: join(root, 'docs/websocket/chat-v1.json'), content: wsContract })

@@ -39,6 +39,15 @@
               "title": "Assistantmessageid",
               "type": "string"
             },
+            "attachmentIds": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 10,
+              "title": "Attachmentids",
+              "type": "array"
+            },
             "attempt": {
               "default": 1,
               "maximum": 1000,
@@ -222,6 +231,90 @@
     },
     "server": {
       "$defs": {
+        "AttachmentResponse": {
+          "additionalProperties": false,
+          "properties": {
+            "conversationId": {
+              "format": "uuid",
+              "title": "Conversationid",
+              "type": "string"
+            },
+            "createdAt": {
+              "format": "date-time",
+              "title": "Createdat",
+              "type": "string"
+            },
+            "extractionStatus": {
+              "enum": [
+                "extracted",
+                "no_text",
+                "unsupported"
+              ],
+              "title": "Extractionstatus",
+              "type": "string"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "messageId": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Messageid"
+            },
+            "mimeType": {
+              "title": "Mimetype",
+              "type": "string"
+            },
+            "modelUsable": {
+              "title": "Modelusable",
+              "type": "boolean"
+            },
+            "originalFilename": {
+              "title": "Originalfilename",
+              "type": "string"
+            },
+            "sha256": {
+              "title": "Sha256",
+              "type": "string"
+            },
+            "sizeBytes": {
+              "title": "Sizebytes",
+              "type": "integer"
+            },
+            "status": {
+              "enum": [
+                "ready",
+                "stored"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "conversationId",
+            "messageId",
+            "originalFilename",
+            "mimeType",
+            "sizeBytes",
+            "sha256",
+            "status",
+            "extractionStatus",
+            "modelUsable",
+            "createdAt"
+          ],
+          "title": "AttachmentResponse",
+          "type": "object"
+        },
         "ConnectedEvent": {
           "additionalProperties": false,
           "properties": {
@@ -849,6 +942,13 @@
         "MessageResponse": {
           "additionalProperties": false,
           "properties": {
+            "attachments": {
+              "items": {
+                "$ref": "#/$defs/AttachmentResponse"
+              },
+              "title": "Attachments",
+              "type": "array"
+            },
             "content": {
               "title": "Content",
               "type": "string"

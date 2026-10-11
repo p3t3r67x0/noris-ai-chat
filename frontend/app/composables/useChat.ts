@@ -83,7 +83,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     }).finally(() => { generatingConversationId.value = null })
   }
 
-  function send(text: string, modelId: ChatModelId): boolean {
+  function send(text: string, modelId: ChatModelId, attachments: NonNullable<ChatMessage['attachments']> = []): boolean {
     const content = text.trim()
     if (stream.busy.value || !content || content.length > CHAT_LIMITS.max_message_chars) return false
     const draftConversationId = conversations.activeId.value
@@ -93,6 +93,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     const needsTitle = conversation.activeLeafMessageId === null && !conversation.titleGenerationAttempted && conversation.titleSource === 'fallback'
     if (needsTitle) { conversation.title = fallbackConversationTitle(content); conversation.titleGenerationAttempted = true }
     const input = append(conversation.id, conversation.activeLeafMessageId, 'user', content)
+    if (attachments.length) input.attachments = attachments
     generate(input, modelId, 1, needsTitle ? { conversationId: conversation.id, inputMessageId: input.id, modelId, firstMessage: Array.from(content).slice(0, TITLE_INPUT_LIMIT).join('') } : undefined)
     drafts.clear(draftConversationId)
     return true

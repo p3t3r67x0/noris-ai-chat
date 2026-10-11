@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from noris_ai.chat import pagination
 from noris_ai.chat.errors import ChatError
 from noris_ai.chat.models import (
+    ChatAttachment,
     ChatConversation,
     ChatDraft,
     ChatGeneration,
@@ -580,6 +581,7 @@ class ChatRepository:
                     message is None
                     or message.content != command.content
                     or message.parent_message_id != command.parentMessageId
+                    or set(command.attachmentIds) != {a.id for a in message.attachments}
                 ):
                     raise ChatError("MESSAGE_EXISTS", 409)
                 return existing, [], False
@@ -634,9 +636,44 @@ class ChatRepository:
                     status="completed",
                     created_at=utc_now(),
                     edited_from_message_id=command.editedFromMessageId,
+                    attachments=[],
                 )
                 session.add(input_message)
                 await session.flush()
+            if len(set(command.attachmentIds)) != len(command.attachmentIds):
+                raise ChatError("INVALID_INPUT", 422)
+            attachments = list(
+                (
+                    await session.scalars(
+                        select(ChatAttachment)
+                        .where(
+                            ChatAttachment.id.in_(command.attachmentIds),
+                            ChatAttachment.owner_id == owner_id,
+                            ChatAttachment.conversation_id == conversation.id,
+                            ChatAttachment.status != "deleted",
+                        )
+                        .with_for_update()
+                    )
+                ).all()
+            )
+            if len(attachments) != len(command.attachmentIds):
+                raise ChatError("ATTACHMENT_NOT_FOUND", 404)
+            if input_message.attachments and {a.id for a in input_message.attachments} != set(
+                command.attachmentIds
+            ):
+                raise ChatError("MESSAGE_EXISTS", 409)
+            for attachment in attachments:
+                if attachment.message_id not in (None, input_message.id):
+                    raise ChatError("ATTACHMENT_IN_USE", 409)
+                if (
+                    attachment.status != "ready"
+                    or not attachment.extracted_text
+                    or attachment.mime_type not in ("text/plain", "text/markdown", "application/pdf")
+                ):
+                    raise ChatError("ATTACHMENT_INCOMPATIBLE", 422)
+                attachment.message_id = input_message.id
+            input_message.attachments = attachments
+            await session.flush()
             path = await pagination.full_path(session, conversation.id, input_message.id)
             prefix, continuation_count = "", 0
             if command.operation == "continue":

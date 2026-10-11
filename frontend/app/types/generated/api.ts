@@ -11,35 +11,53 @@ export type Updatedat = string
 export type Version = number
 export type Hasmore = boolean
 export type Leafmessageid = (string | null)
-export type Content = string
-export type Continuationcount = number
 export type Conversationid = string
 export type Createdat1 = string
+export type Extractionstatus = ("extracted" | "no_text" | "unsupported")
+export type Id1 = string
+export type Messageid = (string | null)
+export type Mimetype = string
+export type Modelusable = boolean
+export type Originalfilename = string
+export type Sha256 = string
+export type Sizebytes = number
+export type Status = ("ready" | "stored")
+export type Attachments = AttachmentResponse[]
+export type Content = string
+export type Continuationcount = number
+export type Conversationid1 = string
+export type Createdat2 = string
 export type Editedfrommessageid = (string | null)
 export type Errorcode = (string | null)
 export type Errormessage = (string | null)
 export type Generationid = (string | null)
-export type Id1 = string
+export type Id2 = string
 export type Modelid = (string | null)
 export type Parentmessageid = (string | null)
 export type Role = ("user" | "assistant")
-export type Status = ("pending" | "streaming" | "completed" | "incomplete" | "cancelled" | "failed")
+export type Status1 = ("pending" | "streaming" | "completed" | "incomplete" | "cancelled" | "failed")
 export type Updatedat1 = string
 export type Messages = MessageResponse[]
 export type Nextcursor = (string | null)
 export type Index = number
-export type Messageid = string
+export type Messageid1 = string
 export type Nextmessageid = (string | null)
 export type Previousmessageid = (string | null)
 export type Total = number
 export type Variants = VariantSummary[]
+export type Maxfilebytes = number
+export type Maxfiles = number
+export type Mimetypes = string[]
+export type Ownerquotabytes = number
+export type Visionsupported = false
+export type Attachments1 = AttachmentResponse[]
 export type Seq = number
 export type Type = "response.cancelled"
 export type Activeconversationid = (string | null)
 export type Activeleafmessageid1 = (string | null)
 export type Archivedat1 = (string | null)
-export type Createdat2 = string
-export type Id2 = string
+export type Createdat3 = string
+export type Id3 = string
 export type Title1 = string
 export type Titlesource1 = ("fallback" | "generated" | "manual")
 export type Updatedat2 = string
@@ -50,22 +68,22 @@ export type Version1 = number
 export type Conversations = ImportConversation[]
 export type Content1 = string
 export type Continuationcount1 = number
-export type Conversationid1 = string
-export type Createdat3 = string
+export type Conversationid2 = string
+export type Createdat4 = string
 export type Editedfrommessageid1 = (string | null)
 export type Errorcode1 = (string | null)
 export type Errormessage1 = (string | null)
-export type Id3 = string
+export type Id4 = string
 export type Modelid1 = (string | null)
 export type Parentmessageid1 = (string | null)
 export type Role1 = ("user" | "assistant")
-export type Status1 = ("pending" | "streaming" | "completed" | "incomplete" | "cancelled" | "failed")
+export type Status2 = ("pending" | "streaming" | "completed" | "incomplete" | "cancelled" | "failed")
 export type Updatedat3 = string
 /**
  * @maxItems 10000
  */
 export type Messages1 = ImportMessage[]
-export type Conversationid2 = string
+export type Conversationid3 = string
 export type Reason = ("exists_with_different_data" | "invalid_parent" | "invalid_leaf" | "duplicate_message")
 export type Conflicts = ImportConflict[]
 export type Draftsimported = number
@@ -80,7 +98,7 @@ export type StreamTimeoutMs = number
 export type Assistantmessageid = (string | null)
 export type Attempt = number
 export type Continuationcount2 = number
-export type Conversationid3 = string
+export type Conversationid4 = string
 export type Generationid1 = string
 export type Inputmessageid = string
 /**
@@ -94,16 +112,16 @@ export type Modelid2 = string
 export type Operation = ("generate" | "continue")
 export type Seq1 = number
 export type Type1 = "response.completed"
-export type Id4 = (string | null)
+export type Id5 = (string | null)
 export type Title2 = (string | null)
 export type Conversations1 = ConversationResponse[]
 export type Hasmore1 = boolean
 export type Nextcursor1 = (string | null)
-export type Conversationid4 = string
+export type Conversationid5 = string
 export type Firstmessage = string
 export type Inputmessageid1 = string
 export type Modelid3 = string
-export type Conversationid5 = string
+export type Conversationid6 = string
 export type Inputmessageid2 = string
 export type Title3 = string
 export type Activeleafmessageid2 = (string | null)
@@ -131,7 +149,7 @@ export type Message2 = string
 export type ErrorType = string
 export type Detail = ValidationError[]
 export type Service = "noris-ai"
-export type Status2 = "ok"
+export type Status3 = "ok"
 export type Version3 = string
 export type Reason1 = "output_limit"
 export type Seq4 = number
@@ -157,7 +175,7 @@ export type EffectiveContextWindow = (number | null)
 export type EffectiveMaxOutputTokens = (number | null)
 export type EstimatedMaxCostUsd = (string | null)
 export type HuggingFaceId = (string | null)
-export type Id5 = string
+export type Id6 = string
 export type InputModalities = string[]
 export type IsReady = (boolean | null)
 export type Lifecycle = ("LTS" | "PRODUCTIVE" | "EXPERIMENTAL" | "DEPRECATED" | "UNKNOWN")
@@ -199,13 +217,13 @@ export type ExpiresInSeconds = number
 export type FetchedAt = (string | null)
 export type Models = LLMModel[]
 export type RegistryVersion = string
-export type Status3 = ("fresh" | "stale")
+export type Status4 = ("fresh" | "stale")
 export type ModelCategory = ("CHAT" | "REASONING" | "VISION" | "EMBEDDING" | "RERANKING" | "UNKNOWN")
 export type Activeconversationid1 = (string | null)
 export type Modelid4 = (string | null)
 export type Activeconversationid2 = (string | null)
 export type Modelid5 = (string | null)
-export type Status4 = "ready"
+export type Status5 = "ready"
 export type Seq5 = number
 export type Type5 = "response.started"
 export type Expiresinseconds = number
@@ -213,6 +231,9 @@ export type Ticketid = string
 
 export interface ApiSchemas {
   ActivePathResponse: ActivePathResponse
+  AttachmentLimitsResponse: AttachmentLimitsResponse
+  AttachmentListResponse: AttachmentListResponse
+  AttachmentResponse: AttachmentResponse
   CancelledEvent: CancelledEvent
   ChatImportRequest: ChatImportRequest
   ChatImportResponse: ChatImportResponse
@@ -276,27 +297,51 @@ export interface ConversationResponse {
   version: Version
 }
 export interface MessageResponse {
+  attachments?: Attachments
   content: Content
   continuationCount?: Continuationcount
-  conversationId: Conversationid
-  createdAt: Createdat1
+  conversationId: Conversationid1
+  createdAt: Createdat2
   editedFromMessageId: Editedfrommessageid
   errorCode?: Errorcode
   errorMessage?: Errormessage
   generationId: Generationid
-  id: Id1
+  id: Id2
   modelId: Modelid
   parentMessageId: Parentmessageid
   role: Role
-  status: Status
+  status: Status1
   updatedAt: Updatedat1
+}
+export interface AttachmentResponse {
+  conversationId: Conversationid
+  createdAt: Createdat1
+  extractionStatus: Extractionstatus
+  id: Id1
+  messageId: Messageid
+  mimeType: Mimetype
+  modelUsable: Modelusable
+  originalFilename: Originalfilename
+  sha256: Sha256
+  sizeBytes: Sizebytes
+  status: Status
 }
 export interface VariantSummary {
   index: Index
-  messageId: Messageid
+  messageId: Messageid1
   nextMessageId: Nextmessageid
   previousMessageId: Previousmessageid
   total: Total
+}
+export interface AttachmentLimitsResponse {
+  maxFileBytes: Maxfilebytes
+  maxFiles: Maxfiles
+  mimeTypes: Mimetypes
+  ownerQuotaBytes: Ownerquotabytes
+  visionSupported?: Visionsupported
+}
+export interface AttachmentListResponse {
+  attachments: Attachments1
 }
 export interface CancelledEvent {
   seq: Seq
@@ -311,8 +356,8 @@ export interface ChatImportRequest {
 export interface ImportConversation {
   activeLeafMessageId?: Activeleafmessageid1
   archivedAt?: Archivedat1
-  createdAt: Createdat2
-  id: Id2
+  createdAt: Createdat3
+  id: Id3
   title: Title1
   titleSource: Titlesource1
   updatedAt: Updatedat2
@@ -324,16 +369,16 @@ export interface Drafts {
 export interface ImportMessage {
   content: Content1
   continuationCount?: Continuationcount1
-  conversationId: Conversationid1
-  createdAt: Createdat3
+  conversationId: Conversationid2
+  createdAt: Createdat4
   editedFromMessageId?: Editedfrommessageid1
   errorCode?: Errorcode1
   errorMessage?: Errormessage1
-  id: Id3
+  id: Id4
   modelId?: Modelid1
   parentMessageId?: Parentmessageid1
   role: Role1
-  status: Status1
+  status: Status2
   updatedAt: Updatedat3
 }
 export interface ChatImportResponse {
@@ -343,7 +388,7 @@ export interface ChatImportResponse {
   skipped: Skipped
 }
 export interface ImportConflict {
-  conversationId: Conversationid2
+  conversationId: Conversationid3
   reason: Reason
 }
 export interface ChatLimits {
@@ -358,7 +403,7 @@ export interface ChatRequest {
   assistantMessageId?: Assistantmessageid
   attempt: Attempt
   continuationCount?: Continuationcount2
-  conversationId: Conversationid3
+  conversationId: Conversationid4
   generationId: Generationid1
   inputMessageId: Inputmessageid
   messages: Messages2
@@ -374,7 +419,7 @@ export interface CompletedEvent {
   type?: Type1
 }
 export interface ConversationCreate {
-  id?: Id4
+  id?: Id5
   title?: Title2
 }
 export interface ConversationListResponse {
@@ -383,13 +428,13 @@ export interface ConversationListResponse {
   nextCursor?: Nextcursor1
 }
 export interface ConversationTitleRequest {
-  conversationId: Conversationid4
+  conversationId: Conversationid5
   firstMessage: Firstmessage
   inputMessageId: Inputmessageid1
   modelId: Modelid3
 }
 export interface ConversationTitleResponse {
-  conversationId: Conversationid5
+  conversationId: Conversationid6
   inputMessageId: Inputmessageid2
   title: Title3
 }
@@ -449,7 +494,7 @@ export interface Input {
 }
 export interface HealthResponse {
   service?: Service
-  status?: Status2
+  status?: Status3
   version: Version3
 }
 export interface IncompleteEvent {
@@ -470,7 +515,7 @@ export interface LLMModel {
   estimated_max_cost_usd?: EstimatedMaxCostUsd
   evidence?: Evidence1
   hugging_face_id?: HuggingFaceId
-  id: Id5
+  id: Id6
   input_modalities?: InputModalities
   is_ready?: IsReady
   lifecycle?: Lifecycle
@@ -546,7 +591,7 @@ export interface ModelCatalog {
   limits: ChatLimits
   models: Models
   registry_version?: RegistryVersion
-  status?: Status3
+  status?: Status4
 }
 export interface PreferencesResponse {
   activeConversationId: Activeconversationid1
@@ -557,7 +602,7 @@ export interface PreferencesUpdate {
   modelId?: Modelid5
 }
 export interface ReadinessResponse {
-  status?: Status4
+  status?: Status5
 }
 export interface StartedEvent {
   seq: Seq5
@@ -569,6 +614,101 @@ export interface TicketResponse {
 }
 
 export interface ApiPaths {
+  "/api/v1/chat/attachments": {
+    get: {
+      parameters: {
+        query: {
+          "conversationId": string
+        }
+      }
+      responses: {
+      200: ApiSchemas["AttachmentListResponse"]
+      400: ApiSchemas["ErrorResponse"]
+      401: ApiSchemas["ErrorResponse"]
+      403: ApiSchemas["ErrorResponse"]
+      404: ApiSchemas["ErrorResponse"]
+      409: ApiSchemas["ErrorResponse"]
+      413: ApiSchemas["ErrorResponse"]
+      422: ApiSchemas["ErrorResponse"]
+      500: ApiSchemas["ErrorResponse"]
+      503: ApiSchemas["ErrorResponse"]
+    } }
+    post: {
+      parameters: {
+        query: {
+          "conversationId": string
+          "filename": string
+        }
+      }
+      requestBody: Blob
+      responses: {
+      201: ApiSchemas["AttachmentResponse"]
+      400: ApiSchemas["ErrorResponse"]
+      401: ApiSchemas["ErrorResponse"]
+      403: ApiSchemas["ErrorResponse"]
+      404: ApiSchemas["ErrorResponse"]
+      409: ApiSchemas["ErrorResponse"]
+      413: ApiSchemas["ErrorResponse"]
+      422: ApiSchemas["ErrorResponse"]
+      500: ApiSchemas["ErrorResponse"]
+      503: ApiSchemas["ErrorResponse"]
+    } }
+  }
+  "/api/v1/chat/attachments/limits": {
+    get: {
+      responses: {
+      200: ApiSchemas["AttachmentLimitsResponse"]
+      400: ApiSchemas["ErrorResponse"]
+      401: ApiSchemas["ErrorResponse"]
+      403: ApiSchemas["ErrorResponse"]
+      404: ApiSchemas["ErrorResponse"]
+      409: ApiSchemas["ErrorResponse"]
+      413: ApiSchemas["ErrorResponse"]
+      422: ApiSchemas["ErrorResponse"]
+      500: ApiSchemas["ErrorResponse"]
+      503: ApiSchemas["ErrorResponse"]
+    } }
+  }
+  "/api/v1/chat/attachments/{attachment_id}": {
+    delete: {
+      parameters: {
+        path: {
+          "attachment_id": string
+        }
+      }
+      responses: {
+      204: void
+      400: ApiSchemas["ErrorResponse"]
+      401: ApiSchemas["ErrorResponse"]
+      403: ApiSchemas["ErrorResponse"]
+      404: ApiSchemas["ErrorResponse"]
+      409: ApiSchemas["ErrorResponse"]
+      413: ApiSchemas["ErrorResponse"]
+      422: ApiSchemas["ErrorResponse"]
+      500: ApiSchemas["ErrorResponse"]
+      503: ApiSchemas["ErrorResponse"]
+    } }
+  }
+  "/api/v1/chat/attachments/{attachment_id}/content": {
+    get: {
+      parameters: {
+        path: {
+          "attachment_id": string
+        }
+      }
+      responses: {
+      200: Blob
+      400: ApiSchemas["ErrorResponse"]
+      401: ApiSchemas["ErrorResponse"]
+      403: ApiSchemas["ErrorResponse"]
+      404: ApiSchemas["ErrorResponse"]
+      409: ApiSchemas["ErrorResponse"]
+      413: ApiSchemas["ErrorResponse"]
+      422: ApiSchemas["ErrorResponse"]
+      500: ApiSchemas["ErrorResponse"]
+      503: ApiSchemas["ErrorResponse"]
+    } }
+  }
   "/api/v1/chat/drafts": {
     get: {
       parameters: {

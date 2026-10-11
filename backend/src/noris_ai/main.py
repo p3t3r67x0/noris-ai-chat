@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -12,11 +13,13 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from starlette.exceptions import HTTPException
 
 from noris_ai import __version__
+from noris_ai.api.v1.attachments import router as attachments_router
 from noris_ai.api.v1.chat_ws import router as chat_ws_router
 from noris_ai.api.v1.conversations import router as conversations_router
 from noris_ai.api.v1.health import router as health_router
 from noris_ai.api.v1.llm import llm_error
 from noris_ai.api.v1.llm import router as llm_router
+from noris_ai.chat.attachments import AttachmentService
 from noris_ai.chat.errors import ChatError
 from noris_ai.chat.generation import GenerationManager
 from noris_ai.chat.repository import ChatRepository
@@ -61,6 +64,8 @@ def create_app(
         application.state.chat_settings = config
         application.state.chat_database = database
         application.state.chat_repository = repository
+        attachments = AttachmentService(config, database)
+        application.state.chat_attachments = attachments
         application.state.chat_service = ChatService(repository)
         application.state.chat_tickets = WsTicketStore(config.chat_ws_ticket_ttl_seconds)
         application.state.chat_generations = GenerationManager(
@@ -68,13 +73,36 @@ def create_app(
         )
         # Startup recovery: generations orphaned by a restart are never
         # reported as completed.
+        database_available = True
         try:
             await repository.mark_running_generations_interrupted(config.chat_owner_id)
         except SQLAlchemyError:
+            database_available = False
             logger.warning("Could not mark interrupted generations at startup")
+
+        shutting_down = asyncio.Event()
+
+        async def clean_attachments() -> None:
+            if not database_available:
+                await asyncio.sleep(3600)
+            while not shutting_down.is_set():
+                try:
+                    async with asyncio.timeout(5):
+                        await attachments.cleanup()
+                except (SQLAlchemyError, OSError, TimeoutError):
+                    logger.warning("Could not clean expired attachments")
+                # A database driver can wrap cancellation in SQLAlchemyError.
+                # Never sleep again once the application has begun shutdown.
+                if not shutting_down.is_set():
+                    await asyncio.sleep(3600)
+
+        cleanup = asyncio.create_task(clean_attachments())
         try:
             yield
         finally:
+            shutting_down.set()
+            cleanup.cancel()
+            await asyncio.gather(cleanup, return_exceptions=True)
             await application.state.chat_generations.close()
             if llm_provider is not None:
                 await llm_provider.aclose()
@@ -137,6 +165,7 @@ def create_app(
     application.include_router(llm_router, prefix="/api/v1")
     application.include_router(conversations_router, prefix="/api/v1")
     application.include_router(chat_ws_router, prefix="/api/v1")
+    application.include_router(attachments_router, prefix="/api/v1")
     return application
 
 

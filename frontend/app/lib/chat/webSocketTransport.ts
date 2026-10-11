@@ -95,6 +95,7 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
               conversationVersion: version, modelId: request.modelId, attempt: request.attempt,
               content: request.input.content, parentMessageId: request.input.parentMessageId,
               operation: request.operation ?? 'generate',
+              ...(request.input.attachments?.length ? { attachmentIds: request.input.attachments.map(file => file.id) } : {}),
               ...(request.sourceAssistantMessageId ? { sourceAssistantMessageId: request.sourceAssistantMessageId } : {}),
               ...(request.input.editedFromMessageId ? { editedFromMessageId: request.input.editedFromMessageId } : {}),
             })

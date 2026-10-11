@@ -14,6 +14,15 @@ class LLMRequestLimitMiddleware:
         self._app, self._max_bytes = app, max_bytes
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        # This route streams validated files with its own byte/time/quota limits.
+        # Every other chat/LLM mutation keeps the existing JSON-only protection.
+        if (
+            scope["type"] == "http"
+            and scope.get("method") == "POST"
+            and scope["path"] == "/api/v1/chat/attachments"
+        ):
+            await self._app(scope, receive, send)
+            return
         if (
             scope["type"] != "http"
             or scope.get("method") not in ("POST", "PUT", "PATCH")

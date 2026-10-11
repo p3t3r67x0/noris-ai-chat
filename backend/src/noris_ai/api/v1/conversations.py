@@ -11,6 +11,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.security import HTTPBasicCredentials
 
+from noris_ai.chat.attachments import AttachmentService
 from noris_ai.chat.errors import ChatError
 from noris_ai.chat.generation import GenerationManager
 from noris_ai.chat.repository import UNCHANGED
@@ -155,6 +156,7 @@ async def delete_conversation(
         conversation_id
     )
     await service.delete_conversation(owner_id, conversation_id)
+    await cast(AttachmentService, request.app.state.chat_attachments).cleanup()
 
 
 @router.get(

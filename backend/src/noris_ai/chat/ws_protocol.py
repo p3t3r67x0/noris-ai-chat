@@ -38,6 +38,7 @@ class GenerateIncomingMessage(ClientEnvelope):
     attempt: int = Field(default=1, ge=1, le=1000)
     parentMessageId: UUID | None = None
     content: str = Field(min_length=1, max_length=MAX_INPUT_LENGTH)
+    attachmentIds: list[UUID] = Field(default_factory=lambda: list[UUID](), max_length=10)
 
 
 class CancelIncomingMessage(ClientEnvelope):

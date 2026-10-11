@@ -1,0 +1,147 @@
+import { expect, test } from '@playwright/test'
+import type { Page } from '@playwright/test'
+
+test.beforeEach(async ({ request }) => {
+  const result = await request.get('/api/v1/conversations', { params: { archived: true, limit: 100 } })
+  expect(result.ok()).toBe(true)
+  for (const conversation of (await result.json()).conversations) await request.delete(`/api/v1/conversations/${conversation.id}`)
+  await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
+  await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
+})
+
+const textFile = { name: 'synthetic.txt', mimeType: 'text/plain', buffer: Buffer.from('Synthetic upload context for the local simulator.') }
+async function selectFiles(page: Page, files = [textFile]): Promise<void> {
+  await expect(page.locator('.composer-attachment')).toBeEnabled()
+  await page.locator('.composer-attachment').click()
+  const chooser = page.waitForEvent('filechooser')
+  await page.getByRole('menuitem', { name: 'Dateien hinzufügen', exact: true }).click()
+  await (await chooser).setFiles(files)
+}
+
+test('native multiple selection persists previews, layout and server context through reload', async ({ page, request }) => {
+  await page.goto('/')
+  const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
+  await expect(page.locator('.composer-container')).toHaveAttribute('data-layout', 'compact')
+  const original = (await page.locator('.chat-composer').boundingBox())!
+  await selectFiles(page, [textFile, { name: 'synthetic.md', mimeType: 'text/markdown', buffer: Buffer.from('# Synthetic markdown\nA second attachment.') }])
+  await expect(page.locator('[data-upload-status="uploaded"]')).toHaveCount(2)
+  await expect(page.locator('.composer-container')).toHaveAttribute('data-layout', 'expanded')
+  await expect(input).toBeFocused()
+  const attached = (await page.locator('.chat-composer').boundingBox())!
+  expect(attached.y + attached.height).toBeCloseTo(original.y + original.height, 0)
+  await input.fill('Summarize the synthetic attachments')
+  await page.reload()
+  await expect(page.locator('[data-upload-status="uploaded"]')).toHaveCount(2)
+  await expect(input).toHaveValue('Summarize the synthetic attachments')
+  await input.press('Enter')
+  await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
+  await expect(page.locator('.message-attachments a')).toHaveCount(2)
+  const conversation = (await (await request.get('/api/v1/conversations')).json()).conversations[0]
+  const messages = (await (await request.get(`/api/v1/conversations/${conversation.id}/messages`)).json()).messages
+  expect(messages[0].content).toBe('Summarize the synthetic attachments')
+  expect(messages[0].attachments).toHaveLength(2)
+  const attachment = messages[0].attachments.find((file: { originalFilename: string }) => file.originalFilename === textFile.name)
+  expect(attachment).toBeDefined()
+  const download = await request.get(`/api/v1/chat/attachments/${attachment.id}/content`)
+  expect(download.ok()).toBe(true)
+  expect((await download.body()).toString()).toBe(textFile.buffer.toString())
+  await page.reload()
+  await expect(page.locator('.message-attachments a')).toHaveCount(2)
+  await expect(page.locator('.attachment-preview')).toHaveCount(0)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+})
+
+test('upload error retries the real API and removing the last file restores compact mode', async ({ page }) => {
+  let failed = false
+  await page.route('**/api/v1/chat/attachments?*', async route => {
+    if (route.request().method() === 'POST' && !failed) {
+      failed = true
+      await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: 'Synthetischer Uploadfehler' } }) })
+    }
+    else await route.continue()
+  })
+  await page.goto('/')
+  await selectFiles(page)
+  await expect(page.locator('[data-upload-status="failed"]')).toContainText('Synthetischer Uploadfehler')
+  await page.getByRole('button', { name: 'synthetic.txt erneut hochladen' }).click()
+  await expect(page.locator('[data-upload-status="uploaded"]')).toHaveCount(1)
+  await page.getByRole('button', { name: 'synthetic.txt entfernen' }).click()
+  await expect(page.locator('.attachment-preview')).toHaveCount(0)
+  await expect(page.getByRole('textbox', { name: 'Nachricht', exact: true })).toBeFocused()
+  await expect(page.locator('.composer-container')).toHaveAttribute('data-layout', 'compact')
+  await page.reload()
+  await expect(page.locator('.attachment-preview')).toHaveCount(0)
+})
+
+test('removing an in-flight upload aborts its request without leaving a preview', async ({ page }) => {
+  let release!: () => void
+  const held = new Promise<void>(resolve => { release = resolve })
+  await page.route('**/api/v1/chat/attachments?*', async route => {
+    if (route.request().method() === 'POST') { await held; await route.abort() }
+    else await route.continue()
+  })
+  await page.goto('/')
+  await selectFiles(page)
+  await expect(page.locator('[data-upload-status="uploading"]')).toHaveCount(1)
+  await page.getByRole('button', { name: 'synthetic.txt entfernen' }).click()
+  release()
+  await expect(page.locator('.attachment-preview')).toHaveCount(0)
+  await expect(page.getByRole('textbox', { name: 'Nachricht', exact: true })).toBeFocused()
+  await expect(page.locator('.composer-container')).toHaveAttribute('data-layout', 'compact')
+})
+
+test('file count, type and size limits are visible and never create usable attachments', async ({ page }) => {
+  await page.goto('/')
+  await selectFiles(page, Array.from({ length: 6 }, (_, i) => ({ ...textFile, name: `synthetic-${i}.txt` })))
+  await expect(page.getByRole('alert')).toContainText('Maximal 5 Dateien')
+  await expect(page.locator('.attachment-preview')).toHaveCount(0)
+  await selectFiles(page, [{ name: 'synthetic.zip', mimeType: 'application/zip', buffer: Buffer.from('Synthetic invalid archive') }])
+  await expect(page.locator('[data-upload-status="failed"]')).toContainText('Dateityp wird nicht unterstützt')
+  await page.getByRole('button', { name: 'synthetic.zip entfernen' }).click()
+  await selectFiles(page, [{ ...textFile, buffer: Buffer.alloc(10_485_761, 'x') }])
+  await expect(page.locator('[data-upload-status="failed"]')).toContainText('maximal 10 MB')
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeDisabled()
+})
+
+for (const width of [1701, 1440, 390]) {
+  for (const theme of ['light', 'dark']) {
+    test(`confirmed attachment preview ${width} ${theme}`, async ({ page }, info) => {
+      test.skip(info.project.name !== 'desktop', 'The screenshot matrix runs once; upload interactions also run with touch emulation.')
+      await page.setViewportSize({ width, height: width === 1701 ? 863 : width === 390 ? 844 : 900 })
+      await page.addInitScript(value => localStorage.setItem('noris-ai-theme', value), theme)
+      await page.goto('/')
+      await selectFiles(page)
+      await expect(page.locator('[data-upload-status="uploaded"]')).toHaveCount(1)
+      await expect(page).toHaveScreenshot(`attachment-${width}-${theme}.png`, { animations: 'disabled', caret: 'hide' })
+      await page.getByRole('textbox', { name: 'Nachricht', exact: true }).fill('Additional wrapped text for the synthetic attachment. '.repeat(10))
+      await expect(page.locator('[data-upload-status="uploaded"]')).toHaveCount(1)
+      await page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true }).click()
+      await page.getByRole('option', { name: 'Fixture Beta' }).click()
+      const positions = await page.locator('.composer-toolbar button').evaluateAll(elements => elements.map(e => { const r = e.getBoundingClientRect(); return r.y + r.height / 2 }))
+      expect(new Set(positions).size).toBe(1)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+      if (width === 390) {
+        await page.evaluate(() => {
+          Object.defineProperty(visualViewport!, 'height', { configurable: true, value: 250 })
+          visualViewport!.dispatchEvent(new Event('resize'))
+        })
+        const box = (await page.locator('.chat-composer').boundingBox())!
+        expect(box.y).toBeGreaterThanOrEqual(0)
+        expect(box.y + box.height).toBeLessThanOrEqual(250)
+        await expect(page.locator('.composer-submit')).toBeInViewport()
+      }
+    })
+  }
+}
+
+
+test('a validated image is stored but never advertised as usable vision input', async ({ page }) => {
+  await page.goto('/')
+  await selectFiles(page, [{ name: 'synthetic.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGMMLJ7CQApgIkn1qIZRDUNKAwBO2QF44IsoTQAAAABJRU5ErkJggg==', 'base64') }])
+  await expect(page.locator('[data-upload-status="uploaded"]')).toContainText('Bildanalyse derzeit nicht verfügbar')
+  await page.getByRole('textbox', { name: 'Nachricht', exact: true }).fill('Describe this synthetic image')
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeDisabled()
+  await page.reload()
+  await expect(page.locator('[data-upload-status="uploaded"]')).toContainText('Bildanalyse derzeit nicht verfügbar')
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeDisabled()
+})

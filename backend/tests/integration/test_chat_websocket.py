@@ -270,19 +270,23 @@ def test_server_path_regeneration_and_edit_preserve_variants(
 ) -> None:
     payload = generate(client)
 
-    def run(command_payload: dict[str, object]) -> None:
+    def run(command_payload: dict[str, object], wait_for_title: bool = False) -> None:
         with client.websocket_connect(
             "/api/v1/chat/ws", subprotocols=protocols(client), headers=ORIGIN.copy()
         ) as socket:
             socket.receive_json()
             socket.send_json(command_payload)
-            while True:
+            completed = False
+            title_ready = not wait_for_title
+            while not (completed and title_ready):
                 event = socket.receive_json()
                 assert event["type"] != "chat.error", event
                 if event["type"] == "chat.generation.completed":
-                    break
+                    completed = True
+                if event["type"] == "chat.title.updated":
+                    title_ready = True
 
-    run(payload)
+    run(payload, wait_for_title=True)
     path = f"/api/v1/conversations/{payload['conversationId']}"
     regenerated = payload | {
         "requestId": str(uuid4()),
