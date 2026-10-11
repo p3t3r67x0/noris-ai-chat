@@ -10,8 +10,21 @@ export async function openDataControls(page: Page) {
     await page.getByRole('button', { name: 'Sidebar öffnen', exact: true }).click()
   }
   await page.getByRole('button', { name: 'Einstellungen', exact: true }).click()
-  const settings = page.getByRole('dialog', { name: 'Einstellungen', exact: true })
+  const settings = page.getByRole('main', { name: 'Einstellungen', exact: true })
   await expect(settings).toBeVisible()
-  await settings.getByRole('tab', { name: 'Datenkontrollen', exact: true }).click()
+  await openSettingsCategory(page, 'Datenkontrollen')
   return settings
+}
+
+export async function openSettingsCategory(page: Page, name: string) {
+  const toggle = page.locator('.settings-mobile-toggle')
+  if (await toggle.isVisible() && await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
+  await page.locator('.settings-sidebar').getByRole('link', { name, exact: true }).click()
+}
+
+export async function returnToChat(page: Page) {
+  const toggle = page.locator('.settings-mobile-toggle')
+  if (await toggle.isVisible() && await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
+  await page.getByRole('link', { name: 'Zurück zum Chat', exact: true }).click()
+  await expect(page).toHaveURL(/\/$/)
 }

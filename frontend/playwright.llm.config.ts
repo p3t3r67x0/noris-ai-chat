@@ -10,7 +10,7 @@ export default defineConfig({
   snapshotPathTemplate: '{testDir}/__screenshots__/{platform}/{projectName}/{arg}{ext}',
   expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.001 } },
   workers: 1, retries: 0,
-  use: { baseURL: `http://127.0.0.1:${frontendPort}`, httpCredentials: { username: 'fixture-user', password: 'fixture-application-password-never-real' }, trace: 'retain-on-failure' },
+  use: { locale: 'de-DE', baseURL: `http://127.0.0.1:${frontendPort}`, httpCredentials: { username: 'fixture-user', password: 'fixture-application-password-never-real' }, trace: 'retain-on-failure' },
   projects: [{ name: 'desktop', use: { ...devices['Desktop Chrome'] } }, { name: 'mobile', use: { ...devices['Pixel 7'] } }],
   webServer: [
     { command: `../backend/.venv/bin/python -m uvicorn --app-dir .. backend.tests.fixtures.llm_http_server:app --host 127.0.0.1 --port ${providerPort}`, url: `http://127.0.0.1:${providerPort}/fixture/state`, reuseExistingServer: false },

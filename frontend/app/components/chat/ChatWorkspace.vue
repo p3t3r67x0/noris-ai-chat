@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CHAT_LIMITS } from '../../lib/chat/limits'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, provide, ref, watch } from 'vue'
 import { useChat } from '../../composables/useChat'
 import { useChatTransport } from '../../composables/useChatTransport'
 import { useModelSelection } from '../../composables/useModelSelection'
@@ -12,12 +12,32 @@ import ChatTimeline from './ChatTimeline.vue'
 import { useChatViewport } from '../../composables/useChatViewport'
 import { useSidebarPreference } from '../../composables/useSidebarPreference'
 import ChatRail from './ChatRail.vue'
-import SettingsDialog from '../settings/SettingsDialog.vue'
+import { workspaceKey } from '../../composables/useWorkspace'
+import { useAppLocale } from '../../composables/useAppLocale'
 
 const { transport, mode } = useChatTransport()
 const chat = useChat(transport)
 const { conversations, stream } = chat
-const { modelId, error: modelError, notice: modelNotice, loading: modelsLoading, canSend: modelCanSend, fallbackId, refresh: refreshModels, chooseFallback } = useModelSelection({ mode })
+const selection = useModelSelection({ mode })
+const { modelId, error: modelError, notice: modelNotice, loading: modelsLoading, canSend: modelCanSend, fallbackId, refresh: refreshModels, chooseFallback } = selection
+provide(workspaceKey, { chat, selection, mode, importAvailable: computed(() => Boolean(transport.backend) && chat.importAvailable.value) })
+const { t } = useAppLocale()
+const route = useRoute()
+const router = useRouter()
+const inSettings = computed(() => route.path.startsWith('/settings'))
+const openSettings = () => router.push('/settings/general')
+let readingPosition = 0
+watch(inSettings, async (settings) => {
+  const scroll = document.querySelector<HTMLElement>('.chat-scroll')
+  if (settings) {
+    readingPosition = scroll?.scrollTop ?? 0
+    if (window.matchMedia('(max-width: 1023px)').matches) sidebarOpen.value = false
+  }
+  else {
+    await nextTick()
+    requestAnimationFrame(() => { if (scroll) scroll.scrollTop = readingPosition; composer.value?.focus() })
+  }
+}, { flush: 'pre' })
 const canSend = computed(() => modelCanSend.value && chat.backendReady.value && !chat.pagination?.historyLoading.value && !chat.pagination?.historyError.value)
 let preferencesRestored = false
 watch([chat.backendReady, modelsLoading], ([loaded, loading]) => {
@@ -29,18 +49,23 @@ watch(modelId, value => { if (transport.backend && preferencesRestored && value)
 watch(stream.errorCode, (code) => { if (code === 'MODEL_UNAVAILABLE' || code === 'PROVIDER_AUTH_FAILED') void refreshModels() })
 const { draft } = chat.drafts
 const { sidebarOpen } = useSidebarPreference()
+const chatSidebarOpen = computed({ get: () => sidebarOpen.value && !inSettings.value, set: (value: boolean) => { if (!inSettings.value) sidebarOpen.value = value } })
 const sidebar = ref<InstanceType<typeof ChatSidebar> | null>(null)
 const composer = ref<InstanceType<typeof ChatComposer> | null>(null)
 const { viewportStyle } = useChatViewport()
 const ready = ref(false)
-onMounted(() => { ready.value = true; window.addEventListener('keydown', onShortcut) })
+onMounted(() => {
+  ready.value = true
+  if (inSettings.value && window.matchMedia('(max-width: 1023px)').matches) sidebarOpen.value = false
+  window.addEventListener('keydown', onShortcut)
+})
 onUnmounted(() => { if (typeof window !== 'undefined') window.removeEventListener('keydown', onShortcut) })
 
 function send(text: string): void {
   if (canSend.value && chat.send(text, modelId.value)) composer.value?.focus()
 }
 function stop(): void { stream.stop(); composer.value?.focus() }
-function newChat(): void { chat.newChat(); composer.value?.focus() }
+function newChat(): void { chat.newChat(); if (inSettings.value) void router.push('/'); else composer.value?.focus() }
 async function continueResponse(id: string): Promise<void> {
   if (modelsLoading.value) await refreshModels()
   if (canSend.value) chat.continueResponse(id, modelId.value)
@@ -54,6 +79,7 @@ function selectRunningChat(): void {
   if (id) conversations.select(id)
 }
 function onShortcut(event: KeyboardEvent): void {
+  if (inSettings.value) return
   if (event.isComposing || event.repeat) return
   if (document.querySelector('.delete-dialog[data-state="open"]')) return
   if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'o') {
@@ -66,7 +92,6 @@ function onShortcut(event: KeyboardEvent): void {
 }
 const editingId = ref<string | null>(null)
 const editText = ref('')
-const settingsOpen = ref(false)
 const editOpen = computed({ get: () => editingId.value !== null, set: (open: boolean) => { if (!open) editingId.value = null } })
 function beginEdit(id: string): void {
   const message = chat.messages.value[id]
@@ -80,19 +105,21 @@ function saveEdit(): void {
 </script>
 
 <template>
-  <div class="chat-workspace" :style="viewportStyle" :data-ready="ready" :inert="!ready" :aria-busy="!ready">
-    <a href="#chat-main" class="sr-only z-50 rounded-md bg-default p-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Zum Chat springen</a>
-    <ChatRail :demo="mode === 'mock'" @home="newChat" @search="sidebar?.openSearch()" @archive="sidebar?.openArchive()" @settings="settingsOpen = true" />
-    <ChatSidebar
-      ref="sidebar"
-      v-model:open="sidebarOpen" :demo="mode === 'mock'" :conversations="chat.pagination?.conversations.value ?? conversations.visible.value" :archived="conversations.archived.value"
-      :active-id="conversations.activeId.value" :remove-conversation="chat.remove" :pagination="chat.pagination"
-      @new-chat="newChat" @select="conversations.select" @rename="conversations.rename"
-      @fit-title="conversations.fitTitle"
-      @archive="conversations.archive" @restore="conversations.restore"
-      @settings="settingsOpen = true"
-    />
-    <main id="chat-main" class="chat-main" aria-label="Chat" tabindex="-1">
+  <div class="chat-workspace" :class="{ 'settings-workspace': inSettings }" :style="viewportStyle" :data-ready="ready" :inert="!ready" :aria-busy="!ready">
+    <a :href="inSettings ? '#settings-main' : '#chat-main'" class="sr-only z-50 rounded-md bg-default p-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4">{{ inSettings ? t('skipSettings') : t('skipChat') }}</a>
+    <ChatRail :demo="mode === 'mock'" @home="inSettings ? router.push('/') : newChat()" @search="router.push('/').then(() => sidebar?.openSearch())" @archive="router.push('/settings/archived')" @settings="openSettings" />
+    <div v-show="!inSettings" class="chat-sidebar-container" :inert="inSettings" :aria-hidden="inSettings || undefined">
+      <ChatSidebar
+        ref="sidebar" v-model:open="chatSidebarOpen"
+        :demo="mode === 'mock'" :conversations="chat.pagination?.conversations.value ?? conversations.visible.value" :archived="conversations.archived.value"
+        :active-id="conversations.activeId.value" :remove-conversation="chat.remove" :pagination="chat.pagination"
+        @new-chat="newChat" @select="conversations.select" @rename="conversations.rename"
+        @fit-title="conversations.fitTitle"
+        @archive="conversations.archive" @restore="conversations.restore"
+        @settings="openSettings"
+      />
+    </div>
+    <main v-show="!inSettings" id="chat-main" class="chat-main" aria-label="Chat" tabindex="-1" :inert="inSettings">
       <ChatHeader v-model:model="modelId" :sidebar-open="sidebarOpen" :busy="stream.busy.value" :demo="mode === 'mock'" @toggle-sidebar="sidebarOpen = !sidebarOpen" @new-chat="newChat" />
       <div class="chat-content" :data-empty="chat.visible.value.length === 0">
         <p v-if="chat.pagination?.historyLoading.value" role="status" class="p-4 text-sm text-muted">Chat wird geladen …</p>
@@ -109,7 +136,7 @@ function saveEdit(): void {
             <UButton color="neutral" variant="link" label="Modelle neu laden" :loading="modelsLoading" @click="refreshModels" />
           </div>
           <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" :busy="stream.busy.value" :model-unavailable="!canSend" :input-error="chat.drafts.error.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" @send="send" @stop="stop" />
-          <p class="composer-note">noris AI kann Fehler machen. Prüfe wichtige Informationen.</p>
+          <p class="composer-note">{{ t('disclaimer') }}</p>
           <p v-if="chat.drafts.error.value" role="alert" class="mt-2 text-center text-xs text-error">{{ chat.drafts.error.value }}</p>
         </div>
         <div class="chat-status" :data-attention="stream.status.value === 'failed' || (stream.busy.value && chat.generatingConversationId.value !== conversations.activeId.value)" role="status" aria-live="polite" aria-atomic="true" :data-generation-status="stream.status.value">
@@ -142,6 +169,6 @@ function saveEdit(): void {
         </div>
       </template>
     </UModal>
-    <SettingsDialog v-model:open="settingsOpen" :import-available="Boolean(transport.backend) && chat.importAvailable.value" :import-ready="chat.backendReady.value" :import-busy="chat.importBusy.value" :import-local-chats="chat.importLocalChats" :import-feedback="chat.storageWarning.value" />
+    <slot />
   </div>
 </template>

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { returnToChat } from './settings-helpers'
 
 async function openSidebar(page: import('@playwright/test').Page) {
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
@@ -57,6 +58,7 @@ test('conversation menu supports rename, search, archive and restore by keyboard
   await expect(page.getByRole('button', { name: 'Aktionen für Meine Notizen' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Archivierte Chats' }).click()
   await page.getByRole('button', { name: 'Meine Notizen wiederherstellen' }).click()
+  if (page.url().includes('/settings/')) await returnToChat(page)
   await openSidebar(page)
   await expect(page.getByRole('navigation', { name: 'Gespräche' }).getByRole('button', { name: 'Meine Notizen', exact: true })).toHaveAttribute('aria-current', 'page')
 })

@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import ChatWorkspace from '../components/chat/ChatWorkspace.vue'
-
-useHead({ title: 'noris AI — Chat', bodyAttrs: { class: 'chat-body' } })
+useHead({ title: 'noris AI — Chat' })
 </script>
 
 <template>
-  <ChatWorkspace />
+  <span class="sr-only" aria-hidden="true" />
 </template>

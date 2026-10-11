@@ -133,6 +133,9 @@ test('manual title, archive, restore and deletion are persisted from the existin
   await expect.poll(async () => (await (await request.get('/api/v1/conversations')).json()).conversations.length).toBe(0)
   await page.getByRole('button', { name: 'Archivierte Chats', exact: true }).first().click()
   await page.getByRole('button', { name: 'Mein manueller Titel wiederherstellen' }).click()
+  if (page.url().includes('/settings/')) {
+    await page.getByRole('link', { name: 'Zurück zum Chat', exact: true }).click()
+  }
   await expect.poll(async () => (await (await request.get('/api/v1/conversations')).json()).conversations.length).toBe(1)
   await sidebar()
   await row.getByRole('button', { name: /^Aktionen für/ }).click()

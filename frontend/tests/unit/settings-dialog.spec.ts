@@ -7,7 +7,6 @@ const Modal = defineComponent({
   props: ['open', 'title', 'dismissible', 'close'], emits: ['update:open'],
   setup: (props, { slots }) => () => props.open ? h('section', { 'aria-label': props.title }, [slots.body?.(), slots.footer?.()]) : null,
 })
-const Tabs = defineComponent({ setup: (_, { slots }) => () => h('div', [slots.general?.(), slots['data-controls']?.()]) })
 const Button = defineComponent({
   props: ['label', 'disabled', 'loading'],
   setup: (props, { attrs }) => () => h('button', { ...attrs, disabled: props.disabled }, props.label),
@@ -16,8 +15,8 @@ const wrappers: ReturnType<typeof mount>[] = []
 afterEach(() => wrappers.splice(0).forEach(wrapper => wrapper.unmount()))
 function settings(importLocalChats = vi.fn(async () => {}), importAvailable = true, importReady = true) {
   const wrapper = mount(SettingsDialog, {
-    props: { open: true, importAvailable, importReady, importBusy: false, importLocalChats, importFeedback: null },
-    global: { stubs: { UModal: Modal, UTabs: Tabs, UButton: Button, UColorModeSelect: true } },
+    props: { importAvailable, importReady, importBusy: false, importLocalChats, importFeedback: null },
+    global: { stubs: { UModal: Modal, UButton: Button } },
   })
   wrappers.push(wrapper)
   return wrapper

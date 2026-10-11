@@ -1,13 +1,14 @@
 <script setup lang="ts">
-defineProps<{ title: string, description: string }>()
+defineProps<{ title: string, description?: string }>()
 </script>
 
 <template>
-  <section :aria-label="title" class="flex min-w-0 flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-    <div class="min-w-0">
-      <h3 class="text-sm font-medium">{{ title }}</h3>
-      <p class="mt-1 text-sm text-muted">{{ description }}</p>
+  <section :aria-label="title" class="settings-row" tabindex="-1">
+    <div class="settings-row-copy">
+      <h2>{{ title }}</h2>
+      <p v-if="description">{{ description }}</p>
+      <slot name="details" />
     </div>
-    <div class="shrink-0"><slot /></div>
+    <div v-if="$slots.default" class="settings-row-action"><slot /></div>
   </section>
 </template>
