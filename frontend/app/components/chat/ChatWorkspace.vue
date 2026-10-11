@@ -29,7 +29,10 @@ const openSettings = () => router.push('/settings/general')
 let readingPosition = 0
 watch(inSettings, async (settings) => {
   const scroll = document.querySelector<HTMLElement>('.chat-scroll')
-  if (settings) readingPosition = scroll?.scrollTop ?? 0
+  if (settings) {
+    readingPosition = scroll?.scrollTop ?? 0
+    if (window.matchMedia('(max-width: 1023px)').matches) sidebarOpen.value = false
+  }
   else {
     await nextTick()
     requestAnimationFrame(() => { if (scroll) scroll.scrollTop = readingPosition; composer.value?.focus() })
@@ -51,7 +54,11 @@ const sidebar = ref<InstanceType<typeof ChatSidebar> | null>(null)
 const composer = ref<InstanceType<typeof ChatComposer> | null>(null)
 const { viewportStyle } = useChatViewport()
 const ready = ref(false)
-onMounted(() => { ready.value = true; window.addEventListener('keydown', onShortcut) })
+onMounted(() => {
+  ready.value = true
+  if (inSettings.value && window.matchMedia('(max-width: 1023px)').matches) sidebarOpen.value = false
+  window.addEventListener('keydown', onShortcut)
+})
 onUnmounted(() => { if (typeof window !== 'undefined') window.removeEventListener('keydown', onShortcut) })
 
 function send(text: string): void {
