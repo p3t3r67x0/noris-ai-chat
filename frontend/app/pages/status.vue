@@ -1,4 +1,5 @@
 <script setup lang="ts">
+definePageMeta({ layout: false })
 const { status, refresh } = useServiceHealth()
 useHead({ title: 'noris AI — Dienststatus' })
 </script>

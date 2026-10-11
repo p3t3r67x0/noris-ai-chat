@@ -25,7 +25,7 @@ function restoreFocus(event: Event): void {
   // Mobile drawers and deleted rows can remove the original menu trigger.
   const trigger = props.returnFocus
   if (trigger?.isConnected && !trigger.closest('[inert]')) trigger.focus()
-  else document.querySelector<HTMLElement>('#chat-main')?.focus()
+  else document.querySelector<HTMLElement>('#settings-heading, #chat-main:not([inert])')?.focus()
 }
 
 // Reka supplies the title/description IDs and focus trap; this pinned version

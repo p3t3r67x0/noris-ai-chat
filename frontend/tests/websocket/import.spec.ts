@@ -1,7 +1,7 @@
 import type { ApiSchemas } from '../../app/types/generated/api'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
-import { openDataControls } from '../e2e/settings-helpers'
+import { openDataControls, returnToChat } from '../e2e/settings-helpers'
 
 test.beforeEach(async ({ request }) => {
   let cursor: string | null = null
@@ -62,7 +62,7 @@ for (const theme of ['light', 'dark']) {
     await expect(dialog).not.toBeVisible()
     const again = (await (await request.get(`/api/v1/conversations/${id}/messages`)).json()).messages
     expect(again).toEqual(result)
-    await page.keyboard.press('Escape')
+    await returnToChat(page)
     await expect(settings).not.toBeVisible()
     await expect(page.getByRole('textbox', { name: 'Nachricht', exact: true })).toHaveValue('Synthetischer lokaler Entwurf')
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)

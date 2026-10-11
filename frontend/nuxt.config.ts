@@ -34,6 +34,7 @@ export default defineNuxtConfig({
         'lucide:rotate-ccw', 'lucide:square', 'lucide:plus', 'lucide:paperclip',
         'lucide:loader-circle', 'lucide:circle-alert', 'lucide:info', 'lucide:external-link',
         'lucide:sparkles', 'lucide:circle-check',
+        'lucide:command', 'lucide:shield', 'lucide:box', 'lucide:arrow-left', 'lucide:circle-help', 'lucide:book-open', 'lucide:bug',
       ],
     },
   },

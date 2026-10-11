@@ -11,7 +11,7 @@ export default defineConfig({
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   snapshotPathTemplate: '{testDir}/__screenshots__/{platform}/{projectName}/{arg}{ext}',
   expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.001 } },
-  use: { baseURL: `http://127.0.0.1:${frontendPort}`, trace: 'retain-on-failure' },
+  use: { baseURL: `http://127.0.0.1:${frontendPort}`, locale: 'de-DE', trace: 'retain-on-failure' },
   projects: [
     { name: 'desktop', testIgnore: '**/reference-mobile.spec.ts', use: { ...devices['Desktop Chrome'] } },
     { name: 'mobile', testIgnore: '**/reference-desktop.spec.ts', use: { ...devices['Pixel 7'] } },

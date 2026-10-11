@@ -5,6 +5,18 @@ import { CHAT_MODELS, useModelSelection } from '../../app/composables/useModelSe
 import { DEFAULT_CHAT_LIMITS } from '../../app/lib/chat/limits'
 
 describe('Configured model catalog', () => {
+  it('exposes provider limits and unavailable models without changing composer permissions', async () => {
+    const wrapper = mount(defineComponent({ setup: () => useModelSelection({ mode: 'real', fetcher: async () => Response.json({ models: [
+      { id: 'alpha', name: 'Alpha', description: 'Provider description', available: true, streaming: true, provider_context_window: 131072, effective_max_output_tokens: 8192 },
+      { id: 'offline', name: 'Offline', available: false, streaming: true },
+    ], default_model: 'alpha', limits: DEFAULT_CHAT_LIMITS }) }), template: '<div />' }))
+    await flushPromises()
+    expect(CHAT_MODELS.map(model => model.id)).toEqual(['alpha'])
+    expect(wrapper.vm.catalogModels[0]).toMatchObject({ contextWindow: 131072, effectiveOutputLimit: 8192, providerDescription: 'Provider description', disabled: false })
+    expect(wrapper.vm.catalogModels[1]).toMatchObject({ id: 'offline', disabled: true })
+    expect(wrapper.vm.catalogModels[1]?.effectiveOutputLimit).toBeUndefined()
+    wrapper.unmount()
+  })
   it('reuses the existing reactive model list and restores only configured IDs', async () => {
     const identity = CHAT_MODELS
     localStorage.setItem('noris-ai:model', 'fixture-beta')

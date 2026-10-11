@@ -9,7 +9,7 @@ const MOCK_MODELS = [
   { id: 'fast', label: 'noris Fast', description: 'Für schnelle Ideen' },
 ]
 
-export interface ChatModel { id: string, label: string, description: string, category?: string, virtual?: boolean, disabled?: boolean }
+export interface ChatModel { id: string, label: string, description: string, category?: string, virtual?: boolean, disabled?: boolean, providerDescription?: string, contextWindow?: number, effectiveOutputLimit?: number }
 export const CHAT_MODELS = reactive<ChatModel[]>(MOCK_MODELS.map(model => ({ ...model })))
 export type ChatModelId = string
 export function isChatModelId(value: unknown): value is ChatModelId {
@@ -21,6 +21,7 @@ export function useModelSelection(options: { mode?: 'mock' | 'real' | 'websocket
   Object.assign(CHAT_LIMITS, DEFAULT_CHAT_LIMITS)
   CHAT_MODELS.splice(0, CHAT_MODELS.length, ...(real ? [] : MOCK_MODELS.map(model => ({ ...model }))))
   const modelId = ref<ChatModelId>(real ? '' : 'balanced')
+  const catalogModels = ref<ChatModel[]>(real ? [] : CHAT_MODELS.map(model => ({ ...model })))
   const error = ref<string | null>(null)
   const notice = ref<string | null>(null)
   const loading = ref(real)
@@ -42,22 +43,29 @@ export function useModelSelection(options: { mode?: 'mock' | 'real' | 'websocket
       if (!catalog || typeof catalog !== 'object' || !('models' in catalog) || !Array.isArray(catalog.models) || !('default_model' in catalog) || (catalog.default_model !== null && typeof catalog.default_model !== 'string')) throw new Error('Ungültige Modellkonfiguration')
       const isStale = 'status' in catalog && catalog.status === 'stale'
       const models: ChatModel[] = []
+      const allModels: ChatModel[] = []
       for (const value of catalog.models as unknown[]) {
         if (!value || typeof value !== 'object' || !('id' in value) || typeof value.id !== 'string' || !('name' in value) || typeof value.name !== 'string' || !('available' in value) || !('streaming' in value)) throw new Error('Ungültige Modellkonfiguration')
-        if (value.streaming === true && (value.available === true || isStale)) models.push({
+        const model: ChatModel = {
           id: value.id, label: value.name, description: [
             'description' in value && typeof value.description === 'string' ? value.description : '',
             modelDetails(value as Record<string, unknown>, isStale),
           ].filter(Boolean).join(' · '),
           category: 'category' in value && typeof value.category === 'string' ? value.category : '',
-          virtual: 'virtual' in value && value.virtual === true, disabled: isStale || value.available !== true,
-        })
+          virtual: 'virtual' in value && value.virtual === true, disabled: isStale || value.available !== true || value.streaming !== true,
+          ...('description' in value && typeof value.description === 'string' ? { providerDescription: value.description } : {}),
+          ...('provider_context_window' in value && typeof value.provider_context_window === 'number' && value.provider_context_window > 0 ? { contextWindow: value.provider_context_window } : {}),
+          ...('effective_max_output_tokens' in value && typeof value.effective_max_output_tokens === 'number' && value.effective_max_output_tokens > 0 ? { effectiveOutputLimit: value.effective_max_output_tokens } : {}),
+        }
+        allModels.push(model)
+        if (value.streaming === true && (value.available === true || isStale)) models.push(model)
       }
       if ((catalog.default_model !== null && !models.some(model => model.id === catalog.default_model)) || new Set(models.map(model => model.id)).size !== models.length) throw new Error('Ungültige Modellkonfiguration')
       if (controller.signal.aborted) return
       if (!('limits' in catalog)) throw new Error('Ungültige Größenlimits')
       Object.assign(CHAT_LIMITS, parseChatLimits(catalog.limits))
       CHAT_MODELS.splice(0, CHAT_MODELS.length, ...models)
+      catalogModels.value = allModels
       error.value = null
       stale.value = isStale
       fallbackId.value = isStale ? null : catalog.default_model
@@ -74,6 +82,7 @@ export function useModelSelection(options: { mode?: 'mock' | 'real' | 'websocket
       if (!controller.signal.aborted) {
         error.value = cause instanceof Error ? cause.message : 'Modelle konnten nicht geladen werden.'
         CHAT_MODELS.splice(0)
+        catalogModels.value = []
         fallbackId.value = null
       }
     }
@@ -103,5 +112,5 @@ export function useModelSelection(options: { mode?: 'mock' | 'real' | 'websocket
     try { window.localStorage.setItem('noris-ai:model', value) }
     catch { /* Persistence is optional. */ }
   })
-  return { modelId, models: CHAT_MODELS, error, notice, loading, stale, canSend, fallbackId, refresh, chooseFallback }
+  return { modelId, models: CHAT_MODELS, catalogModels, error, notice, loading, stale, canSend, fallbackId, refresh, chooseFallback }
 }

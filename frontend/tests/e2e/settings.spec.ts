@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { savedChat, seedChat } from './chat-fixtures'
-import { openDataControls } from './settings-helpers'
+import { openDataControls, openSettingsCategory, returnToChat } from './settings-helpers'
 
 for (const theme of ['light', 'dark']) {
   test(`settings navigation preserves the composer, draft and reader position in ${theme}`, async ({ page }) => {
@@ -16,10 +16,10 @@ for (const theme of ['light', 'dark']) {
     await expect(page.locator('.chat-main').getByText('Lokale Chats importieren', { exact: true })).toHaveCount(0)
     const settings = await openDataControls(page)
     await expect(settings.getByRole('button', { name: 'Importieren', exact: true })).toHaveCount(0)
-    await settings.getByRole('tab', { name: 'Allgemein', exact: true }).click()
-    await expect(settings.getByRole('button', { name: 'Darstellung in den Einstellungen' })).toBeVisible()
+    await openSettingsCategory(page, 'Darstellung')
+    await expect(settings.getByRole('combobox', { name: 'Darstellung Einstellungen' })).toBeVisible()
     expect(await settings.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
-    await page.keyboard.press('Escape')
+    await returnToChat(page)
     await expect(settings).not.toBeVisible()
     await expect(input).toHaveAttribute('data-instance', 'original')
     await expect(input).toHaveValue('Synthetischer Entwurf bleibt erhalten')
