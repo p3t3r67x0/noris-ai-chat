@@ -47,7 +47,9 @@ test('revocation preserves messages and draft until an explicit fallback choice'
   await input.fill('Nächster Entwurf')
   const before = await request.get(`${fixtureOrigin}/fixture/state`).then(response => response.json()) as { calls: unknown[] }
   await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: ['fixture-beta'] } })
-  await expect(page.getByText('Dein gewähltes Modell ist nicht mehr verfügbar.', { exact: false })).toBeVisible()
+  const modelAccess = page.locator('.composer-dock').locator('details').filter({ hasText: 'Modellzugriff prüfen' })
+  await modelAccess.locator('summary').click()
+  await expect(modelAccess.getByText('Dein gewähltes Modell ist nicht mehr verfügbar.', { exact: false })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeDisabled()
   await expect(input).toHaveValue('Nächster Entwurf')
   await expect(page.locator('.chat-content')).toContainText('HTTP-Antwort')
@@ -68,7 +70,8 @@ test('discovery failures and empty catalogs block sending without damaging draft
   await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: [] } })
   await expect.poll(async () => (await request.get('/api/v1/llm/models')).status()).toBe(200)
   await page.getByRole('button', { name: 'Modelle neu laden' }).click()
-  await expect(page.getByText('Für diesen Zugang sind derzeit keine Chatmodelle verfügbar.')).toBeVisible()
+  await expect(page.locator('.app-notification').getByText('Für diesen Zugang sind derzeit keine Chatmodelle verfügbar.', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeDisabled()
   await expect(input).toHaveValue('Privater synthetischer Entwurf')
 })
 

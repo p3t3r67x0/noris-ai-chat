@@ -256,3 +256,10 @@ vergleichen Provider-Anfragen und kontrollieren die unveränderlichen Varianten.
 Im vorangegangenen CI-Lauf bestehen bereits 516 Backend-Unit-, 456
 Frontend-Unit- und 117 Integrationstests; die beiden veralteten Mock-Selektoren
 sind durch diese gezielte Prüfung korrigiert.
+
+Vier Modellkatalog-Browserfälle bestehen auf Desktop und Mobile. Die Tests
+öffnen den Hinweis „Modellzugriff prüfen“ für entzogene Modelle und wählen
+die öffentliche Benachrichtigung beim leeren Katalog eindeutig aus. Entwurf,
+bisherige Nachrichten, explizite Fallback-Auswahl und gesperrtes Senden bei
+fehlenden Modellen bleiben geprüft. Der vorangegangene Compose-CI-Job ist
+vollständig erfolgreich, einschließlich der PostgreSQL-/WebSocket-Browserfälle.
