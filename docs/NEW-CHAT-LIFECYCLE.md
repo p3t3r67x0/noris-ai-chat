@@ -239,3 +239,11 @@ Die beiden betroffenen Unit-Dateien bestehen mit 87 Fällen. Zusätzlich bestehe
 Statusseitenfälle auf Desktop und Mobile. Die Diagnose prüft Fehlercode und
 Request-ID sowie Schließen per Escape, bevor die bestehende Upload-Sperre
 kontrolliert wird.
+
+Acht gezielte Fortsetzungs-Browserfälle bestehen auf Desktop und Mobile:
+Reload mit langem Markdown, Stop während Fortsetzung, Modellkatalog-Refresh
+und Ausgabelimit mit mehr als 8192 Simulator-Tokens. Die Assertions verwenden
+die Nachricht als Bereich für „Weiterschreiben“, damit die neue
+Benachrichtigungsaktion denselben Namen verwenden kann. Der Status lautet
+gemäß Main „Antwort unvollständig.“; Nachrichten-ID, vollständiger Text,
+Codeblock, Fortsetzung und Reload bleiben geprüft.
