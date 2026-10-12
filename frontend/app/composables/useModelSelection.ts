@@ -1,6 +1,8 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { modelDetails } from '../lib/chat/modelMetadata'
-import { responseError } from '../lib/chat/realTransport'
+import { responseError, TransportError } from '../lib/chat/realTransport'
+import { normalizeAppError } from '../lib/notifications/errors'
+import { useAppNotifications } from './useAppNotifications'
 import { CHAT_LIMITS, DEFAULT_CHAT_LIMITS, parseChatLimits } from '../lib/chat/limits'
 import { isReasoningPreference } from '../lib/chat/reasoning'
 import type { ReasoningPreference } from '../lib/chat/reasoning'
@@ -19,6 +21,7 @@ export function isChatModelId(value: unknown): value is ChatModelId {
 }
 
 export function useModelSelection(options: { mode?: 'mock' | 'real' | 'websocket', fetcher?: typeof fetch } = {}) {
+  const notifications = useAppNotifications()
   const real = options.mode === 'real' || options.mode === 'websocket'
   Object.assign(CHAT_LIMITS, DEFAULT_CHAT_LIMITS)
   CHAT_MODELS.splice(0, CHAT_MODELS.length, ...(real ? [] : MOCK_MODELS.map(model => ({ ...model }))))
@@ -35,7 +38,8 @@ export function useModelSelection(options: { mode?: 'mock' | 'real' | 'websocket
   let pending: Promise<void> | undefined
   const canSend = computed(() => !loading.value && !error.value && !stale.value && isChatModelId(modelId.value))
 
-  async function load(): Promise<void> {
+  async function load(announce = true): Promise<void> {
+    const context = { operation: 'models' as const, attemptId: crypto.randomUUID() }
     loading.value = true
     clearTimeout(timer)
     try {
@@ -75,16 +79,20 @@ export function useModelSelection(options: { mode?: 'mock' | 'real' | 'websocket
       fallbackId.value = isStale ? null : catalog.default_model
       if (initial && !modelId.value) modelId.value = catalog.default_model ?? ''
       initial = false
-      notice.value = isStale ? 'Der Modellkatalog ist veraltet. Neue Anfragen sind bis zur Prüfung gesperrt.'
-        : !models.length ? 'Für diesen Zugang sind derzeit keine Chatmodelle verfügbar.'
-            : !isChatModelId(modelId.value) ? 'Dein gewähltes Modell ist nicht mehr verfügbar. Wähle ein verfügbares Modell; dein Chat und Entwurf bleiben erhalten.' : null
+      const noticeCode = isStale ? 'MODEL_CATALOG_STALE' : !models.length ? 'NO_MODELS' : !isChatModelId(modelId.value) ? 'MODEL_UNAVAILABLE' : null
+      const nextNotice = noticeCode ? normalizeAppError({ code: noticeCode }, context).message : null
+      if (announce && nextNotice) notifications?.reportError({ code: noticeCode }, context, { label: 'Modelle neu laden', onClick: refresh })
+      notice.value = nextNotice
       if (!isStale && 'expires_in_seconds' in catalog && typeof catalog.expires_in_seconds === 'number' && catalog.expires_in_seconds > 0) {
-        timer = setTimeout(() => { void refresh() }, Math.max(1000, catalog.expires_in_seconds * 1000))
+        timer = setTimeout(() => { void refresh(false) }, Math.max(1000, catalog.expires_in_seconds * 1000))
       }
     }
     catch (cause) {
       if (!controller.signal.aborted) {
-        error.value = cause instanceof Error ? cause.message : 'Modelle konnten nicht geladen werden.'
+        const failure = cause instanceof TransportError || cause instanceof TypeError || (cause instanceof Error && cause.name === 'TimeoutError') ? cause : { code: 'INVALID_CONFIGURATION' }
+        const message = normalizeAppError(failure, context).message
+        if (announce) notifications?.reportError(failure, context, { label: 'Modelle neu laden', onClick: refresh })
+        error.value = message
         CHAT_MODELS.splice(0)
         catalogModels.value = []
         fallbackId.value = null
@@ -92,15 +100,15 @@ export function useModelSelection(options: { mode?: 'mock' | 'real' | 'websocket
     }
     finally { loading.value = false }
   }
-  function refresh(): Promise<void> {
+  function refresh(announce = true): Promise<void> {
     if (!real || controller.signal.aborted) return Promise.resolve()
-    pending ??= load().finally(() => { pending = undefined })
+    pending ??= load(announce).finally(() => { pending = undefined })
     return pending
   }
   function chooseFallback(): void {
     if (fallbackId.value && isChatModelId(fallbackId.value)) modelId.value = fallbackId.value
   }
-  function onFocus(): void { void refresh() }
+  function onFocus(): void { void refresh(false) }
   onMounted(async () => {
     try {
       const saved = window.localStorage.getItem('noris-ai:model')

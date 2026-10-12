@@ -49,7 +49,7 @@ describe('existing browser snapshot import', () => {
     const { sync, request } = await client('{invalid')
     await sync.importLocalChats()
     expect(request).not.toHaveBeenCalled()
-    expect(sync.storageWarning.value).toContain('ungültig')
+    expect(sync.storageWarning.value).toContain('nicht gelesen werden')
     expect(localStorage.getItem(CHAT_STORAGE_KEY)).toBe('{invalid')
   })
 
@@ -71,7 +71,7 @@ describe('existing browser snapshot import', () => {
     if (failure === 'conflict') request.mockResolvedValueOnce({ imported: [], skipped: [], conflicts: [{ conversationId: id }] })
     else request.mockRejectedValueOnce(new Error('Synthetischer Verbindungsfehler'))
     await sync.importLocalChats()
-    expect(sync.storageWarning.value).toContain(failure === 'conflict' ? 'Konflikte' : 'Verbindungsfehler')
+    expect(sync.storageWarning.value).toContain(failure === 'conflict' ? 'Konflikte' : 'Aktion konnte')
     expect(load).toHaveBeenCalledOnce()
     expect(sync.importBusy.value).toBe(false)
     expect(localStorage.getItem(CHAT_STORAGE_KEY)).toBe(raw)

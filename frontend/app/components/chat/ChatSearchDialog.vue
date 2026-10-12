@@ -6,6 +6,7 @@ import { useChatViewport } from '../../composables/useChatViewport'
 import { useAppLocale } from '../../composables/useAppLocale'
 import type { Conversation } from '../../lib/chat/conversations'
 import { compareConversations } from '../../lib/chat/conversations'
+import { useAppNotifications } from '../../composables/useAppNotifications'
 
 const props = defineProps<{
   conversations: readonly Conversation[]
@@ -14,7 +15,8 @@ const props = defineProps<{
 }>()
 const open = defineModel<boolean>('open', { required: true })
 const emit = defineEmits<{ select: [id: string] }>()
-const { query, results, loading, error, cursor, search } = useConversationSearch(open, () => props.conversations, () => props.pagination)
+const { query, results, loading, error, diagnostics, cursor, search } = useConversationSearch(open, () => props.conversations, () => props.pagination)
+const notifications = useAppNotifications()
 const { viewportStyle } = useChatViewport()
 const { t } = useAppLocale()
 const selected = ref(false)
@@ -118,8 +120,9 @@ const content = computed(() => ({
         <template #footer>
           <p role="status" aria-live="polite" class="sr-only">{{ loading ? t('searchLoading') : t('searchReady') }}</p>
           <p v-if="error" role="alert" class="chat-search-message">
-            {{ t('searchError') }}
+            {{ error }}
             <UButton color="neutral" variant="ghost" :label="t('retrySearch')" class="min-h-11" @click="search(Boolean(cursor))" />
+            <UButton v-if="diagnostics && notifications" color="neutral" variant="link" label="Details" @click="notifications.details.value = diagnostics" />
           </p>
           <UButton v-if="cursor" color="neutral" variant="ghost" :label="t('moreChats')" :loading="loading" :disabled="loading" class="min-h-11" @click="search(true)" />
         </template>

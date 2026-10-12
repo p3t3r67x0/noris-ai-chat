@@ -2,6 +2,8 @@ import { onScopeDispose, ref, watch } from 'vue'
 import type { Ref } from 'vue'
 import type { useChatBackend } from './useChatBackend'
 import type { Conversation } from '../lib/chat/conversations'
+import { normalizeAppError } from '../lib/notifications/errors'
+import type { ErrorDiagnostics } from '../lib/notifications/errors'
 
 type Pagination = ReturnType<typeof useChatBackend>['pagination']
 
@@ -12,6 +14,7 @@ export function useConversationSearch(open: Ref<boolean>, conversations: () => r
   const results = ref<Conversation[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const diagnostics = ref<ErrorDiagnostics | null>(null)
   const cursor = ref<string | null>(null)
   let timer: ReturnType<typeof setTimeout> | undefined
   let controller: AbortController | undefined
@@ -41,8 +44,11 @@ export function useConversationSearch(open: Ref<boolean>, conversations: () => r
       results.value = more ? [...new Map([...results.value, ...rows].map(row => [row.id, row])).values()] : rows
       cursor.value = page.nextCursor ?? null
     }
-    catch {
-      if (revision === current && !request.signal.aborted) error.value = 'Die Suche ist fehlgeschlagen. Bitte versuche es erneut.'
+    catch (cause) {
+      if (revision === current && !request.signal.aborted) {
+        const failure = normalizeAppError(cause, { operation: 'search', attemptId: String(current) })
+        error.value = failure.message; diagnostics.value = failure.diagnostics
+      }
     }
     finally {
       if (revision === current) loading.value = false
@@ -73,5 +79,5 @@ export function useConversationSearch(open: Ref<boolean>, conversations: () => r
   }, { flush: 'sync' })
 
   onScopeDispose(cancel)
-  return { query, results, loading, error, cursor, search }
+  return { query, results, loading, error, diagnostics, cursor, search }
 }

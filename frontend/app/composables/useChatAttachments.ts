@@ -1,9 +1,12 @@
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, markRaw, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { Ref } from 'vue'
 import type { ChatBackend } from '../lib/chat/backend'
 import type { Conversation } from '../lib/chat/conversations'
 import type { ApiSchemas } from '../types/generated/api'
-import { responseError } from '../lib/chat/realTransport'
+import { responseError, TransportError } from '../lib/chat/realTransport'
+import { normalizeAppError } from '../lib/notifications/errors'
+import type { ErrorDiagnostics } from '../lib/notifications/errors'
+import { useAppNotifications } from './useAppNotifications'
 import { CHAT_LIMITS } from '../lib/chat/limits'
 
 export type ChatAttachment = ApiSchemas['AttachmentResponse']
@@ -15,6 +18,8 @@ export interface UploadEntry {
   status: 'uploading' | 'uploaded' | 'failed' | 'removing'
   progress: number
   error?: string
+  errorCode?: string
+  diagnostics?: ErrorDiagnostics
   attachment?: ChatAttachment
   reference?: ApiSchemas['TextReference']
   file?: File
@@ -23,9 +28,11 @@ export interface UploadEntry {
 const extensions: Record<string, string> = { txt: 'text/plain', md: 'text/markdown', markdown: 'text/markdown', pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg' }
 
 export function useChatAttachments(backend: ChatBackend | undefined, active: Ref<Conversation | null>, ready: Ref<boolean>, createConversation: () => Conversation, supportsImages: Ref<boolean> = ref(false)) {
+  const notifications = useAppNotifications()
   const records = ref<Record<string, UploadEntry[]>>({})
   const limits = ref<ApiSchemas['AttachmentLimitsResponse'] | null>(null)
   const error = ref<string | null>(null)
+  const errorNotified = ref(false)
   const pending = new Map<string, XMLHttpRequest>()
   const files = computed(() => active.value ? records.value[active.value.id] ?? [] : [])
   const available = computed(() => Boolean(backend && ready.value && limits.value))
@@ -47,7 +54,11 @@ export function useChatAttachments(backend: ChatBackend | undefined, active: Ref
   watch(records, value => {
     if (!backend) {
       try { localStorage.setItem(localKey, JSON.stringify(value)) }
-      catch { error.value = 'Die Anhänge konnten nicht lokal gesichert werden.' }
+      catch {
+        if (!error.value) notifications?.reportError({ code: 'STORAGE_UNAVAILABLE' }, { operation: 'storage', resourceId: 'attachments' })
+        errorNotified.value = true
+        error.value = normalizeAppError({ code: 'STORAGE_UNAVAILABLE' }, { operation: 'storage' }).message
+      }
     }
   }, { deep: true })
 
@@ -67,18 +78,26 @@ export function useChatAttachments(backend: ChatBackend | undefined, active: Ref
       const restored = result.attachments.filter(a => !a.messageId && !local.some(file => file.attachment?.id === a.id)).map(a => ({ key: a.id, filename: a.originalFilename, mime: a.mimeType, size: a.sizeBytes, status: 'uploaded' as const, progress: 100, attachment: a }))
       records.value[conversation.id] = [...local, ...restored]
       error.value = null
+      errorNotified.value = false
     }
-    catch (cause) { if (current === revision) error.value = cause instanceof Error ? cause.message : 'Dateien konnten nicht geladen werden.' }
+    catch (cause) {
+      if (current !== revision) return
+      const context = { operation: 'attachments' as const, conversationId: conversation?.id ?? null, attemptId: String(current) }
+      error.value = normalizeAppError(cause, context).message
+      errorNotified.value = true
+      notifications?.reportError(cause, context, { label: 'Anhänge neu laden', onClick: refresh })
+    }
   }
   watch([() => active.value?.id, ready], () => { void refresh() }, { flush: 'post' })
 
   async function upload(entry: UploadEntry, conversation: Conversation): Promise<void> {
     if (!backend || !entry.file || !limits.value) return
-    entry.status = 'uploading'; entry.progress = 0; delete entry.error
+    const context = { operation: 'upload' as const, conversationId: conversation.id, resourceId: entry.key, attemptId: crypto.randomUUID() }
+    entry.status = 'uploading'; entry.progress = 0; delete entry.error; delete entry.errorCode
     const mime = entry.file.type || extensions[entry.filename.split('.').at(-1)?.toLowerCase() ?? ''] || ''
     try {
-      if (!limits.value.mimeTypes.includes(mime)) throw new Error('Dieser Dateityp wird nicht unterstützt.')
-      if (!entry.size || entry.size > limits.value.maxFileBytes) throw new Error(`Erlaubte Dateigröße: maximal ${Math.round(limits.value.maxFileBytes / 1024 / 1024)} MB.`)
+      if (!limits.value.mimeTypes.includes(mime)) throw new TransportError('ATTACHMENT_TYPE')
+      if (!entry.size || entry.size > limits.value.maxFileBytes) throw new TransportError('ATTACHMENT_SIZE')
       await backend.ensure(conversation)
       if (!records.value[conversation.id]?.some(file => file.key === entry.key)) return
       await new Promise<void>((resolve, reject) => {
@@ -92,33 +111,41 @@ export function useChatAttachments(backend: ChatBackend | undefined, active: Ref
         request.onload = () => {
           pending.delete(entry.key)
           if (request.status !== 201) {
-            void responseError(new Response(request.responseText, { status: request.status })).then(reject, reject)
+            const requestId = request.getResponseHeader('X-Request-ID')
+            void responseError(new Response(request.responseText, { status: request.status, ...(requestId ? { headers: { 'X-Request-ID': requestId } } : {}) })).then(reject, reject)
             return
           }
           try {
             const value = JSON.parse(request.responseText) as ChatAttachment
-            if (!value.id || value.conversationId !== conversation.id || !['ready', 'stored'].includes(value.status)) throw new Error('Der Server hat den Upload nicht bestätigt.')
+            if (!value.id || value.conversationId !== conversation.id || !['ready', 'stored'].includes(value.status)) throw new TransportError('INVALID_RESPONSE')
             entry.attachment = value; entry.status = 'uploaded'; entry.progress = 100
             resolve()
           }
           catch (cause) { reject(cause) }
         }
-        request.onerror = request.ontimeout = () => { pending.delete(entry.key); reject(new Error('Upload fehlgeschlagen. Erneut versuchen.')) }
-        request.onabort = () => { pending.delete(entry.key); reject(new Error('Upload abgebrochen.')) }
+        request.onerror = () => { pending.delete(entry.key); reject(new TransportError('NETWORK_ERROR')) }
+        request.ontimeout = () => { pending.delete(entry.key); reject(new TransportError('ATTACHMENT_UPLOAD_TIMEOUT')) }
+        request.onabort = () => { pending.delete(entry.key); reject(new DOMException('Upload abgebrochen', 'AbortError')) }
         request.send(entry.file)
       })
     }
-    catch (cause) { entry.status = 'failed'; entry.error = cause instanceof Error ? cause.message : 'Upload fehlgeschlagen.' }
+    catch (cause) {
+      if (!records.value[conversation.id]?.some(file => file.key === entry.key) || (cause instanceof DOMException && cause.name === 'AbortError')) return
+      const failure = normalizeAppError(cause, context)
+      entry.status = 'failed'; entry.error = failure.message; entry.errorCode = failure.code; entry.diagnostics = failure.diagnostics
+      // The retained card owns recovery; it is the only live announcement for uploads.
+    }
   }
   async function add(selected: File[]): Promise<void> {
     if (!available.value || !limits.value) return
     error.value = null
+    errorNotified.value = false
     if (files.value.length + selected.length > limits.value.maxFiles) { error.value = `Maximal ${limits.value.maxFiles} Dateien pro Nachricht.`; return }
     const conversation = active.value ?? createConversation()
     records.value[conversation.id] ??= []
     const list = records.value[conversation.id]!
     // Reserve all slots synchronously before starting asynchronous uploads.
-    const added = selected.map(file => ({ key: crypto.randomUUID(), filename: file.name, mime: file.type || extensions[file.name.split('.').at(-1)?.toLowerCase() ?? ''] || '', size: file.size, status: 'uploading' as const, progress: 0, file }))
+    const added = selected.map(file => ({ key: crypto.randomUUID(), filename: file.name, mime: file.type || extensions[file.name.split('.').at(-1)?.toLowerCase() ?? ''] || '', size: file.size, status: 'uploading' as const, progress: 0, file: markRaw(file) }))
     list.push(...added)
     for (const entry of added) {
       const current = records.value[conversation.id]?.find(file => file.key === entry.key)
@@ -141,11 +168,15 @@ export function useChatAttachments(backend: ChatBackend | undefined, active: Ref
       entry.attachment = attachment; entry.status = 'uploaded'; entry.progress = 100
       delete entry.reference
     }
-    catch (cause) { entry.status = 'failed'; entry.error = cause instanceof Error ? cause.message : 'Referenz konnte nicht übernommen werden.' }
+    catch (cause) {
+      const failure = normalizeAppError(cause, { operation: 'upload', conversationId: conversation.id, resourceId: entry.key })
+      entry.status = 'failed'; entry.error = failure.message; entry.errorCode = failure.code; entry.diagnostics = failure.diagnostics
+    }
   }
   async function addReference(reference: ApiSchemas['TextReference']): Promise<void> {
     if (!reference.text.trim() || (backend && !ready.value)) return
     error.value = null
+    errorNotified.value = false
     const maximum = limits.value?.maxReferenceChars ?? CHAT_LIMITS.max_message_chars
     if (reference.text.length > maximum) { error.value = `Die Textreferenz darf höchstens ${maximum.toLocaleString('de-DE')} Zeichen enthalten. Bitte wähle einen kürzeren Abschnitt.`; return }
     if (files.value.length >= (limits.value?.maxFiles ?? 10)) { error.value = `Maximal ${limits.value?.maxFiles ?? 10} Anhänge pro Nachricht.`; return }
@@ -165,7 +196,14 @@ export function useChatAttachments(backend: ChatBackend | undefined, active: Ref
     if (entry.attachment && backend) {
       entry.status = 'removing'
       try { await backend.request(`/chat/attachments/${entry.attachment.id}`, 'DELETE') }
-      catch (cause) { entry.status = 'uploaded'; error.value = cause instanceof Error ? cause.message : 'Datei konnte nicht entfernt werden.'; return }
+      catch (cause) {
+        entry.status = 'uploaded'
+        const context = { operation: 'attachment-remove' as const, conversationId: conversation.id, resourceId: key, attemptId: crypto.randomUUID() }
+        error.value = normalizeAppError(cause, context).message
+        errorNotified.value = true
+        notifications?.reportError(cause, context, { label: 'Erneut entfernen', onClick: () => remove(key) })
+        return
+      }
     }
     records.value[conversation.id] = files.value.filter(file => file.key !== key)
   }
@@ -176,5 +214,5 @@ export function useChatAttachments(backend: ChatBackend | undefined, active: Ref
   }
   function sent(conversationId: string): void { records.value[conversationId] = [] }
   onUnmounted(() => { ++revision; for (const request of pending.values()) request.abort() })
-  return { files, limits, error, available, blocked, imageCompatible, confirmed, add, addReference, remove, retry, refresh, sent }
+  return { files, limits, error, errorNotified, available, blocked, imageCompatible, confirmed, add, addReference, remove, retry, refresh, sent }
 }

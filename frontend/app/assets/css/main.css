@@ -369,3 +369,43 @@ details.message-attachment { display: block; }
 
 .composer-expanded:has(.composer-files) { --noris-composer-input-max-height: min(10rem, 15cqh); }
 @container (max-height: 300px) { .composer-dock:has(.composer-files) .composer-note { display: none; } }
+
+/* Nuxt UI toasts float below the header and never participate in chat layout. */
+.app-notification-viewport {
+  position: fixed;
+  top: calc(var(--notification-viewport-offset, 0px) + var(--noris-header-height) + max(8px, env(safe-area-inset-top)));
+  right: max(16px, env(safe-area-inset-right));
+  bottom: auto;
+  left: auto;
+  width: min(380px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+  max-height: calc(var(--notification-viewport-height, 100dvh) - var(--noris-header-height) - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  z-index: 55;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+.app-notification {
+  width: 100%;
+  border: 1px solid var(--noris-border);
+  border-radius: 14px;
+  background: var(--noris-composer-background);
+  color: var(--noris-text-primary);
+  box-shadow: 0 4px 16px #00000014;
+  overflow-wrap: anywhere;
+  padding: 14px;
+}
+.app-notification [data-slot='title'] { font-size: 14px; line-height: 20px; }
+.app-notification [data-slot='description'] { font-size: 13px; line-height: 19px; color: var(--noris-text-secondary); }
+.app-notification [data-slot='actions'] { flex-wrap: wrap; }
+.app-notification button { min-height: 36px; }
+.app-notification [data-slot='close'] { min-width: 36px; }
+.notification-diagnostics { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; }
+.message-error-details { margin-top: 4px; }
+@media (max-width: 639px) {
+  .app-notification-viewport { right: max(12px, env(safe-area-inset-right)); width: calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)); }
+  .app-notification button { min-height: 44px; }
+  .app-notification [data-slot='close'] { min-width: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-notification, .app-notification-viewport, .app-notification * { animation: none !important; transition: none !important; }
+}

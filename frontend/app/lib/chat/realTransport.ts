@@ -2,20 +2,9 @@ import type { ChatTransport, StreamEvent, ConversationTitleResponse } from './ty
 import { validGeneratedTitle } from './titles'
 import { CHAT_LIMITS } from './limits'
 
-const messages: Record<string, string> = {
-  ACCESS_DENIED: 'Bitte öffne /api/v1/llm/models und melde dich für den Modellzugriff an.',
-  LLM_DISABLED: 'Die Modellanbindung ist nicht freigeschaltet.',
-  RATE_LIMIT: 'Zu viele Modellanfragen. Bitte versuche es später erneut.',
-  TIMEOUT: 'Die Modellantwort hat zu lange gedauert.',
-  STREAM_INTERRUPTED: 'Die Verbindung endete vor dem Abschluss der Antwort.',
-  INVALID_RESPONSE: 'Die Modellantwort konnte nicht korrekt übertragen werden.',
-  NETWORK_ERROR: 'Der Modelldienst ist derzeit nicht erreichbar.',
-  REQUEST_FAILED: 'Die Modellanfrage konnte nicht verarbeitet werden.',
-}
-
 export class TransportError extends Error {
-  constructor(readonly code: string, message?: string) {
-    super(message ?? messages[code] ?? messages.REQUEST_FAILED)
+  constructor(readonly code: string, message?: string, readonly requestId: string | null = null) {
+    super(message ?? 'Chat request failed')
   }
 }
 
@@ -26,13 +15,14 @@ export async function responseError(response: Response): Promise<TransportError>
     if (payload && typeof payload === 'object' && 'error' in payload) {
       const error = payload.error
       if (error && typeof error === 'object' && 'code' in error && typeof error.code === 'string') {
-        if (error.code === 'ACCESS_DENIED') return new TransportError(error.code)
-        if ('message' in error && typeof error.message === 'string' && error.message.length <= 1000) return new TransportError(error.code, error.message)
+        const requestId = 'request_id' in error && typeof error.request_id === 'string' ? error.request_id : response.headers.get('X-Request-ID')
+        return new TransportError(error.code, undefined, requestId)
       }
     }
   }
   catch { /* Unknown errors use a fixed message. */ }
-  return new TransportError(response.status === 401 ? 'ACCESS_DENIED' : 'REQUEST_FAILED')
+  const code = ({ 401: 'ACCESS_DENIED', 403: 'ACCESS_DENIED', 413: 'REQUEST_TOO_LARGE', 429: 'RATE_LIMIT', 504: 'TIMEOUT', 503: 'NOT_READY' } as Record<number, string>)[response.status] ?? 'REQUEST_FAILED'
+  return new TransportError(code, undefined, response.headers.get('X-Request-ID'))
 }
 
 export interface SSEFrame { event: string | null, data: string }
@@ -118,6 +108,7 @@ export function createRealTransport(options: { fetcher?: typeof fetch, timeoutMs
       let timedOut = false
       let sequence = 0
       let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
+      let requestId: string | null = null
       let idleTimer: ReturnType<typeof setTimeout> | undefined
       const resetIdle = () => {
         clearTimeout(idleTimer)
@@ -133,6 +124,7 @@ export function createRealTransport(options: { fetcher?: typeof fetch, timeoutMs
           headers: { Accept: 'text/event-stream', 'Content-Type': 'application/json' },
           body: JSON.stringify({ generationId: request.generationId, conversationId: request.conversationId, inputMessageId: request.inputMessageId, modelId: request.modelId, messages: request.messages, attempt: request.attempt, ...(request.reasoningPreference ? { reasoningPreference: request.reasoningPreference } : {}), ...(request.operation === 'continue' ? { operation: 'continue', assistantMessageId: request.assistantMessageId, continuationCount: request.continuationCount } : {}) }),
         })
+        requestId = response.headers.get('X-Request-ID')
         if (!response.ok) throw await responseError(response)
         if (!response.body || response.headers.get('Content-Type')?.split(';')[0]?.trim() !== 'text/event-stream') throw new TransportError('INVALID_RESPONSE')
         reader = response.body.getReader()
@@ -154,7 +146,7 @@ export function createRealTransport(options: { fetcher?: typeof fetch, timeoutMs
             const event = parseStreamEvent(frame)
             if (event.seq !== sequence + 1) throw new TransportError('INVALID_RESPONSE')
             sequence = event.seq
-            yield event
+            yield { ...event, ...(requestId ? { requestId } : {}) }
             if (['response.completed', 'response.incomplete', 'response.cancelled', 'response.failed'].includes(event.type)) return
           }
         }
@@ -163,7 +155,7 @@ export function createRealTransport(options: { fetcher?: typeof fetch, timeoutMs
         if (signal.aborted) yield { seq: sequence + 1, type: 'response.cancelled' }
         else {
           const failure = timedOut ? new TransportError('TIMEOUT') : error instanceof TransportError ? error : new TransportError(error instanceof TypeError ? 'NETWORK_ERROR' : 'INVALID_RESPONSE')
-          yield { seq: sequence + 1, type: 'response.failed', code: failure.code, message: failure.message }
+          yield { seq: sequence + 1, type: 'response.failed', code: failure.code, message: failure.message, requestId: failure.requestId ?? requestId }
         }
       }
       finally {

@@ -70,7 +70,7 @@ describe('existing conversation search coordination', () => {
     await vi.waitFor(() => expect(state.cursor.value).toBe('next'))
     await state.search(true)
     expect(state.results.value.map(row => row.id)).toEqual(['first'])
-    expect(state.error.value).toContain('Die Suche ist fehlgeschlagen')
+    expect(state.error.value).toContain('Bitte versuche es erneut')
     expect(state.error.value).not.toContain('private detail')
     await state.search(true)
     expect(request).toHaveBeenLastCalledWith('', expect.any(AbortSignal), 'next')

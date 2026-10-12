@@ -20,8 +20,11 @@ import type { ConversationMode } from '../lib/chat/conversations'
 import type { ReasoningPreference } from '../lib/chat/reasoning'
 import { supportsPreference } from '../lib/chat/reasoning'
 import { CHAT_MODELS } from './useModelSelection'
+import { useAppNotifications } from './useAppNotifications'
+import { normalizeAppError } from '../lib/notifications/errors'
 
 export function createChatState(transport: ChatTransport, dependencies: ConversationDependencies = {}, conversations = createConversationState(dependencies)) {
+  const notifications = useAppNotifications()
   const messages = ref<MessageRecords>({})
   const stream = useChatStream(transport)
   const id = dependencies.id ?? (() => globalThis.crypto.randomUUID())
@@ -56,9 +59,16 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
       failedSettings.delete(conversation.id)
       return true
     }
-    catch {
+    catch (cause) {
       failedSettings.set(conversation.id, change)
-      settingErrors.value[conversation.id] = 'Die Gesprächseinstellung konnte nicht gespeichert werden. Bitte erneut versuchen.'
+      const context = { operation: 'settings' as const, conversationId: conversation.id, attemptId: id() }
+      settingErrors.value[conversation.id] = normalizeAppError(cause, context).message
+      notifications?.reportError(cause, context, { label: 'Erneut speichern', onClick: () => {
+        const pending = failedSettings.get(conversation.id)
+        if (!pending) return false
+        conversations.select(conversation.id)
+        return setConversationSettings(pending)
+      } })
       return false
     }
     finally { settingsBusy.value = false }
@@ -116,7 +126,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
           conversation.title = fallbackConversationTitle(context)
         }
       },
-      failure: (code, message) => { reply.errorCode = code; reply.errorMessage = message },
+      failure: (code, message, diagnostics) => { reply.errorCode = code; reply.errorMessage = message; if (diagnostics) reply.errorDiagnostics = diagnostics },
     }).finally(() => { generatingConversationId.value = null })
   }
 
@@ -126,11 +136,11 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     const conversation = reply ? conversations.records.value[reply.conversationId] : undefined
     if (!reply?.generationId || !input || !conversation || stream.busy.value) return
     generatingConversationId.value = conversation.id
-    reply.content = ''
+    // Keep the saved partial response visible until a resume snapshot arrives.
     void stream.start({ generationId: reply.generationId, conversationId: conversation.id, inputMessageId: input.id, assistantMessageId: reply.id, input: { ...input }, conversation: { ...conversation }, modelId: reply.modelId ?? '', messages: [], attempt: 1, resume: true }, {
       delta: text => { reply.content += text }, replace: text => { reply.content = text }, status: next => { reply.status = next },
       continuation: count => { reply.continuationCount = count },
-      failure: (code, message) => { reply.errorCode = code; reply.errorMessage = message },
+      failure: (code, message, diagnostics) => { reply.errorCode = code; reply.errorMessage = message; if (diagnostics) reply.errorDiagnostics = diagnostics },
     }).finally(() => { generatingConversationId.value = null })
   }
 
@@ -220,17 +230,18 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     reply.continuationCount = continuationCount
     delete reply.errorCode
     delete reply.errorMessage
+    delete reply.errorDiagnostics
     generatingConversationId.value = reply.conversationId
     void stream.start({ generationId: reply.generationId ?? id(), conversationId: reply.conversationId, inputMessageId: source.parentMessageId!, assistantMessageId: reply.id, modelId, reasoningPreference: reasoningPreference(modelId, reply.conversationId), messages: history, attempt: 1, operation: 'continue', continuationCount, ...(transport.backend ? { sourceAssistantMessageId: source.id, input: { ...messages.value[source.parentMessageId!]! }, conversation: { ...conversations.records.value[source.conversationId]! } } : {}) }, {
       delta: text => { reply.content += text },
       replace: text => { reply.content = text },
       continuation: count => { reply.continuationCount = count },
       status: next => { reply.status = next },
-      failure: (code, message) => { reply.errorCode = code; reply.errorMessage = message },
+      failure: (code, message, diagnostics) => { reply.errorCode = code; reply.errorMessage = message; if (diagnostics) reply.errorDiagnostics = diagnostics },
     }).finally(() => { generatingConversationId.value = null })
     return true
   }
-  function remove(conversationId: string): void {
+  function remove(conversationId: string): void | Promise<void> {
     titles.cancel(conversationId)
     if (generatingConversationId.value === conversationId) stream.stop()
     messages.value = Object.fromEntries(Object.entries(messages.value).filter(([, message]) => message.conversationId !== conversationId))
@@ -259,6 +270,13 @@ export function useChat(transport: ChatTransport) {
     return { ...state, ...persistence }
   }
   const storageWarning = ref<string | null>(null)
+  const retryPersistence = ref<(() => void) | null>(null)
+  const notifications = useAppNotifications()
+  watch(storageWarning, value => {
+    if (!value) return
+    const code = value.startsWith('Chats wurden') ? 'STORAGE_CHANGED' : value.startsWith('Gespeicherte Chats') ? 'STORAGE_INVALID' : 'STORAGE_UNAVAILABLE'
+    notifications?.reportError({ code }, { operation: 'storage', attemptId: code }, code === 'STORAGE_CHANGED' ? { label: 'Seite neu laden', onClick: () => window.location.reload() } : undefined)
+  })
   let stopWatching: (() => void) | undefined
   let timer: ReturnType<typeof setTimeout> | undefined
   let persistenceAllowed = true
@@ -270,8 +288,9 @@ export function useChat(transport: ChatTransport) {
       const serialized = JSON.stringify(state.snapshot())
       if (serialized.length > MAX_SNAPSHOT_CHARS) throw new Error('Speichergrenze erreicht')
       window.localStorage.setItem(CHAT_STORAGE_KEY, serialized)
+      storageWarning.value = null; retryPersistence.value = null
     }
-    catch { storageWarning.value = 'Änderungen können gerade nicht lokal gespeichert werden.' }
+    catch { storageWarning.value = 'Änderungen können gerade nicht lokal gespeichert werden.'; retryPersistence.value = flush }
   }
   function externalChange(event: StorageEvent): void {
     if (event.key !== CHAT_STORAGE_KEY) return
@@ -319,5 +338,5 @@ export function useChat(transport: ChatTransport) {
       window.removeEventListener('storage', externalChange)
     }
   })
-  return { ...state, storageWarning, pagination: undefined, backendReady: ref(true), importAvailable: ref(false), importBusy: ref(false), importLocalChats: async () => {} }
+  return { ...state, storageWarning, retryPersistence, saveModelPreference: async (_modelId: string) => {}, pagination: undefined, backendReady: ref(true), importAvailable: ref(false), importBusy: ref(false), importLocalChats: async () => {} }
 }

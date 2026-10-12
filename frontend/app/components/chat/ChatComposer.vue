@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAppNotifications } from '../../composables/useAppNotifications'
 import { useAppLocale } from '../../composables/useAppLocale'
 import { CHAT_LIMITS } from '../../lib/chat/limits'
 import { computed, nextTick, ref, watch } from 'vue'
@@ -14,10 +15,11 @@ import type { UploadEntry } from '../../composables/useChatAttachments'
 import { composerMenuItems } from '../../lib/chat/composerMenu'
 const { t } = useAppLocale()
 
-const props = defineProps<{ busy: boolean, streaming: boolean, cancellationRequested: boolean, modelUnavailable?: boolean, inputError?: string | null, files?: UploadEntry[], uploadAvailable?: boolean, uploadUnavailableReason?: string | null, uploadBlocked?: boolean, uploadError?: string | null, imageSupported?: boolean, conversationMode?: ConversationMode, reasoningPreference?: ReasoningPreference | null, settingsBusy?: boolean, learningAvailable?: boolean }>()
+const props = defineProps<{ busy: boolean, streaming: boolean, cancellationRequested: boolean, modelUnavailable?: boolean, inputError?: string | null, files?: UploadEntry[], uploadAvailable?: boolean, uploadUnavailableReason?: string | null, uploadBlocked?: boolean, uploadError?: string | null, uploadErrorNotified?: boolean, imageSupported?: boolean, conversationMode?: ConversationMode, reasoningPreference?: ReasoningPreference | null, settingsBusy?: boolean, learningAvailable?: boolean }>()
+const notifications = useAppNotifications()
 const text = defineModel<string>({ required: true })
 const model = defineModel<ChatModelId>('model', { required: true })
-const emit = defineEmits<{ send: [text: string], stop: [], files: [files: File[]], removeFile: [key: string], retryFile: [key: string], mode: [mode: ConversationMode], reasoning: [preference: ReasoningPreference | null] }>()
+const emit = defineEmits<{ send: [text: string], stop: [], files: [files: File[]], removeFile: [key: string], retryFile: [key: string], refreshFiles: [], mode: [mode: ConversationMode], reasoning: [preference: ReasoningPreference | null] }>()
 const container = ref<HTMLElement | null>(null)
 const learning = computed(() => props.conversationMode === 'learning')
 const selectedModel = computed(() => CHAT_MODELS.find(item => item.id === model.value))
@@ -124,7 +126,8 @@ defineExpose({ focus })
 
 <template>
   <div ref="container" class="composer-container" :data-mode="conversationMode ?? 'normal'" :data-layout="autosize.maximized.value ? 'maximized' : autosize.expanded.value ? 'expanded' : 'compact'" @keydown.capture="menuKeydown">
-    <p v-if="uploadError" role="alert" class="mb-2 text-center text-xs text-error">{{ uploadError }}</p>
+    <details v-if="uploadError && uploadErrorNotified" class="mb-2 text-xs text-muted"><summary>Anhangaktion fehlgeschlagen.</summary><p>{{ uploadError }}</p><UButton color="neutral" variant="link" label="Anhänge neu laden" @click="emit('refreshFiles')" /></details>
+    <p v-else-if="uploadError" role="alert" class="mb-2 text-center text-xs text-error">{{ uploadError }}</p>
     <p v-if="tooLong" role="status" class="mb-2 text-center text-xs text-error">Die Nachricht darf höchstens {{ CHAT_LIMITS.max_message_chars.toLocaleString('de-DE') }} Zeichen enthalten.</p>
     <UChatPrompt
       ref="prompt" v-model="text" :aria-label="t('message')" :placeholder="t('prompt')" :autofocus="false" :rows="1"
@@ -144,10 +147,10 @@ defineExpose({ focus })
                 <p class="text-reference-full">{{ (file.reference || file.attachment?.textReference)?.text }}</p>
               </details>
               <p v-else class="attachment-detail">{{ file.mime || 'Datei' }} · {{ sizeLabel(file.size) }}</p>
-              <p role="status" aria-live="polite" aria-atomic="true" class="attachment-detail">
+              <p :role="file.status === 'failed' ? 'alert' : 'status'" :aria-live="file.status === 'failed' ? 'assertive' : 'polite'" aria-atomic="true" class="attachment-detail">
                 <template v-if="file.status === 'uploading'">Wird hochgeladen …</template>
                 <template v-else-if="file.status === 'removing'">Wird entfernt …</template>
-                <template v-else-if="file.status === 'failed'">{{ file.error }}</template>
+                <template v-else-if="file.status === 'failed'">Fehlgeschlagen · {{ file.error }}</template>
                 <template v-else-if="file.mime.startsWith('image/') && file.attachment?.modelUsable && imageSupported">Gespeichert · Für Bildanalyse bereit</template>
                 <template v-else-if="file.mime.startsWith('image/')">Gespeichert · Wähle ein Modell mit Bildeingabe</template>
                 <template v-else-if="file.attachment?.textReference"><span class="sr-only">Textreferenz übernommen</span></template>
@@ -157,6 +160,7 @@ defineExpose({ focus })
               <progress v-if="file.status === 'uploading'" :value="file.progress" max="100" :aria-label="`Uploadfortschritt: ${file.filename}`" class="w-full" />
             </div>
             <UButton v-if="file.status === 'failed' && (file.file || file.reference)" icon="i-lucide-rotate-cw" color="neutral" variant="ghost" class="touch-control" :aria-label="`${file.filename} erneut hochladen`" @click="retryFile(file.key)" />
+            <UButton v-if="file.status === 'failed' && file.diagnostics && notifications" color="neutral" variant="ghost" label="Details" :aria-label="`${file.filename}: Fehlerdetails`" @click="notifications.details.value = file.diagnostics" />
             <UButton icon="i-lucide-x" color="neutral" variant="ghost" class="touch-control" :disabled="file.status === 'removing' || (file.status === 'uploading' && !!file.reference)" :aria-label="`${file.filename} entfernen`" @click="removeFile(file.key)" />
           </li>
         </ul>
