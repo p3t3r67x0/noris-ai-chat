@@ -94,7 +94,12 @@ async def create_conversation(
 ) -> ConversationResponse:
     service, owner_id = access
     return await service.create_conversation(
-        owner_id, payload.title, payload.id, payload.conversationMode, payload.reasoningPreference
+        owner_id,
+        payload.title,
+        payload.id,
+        payload.conversationMode,
+        payload.reasoningPreference,
+        prepared=payload.prepared,
     )
 
 

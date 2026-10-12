@@ -13,7 +13,7 @@ import { useChatDrafts } from './useChatDrafts'
 import { indexSiblingVariants, siblingVariants, variantLeaf } from '../lib/chat/branches'
 import { CHAT_STORAGE_KEY, parseChatSnapshot } from '../lib/chat/persistence'
 import type { ChatSnapshot } from '../lib/chat/persistence'
-import { CONVERSATIONS_STORAGE_KEY, parseConversationSnapshot } from '../lib/chat/conversations'
+import { compareConversations, CONVERSATIONS_STORAGE_KEY, parseConversationSnapshot } from '../lib/chat/conversations'
 import { useChatBackend } from './useChatBackend'
 import { messageContext } from '../lib/chat/textReferences'
 import type { ConversationMode } from '../lib/chat/conversations'
@@ -104,12 +104,15 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
       status: next => {
         reply.status = next
         if (next === 'failed' && transport.backend && !reply.content) drafts.records.value[input.conversationId] = input.content
-        if (next === 'streaming' && titleRequest) void titles.generate(titleRequest)
         const conversation = conversations.records.value[input.conversationId]
+        if (!transport.backend && ['completed', 'failed', 'cancelled', 'incomplete'].includes(next) && conversation) {
+          conversation.sidebarVisible = true
+        }
         if (!transport.backend && next === 'completed' && messages.value[reply.id] === reply && conversation?.titleSource === 'fallback' && conversation.title === FALLBACK_TITLE) {
           const context = path(input.conversationId, reply.id).map(message => message.content).join('\n')
           conversation.title = fallbackConversationTitle(context)
         }
+        if (next === 'completed' && titleRequest) void titles.generate(titleRequest)
       },
       failure: (code, message) => { reply.errorCode = code; reply.errorMessage = message },
     }).finally(() => { generatingConversationId.value = null })
@@ -148,7 +151,14 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     return true
   }
 
-  function newChat(): void { conversations.create() }
+  function newChat(): void {
+    // An upload/settings draft already has an identity. Reuse it when returning
+    // from another chat so its persisted draft and attachment IDs stay reachable.
+    const prepared = Object.values(conversations.records.value)
+      .filter(c => c.sidebarVisible === false && c.archivedAt === null && c.activeLeafMessageId === null)
+      .sort(compareConversations)[0]
+    conversations.activeId.value = prepared?.id ?? null
+  }
   function selectVariant(messageId: string): boolean {
     const message = Object.hasOwn(messages.value, messageId) ? messages.value[messageId] : undefined
     const conversation = conversations.active.value

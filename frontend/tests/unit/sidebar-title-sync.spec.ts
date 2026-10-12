@@ -33,9 +33,9 @@ afterEach(() => {
   vi.unstubAllGlobals(); localStorage.clear()
 })
 
-async function fixture() {
+async function fixture(initialValue = initial) {
   Socket.instances = []
-  let authority = initial
+  let authority = initialValue
   let pendingRead: Promise<ApiSchemas['ConversationResponse']> | undefined
   const fetcher = vi.fn<typeof fetch>(async (input) => {
     const path = String(input)
@@ -65,6 +65,26 @@ async function fixture() {
 }
 
 describe('authoritative sidebar title synchronization', () => {
+  it('keeps prepared metadata hidden and reveals an authoritative update without a reload', async () => {
+    const { wrapper, socket, state } = await fixture({ ...initial, sidebarVisible: false })
+    expect(wrapper.findAll('button')).toHaveLength(0)
+    socket.event({ version: 1, type: 'chat.conversation.updated', conversation: { ...generated, sidebarVisible: true } })
+    await vi.waitFor(() => expect(wrapper.get('button').attributes('title')).toBe(generated.title))
+    expect(state.conversations.records.value[initial.id]?.sidebarVisible).toBe(true)
+  })
+
+  it('new chat preserves the draft and existing metadata without posting a conversation', async () => {
+    const { state, fetcher, sync } = await fixture()
+    const previous = JSON.stringify(state.conversations.records.value)
+    state.drafts.draft.value = 'Mein neuer Entwurf'
+    state.newChat()
+    state.newChat()
+    expect(state.conversations.activeId.value).toBeNull()
+    expect(state.drafts.draft.value).toBe('Mein neuer Entwurf')
+    expect(JSON.stringify(state.conversations.records.value)).toBe(previous)
+    expect(sync.pagination.conversations.value).toHaveLength(1)
+    expect(fetcher.mock.calls.some(([url, options]) => String(url) === '/api/v1/conversations' && options?.method === 'POST')).toBe(false)
+  })
   it.each(['chat.title.updated', 'chat.conversation.updated'])('renders %s without replacing a wide generated title with a fallback', async (type) => {
     // Reproduce the available sidebar width: the generated title is wider than
     // the label, while "Neuer Chat" fits. Layout must never rewrite metadata.

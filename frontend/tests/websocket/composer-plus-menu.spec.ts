@@ -53,7 +53,7 @@ test('click toggles, outside click and Escape dismiss without losing text or rep
     expect(await trigger.locator('[data-slot="leadingIcon"]').boundingBox()).toEqual(iconBefore)
     expect(await page.locator('.chat-composer').boundingBox()).toEqual(before)
     if (close === 'toggle') await trigger.click()
-    else if (close === 'outside') await page.mouse.click(page.viewportSize()!.width - 16, 20)
+    else if (close === 'outside') await page.mouse.click(2, 2)
     else await page.keyboard.press('Escape')
     await expect(menu).toBeHidden()
     await expect(trigger).toHaveAttribute('aria-expanded', 'false')
@@ -315,11 +315,16 @@ test('the open menu repositions and scrolls within the keyboard viewport without
     Object.defineProperty(visualViewport!, 'height', { configurable: true, value: 300 })
     visualViewport!.dispatchEvent(new Event('resize'))
   })
+  // Popper aligns to device pixels, yielding fractional CSS pixels on mobile.
+  await expect.poll(async () => Math.round((await menu.boundingBox())!.y)).toBeGreaterThanOrEqual(12)
   await expect.poll(async () => {
     const box = (await menu.boundingBox())!
+    return box.y + box.height - (await page.locator('.chat-composer').boundingBox())!.y
+  }).toBeLessThanOrEqual(0)
+  await expect.poll(async () => {
     const composer = (await page.locator('.chat-composer').boundingBox())!
-    return box.y >= 12 && box.y + box.height <= composer.y && composer.y + composer.height <= 300
-  }).toBe(true)
+    return composer.y + composer.height
+  }).toBeLessThanOrEqual(300)
   expect(await menu.locator('[data-slot="viewport"]').evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true)
   await page.keyboard.press('Escape')
   await expect(triggerFor(page)).toBeFocused()

@@ -135,22 +135,17 @@ class GenerationManager:
                 raise ChatError("INVALID_INPUT", 422)
             if len(command.attachmentIds) > self.config.chat_attachment_max_files:
                 raise ChatError("ATTACHMENT_QUOTA", 413)
-            model = await self.gateway.catalog.require(command.modelId)
             # Snapshot before begin_generation's version check. A concurrent settings
             # change then rejects this command instead of mixing conversation states.
             conversation = await self.repository.get_conversation(
                 self.config.chat_owner_id, command.conversationId
             )
-            if (
-                command.attachmentIds
-                and model.input_modalities
-                and ("text" not in model.input_modalities)
-            ):
-                raise ChatError("ATTACHMENT_INCOMPATIBLE", 422)
             generation, path, created = await self.repository.begin_generation(
                 self.config.chat_owner_id,
                 command,
-                allow_images=supports_images(model),
+                # Persist the input before model admission; failed first attempts
+                # must remain recoverable. Capability validation follows below.
+                allow_images=True,
                 max_attachments=self.config.chat_attachment_max_files,
                 attachment_quota_bytes=self.config.chat_attachment_owner_quota_bytes,
             )
@@ -167,6 +162,22 @@ class GenerationManager:
                     }
                 )
                 try:
+                    model = await self.gateway.catalog.require(command.modelId)
+                    if (
+                        command.attachmentIds
+                        and model.input_modalities
+                        and (
+                            "text" not in model.input_modalities
+                            or (
+                                any(
+                                    a.mime_type.startswith("image/")
+                                    for a in input_message.attachments
+                                )
+                                and not supports_images(model)
+                            )
+                        )
+                    ):
+                        raise ChatError("ATTACHMENT_INCOMPATIBLE", 422)
                     request = PersistedChatRequest(
                         generationId=str(generation.id),
                         conversationId=str(command.conversationId),
@@ -191,9 +202,11 @@ class GenerationManager:
                         if command.operation == "continue"
                         else 0,
                     )
-                except ValidationError:
+                except (ValidationError, LLMError, ChatError) as cause:
                     self.live.pop(generation.id, None)
-                    error = LLMError("INVALID_REQUEST")
+                    error = (
+                        LLMError("INVALID_REQUEST") if isinstance(cause, ValidationError) else cause
+                    )
                     payload: Payload = {
                         "version": 1,
                         "type": "chat.generation.failed",
@@ -207,6 +220,16 @@ class GenerationManager:
                     }
                     await self.repository.persist_generation_event(
                         generation.id, payload, str(payload["content"]), "failed", error.code
+                    )
+                    saved = await self.repository.get_conversation(
+                        self.config.chat_owner_id, command.conversationId
+                    )
+                    self.broadcast(
+                        {
+                            "version": 1,
+                            "type": "chat.conversation.updated",
+                            "conversation": conversation_response(saved).model_dump(mode="json"),
+                        }
                     )
                     peer.offer(payload)
                     return
@@ -397,6 +420,19 @@ class GenerationManager:
                 await self.repository.persist_generation_event(
                     command.requestId, payload, content, status, error_code
                 )
+                if status not in ("running", "queued"):
+                    conversation = await self.repository.get_conversation(
+                        self.config.chat_owner_id, command.conversationId
+                    )
+                    self.broadcast(
+                        {
+                            "version": 1,
+                            "type": "chat.conversation.updated",
+                            "conversation": conversation_response(conversation).model_dump(
+                                mode="json"
+                            ),
+                        }
+                    )
                 sequence += 1
                 for peer in live.peers:
                     peer.offer(payload)

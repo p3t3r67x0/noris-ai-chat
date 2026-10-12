@@ -9,6 +9,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     Enum,
@@ -103,6 +104,9 @@ class ChatConversation(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=_uuid)
     owner_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    sidebar_visible: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("true")
+    )
     title: Mapped[str] = mapped_column(Text, nullable=False)
     title_source: Mapped[str] = mapped_column(TITLE_SOURCE_ENUM, nullable=False)
     conversation_mode: Mapped[str] = mapped_column(Text, nullable=False, server_default="normal")

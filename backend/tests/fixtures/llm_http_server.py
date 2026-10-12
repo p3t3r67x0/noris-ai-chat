@@ -171,6 +171,8 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
                         return
                 await asyncio.sleep(0.4)
                 title = "Docker DNS-Probleme"
+                if "SearXNG" in prompt:
+                    title = "SearXNG Funktionsweise"
                 if "Rust" in prompt:
                     title = "Rust vs. C++"
                 if "Chat-Titelgenerierung" in prompt:

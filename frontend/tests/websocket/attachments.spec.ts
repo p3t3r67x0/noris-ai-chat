@@ -34,7 +34,9 @@ test('native multiple selection persists previews, layout and server context thr
   await expect(page.locator('.composer-container')).toHaveAttribute('data-layout', 'expanded')
   await expect(input).toBeFocused()
   const attached = (await page.locator('.chat-composer').boundingBox())!
-  expect(attached.y + attached.height).toBeCloseTo(original.y + original.height, 0)
+  // A new draft grows with its welcome/composer group; active chats stay docked.
+  expect(attached.height).toBeGreaterThan(original.height)
+  expect(attached.y + attached.height).toBeLessThan(page.viewportSize()!.height)
   await input.fill('Summarize the synthetic attachments')
   await page.reload()
   await expect(page.locator('[data-upload-status="uploaded"]')).toHaveCount(2)
@@ -134,6 +136,7 @@ for (const width of [1701, 1440, 390]) {
           Object.defineProperty(visualViewport!, 'height', { configurable: true, value: 250 })
           visualViewport!.dispatchEvent(new Event('resize'))
         })
+        await expect.poll(() => page.locator('.chat-workspace').evaluate(element => element.getBoundingClientRect().height)).toBe(250)
         const box = (await page.locator('.chat-composer').boundingBox())!
         expect(box.y).toBeGreaterThanOrEqual(0)
         expect(box.y + box.height).toBeLessThanOrEqual(250)

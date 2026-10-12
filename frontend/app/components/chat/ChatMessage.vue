@@ -48,8 +48,8 @@ function retryImage(id: string): void { failedImages.value[id] = false }
       <p v-if="message.status === 'incomplete' && !message.errorMessage && (message.continuationCount ?? 0) >= CHAT_LIMITS.max_continuations" class="mt-3 text-xs text-muted">Fortsetzungslimit erreicht. Der bisherige Text bleibt erhalten.</p>
       <p v-else-if="message.status === 'incomplete' && message.content.length >= CHAT_LIMITS.max_response_chars" class="mt-3 text-xs text-muted">Die Größenbegrenzung dieser Antwort ist erreicht.</p>
     </div>
-    <div v-if="message.content && message.status !== 'streaming' && message.status !== 'submitting'" class="message-actions">
-      <UButton :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" color="neutral" variant="ghost" class="touch-control" :aria-label="copied ? 'Nachricht kopiert' : 'Nachricht kopieren'" @click="copy(message.content)" />
+    <div v-if="(message.content || (message.role === 'assistant' && message.status === 'failed')) && message.status !== 'streaming' && message.status !== 'submitting'" class="message-actions">
+      <UButton v-if="message.content" :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" color="neutral" variant="ghost" class="touch-control" :aria-label="copied ? 'Nachricht kopiert' : 'Nachricht kopieren'" @click="copy(message.content)" />
       <UButton v-if="message.role === 'user'" icon="i-lucide-pencil" color="neutral" variant="ghost" class="touch-control" aria-label="Nachricht bearbeiten" :disabled="busy" @click="emit('edit')" />
       <UButton v-else icon="i-lucide-rotate-ccw" color="neutral" variant="ghost" class="touch-control" aria-label="Antwort erneut generieren" :disabled="busy" @click="emit('regenerate')" />
       <MessageVariants :variants="variants" :summary="summary" :selected-id="message.id" :busy="busy" :role="message.role" @select="emit('selectVariant', $event)" />

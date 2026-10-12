@@ -14,6 +14,7 @@ export interface Conversation {
   activeLeafMessageId: string | null
   conversationMode?: ConversationMode
   reasoningPreference?: ReasoningPreference | null
+  sidebarVisible?: boolean
 }
 
 export interface ConversationSnapshot {
@@ -47,6 +48,7 @@ function isConversation(value: unknown): value is Conversation {
     && typeof value.title === 'string' && value.title.length <= 120
     && (value.titleSource === undefined || value.titleSource === 'fallback' || value.titleSource === 'generated' || value.titleSource === 'manual')
     && (value.titleGenerationAttempted === undefined || typeof value.titleGenerationAttempted === 'boolean')
+    && (value.sidebarVisible === undefined || typeof value.sidebarVisible === 'boolean')
     && isDate(value.createdAt) && isDate(value.updatedAt)
     && (value.archivedAt === null || isDate(value.archivedAt))
     && (value.activeLeafMessageId === null || typeof value.activeLeafMessageId === 'string')
