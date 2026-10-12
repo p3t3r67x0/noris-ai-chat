@@ -60,6 +60,20 @@ export class ChatBackend {
     this.versions.set(value.id, value.version)
     this.onConversation?.(value)
   }
+  async refreshMetadata(): Promise<void> {
+    // Recover updates missed while disconnected, including an older active chat.
+    // Keep messages and unsent drafts under the existing useChat state.
+    const page = await this.page()
+    for (const value of page.conversations) this.remember(value)
+    const present = new Set(page.conversations.map(value => value.id))
+    const missing = [...this.versions.keys()].filter(id => !present.has(id))
+    for (let offset = 0; offset < missing.length; offset += 10) {
+      await Promise.all(missing.slice(offset, offset + 10).map(async id => {
+        try { this.remember(await this.request<ServerConversation>(`/conversations/${id}`)) }
+        catch (error) { if (!(error instanceof TransportError) || error.code !== 'NOT_FOUND') throw error }
+      }))
+    }
+  }
   ensure(conversation: Conversation): Promise<number> {
     return this.enqueue(async () => {
       if (!this.versions.has(conversation.id)) {

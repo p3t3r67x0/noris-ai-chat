@@ -181,7 +181,7 @@ describe('bounded conversation titles', () => {
   it('aborts at its own timeout and rejects a late successful result', async () => {
     const { chat, calls, resolve } = fixture()
     chat.send('Docker', 'balanced')
-    await vi.advanceTimersByTimeAsync(8100)
+    await vi.advanceTimersByTimeAsync(32100)
     expect(calls[0]!.signal.aborted).toBe(true)
     expect(chat.stream.status.value).toBe('completed')
     resolve(0)

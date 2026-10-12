@@ -264,5 +264,5 @@ async def test_title_uses_existing_http_provider_and_closes_socket(
             assert [message["role"] for message in messages] == ["system", "user"]
             assert messages[1]["content"] == payload["firstMessage"]
             assert "untrusted" in messages[0]["content"]
-            assert captured[0]["max_tokens"] == 96
+            assert captured[0]["max_tokens"] == 1024
             assert captured[0]["reasoning_effort"] == "low"

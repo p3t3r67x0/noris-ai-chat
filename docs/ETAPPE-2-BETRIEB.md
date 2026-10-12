@@ -86,8 +86,8 @@ Alle Backend-Werte tragen das bestehende Präfix `NORIS_`. JSON-Listen müssen g
 | `NORIS_LLM_CONNECT_TIMEOUT_SECONDS` | `5`; auch Write-/Pool-Timeout |
 | `NORIS_LLM_READ_TIMEOUT_SECONDS` | `120`; maximale Stille zwischen Netzwerkdaten |
 | `NORIS_LLM_TOTAL_TIMEOUT_SECONDS` | `1800`; gesamte Generierung, höchstens 3600 |
-| `NORIS_LLM_TITLE_TIMEOUT_SECONDS` | `6`; eigener Titel-Timeout, höchstens 30 |
-| `NORIS_LLM_TITLE_MAX_OUTPUT_TOKENS` | `96`; Titel-Ausgabe, höchstens 256 und höchstens Modelllimit |
+| `NORIS_LLM_TITLE_TIMEOUT_SECONDS` | `20`; eigener Titel-Timeout, höchstens 30 |
+| `NORIS_LLM_TITLE_MAX_OUTPUT_TOKENS` | `1024`; Gesamtausgabe inklusive Reasoning, höchstens 2048 und höchstens Modelllimit |
 | `NORIS_LLM_MAX_CONCURRENT` | `4`; aktive Anfragen und HTTP-Verbindungen, höchstens 32 |
 | `NORIS_LLM_REQUESTS_PER_MINUTE` | `20`; gemeinsame Anfragefrequenz pro Backend-Prozess |
 | `NORIS_LLM_DAILY_TOKEN_BUDGET` | `100000`; konservative Input-/Outputreservation, UTC-Tageswechsel |

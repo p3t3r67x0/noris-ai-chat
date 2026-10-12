@@ -148,7 +148,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     const previous = state.conversations.records.value[value.id]
     // An active chat outside page one can become recent through a live update.
     // Its metadata then belongs in the sorted sidebar without reloading messages.
-    if (!value.archivedAt && previous && compareConversations(conversationFromServer(value), previous) < 0 && !sidebarIds.value.includes(value.id)) {
+    if (!value.archivedAt && (!previous || compareConversations(conversationFromServer(value), previous) < 0) && !sidebarIds.value.includes(value.id)) {
       sidebarIds.value = [value.id, ...sidebarIds.value].slice(0, 500)
     }
     const changedLeaf = previous?.activeLeafMessageId !== value.activeLeafMessageId
