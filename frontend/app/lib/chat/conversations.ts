@@ -1,4 +1,7 @@
 import { FALLBACK_TITLE, normalizeAutomaticTitle } from './titles'
+import type { ReasoningPreference } from './reasoning'
+
+export type ConversationMode = 'normal' | 'learning'
 
 export interface Conversation {
   id: string
@@ -9,6 +12,8 @@ export interface Conversation {
   updatedAt: string
   archivedAt: string | null
   activeLeafMessageId: string | null
+  conversationMode?: ConversationMode
+  reasoningPreference?: ReasoningPreference | null
 }
 
 export interface ConversationSnapshot {
@@ -45,6 +50,8 @@ function isConversation(value: unknown): value is Conversation {
     && isDate(value.createdAt) && isDate(value.updatedAt)
     && (value.archivedAt === null || isDate(value.archivedAt))
     && (value.activeLeafMessageId === null || typeof value.activeLeafMessageId === 'string')
+    && (value.conversationMode === undefined || value.conversationMode === 'normal' || value.conversationMode === 'learning')
+    && (value.reasoningPreference === undefined || value.reasoningPreference === null || ['instant', 'medium', 'high', 'very_high', 'pro'].includes(String(value.reasoningPreference)))
 }
 
 export function parseConversationSnapshot(raw: string): ConversationSnapshot | null {
@@ -56,7 +63,7 @@ export function parseConversationSnapshot(raw: string): ConversationSnapshot | n
     for (const [id, item] of Object.entries(value.conversations)) {
       if (!isConversation(item) || item.id !== id) return null
       // Legacy names may be manual: preserve them and never generate retroactively.
-      const conversation: Conversation = { ...item, titleSource: item.titleSource ?? 'manual', titleGenerationAttempted: item.titleGenerationAttempted ?? true }
+      const conversation: Conversation = { ...item, conversationMode: item.conversationMode ?? 'normal', reasoningPreference: item.reasoningPreference ?? null, titleSource: item.titleSource ?? 'manual', titleGenerationAttempted: item.titleGenerationAttempted ?? true }
       if (conversation.titleSource !== 'manual') {
         conversation.title = normalizeAutomaticTitle(conversation.title)
         if (conversation.title === FALLBACK_TITLE) conversation.titleSource = 'fallback'

@@ -30,6 +30,7 @@ class LLMMessage(ApiSchema):
 
 type Evidence = Literal["DOCUMENTED", "VERIFIED", "UNKNOWN"]
 type ModelCategory = Literal["CHAT", "REASONING", "VISION", "EMBEDDING", "RERANKING", "UNKNOWN"]
+type ReasoningPreference = Literal["instant", "medium", "high", "very_high", "pro"]
 
 
 class TimeoutPolicy(ApiSchema):
@@ -96,6 +97,9 @@ class LLMModel(ApiSchema):
     reasoning_parameter: Literal["reasoning_effort", "chat_template_kwargs"] | None = None
     reasoning_efforts: list[str] = Field(default_factory=list)
     reasoning_effort: str | None = None
+    reasoning_preferences: list[ReasoningPreference] = Field(
+        default_factory=lambda: list[ReasoningPreference]()
+    )
     timeout_policy: TimeoutPolicy = Field(default_factory=TimeoutPolicy)
     evidence: dict[str, Evidence] = Field(default_factory=dict)
     sources: list[str] = Field(default_factory=list)
@@ -173,6 +177,7 @@ class ModelCatalog(ApiSchema):
 
 
 class ChatRequest(ApiSchema):
+    reasoningPreference: ReasoningPreference | None = None
     generationId: str = Field(min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_-]+$")
     conversationId: str = Field(min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_-]+$")
     inputMessageId: str = Field(min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_-]+$")
@@ -206,6 +211,7 @@ class PersistedChatRequest(ChatRequest):
     """Trusted database context; REST clients retain their 100-message cap."""
 
     messages: list[LLMMessage] = Field(min_length=1, max_length=10_001)
+    conversationMode: Literal["normal", "learning"] = "normal"
 
 
 class ConversationTitleRequest(ApiSchema):

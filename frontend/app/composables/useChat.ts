@@ -16,6 +16,10 @@ import type { ChatSnapshot } from '../lib/chat/persistence'
 import { CONVERSATIONS_STORAGE_KEY, parseConversationSnapshot } from '../lib/chat/conversations'
 import { useChatBackend } from './useChatBackend'
 import { messageContext } from '../lib/chat/textReferences'
+import type { ConversationMode } from '../lib/chat/conversations'
+import type { ReasoningPreference } from '../lib/chat/reasoning'
+import { supportsPreference } from '../lib/chat/reasoning'
+import { CHAT_MODELS } from './useModelSelection'
 
 export function createChatState(transport: ChatTransport, dependencies: ConversationDependencies = {}, conversations = createConversationState(dependencies)) {
   const messages = ref<MessageRecords>({})
@@ -31,6 +35,44 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
   const visible = computed(() => conversations.active.value ? path(conversations.active.value.id, conversations.active.value.activeLeafMessageId) : [])
   const generatingConversationId = ref<string | null>(null)
   const drafts = useChatDrafts(conversations.activeId)
+  const settingsBusy = ref(false)
+  type SettingChange = { conversationMode?: ConversationMode, reasoningPreference?: ReasoningPreference | null }
+  const settingErrors = ref<Record<string, string>>({})
+  const settingsError = computed(() => settingErrors.value[conversations.activeId.value ?? ''] ?? null)
+  const failedSettings = new Map<string, SettingChange>()
+  async function setConversationSettings(change: SettingChange): Promise<boolean> {
+    if (settingsBusy.value) return false
+    const existingDraft = drafts.draft.value
+    const conversation = conversations.active.value ?? conversations.create()
+    if (!drafts.draft.value && existingDraft) drafts.draft.value = existingDraft
+    settingsBusy.value = true
+    settingErrors.value = Object.fromEntries(Object.entries(settingErrors.value).filter(([id]) => id !== conversation.id))
+    try {
+      if (transport.backend) {
+        await transport.backend.ensure(conversation)
+        await transport.backend.patch(conversation.id, change)
+      }
+      else Object.assign(conversation, change)
+      failedSettings.delete(conversation.id)
+      return true
+    }
+    catch {
+      failedSettings.set(conversation.id, change)
+      settingErrors.value[conversation.id] = 'Die Gesprächseinstellung konnte nicht gespeichert werden. Bitte erneut versuchen.'
+      return false
+    }
+    finally { settingsBusy.value = false }
+  }
+  const setConversationMode = (conversationMode: ConversationMode) => setConversationSettings({ conversationMode })
+  const setReasoningPreference = (reasoningPreference: ReasoningPreference | null) => setConversationSettings({ reasoningPreference })
+  const retryConversationSettings = () => {
+    const change = failedSettings.get(conversations.activeId.value ?? '')
+    return change ? setConversationSettings(change) : Promise.resolve(false)
+  }
+  function reasoningPreference(modelId: string, conversationId: string): ReasoningPreference | null {
+    const preference = conversations.records.value[conversationId]?.reasoningPreference
+    return preference && supportsPreference(CHAT_MODELS.find(model => model.id === modelId), preference) ? preference : null
+  }
   const preferredLeaves = ref<Record<string, string>>({})
   const titles = createConversationTitles(transport, conversationId => Object.hasOwn(conversations.records.value, conversationId) ? conversations.records.value[conversationId] : undefined)
 
@@ -55,7 +97,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     generatingConversationId.value = input.conversationId
     reply.generationId = id()
     reply.modelId = modelId
-    void stream.start({ generationId: reply.generationId, conversationId: input.conversationId, inputMessageId: input.id, modelId, messages: history, attempt, input: { ...input }, assistantMessageId: reply.id, conversation: { ...conversations.records.value[input.conversationId]! } }, {
+    void stream.start({ generationId: reply.generationId, conversationId: input.conversationId, inputMessageId: input.id, modelId, reasoningPreference: reasoningPreference(modelId, input.conversationId), messages: history, attempt, input: { ...input }, assistantMessageId: reply.id, conversation: { ...conversations.records.value[input.conversationId]! } }, {
       delta: text => { reply.content += text },
       replace: text => { reply.content = text },
       continuation: count => { reply.continuationCount = count },
@@ -89,7 +131,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
 
   function send(text: string, modelId: ChatModelId, attachments: NonNullable<ChatMessage['attachments']> = []): boolean {
     const content = text.trim()
-    if (stream.busy.value || !content || content.length > CHAT_LIMITS.max_message_chars) return false
+    if (settingsBusy.value || settingsError.value || stream.busy.value || !content || content.length > CHAT_LIMITS.max_message_chars) return false
     const draftConversationId = conversations.activeId.value
     const conversation = conversations.active.value ?? conversations.create()
     const parent = visible.value.at(-1)
@@ -114,7 +156,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
   }
 
   function regenerate(messageId: string, modelId: ChatModelId): boolean {
-    if (stream.busy.value) return false
+    if (settingsBusy.value || settingsError.value || stream.busy.value) return false
     const message = Object.hasOwn(messages.value, messageId) ? messages.value[messageId] : undefined
     if (!message || message.role !== 'assistant' || message.conversationId !== conversations.activeId.value || !message.parentMessageId) return false
     const input = messages.value[message.parentMessageId]
@@ -127,7 +169,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
   function edit(messageId: string, text: string, modelId: ChatModelId): boolean {
     const content = text.trim()
     const original = Object.hasOwn(messages.value, messageId) ? messages.value[messageId] : undefined
-    if (stream.busy.value || !content || content.length > CHAT_LIMITS.max_message_chars || original?.role !== 'user' || original.conversationId !== conversations.activeId.value) return false
+    if (settingsBusy.value || settingsError.value || stream.busy.value || !content || content.length > CHAT_LIMITS.max_message_chars || original?.role !== 'user' || original.conversationId !== conversations.activeId.value) return false
     rememberBranch()
     const input = append(original.conversationId, original.parentMessageId, 'user', content)
     input.editedFromMessageId = original.id
@@ -145,7 +187,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
 
   function canContinue(messageId: string): boolean {
     const reply = Object.hasOwn(messages.value, messageId) ? messages.value[messageId] : undefined
-    return !stream.busy.value && reply?.role === 'assistant'
+    return !settingsBusy.value && !settingsError.value && !stream.busy.value && reply?.role === 'assistant'
       && reply.id === visible.value.at(-1)?.id && Boolean(reply.content)
       && ['incomplete', 'cancelled', 'failed'].includes(reply.status)
       && (reply.continuationCount ?? 0) < CHAT_LIMITS.max_continuations
@@ -171,7 +213,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     delete reply.errorCode
     delete reply.errorMessage
     generatingConversationId.value = reply.conversationId
-    void stream.start({ generationId: reply.generationId ?? id(), conversationId: reply.conversationId, inputMessageId: source.parentMessageId!, assistantMessageId: reply.id, modelId, messages: history, attempt: 1, operation: 'continue', continuationCount, ...(transport.backend ? { sourceAssistantMessageId: source.id, input: { ...messages.value[source.parentMessageId!]! }, conversation: { ...conversations.records.value[source.conversationId]! } } : {}) }, {
+    void stream.start({ generationId: reply.generationId ?? id(), conversationId: reply.conversationId, inputMessageId: source.parentMessageId!, assistantMessageId: reply.id, modelId, reasoningPreference: reasoningPreference(modelId, reply.conversationId), messages: history, attempt: 1, operation: 'continue', continuationCount, ...(transport.backend ? { sourceAssistantMessageId: source.id, input: { ...messages.value[source.parentMessageId!]! }, conversation: { ...conversations.records.value[source.conversationId]! } } : {}) }, {
       delta: text => { reply.content += text },
       replace: text => { reply.content = text },
       continuation: count => { reply.continuationCount = count },
@@ -199,7 +241,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
   }
   const variantIndex = computed(() => indexSiblingVariants(messages.value))
   const variants = (messageId: string): readonly ChatMessage[] => variantIndex.value.get(messageId) ?? []
-  return { conversations, messages, pathBoundaries, variantSummaries, variantSummary: (id: string) => variantSummaries.value[id], visible, stream, titles, generatingConversationId, drafts, preferredLeaves, send, retry, canContinue, continueResponse, newChat, remove, selectVariant, regenerate, edit, variants, snapshot, hydrate, resume }
+  return { settingsBusy, settingsError, setConversationMode, setReasoningPreference, retryConversationSettings, conversations, messages, pathBoundaries, variantSummaries, variantSummary: (id: string) => variantSummaries.value[id], visible, stream, titles, generatingConversationId, drafts, preferredLeaves, send, retry, canContinue, continueResponse, newChat, remove, selectVariant, regenerate, edit, variants, snapshot, hydrate, resume }
 }
 
 export function useChat(transport: ChatTransport) {

@@ -161,7 +161,7 @@ for (const active of [true, false]) {
     const after = await snapshot(page)
     expect(after.conversations.activeConversationId).toBe(active ? null : 'main')
     const retainedId = active ? 'conversation-1' : 'main'
-    expect(after.conversations.conversations[retainedId]).toEqual(before.conversations.conversations[retainedId])
+    expect(after.conversations.conversations[retainedId]).toEqual({ ...before.conversations.conversations[retainedId], conversationMode: 'normal', reasoningPreference: null })
     expect(after.drafts[retainedId]).toBe(before.drafts[retainedId])
     expect(after.drafts[removedId]).toBeUndefined()
     expect(Object.values(after.messages).every(message => (message as { conversationId: string }).conversationId !== removedId)).toBe(true)

@@ -9,6 +9,16 @@ const conversation: ApiSchemas['ConversationResponse'] = {
 const conflict = () => Response.json({ error: { code: 'VERSION_CONFLICT', message: 'Der Chat wurde geändert.' } }, { status: 409 })
 
 describe('chat metadata version conflicts', () => {
+  it('reapplies only the explicit mode after a generation changes the version', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(conflict())
+      .mockResolvedValueOnce(Response.json({ ...conversation, activeLeafMessageId: 'answer' }))
+      .mockResolvedValueOnce(Response.json({ ...conversation, activeLeafMessageId: 'answer', conversationMode: 'learning', version: 4 }))
+    const backend = new ChatBackend(fetcher)
+    backend.versions.set(conversation.id, 2)
+    await backend.patch(conversation.id, { conversationMode: 'learning' })
+    expect(JSON.parse(String(fetcher.mock.calls[2]?.[1]?.body))).toEqual({ conversationMode: 'learning', version: 3 })
+    expect(backend.versions.get(conversation.id)).toBe(4)
+  })
   it.each(['generated', 'fallback'] as const)('reapplies a manual title once after a %s title changed the version', async (titleSource) => {
     const fetcher = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(conflict())

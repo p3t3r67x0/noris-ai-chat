@@ -23,6 +23,13 @@ test.afterEach(async ({ request }) => {
 
 for (const [index, name] of ['DeepSeek V4.1 Flash', 'GPT-OSS 120B'].entries()) {
   test(`${name}: sidebar titles stay consistent across tabs, reconnect, reload and regeneration`, async ({ page, context, request }) => {
+    // Keep the verified catalog stable while exercising the title lifecycle.
+    // One-second catalog expiry and model refresh have separate coverage.
+    await context.route('**/api/v1/llm/models', async route => {
+      const response = await route.fetch()
+      const catalog = await response.json()
+      await route.fulfill({ response, json: { ...catalog, expires_in_seconds: 60 } })
+    })
     await context.addInitScript(() => {
       const sockets: WebSocket[] = []
       const NativeSocket = window.WebSocket
@@ -40,6 +47,7 @@ for (const [index, name] of ['DeepSeek V4.1 Flash', 'GPT-OSS 120B'].entries()) {
     const composer = page.getByRole('textbox', { name: 'Nachricht', exact: true })
     await expect(composer).toBeEnabled()
     await composer.fill('/title-reasoning Docker DNS')
+    await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
     await composer.press('Enter')
     await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
     const conversation = (await (await request.get('/api/v1/conversations')).json()).conversations[0]

@@ -2,6 +2,8 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { modelDetails } from '../lib/chat/modelMetadata'
 import { responseError } from '../lib/chat/realTransport'
 import { CHAT_LIMITS, DEFAULT_CHAT_LIMITS, parseChatLimits } from '../lib/chat/limits'
+import { REASONING_CHOICES } from '../lib/chat/reasoning'
+import type { ReasoningPreference } from '../lib/chat/reasoning'
 
 const MOCK_MODELS = [
   { id: 'balanced', label: 'noris Balanced', description: 'Für den Alltag' },
@@ -9,7 +11,7 @@ const MOCK_MODELS = [
   { id: 'fast', label: 'noris Fast', description: 'Für schnelle Ideen' },
 ]
 
-export interface ChatModel { id: string, label: string, description: string, category?: string, virtual?: boolean, disabled?: boolean, providerDescription?: string, contextWindow?: number, effectiveOutputLimit?: number, imageInput?: boolean }
+export interface ChatModel { id: string, label: string, description: string, category?: string, virtual?: boolean, disabled?: boolean, providerDescription?: string, contextWindow?: number, effectiveOutputLimit?: number, imageInput?: boolean, reasoningPreferences?: ReasoningPreference[] }
 export const CHAT_MODELS = reactive<ChatModel[]>(MOCK_MODELS.map(model => ({ ...model })))
 export type ChatModelId = string
 export function isChatModelId(value: unknown): value is ChatModelId {
@@ -52,6 +54,7 @@ export function useModelSelection(options: { mode?: 'mock' | 'real' | 'websocket
             modelDetails(value as Record<string, unknown>, isStale),
           ].filter(Boolean).join(' · '),
           category: 'category' in value && typeof value.category === 'string' ? value.category : '',
+          reasoningPreferences: 'reasoning_preferences' in value && Array.isArray(value.reasoning_preferences) ? value.reasoning_preferences.filter((item): item is ReasoningPreference => REASONING_CHOICES.some(choice => choice.id === item)) : [],
           virtual: 'virtual' in value && value.virtual === true, disabled: isStale || value.available !== true || value.streaming !== true,
           imageInput: 'vision' in value && value.vision === true && 'input_modalities' in value && Array.isArray(value.input_modalities) && value.input_modalities.includes('image') && value.input_modalities.includes('text'),
           ...('description' in value && typeof value.description === 'string' ? { providerDescription: value.description } : {}),

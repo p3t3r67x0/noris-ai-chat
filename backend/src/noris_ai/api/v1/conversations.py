@@ -30,7 +30,7 @@ from noris_ai.chat.schemas import (
     PreferencesResponse,
     PreferencesUpdate,
 )
-from noris_ai.chat.service import ChatService
+from noris_ai.chat.service import ChatService, conversation_response
 from noris_ai.core.access import security, verify_basic, verify_write_origin
 from noris_ai.core.config import Settings
 from noris_ai.core.schemas import ErrorResponse
@@ -93,7 +93,9 @@ async def create_conversation(
     access: ChatAccess,
 ) -> ConversationResponse:
     service, owner_id = access
-    return await service.create_conversation(owner_id, payload.title, payload.id)
+    return await service.create_conversation(
+        owner_id, payload.title, payload.id, payload.conversationMode, payload.reasoningPreference
+    )
 
 
 @router.get(
@@ -126,6 +128,24 @@ async def update_conversation(
     fields = payload.model_fields_set
     if len(fields - {"version"}) != 1:
         raise ChatError("INVALID_INPUT", 422)
+    if "conversationMode" in fields and payload.conversationMode is not None:
+        return conversation_response(
+            await service.repository.update_conversation(
+                owner_id,
+                conversation_id,
+                expected_version=payload.version,
+                conversation_mode=payload.conversationMode,
+            )
+        )
+    if "reasoningPreference" in fields:
+        return conversation_response(
+            await service.repository.update_conversation(
+                owner_id,
+                conversation_id,
+                expected_version=payload.version,
+                reasoning_preference=payload.reasoningPreference,
+            )
+        )
     if "title" in fields and payload.title is not None:
         conversation = await service.rename_conversation(
             owner_id, conversation_id, payload.title, payload.version

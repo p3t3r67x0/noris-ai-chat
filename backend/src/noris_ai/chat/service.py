@@ -21,6 +21,7 @@ from noris_ai.chat.schemas import (
     ChatImportRequest,
     ChatImportResponse,
     ConversationListResponse,
+    ConversationMode,
     ConversationResponse,
     DraftResponse,
     ImportConflict,
@@ -34,6 +35,7 @@ from noris_ai.chat.schemas import (
     TextReference,
     TitleSource,
 )
+from noris_ai.llm.schemas import ReasoningPreference
 
 FALLBACK_TITLE = "Neuer Chat"
 NEW_CHAT_DRAFT_KEY = "__new__"
@@ -43,6 +45,8 @@ def conversation_response(conversation: ChatConversation) -> ConversationRespons
     return ConversationResponse(
         id=conversation.id,
         title=conversation.title,
+        conversationMode=cast(ConversationMode, conversation.conversation_mode or "normal"),
+        reasoningPreference=cast(ReasoningPreference | None, conversation.reasoning_preference),
         titleSource=cast(TitleSource, conversation.title_source),
         createdAt=conversation.created_at,
         updatedAt=conversation.updated_at,
@@ -114,13 +118,20 @@ class ChatService:
         self.repository = repository
 
     async def create_conversation(
-        self, owner_id: uuid.UUID, title: str | None, conversation_id: uuid.UUID | None = None
+        self,
+        owner_id: uuid.UUID,
+        title: str | None,
+        conversation_id: uuid.UUID | None = None,
+        conversation_mode: ConversationMode = "normal",
+        reasoning_preference: ReasoningPreference | None = None,
     ) -> ConversationResponse:
         try:
             conversation = await self.repository.create_conversation(
                 owner_id,
                 title=(title.strip() or FALLBACK_TITLE) if title else FALLBACK_TITLE,
                 conversation_id=conversation_id,
+                conversation_mode=conversation_mode,
+                reasoning_preference=reasoning_preference,
             )
         except IntegrityError as error:
             if conversation_id is not None:

@@ -382,6 +382,15 @@
               ],
               "title": "Archivedat"
             },
+            "conversationMode": {
+              "default": "normal",
+              "enum": [
+                "normal",
+                "learning"
+              ],
+              "title": "Conversationmode",
+              "type": "string"
+            },
             "createdAt": {
               "format": "date-time",
               "title": "Createdat",
@@ -403,6 +412,17 @@
                 }
               ],
               "title": "Lastmessageat"
+            },
+            "reasoningPreference": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ReasoningPreference"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
             },
             "title": {
               "title": "Title",
@@ -1202,6 +1222,16 @@
           ],
           "title": "PongEvent",
           "type": "object"
+        },
+        "ReasoningPreference": {
+          "enum": [
+            "instant",
+            "medium",
+            "high",
+            "very_high",
+            "pro"
+          ],
+          "type": "string"
         },
         "ResumeAcceptedEvent": {
           "additionalProperties": false,
