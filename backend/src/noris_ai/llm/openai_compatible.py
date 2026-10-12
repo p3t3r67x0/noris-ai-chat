@@ -41,6 +41,7 @@ class ProviderChunk(BaseModel):
     model_config = ConfigDict(strict=True)
     choices: list[ProviderChoice]
     error: object | None = None
+    usage: object | None = None
 
 
 class OpenAICompatibleProvider:
@@ -201,9 +202,19 @@ class OpenAICompatibleProvider:
                             raise LLMError("PROVIDER_ERROR")
                         if not event.choices:
                             continue  # Optional usage-only metadata.
-                        if len(event.choices) != 1 or finished:
+                        if len(event.choices) != 1:
                             raise LLMError("INVALID_RESPONSE")
                         choice = event.choices[0]
+                        if finished:
+                            # Noris may retain an empty index-0 choice in the usage trailer.
+                            # Accept metadata only; new output or another finish is invalid.
+                            if (
+                                isinstance(event.usage, dict)
+                                and choice.finish_reason is None
+                                and not any(choice.delta.model_dump().values())
+                            ):
+                                continue
+                            raise LLMError("INVALID_RESPONSE")
                         if choice.delta.tool_calls or choice.delta.function_call:
                             raise LLMError("INVALID_RESPONSE")
                         delta = choice.delta.content

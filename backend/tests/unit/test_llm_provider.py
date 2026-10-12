@@ -90,6 +90,96 @@ async def test_noris_intermediate_chunks_may_omit_finish_reason(
         await provider.aclose()
 
 
+@pytest.mark.parametrize(
+    "choices",
+    [
+        [],
+        [{"index": 0, "delta": {}}],
+        [{"index": 0, "delta": {"content": None}, "finish_reason": None}],
+        [{"index": 0, "delta": {"content": ""}}],
+    ],
+)
+@pytest.mark.parametrize("size", [1, 8192])
+async def test_usage_trailer_after_stop_preserves_completed_response(
+    llm_config: Settings,
+    llm_messages: list[LLMMessage],
+    choices: list[dict[str, object]],
+    size: int,
+) -> None:
+    trailer = {
+        "choices": choices,
+        "usage": {"prompt_tokens": 377, "completion_tokens": 202, "total_tokens": 579},
+    }
+    # GLM can finish on the last text delta, then send an empty choice with usage.
+    data = (
+        event("Grüße 🌍", "stop")
+        + ("data: " + json.dumps(trailer) + "\n\n").encode()
+        + b"data: [DONE]\n\n"
+    )
+    stream = Fragments(data, size)
+    provider = OpenAICompatibleProvider(
+        llm_config,
+        transport=httpx.MockTransport(
+            lambda _: httpx.Response(
+                200, headers={"Content-Type": "text/event-stream"}, stream=stream
+            )
+        ),
+    )
+    try:
+        assert [
+            delta async for delta in provider.stream(llm_messages, llm_config.llm_models[0])
+        ] == ["Grüße 🌍"]
+        assert stream.closed
+    finally:
+        await provider.aclose()
+
+
+@pytest.mark.parametrize(
+    "choices,usage,finish",
+    [
+        ([{"index": 0, "delta": {}}], None, "stop"),
+        ([{"index": 0, "delta": {}}], {"total_tokens": 579}, None),
+        ([{"index": 0, "delta": {"content": "late text"}}], {"total_tokens": 579}, "stop"),
+        ([{"index": 0, "delta": {"reasoning": "late reasoning"}}], {}, "stop"),
+        ([{"index": 0, "delta": {"tool_calls": [{"id": "late-tool"}]}}], {}, "stop"),
+        ([{"index": 0, "delta": {}, "finish_reason": "stop"}], {}, "stop"),
+        ([{"index": 0, "delta": {}}, {"index": 1, "delta": {}}], {}, "stop"),
+    ],
+)
+async def test_usage_trailer_does_not_hide_invalid_or_missing_completion(
+    llm_config: Settings,
+    llm_messages: list[LLMMessage],
+    choices: list[dict[str, object]],
+    usage: dict[str, object] | None,
+    finish: str | None,
+) -> None:
+    trailer = {"choices": choices, "usage": usage}
+    data = (
+        event("partial", finish)
+        + ("data: " + json.dumps(trailer) + "\n\n").encode()
+        + b"data: [DONE]\n\n"
+    )
+    stream = Fragments(data, 128)
+    provider = OpenAICompatibleProvider(
+        llm_config,
+        transport=httpx.MockTransport(
+            lambda _: httpx.Response(
+                200, headers={"Content-Type": "text/event-stream"}, stream=stream
+            )
+        ),
+    )
+    received: list[str] = []
+    try:
+        with pytest.raises(LLMError) as caught:
+            async for delta in provider.stream(llm_messages, llm_config.llm_models[0]):
+                received.append(delta)
+        assert caught.value.code == "INVALID_RESPONSE"
+        assert received == ["partial"]
+        assert stream.closed
+    finally:
+        await provider.aclose()
+
+
 async def test_server_reasoning_hint_preserves_the_output_token_cap(
     llm_config: Settings, llm_messages: list[LLMMessage]
 ) -> None:
