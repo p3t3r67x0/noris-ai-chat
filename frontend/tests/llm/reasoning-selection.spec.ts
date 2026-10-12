@@ -25,9 +25,15 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
       const modelMenu = page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true })
       await input.fill('Eine Frage\nmit Kontext')
       await expect(page.locator('.composer-container')).toHaveAttribute('data-layout', 'expanded')
+      async function fittedDraft(): Promise<void> {
+        // The expanded layout is reactive; its textarea height settles afterwards.
+        await expect.poll(() => input.evaluate((element: HTMLTextAreaElement) => element.clientHeight >= element.scrollHeight)).toBe(true)
+      }
+      await fittedDraft()
       let initialComposer = (await composer.boundingBox())!
       let initialSend = (await send.boundingBox())!
       async function geometry(stablePosition = true) {
+        await fittedDraft()
         const box = (await composer.boundingBox())!
         const button = (await send.boundingBox())!
         expect(box.x).toBeCloseTo(initialComposer.x, 0)
@@ -126,6 +132,7 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
       await input.fill('Eine Frage\nmit Kontext')
       await expect(page.locator('.empty-chat')).toBeHidden()
       await expect(page.locator('.composer-container')).toHaveAttribute('data-layout', 'expanded')
+      await fittedDraft()
       // After the first send, model/reasoning changes retain the bottom composer.
       initialComposer = (await composer.boundingBox())!
       initialSend = (await send.boundingBox())!
@@ -136,6 +143,9 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
       await expect(page.getByRole('menuitemcheckbox')).toHaveCount(4)
       await expect(page.getByRole('menuitemcheckbox', { name: /^(Sehr hoch|Pro) / })).toHaveCount(0)
       await page.getByRole('menuitemcheckbox', { name: /^Sofort / }).click()
+      await expect(page.getByRole('button', { name: 'Denkaufwand: Sofort', exact: true })).toBeVisible()
+      await page.keyboard.press('Escape')
+      await expect(page.locator('.reasoning-menu')).toBeHidden()
       const gptCall = await submit(gpt)
       expect(gptCall.reasoning_effort).toBe('low')
       expect(gptCall.chat_template_kwargs).toBeUndefined()
