@@ -1,6 +1,8 @@
 # Automatische Gesprächstitel
 
-Neue Gespräche zeigen zunächst ein lokal erkanntes Thema, etwa **Automatische Chat-Titel**, oder **Neuer Chat**, wenn kein verlässliches Thema erkennbar ist. Es werden keine Frageanfänge oder abgeschnittenen Wörter übernommen. Nach Beginn des vorhandenen Chat-Streams startet unabhängig davon genau ein automatischer Titelversuch. Ein gültiger Titel ersetzt den Fallback in der vorhandenen Sidebar und wird im bestehenden lokalen Chat-Snapshot gespeichert. Nachrichten, Varianten und Scrollverhalten verwenden weiterhin dieselben Komponenten und denselben Streaming-Vertrag.
+Im produktiven WebSocket-Modus erzeugt der Server nach der abgeschlossenen ersten Antwort einen Titel, speichert ihn in PostgreSQL und aktualisiert die Sidebar aller verbundenen Tabs. Der Ablauf mit dauerhaftem Claim und Reconnect-Abgleich steht im Abschnitt **Produktiver WebSocket-Modus**.
+
+Die folgenden REST-/SSE- und Snapshot-Details beschreiben den älteren Browser-Modus: Neue Gespräche zeigen zunächst ein lokal erkanntes Thema, etwa **Automatische Chat-Titel**, oder **Neuer Chat**, wenn kein verlässliches Thema erkennbar ist. Es werden keine Frageanfänge oder abgeschnittenen Wörter übernommen. Nach Beginn des vorhandenen Chat-Streams startet unabhängig davon genau ein automatischer Titelversuch. Ein gültiger Titel ersetzt den Fallback in der vorhandenen Sidebar und wird im bestehenden lokalen Chat-Snapshot gespeichert. Nachrichten, Varianten und Scrollverhalten verwenden weiterhin dieselben Komponenten und denselben Streaming-Vertrag.
 
 ## API und Provider
 
@@ -14,15 +16,15 @@ Ziel sind 2–5 Wörter als Themenphrase in der Gesprächssprache, bevorzugt hö
 
 | Grenze | Standard |
 | --- | --- |
-| `NORIS_LLM_TITLE_MAX_OUTPUT_TOKENS` | 96; höchstens 256 und höchstens Modelllimit |
-| `NORIS_LLM_TITLE_TIMEOUT_SECONDS` | 6 Sekunden; höchstens 30 |
-| Browser-Timeout | 8 Sekunden, unabhängig vom Chat-Timeout |
+| `NORIS_LLM_TITLE_MAX_OUTPUT_TOKENS` | 1024 insgesamt inklusive Reasoning; höchstens 2048 und höchstens Modelllimit |
+| `NORIS_LLM_TITLE_TIMEOUT_SECONDS` | 20 Sekunden; höchstens 30 |
+| Browser-Timeout | 32 Sekunden, unabhängig vom Chat-Timeout |
 | Hintergrundanfragen im Browser | Höchstens zwei gleichzeitig; keine Warteschlange |
 | Automatische Versuche | Ein gespeicherter Versuch pro neuem Gespräch |
 
-Der Browser beginnt nach `response.started`, damit die Hauptantwort zuerst einen Gateway-Slot erhält. Reichen gemeinsame Limits nicht für den Titel, bleibt der Platzhalter. Der Server verhindert zusätzlich wiederholte zugelassene Titelanfragen für dieselbe Gesprächs-ID. Seine Duplikatmenge ist auf 10000 IDs pro Prozesslebensdauer begrenzt; danach werden weitere Titelanfragen mit `RATE_LIMIT` abgelehnt, ohne alte IDs zu verdrängen. Wie die bestehenden Quotas ist dieser Schutz prozesslokal und überlebt keinen Neustart. Weiterhin einen Backend-Worker betreiben; mehrere Replikate benötigen gemeinsamen Quota-Speicher. Fehler und Abbrüche behalten ihre Budgetreservierung.
+Im älteren REST-/SSE-Modus beginnt der Browser nach `response.started`, damit die Hauptantwort zuerst einen Gateway-Slot erhält. Reichen gemeinsame Limits nicht für den Titel, bleibt der Platzhalter. Der Server verhindert zusätzlich wiederholte zugelassene Titelanfragen für dieselbe Gesprächs-ID. Seine Duplikatmenge ist auf 10000 IDs pro Prozesslebensdauer begrenzt; danach werden weitere Titelanfragen mit `RATE_LIMIT` abgelehnt, ohne alte IDs zu verdrängen. Wie die bestehenden Quotas ist dieser Schutz prozesslokal und überlebt keinen Neustart. Weiterhin einen Backend-Worker betreiben; mehrere Replikate benötigen gemeinsamen Quota-Speicher. Fehler und Abbrüche behalten ihre Budgetreservierung.
 
-Bei gesetztem `NORIS_LLM_REASONING_EFFORT` verwenden Titel `low`; Chatantworten behalten den konfigurierten Wert. Ohne Einstellung bleibt der Provider-Standard erhalten. Reasoning kann das Outputbudget verbrauchen; ein unzureichendes Limit führt zum Platzhalter. Titelqualität und Tokenlimit wurden gegen lokale Fixtures geprüft, ohne zusätzliche kostenpflichtige Noris-Aufrufe.
+Titel verwenden `low`, wenn die verifizierten Modellfähigkeiten diese Stufe erlauben; Chatantworten behalten ihren konfigurierten Wert. Ohne nachgewiesene Unterstützung bleibt der Provider-Standard erhalten. Reasoning kann das Outputbudget verbrauchen; ein unzureichendes Limit führt zum Platzhalter. Titelqualität und Tokenlimit wurden gegen lokale Fixtures geprüft, ohne zusätzliche kostenpflichtige Noris-Aufrufe.
 
 ## Persistenz und Rennen
 
@@ -36,8 +38,20 @@ Bei 1920 × 975 beträgt die gemessene Titelbreite rund 289 px (20-px-Schrift), 
 
 ## Datenschutz und Prüfung
 
-Die zusätzliche Anfrage überträgt nur den Anfang der ersten Nachricht, keinen Verlauf. Ist eine erste Frage unklar, kann ein bekannter Themenbegriff aus der abgeschlossenen Antwort oder beim Laden aus dem vorhandenen aktiven Gesprächspfad den unbekannten lokalen Fallback ersetzen. Dieser Kontext bleibt ausschließlich im Browser; dafür entsteht keine weitere LLM-Anfrage. Offensichtliche Zugangsdaten, E-Mail-Adressen, URLs, UUIDs und JWTs werden vor dem Provider-Aufruf ersetzt. Die Titelanweisung verlangt breite Themen statt unnötiger sensibler Details. Diese Minimierung erkennt nicht sämtliche personenbezogenen Angaben. Diagnose-Logs enthalten nur feste Fehlercodes, keine Nachrichten, Titel, IDs, Provider-Texte oder Secrets. Screenshots und Fixtures verwenden ausschließlich synthetische Texte.
+Die zusätzliche Anfrage überträgt nur den Anfang der ersten Nachricht, keinen Verlauf. Ist eine erste Frage unklar, kann ein bekannter Themenbegriff aus der abgeschlossenen Antwort oder beim Laden aus dem vorhandenen aktiven Gesprächspfad den unbekannten lokalen Fallback ersetzen. Dieser Kontext bleibt ausschließlich im Browser; dafür entsteht keine weitere LLM-Anfrage. Offensichtliche Zugangsdaten, E-Mail-Adressen, URLs, UUIDs und JWTs werden vor dem Provider-Aufruf ersetzt. Die Titelanweisung verlangt breite Themen statt unnötiger sensibler Details. Diese Minimierung erkennt nicht sämtliche personenbezogenen Angaben. Strukturierte Server-Logs enthalten Gesprächs-ID, Modell-ID, Phase, festen Fehlercode, Dauer und Ergebnis; keine Nachrichten, Titel, Provider-Texte oder Secrets. Screenshots und Fixtures verwenden ausschließlich synthetische Texte.
 
 MockTransport erzeugt deterministische lokale Titel ohne Backend-/Provider-Aufruf. Die bestehenden Ziele `make lint`, `make typecheck`, `make check-api`, `make test-unit`, `make test-integration`, `make test-e2e`, `make test-e2e-production` und `make build` prüfen die Erweiterung mit. Titeltests decken zwei Sprachen, technische Namen, gemeinsame Budgets, Streaming, IDs, Umbenennen, Löschen, Archivieren, Reload, alte Snapshots, Fehler und Sidebar-Geometrie ab.
 
-Playwright prüft zusätzlich die tatsächliche DOM-Textbreite, einheitliche Eintragshöhen, Einzeiligkeit, fehlende Ellipsis und die Menübedienung bei 1920 × 975, 1440 × 900, 1280 × 800 und 390 × 844. Die Abnahme-Nachricht zur automatischen Chat-Titelgenerierung ergibt **Automatische Chat-Titel** im Mock-Modus und über den bestehenden Backend-/Provider-Vertrag mit einer lokalen Fixture. Titelaufnahmen und `title-widths.json` enthalten ausschließlich synthetische Inhalte und bleiben in den Testartefakten. Bestehende Screenshot-Baselines und Toleranzen werden unverändert geprüft. Die CI führt außerdem die gesamte Suite am Entwicklungsserver und am frischen Compose-Produktionsstack aus.
+Playwright prüft zusätzlich die tatsächliche DOM-Textbreite, einheitliche Eintragshöhen, Einzeiligkeit, fehlende Ellipsis und die Menübedienung bei 1920 × 975, 1440 × 900, 1280 × 800 und 390 × 844. Die Abnahme-Nachricht zur automatischen Chat-Titelgenerierung ergibt **Automatische Chat-Titel** im Mock-Modus und über den bestehenden Backend-/Provider-Vertrag mit einer lokalen Fixture. Titelaufnahmen und `title-widths.json` enthalten ausschließlich synthetische Inhalte und bleiben in den Testartefakten. Die Screenshot-Toleranzen bleiben unverändert. WebSocket-Composer-Aufnahmen warten auf den erzeugten Titel und den bereiten Composer; die 1700-px-Referenz zeigt jetzt diesen fertigen Zustand. Die CI führt außerdem die gesamte Suite am Entwicklungsserver und am frischen Compose-Produktionsstack aus.
+
+## Produktiver WebSocket-Modus
+
+Hier erzeugt der Server den Titel nach dem dauerhaften `completed`-Commit der ersten Antwort, auch nach einem ausdrücklich angeforderten Retry oder einer Fortsetzung dieser Antwort. Die Quelle ist die gespeicherte erste Nutzernachricht. Folgefragen starten keinen Titelaufruf. Die Browser-Titelfunktion ist in diesem Modus inaktiv.
+
+Migration `0009_title_claim` ergänzt `title_generation_claimed_at`. Nach erfolgreicher Gateway-Admission beansprucht ein bedingtes PostgreSQL-Update die Unterhaltung atomar, bevor der Provideraufruf beginnt. Nur `fallback` ohne bisherigen Claim ist zulässig. Mehrere Tasks, Tabs oder neue Prozesse können denselben Titelaufruf dadurch nicht erneut starten. Die prozesslokale `_title_attempts`-Menge bleibt ausschließlich für den älteren zustandslosen REST-Endpunkt zuständig; WebSocket-Chats laufen weder in dessen 10000-Einträge-Grenze noch in eine vom Prozessneustart aufgehobene Dublettensperre.
+
+Modellfehler, ungültiger Output und Timeouts behalten den Claim, weil der Aufruf bereits Kosten verursacht haben kann. Es gibt keinen automatischen Provider-Retry und keine rückwirkenden Aufrufe bei Reload/Reconnect. Fehler vor Admission beanspruchen keinen Claim; eine spätere ausdrücklich angeforderte Generierung der ersten Antwort kann erneut zugelassen werden. Ein gültiger Titel wird bei vorübergehenden Datenbankfehlern höchstens dreimal mit demselben Ergebnis gespeichert (100/200 ms Wartezeit), ohne weitere Provideranfrage. Wiederholte Speicherung ist idempotent, manuelle und schon generierte Titel werden nie überschrieben. Ein Prozessabbruch nach dem Claim bleibt konservativ gesperrt; eine automatische Wiederholung wäre nicht kostenneutral.
+
+Nach dem Commit verteilt der Server `chat.title.updated` und versionierte `chat.conversation.updated` an alle verbundenen Peers. Der Browser verarbeitet auch ein alleinstehendes Titelereignis über die versionierte Datenbankautorität. Beim Wiederverbinden gleicht er jüngste und bereits geladene Metadaten ab, ohne Nachrichten oder Entwürfe zu ersetzen. Ein getrennter Tab verbindet sich auch ohne aktive Chatgenerierung begrenzt erneut (höchstens sechs Versuche). Versionsprüfungen verhindern, dass verspätete Ereignisse einen neueren manuellen Titel ersetzen.
+
+Siehe [Analyse und Testnachweise](WEBSOCKET-TITLE-DIAGNOSIS.md).

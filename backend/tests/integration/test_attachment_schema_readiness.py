@@ -31,7 +31,7 @@ def test_pdf_migration_restores_active_path_and_uploads_without_losing_messages(
     conversation_id, message_id = uuid4(), uuid4()
     engine = create_engine(url)
     try:
-        # Seed the historical schema directly; today's ORM also has learning fields.
+        # Seed the historical schema without importing current ORM columns.
         with engine.begin() as connection:
             connection.execute(
                 text(
@@ -43,14 +43,16 @@ def test_pdf_migration_restores_active_path_and_uploads_without_losing_messages(
             connection.execute(
                 text(
                     "INSERT INTO chat_message (id, conversation_id, role, content, status) "
-                    "VALUES (:id, :conversation, 'user', 'Synthetic preserved message', "
-                    "'completed')"
+                    "VALUES (:id, :conversation, 'user', "
+                    "'Synthetic preserved message', 'completed')"
                 ),
                 {"id": message_id, "conversation": conversation_id},
             )
             connection.execute(
-                text("UPDATE chat_conversation SET active_leaf_message_id = :leaf WHERE id = :id"),
-                {"leaf": message_id, "id": conversation_id},
+                text(
+                    "UPDATE chat_conversation SET active_leaf_message_id = :message WHERE id = :id"
+                ),
+                {"message": message_id, "id": conversation_id},
             )
     finally:
         engine.dispose()

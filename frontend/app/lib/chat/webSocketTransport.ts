@@ -11,11 +11,23 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
   const Socket = options.socket ?? globalThis.WebSocket
   let lastSeen = Date.now()
   let heartbeat: ReturnType<typeof setInterval> | undefined
+  let reconnectTimer: ReturnType<typeof setTimeout> | undefined
+  let backgroundReconnects = 0
   const send = (socket: WebSocket, value: ChatWsCommand) => socket.send(JSON.stringify(value))
 
   function connect(): Promise<WebSocket> {
     opening ??= openSocket().finally(() => { opening = undefined })
     return opening
+  }
+
+  function reconnect(): void {
+    if (disposed || reconnectTimer || backgroundReconnects >= 6) return
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = undefined
+      if (disposed) return
+      backgroundReconnects++
+      void connect().catch(reconnect)
+    }, Math.min(5000, 250 * 2 ** backgroundReconnects))
   }
 
   async function openSocket(): Promise<WebSocket> {
@@ -36,11 +48,21 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
       try {
         const event = JSON.parse(String(message.data)) as ChatWsEvent
         if (event.version !== 1) return
+        if (event.type === 'chat.connected') {
+          // Metadata events have no generation sequence and cannot be replayed.
+          void backend.refreshMetadata().then(() => { backgroundReconnects = 0 }).catch(() => { socket.close() })
+        }
         if (event.type === 'chat.conversation.updated') backend.remember(event.conversation)
+        if (event.type === 'chat.title.updated') {
+          // Fetch the versioned authority so a late title event cannot undo a
+          // manual rename or a newer update from another tab.
+          void backend.request<Parameters<ChatBackend['remember']>[0]>(`/conversations/${event.conversationId}`).then(value => backend.remember(value)).catch(() => { socket.close() })
+        }
         if (event.type === 'chat.message.created') backend.onMessage?.(event.message)
       }
       catch { socket.close(1002) }
     })
+    socket.addEventListener('close', reconnect, { once: true })
     clearInterval(heartbeat)
     heartbeat = setInterval(() => {
       if (socket.readyState !== Socket.OPEN) return
@@ -53,7 +75,7 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
   return {
     backend,
     async connect() { await connect() },
-    dispose() { disposed = true; clearInterval(heartbeat); current?.close() },
+    dispose() { disposed = true; clearInterval(heartbeat); clearTimeout(reconnectTimer); current?.close() },
     async *stream(request, signal) {
       if (!request.input || !request.assistantMessageId || !request.conversation) throw new TransportError('INVALID_RESPONSE')
       const version = request.resume ? 1 : await backend.ensure(request.conversation)

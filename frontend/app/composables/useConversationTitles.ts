@@ -2,7 +2,7 @@ import type { Conversation } from '../lib/chat/conversations'
 import { normalizeAutomaticTitle, validGeneratedTitle } from '../lib/chat/titles'
 import type { ChatTransport, ConversationTitleRequest } from '../lib/chat/types'
 
-export function createConversationTitles(transport: ChatTransport, get: (id: string) => Conversation | undefined, timeoutMs = 8000) {
+export function createConversationTitles(transport: ChatTransport, get: (id: string) => Conversation | undefined, timeoutMs = 32000) {
   const pending = new Map<string, AbortController>()
   let disposed = false
   function cancel(id: string): void { pending.get(id)?.abort(); pending.delete(id) }

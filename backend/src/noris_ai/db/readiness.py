@@ -6,7 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 # The application requires the chat persistence schema; readiness follows head.
-LATEST_REVISION = "0009_conversation_learning"
+LATEST_REVISION = "0010_conversation_learning"
 
 
 class ReadinessProbe(Protocol):

@@ -199,6 +199,18 @@ test('vision attachments survive model changes and reload and reach the provider
 
 test('a failed saved-image preview retries without changing the chat or model', async ({ page, request }) => {
   await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: fixtureModels, imageIds: ['fixture-beta'] } })
+  await expect.poll(async () => {
+    const catalog = await (await request.get('/api/v1/llm/models')).json()
+    return catalog.models.find((model: { id: string, vision?: boolean }) => model.id === 'fixture-beta')?.vision
+  }).toBe(true)
+  // The fixture's one-second catalog expiry can disable Send between the
+  // mouse actionability check and pointer dispatch. Keep this preview test's
+  // verified catalog stable; catalog-refresh behavior has separate coverage.
+  await page.route('**/api/v1/llm/models', async route => {
+    const response = await route.fetch()
+    const catalog = await response.json()
+    await route.fulfill({ response, json: { ...catalog, expires_in_seconds: 60 } })
+  })
   let failed = false
   await page.route('**/api/v1/chat/attachments/*/content?preview=true', async route => {
     if (!failed) {

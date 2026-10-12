@@ -164,3 +164,52 @@ describe('WebSocketTransport', () => {
     transport.dispose?.()
   })
 })
+
+describe('conversation title metadata', () => {
+  it('reconnects an idle tab and reads titles committed while disconnected', async () => {
+    Socket.instances = []
+    let titleSource: 'fallback' | 'generated' = 'fallback'
+    const value = () => ({ ...conversation, version: titleSource === 'fallback' ? 1 : 2, titleSource, title: titleSource === 'fallback' ? 'Neuer Chat' : 'Docker DNS-Probleme' })
+    const fetcher = vi.fn(async (path: string) => Response.json(path.endsWith('ws-ticket') ? { ticketId: 'fresh' } : { conversations: [value()] }))
+    const backend = new ChatBackend(fetcher as typeof fetch)
+    const update = vi.fn()
+    backend.onConversation = update
+    const transport = createWebSocketTransport({ backend, url: 'ws://localhost/chat', socket: Socket as unknown as typeof WebSocket })
+    try {
+      await transport.connect?.()
+      const first = Socket.instances.at(-1)!
+      first.event({ version: 1, type: 'chat.connected' })
+      await vi.waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ titleSource: 'fallback' })))
+      titleSource = 'generated'
+      first.close()
+      await vi.waitFor(() => expect(Socket.instances).toHaveLength(2))
+      // The fake socket is registered in its constructor, before open and the
+      // transport's message listener. A real server event arrives after open.
+      await transport.connect?.()
+      Socket.instances.at(-1)!.event({ version: 1, type: 'chat.connected' })
+      await vi.waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ titleSource: 'generated', title: 'Docker DNS-Probleme' })))
+      expect(fetcher.mock.calls.filter(([path]) => path.endsWith('ws-ticket'))).toHaveLength(2)
+    }
+    finally { transport.dispose?.() }
+  })
+
+  it('handles a standalone title event through versioned authority and protects manual titles', async () => {
+    Socket.instances = []
+    const manual = { ...conversation, version: 4, lastMessageAt: null, title: 'Mein manueller Titel', titleSource: 'manual' as const }
+    const backend = new ChatBackend((async (path: string) => Response.json(path.endsWith('ws-ticket') ? { ticketId: 'fresh' } : manual)) as typeof fetch)
+    const update = vi.fn()
+    backend.onConversation = update
+    backend.remember(manual)
+    const transport = createWebSocketTransport({ backend, url: 'ws://localhost/chat', socket: Socket as unknown as typeof WebSocket })
+    try {
+      await transport.connect?.()
+      const socket = Socket.instances.at(-1)!
+      socket.event({ version: 1, type: 'chat.title.updated', conversationId: conversation.id, title: 'Verspäteter Titel', titleSource: 'generated' })
+      await vi.waitFor(() => expect(update).toHaveBeenCalledTimes(2))
+      socket.event({ version: 1, type: 'chat.conversation.updated', conversation: { ...conversation, version: 3, title: 'Alter Titel', titleSource: 'generated' } })
+      expect(update).toHaveBeenCalledTimes(2)
+      expect(update).toHaveBeenLastCalledWith(manual)
+    }
+    finally { transport.dispose?.() }
+  })
+})

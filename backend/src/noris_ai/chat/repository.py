@@ -284,10 +284,32 @@ class ChatRepository:
             await session.refresh(conversation)
             return conversation
 
+    async def claim_generated_title(self, owner_id: uuid.UUID, conversation_id: uuid.UUID) -> bool:
+        """Commit before contacting the provider; survives reconnects/restarts.
+
+        Failed provider calls retain the claim because they may have been billed.
+        Admission failures never reach this method and can be tried on a later
+        explicitly requested generation, without an automatic provider retry.
+        """
+        async with self._database() as session, session.begin():
+            result = await session.execute(
+                update(ChatConversation)
+                .where(
+                    ChatConversation.id == conversation_id,
+                    ChatConversation.owner_id == owner_id,
+                    ChatConversation.deleted_at.is_(None),
+                    ChatConversation.title_source == "fallback",
+                    ChatConversation.title_generation_claimed_at.is_(None),
+                )
+                .values(title_generation_claimed_at=utc_now())
+                .returning(ChatConversation.id)
+            )
+            return result.scalar_one_or_none() is not None
+
     async def set_generated_title(
         self, owner_id: uuid.UUID, conversation_id: uuid.UUID, title: str
     ) -> ChatConversation | None:
-        """Generated titles never overwrite manual titles."""
+        """Idempotent commit; never replace an existing generated/manual title."""
         async with self._database() as session:
             conversation = await session.scalar(
                 select(ChatConversation)
@@ -300,7 +322,7 @@ class ChatRepository:
                 or conversation.deleted_at is not None
             ):
                 return None
-            if conversation.title_source == "manual":
+            if conversation.title_source != "fallback":
                 return conversation
             conversation.title = title
             conversation.title_source = "generated"

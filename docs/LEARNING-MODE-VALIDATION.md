@@ -16,7 +16,8 @@ Das X deaktiviert den Modus ausdrücklich. Textarea, Toolbar, Dateidialog,
 Modellwahl, Autosizing und bestehende Antwortvarianten bleiben verwendbar.
 
 Modus und optionale abstrakte Denkpräferenz gehören zum Gespräch. Die additive
-Migration `0009_conversation_learning` ergänzt genau zwei Spalten mit
+Migration `0010_conversation_learning` folgt auf die bestehende
+`0009_title_claim` und ergänzt genau zwei Spalten mit
 Check-Constraints. Altgespräche erhalten `normal` und keine Denkpräferenz.
 Nachrichten, IDs, aktive Blätter und Zweige werden nicht migriert. Speichern
 verwendet die vorhandene Versionierung und Warteschlange. Ein fehlgeschlagener
@@ -89,6 +90,10 @@ Die bestehenden Plus-Menü-Bilder werden an die neue Referenzgestaltung angepass
 
 ## Lokale Prüfungen
 
+Die folgende Tabelle dokumentiert die Erstprüfung und die Fokuskorrektur vor der
+Integration der anschließend gemergten Titeländerung auf `main`. Die erneuten
+Prüfungen des zusammengeführten Stands sind weiter unten beschrieben.
+
 Alle Dienste laufen auf eigenen Loopback-Ports. PostgreSQL-Datenbanken liegen
 in einem eigens angelegten flüchtigen Testcluster; keine vorhandene Anwendung
 oder Produktivdatenbank wird migriert. HTTP-/LLM-Tests verwenden den lokalen
@@ -145,3 +150,21 @@ konnte aber PostgreSQL über das Docker-Testnetz nicht erreichen: DNS löste kor
 auf, die TCP-Verbindung lief in einen Timeout. Nur dieses Testprojekt wurde
 anschließend entfernt. Die Compose-Abnahme erfolgt im GitHub-Actions-Job
 `compose-smoke`; der lokale WebSocket-Lauf verwendet den eigenen Testcluster.
+
+## Integration des aktuellen main
+
+Die Titeländerung aus `dd1ae84` bleibt einschließlich der dauerhaften
+Titel-Claims, Diagnostik und Wiederherstellung nach Reconnect erhalten. Die noch
+nicht veröffentlichte Lernmodus-Migration wurde als `0010_conversation_learning`
+direkt hinter `0009_title_claim` eingeordnet; es gibt genau einen Alembic-Head.
+Ein neuer Integrationstest prüft Upgrade und Downgrade aus dem bestehenden
+main-Schema mit generiertem Titel, gespeichertem Claim, aktiver Nachricht und
+Chatverlauf. Die Lernmodus-Integration wartet vor dem nächsten versionsgebundenen
+Moduswechsel gezielt auf die unabhängige Titel-Speicherung.
+
+Der zusammengeführte Stand besteht erneut 430 Backend-Unit-/Vertrags-/HTTP-Tests,
+293 Frontend-Unit-Tests, 93 PostgreSQL-Integrationstests, die statischen Prüfungen,
+die API-Vertragsprüfung und beide Produktionsbuilds. Die vollständigen Browser-
+und Compose-Prüfungen werden zusätzlich auf dem aktuellen PR-Commit ausgeführt;
+ihre Ergebnisse stehen in den
+[Prüfungen von PR 52](https://github.com/p3t3r67x0/noris-ai-chat/pull/52/checks).

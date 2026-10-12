@@ -1,9 +1,36 @@
+import json
+import logging
 import re
 import unicodedata
 from typing import Literal
 
 from noris_ai.core.schemas import ApiSchema
 from noris_ai.llm.errors import LLMError
+
+# Inherit Uvicorn's configured server handler/level, including in production.
+logger = logging.getLogger("uvicorn.error.noris_ai.title")
+
+
+def log_title_event(
+    conversation_id: str,
+    model_id: str,
+    phase: str,
+    duration_ms: float,
+    outcome: str,
+    error_code: str | None = None,
+) -> None:
+    """Fixed fields only; never log exception text, inputs, titles or credentials."""
+    fields = {
+        "event": "conversation_title",
+        "conversation_id": conversation_id,
+        "model_id": model_id,
+        "phase": phase,
+        "error_code": error_code,
+        "duration_ms": round(duration_ms, 2),
+        "outcome": outcome,
+    }
+    logger.log(logging.WARNING if outcome == "failure" else logging.INFO, json.dumps(fields))
+
 
 TITLE_INSTRUCTION = """Generate a concise conversation title. Return only the title.
 Requirements:

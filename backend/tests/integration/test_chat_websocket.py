@@ -256,7 +256,11 @@ def test_disconnect_reconnect_replay_and_snapshot(client: TestClient, simulator:
                 "lastReceivedSeq": 0,
             }
         )
-        assert socket.receive_json()["type"] == "chat.resume.accepted"
+        # Title commits are independent of generation replay and may arrive first.
+        event = socket.receive_json()
+        while event["type"] in {"chat.title.updated", "chat.conversation.updated"}:
+            event = socket.receive_json()
+        assert event["type"] == "chat.resume.accepted"
         snapshot = socket.receive_json()
         assert snapshot["type"] == "chat.resume.snapshot" and snapshot["content"] == text
         assert snapshot["status"] == "completed"
@@ -611,7 +615,11 @@ def test_auto_limit_status_snapshot_and_manual_continuation(
                 "lastReceivedSeq": 0,
             }
         )
-        assert socket.receive_json()["type"] == "chat.resume.accepted"
+        # Title commits are independent of generation replay and may arrive first.
+        event = socket.receive_json()
+        while event["type"] in {"chat.title.updated", "chat.conversation.updated"}:
+            event = socket.receive_json()
+        assert event["type"] == "chat.resume.accepted"
         snapshot = socket.receive_json()
         assert snapshot["status"] == "incomplete"
         assert snapshot["continuationCount"] == 1
@@ -859,6 +867,15 @@ def test_learning_persistence_reasoning_and_branch_policy(
                 assert "gemeinsamen Nenner" in event["content"]
                 break
             assert event["type"] not in ("chat.error", "chat.generation.failed")
+    # Title metadata commits independently after the completed answer. Read the
+    # conversation version only once that background write has settled.
+    manager = cast(GenerationManager, cast(FastAPI, client.app).state.chat_generations)
+
+    async def settle_title() -> None:
+        await asyncio.wait_for(asyncio.gather(*list(manager.tasks)), 3)
+
+    assert client.portal is not None
+    client.portal.call(settle_title)
     assert isinstance(simulator.calls[-1][0], LearningInstruction)
     assert simulator.models[-1].reasoning_effort == "high"
     current = client.get(resource, auth=AUTH).json()

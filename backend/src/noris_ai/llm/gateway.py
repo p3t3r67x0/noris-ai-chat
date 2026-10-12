@@ -1,7 +1,7 @@
 import asyncio
 import json
 from collections import deque
-from collections.abc import AsyncGenerator, AsyncIterator, Sequence
+from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable, Sequence
 from datetime import UTC, datetime
 from decimal import Decimal
 from time import monotonic
@@ -29,7 +29,7 @@ from noris_ai.llm.schemas import (
     PersistedChatRequest,
     StartedEvent,
 )
-from noris_ai.llm.titles import TitleInstruction, title_source, validate_title
+from noris_ai.llm.titles import TitleInstruction, log_title_event, title_source, validate_title
 from noris_ai.llm.tokens import TokenCounter
 from noris_ai.llm.vision import VisionMessage, supports_images
 
@@ -160,30 +160,58 @@ class LLMGateway:
         return messages
 
     async def conversation_title(
-        self, request: ConversationTitleRequest
+        self,
+        request: ConversationTitleRequest,
+        *,
+        before_stream: Callable[[], Awaitable[bool]] | None = None,
     ) -> ConversationTitleResponse:
-        provider = self.provider
-        if provider is None:
-            raise LLMError("LLM_DISABLED", 503)
+        # REST legacy clients have no durable conversation. Persisted WebSocket
+        # chats commit their own atomic claim AFTER admission, BEFORE the call.
         generation_id = "title:" + request.conversationId
-        # Bound duplicate tracking without evicting entries and admitting repeats.
-        if generation_id in self._title_attempts:
-            raise LLMError("TITLE_ALREADY_ATTEMPTED", 409)
-        if len(self._title_attempts) >= 10_000:
-            raise LLMError("RATE_LIMIT", 429)
-        messages: list[ProviderMessage] = [
-            TitleInstruction(),
-            LLMMessage(role="user", content=title_source(request.firstMessage)),
-        ]
-        model = self._reserve(
-            generation_id,
-            await self.catalog.require(request.modelId),
-            messages,
-            self.config.llm_title_max_output_tokens,
-        )
-        self._title_attempts.add(generation_id)
+        started = monotonic()
+        phase = "admission"
         iterator: AsyncIterator[str] | None = None
+        admitted = False
+
+        def diagnostic(outcome: str, code: str | None = None) -> None:
+            log_title_event(
+                request.conversationId,
+                request.modelId,
+                phase,
+                (monotonic() - started) * 1000,
+                outcome,
+                code,
+            )
+
         try:
+            diagnostic("started")
+            provider = self.provider
+            if provider is None:
+                raise LLMError("LLM_DISABLED", 503)
+            if before_stream is None:
+                if generation_id in self._title_attempts:
+                    raise LLMError("TITLE_ALREADY_ATTEMPTED", 409)
+                if len(self._title_attempts) >= 10_000:
+                    raise LLMError("RATE_LIMIT", 429)
+            messages: list[ProviderMessage] = [
+                TitleInstruction(),
+                LLMMessage(role="user", content=title_source(request.firstMessage)),
+            ]
+            model = self._reserve(
+                generation_id,
+                await self.catalog.require(request.modelId),
+                messages,
+                self.config.llm_title_max_output_tokens,
+            )
+            admitted = True
+            if before_stream is not None:
+                phase = "claim"
+                if not await before_stream():
+                    raise LLMError("TITLE_ALREADY_ATTEMPTED", 409)
+            else:
+                self._title_attempts.add(generation_id)
+            phase = "generation"
+            diagnostic("started")
             iterator = provider.stream(messages, model)
             text = ""
             async with asyncio.timeout(self.config.llm_title_timeout_seconds):
@@ -191,18 +219,31 @@ class LLMGateway:
                     text += delta
                     if len(text) > 256:
                         raise LLMError("INVALID_RESPONSE")
-            return ConversationTitleResponse(
+            phase = "validation"
+            result = ConversationTitleResponse(
                 conversationId=request.conversationId,
                 inputMessageId=request.inputMessageId,
                 title=validate_title(text),
             )
+            diagnostic("success")
+            return result
         except TimeoutError:
+            diagnostic("failure", "TIMEOUT")
             raise LLMError("TIMEOUT", 504) from None
         except LLMError as error:
+            diagnostic(
+                "skipped" if error.code == "TITLE_ALREADY_ATTEMPTED" else "failure", error.code
+            )
             if error.code in ("MODEL_UNAVAILABLE", "PROVIDER_AUTH_FAILED"):
                 self.catalog.invalidate()
             raise
+        except asyncio.CancelledError:
+            diagnostic("failure", "CANCELLED")
+            raise
         except Exception:
+            diagnostic("failure", "DATABASE_ERROR" if phase == "claim" else "INTERNAL_ERROR")
+            if phase == "claim":
+                raise  # The caller isolates DB failures from the completed answer.
             raise LLMError("INTERNAL_ERROR", 500) from None
         finally:
             try:
@@ -210,7 +251,8 @@ class LLMGateway:
                 if close is not None:
                     await close()
             finally:
-                self.release(generation_id)
+                if admitted:
+                    self.release(generation_id)
 
     def release(self, generation_id: str) -> None:
         self._active.discard(generation_id)

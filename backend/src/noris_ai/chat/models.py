@@ -106,6 +106,7 @@ class ChatConversation(Base):
     title_source: Mapped[str] = mapped_column(TITLE_SOURCE_ENUM, nullable=False)
     conversation_mode: Mapped[str] = mapped_column(Text, nullable=False, server_default="normal")
     reasoning_preference: Mapped[str | None] = mapped_column(Text)
+    title_generation_claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

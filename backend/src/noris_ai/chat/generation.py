@@ -14,6 +14,7 @@ from typing import cast
 from uuid import UUID
 
 from pydantic import ValidationError
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from noris_ai.chat.attachments import AttachmentService
 from noris_ai.chat.errors import ChatError
@@ -38,6 +39,7 @@ from noris_ai.llm.schemas import (
     PersistedChatRequest,
     StartedEvent,
 )
+from noris_ai.llm.titles import log_title_event
 from noris_ai.llm.vision import VisionMessage, supports_images
 
 type Payload = dict[str, object]
@@ -534,39 +536,99 @@ class GenerationManager:
                 await emit(terminal, status=terminal)
             finally:
                 self.live.pop(command.requestId, None)
-        if (
-            terminal == "completed"
-            and command.operation == "generate"
-            and command.parentMessageId is None
-        ):
-            try:
-                title = await self.gateway.conversation_title(
-                    ConversationTitleRequest(
-                        conversationId=str(command.conversationId),
-                        inputMessageId=str(command.inputMessageId),
-                        modelId=command.modelId,
-                        firstMessage=command.content[:1024],
-                    )
+        if terminal == "completed" and 1 <= len(path) <= 2:
+            # A successful retry/continuation of the first answer is eligible too.
+            # Use persisted input, including for regeneration/continuation commands.
+            first = path[0]
+            if first.role == "user" and first.parent_message_id is None:
+                await self._generate_title(command, first)
+
+    async def _generate_title(self, command: GenerateIncomingMessage, first: ChatMessage) -> None:
+        started = time.monotonic()
+        phase = "eligibility"
+
+        def diagnostic(outcome: str, code: str | None = None) -> None:
+            log_title_event(
+                str(command.conversationId),
+                command.modelId,
+                phase,
+                (time.monotonic() - started) * 1000,
+                outcome,
+                code,
+            )
+
+        try:
+            conversation = await self.repository.get_conversation(
+                self.config.chat_owner_id, command.conversationId
+            )
+            if conversation.title_source != "fallback" or conversation.title_generation_claimed_at:
+                diagnostic("skipped")
+                return
+
+            async def claim() -> bool:
+                nonlocal phase
+                phase = "claim"
+                claimed = await self.repository.claim_generated_title(
+                    self.config.chat_owner_id, command.conversationId
                 )
-                conversation_result = await ChatService(self.repository).apply_generated_title(
-                    self.config.chat_owner_id, command.conversationId, title.title
-                )
-                if conversation_result is not None:
-                    self.broadcast(
-                        {
-                            "version": 1,
-                            "type": "chat.title.updated",
-                            "conversationId": str(command.conversationId),
-                            "title": conversation_result.title,
-                            "titleSource": conversation_result.titleSource,
-                        }
+                phase = "generation"
+                return claimed
+
+            phase = "generation"
+            title = await self.gateway.conversation_title(
+                ConversationTitleRequest(
+                    conversationId=str(command.conversationId),
+                    inputMessageId=str(first.id),
+                    modelId=command.modelId,
+                    firstMessage=first.content[:1024],
+                ),
+                before_stream=claim,
+            )
+            phase = "persistence"
+            # Retry only the idempotent database write, using the same valid title.
+            # A provider error/timeout never causes a second billable call.
+            conversation_result = None
+            for attempt in range(3):
+                try:
+                    conversation_result = await ChatService(self.repository).apply_generated_title(
+                        self.config.chat_owner_id, command.conversationId, title.title
                     )
-                    self.broadcast(
-                        {
-                            "version": 1,
-                            "type": "chat.conversation.updated",
-                            "conversation": conversation_result.model_dump(mode="json"),
-                        }
-                    )
-            except (LLMError, ChatError):
-                pass  # Title failure never changes an answer's terminal state.
+                    break
+                except OperationalError:
+                    if attempt == 2:
+                        raise
+                    diagnostic("retry", "DATABASE_ERROR")
+                    await asyncio.sleep(0.1 * (attempt + 1))
+            if conversation_result is None:
+                diagnostic("skipped", "NOT_FOUND")
+                return
+            phase = "broadcast"
+            self.broadcast(
+                {
+                    "version": 1,
+                    "type": "chat.title.updated",
+                    "conversationId": str(command.conversationId),
+                    "title": conversation_result.title,
+                    "titleSource": conversation_result.titleSource,
+                }
+            )
+            self.broadcast(
+                {
+                    "version": 1,
+                    "type": "chat.conversation.updated",
+                    "conversation": conversation_result.model_dump(mode="json"),
+                }
+            )
+            diagnostic("success" if conversation_result.titleSource == "generated" else "skipped")
+        except (LLMError, ChatError) as error:
+            diagnostic(
+                "skipped" if error.code == "TITLE_ALREADY_ATTEMPTED" else "failure", error.code
+            )
+        except SQLAlchemyError:
+            diagnostic("failure", "DATABASE_ERROR")
+        except asyncio.CancelledError:
+            diagnostic("failure", "CANCELLED")
+            raise
+        except Exception:
+            diagnostic("failure", "INTERNAL_ERROR")
+        # All title failures are isolated after the answer's terminal commit.
