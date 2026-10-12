@@ -106,6 +106,12 @@ Auf Wunsch wurden nur betroffene Tests ausgeführt; CI wurde nicht abgewartet.
   Chevronposition, unveränderten Sendeposition, fehlenden Überbreite,
   aufwärts wachsenden Eingabe, Menühöhen, Tastatur/Escape, aller sieben Modelle
   und der aufgezeichneten HTTP-Providerparameter.
+  Jede Providerprüfung wartet auf den sendebereiten Composer und die neue
+  HTTP-Chat-Anfrage, prüft die zusätzliche Antwort bis zu ihrem Abschluss
+  und ordnet genau den zusätzlichen Provideraufruf dem gewählten Modell zu.
+  Der zuvor abgeschlossene Generierungsstatus kann keinen neuen Sendetest
+  mehr erfüllen. Ein absichtlich verzögerter Katalogrefresh deckt diesen
+  Fall im Szenario 1700 × 900 / Dark ab.
 - Bestehende betroffene Playwright-Prüfungen: sieben Lernmodus-Fälle sowie zwei
   PostgreSQL-/WebSocket-Browserfälle; ihre geänderten Screenshots sind aktualisiert.
 - Nuxt-Produktionsbuild: bestanden.

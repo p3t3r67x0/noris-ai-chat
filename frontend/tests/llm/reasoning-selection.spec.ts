@@ -43,6 +43,28 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
         await page.getByRole('option', { name: new RegExp(`^${name.replaceAll('.', '\\.')}`) }).click()
         await expect(modelMenu).toContainText(name)
       }
+      async function submit(expectedModel: string): Promise<ProviderCall> {
+        const before: { calls: ProviderCall[] } = await (await request.get(`${fixtureOrigin}/fixture/state`)).json()
+        const replies = page.locator('.message-assistant')
+        const previousReplies = await replies.count()
+        // Catalog refreshes can temporarily block sending after a model switch.
+        // Correlate the new request and reply instead of accepting the previous
+        // generation's completed status and reading its provider call again.
+        await expect(send).toBeEnabled()
+        const [chatRequest] = await Promise.all([
+          page.waitForRequest('**/api/v1/llm/chat'),
+          send.click(),
+        ])
+        expect(chatRequest.postDataJSON().modelId).toBe(expectedModel)
+        await expect(input).toHaveValue('')
+        await expect(replies).toHaveCount(previousReplies + 1)
+        await expect(replies.last()).toHaveAttribute('data-status', 'completed')
+        const after: { calls: ProviderCall[] } = await (await request.get(`${fixtureOrigin}/fixture/state`)).json()
+        expect(after.calls).toHaveLength(before.calls.length + 1)
+        const call = after.calls[before.calls.length]!
+        expect(call.model).toBe(expectedModel)
+        return call
+      }
       await page.getByRole('button', { name: 'Denkaufwand: Standard', exact: true }).click()
       await expect(page.getByRole('menuitemcheckbox')).toHaveCount(3)
       await expect(page.getByRole('menuitemcheckbox', { name: /^(Sofort|Mittel|Pro) / })).toHaveCount(0)
@@ -88,10 +110,7 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
       await input.fill('Eine Frage\nmit Kontext\nund weiteren Zeilen\nfür das Modell')
       await expect.poll(async () => (await composer.boundingBox())!.height).toBeGreaterThan(initialComposer.height)
       await geometry()
-      await input.press('Enter')
-      await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
-      async function lastCall(): Promise<ProviderCall> { return (await (await request.get(`${fixtureOrigin}/fixture/state`)).json()).calls.at(-1) }
-      const glmCall = await lastCall()
+      const glmCall = await submit(glm)
       expect(glmCall.model).toBe(glm)
       expect(glmCall.chat_template_kwargs).toEqual({ reasoning_effort: 'max' })
       expect(glmCall.reasoning_effort).toBeUndefined()
@@ -103,20 +122,35 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
       await expect(page.getByRole('menuitemcheckbox')).toHaveCount(4)
       await expect(page.getByRole('menuitemcheckbox', { name: /^(Sehr hoch|Pro) / })).toHaveCount(0)
       await page.getByRole('menuitemcheckbox', { name: /^Sofort / }).click()
-      await input.press('Enter')
-      await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
-      expect((await lastCall()).reasoning_effort).toBe('low')
-      expect((await lastCall()).chat_template_kwargs).toBeUndefined()
+      const gptCall = await submit(gpt)
+      expect(gptCall.reasoning_effort).toBe('low')
+      expect(gptCall.chat_template_kwargs).toBeUndefined()
       await input.fill('Eine Frage\nmit Kontext')
       for (const name of otherModels) {
         await chooseModel(name)
         await expect(page.locator('.composer-reasoning')).toHaveCount(0)
         await geometry()
       }
-      await input.press('Enter')
-      await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
-      expect((await lastCall()).reasoning_effort).toBeUndefined()
-      expect((await lastCall()).chat_template_kwargs).toBeUndefined()
+      if (viewport.width === 1700 && theme === 'dark') {
+        // Keep the catalog response pending until the blocked send is observed.
+        let resumeRefresh!: () => void
+        const pendingRefresh = new Promise<void>((resolve) => { resumeRefresh = resolve })
+        await page.route('**/api/v1/llm/models', async (route) => {
+          await pendingRefresh
+          await route.continue()
+        })
+        try {
+          await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+          await expect(send).toBeDisabled()
+        }
+        finally {
+          resumeRefresh()
+        }
+      }
+      const standardCall = await submit('vllm/release/gemma-4-31b-it')
+      expect(standardCall.reasoning_effort).toBeUndefined()
+      expect(standardCall.chat_template_kwargs).toBeUndefined()
+      await page.unroute('**/api/v1/llm/models')
       await chooseModel('GLM 5.2')
       await expect(page.getByRole('button', { name: 'Denkaufwand: Standard', exact: true })).toBeVisible()
     })
