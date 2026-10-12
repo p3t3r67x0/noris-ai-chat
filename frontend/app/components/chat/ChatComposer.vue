@@ -6,9 +6,10 @@ import ChatModelMenu from './ChatModelMenu.vue'
 import type { ChatModelId } from '../../composables/useModelSelection'
 import { useComposerAutosize } from '../../composables/useComposerAutosize'
 import type { UploadEntry } from '../../composables/useChatAttachments'
+import { composerMenuItems } from '../../lib/chat/composerMenu'
 const { t } = useAppLocale()
 
-const props = defineProps<{ busy: boolean, streaming: boolean, cancellationRequested: boolean, modelUnavailable?: boolean, inputError?: string | null, files?: UploadEntry[], uploadAvailable?: boolean, uploadBlocked?: boolean, uploadError?: string | null, imageSupported?: boolean }>()
+const props = defineProps<{ busy: boolean, streaming: boolean, cancellationRequested: boolean, modelUnavailable?: boolean, inputError?: string | null, files?: UploadEntry[], uploadAvailable?: boolean, uploadUnavailableReason?: string | null, uploadBlocked?: boolean, uploadError?: string | null, imageSupported?: boolean }>()
 const text = defineModel<string>({ required: true })
 const model = defineModel<ChatModelId>('model', { required: true })
 const emit = defineEmits<{ send: [text: string], stop: [], files: [files: File[]], removeFile: [key: string], retryFile: [key: string] }>()
@@ -17,6 +18,23 @@ const hasAttachments = computed(() => Boolean(props.files?.length))
 const autosize = useComposerAutosize(prompt, text, hasAttachments)
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploadMenu = ref(false)
+const menuItems = computed(() => composerMenuItems(t, { upload: chooseFiles }, Boolean(props.uploadAvailable), props.uploadUnavailableReason))
+const attachmentButton = ref<{ $el: HTMLButtonElement } | null>(null)
+const menuReference = computed(() => {
+  const button = attachmentButton.value?.$el
+  const composer = button?.closest('.chat-composer')
+  if (!button || !composer) return undefined
+  return {
+    contextElement: button,
+    getBoundingClientRect: () => {
+      const anchor = button.getBoundingClientRect()
+      const container = composer.getBoundingClientRect()
+      // Reuse Reka positioning: align with +, clear the full composer height,
+      // and remeasure when wrapping or the keyboard changes its position.
+      return new DOMRect(anchor.x, container.y, anchor.width, container.height)
+    },
+  }
+})
 function focus(): void { prompt.value?.textareaRef?.focus({ preventScroll: true }) }
 let returnToComposer = false
 function chooseFiles(): void { returnToComposer = true; fileInput.value?.click() }
@@ -27,7 +45,8 @@ function removeFile(key: string): void { emit('removeFile', key); focus() }
 function retryFile(key: string): void { emit('retryFile', key); focus() }
 async function filesSelected(event: Event): Promise<void> {
   const input = event.target as HTMLInputElement
-  emit('files', [...input.files ?? []])
+  const selected = [...input.files ?? []]
+  if (selected.length) emit('files', selected)
   input.value = ''
   await nextTick()
   focus()
@@ -85,8 +104,12 @@ defineExpose({ focus })
         </ul>
       </template>
       <template #footer>
-        <UDropdownMenu v-model:open="uploadMenu" :items="[{ label: 'Dateien hinzufügen', icon: 'i-lucide-upload', onSelect: chooseFiles }]" :content="{ side: 'top', align: 'start', onCloseAutoFocus: menuClosed }" :ui="{ content: 'max-w-[calc(100vw-2rem)]', item: 'min-h-11' }">
-          <UButton :disabled="!uploadAvailable" icon="i-lucide-plus" color="neutral" variant="ghost" class="composer-attachment touch-control" :aria-label="t('attachment')" :title="uploadAvailable ? 'Dateien hinzufügen' : 'Datei-Upload benötigt die gespeicherte WebSocket-Unterhaltung.'" />
+        <UDropdownMenu
+          v-model:open="uploadMenu" :items="menuItems"
+          :content="{ side: 'top', align: 'start', sideOffset: 8, ...(menuReference ? { reference: menuReference } : {}), collisionPadding: 12, avoidCollisions: true, loop: true, updatePositionStrategy: 'always', onCloseAutoFocus: menuClosed }"
+          :ui="{ content: 'composer-plus-menu ring-0', viewport: 'p-0', group: 'p-2', item: 'composer-plus-menu-item before:hidden', itemLeadingIcon: 'size-5 text-inherit', itemWrapper: 'composer-plus-menu-copy', itemLabel: 'composer-plus-menu-label', itemDescription: 'composer-plus-menu-description' }"
+        >
+          <UButton ref="attachmentButton" icon="i-lucide-plus" color="neutral" variant="ghost" class="composer-attachment touch-control" :aria-label="t('composerActions')" :title="t('composerActions')" />
         </UDropdownMenu>
         <ChatModelMenu v-model="model" :busy="busy" compact :label="t('composerModel')" />
         <UChatPromptSubmit

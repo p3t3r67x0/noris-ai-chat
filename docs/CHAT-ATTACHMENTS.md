@@ -2,7 +2,7 @@
 
 Textauswahlen aus Chatnachrichten verwenden dasselbe Attachment-System. Bedienung, Herkunftsmetadaten und Modellkontext sind in [CHAT-TEXT-REFERENCES.md](CHAT-TEXT-REFERENCES.md) dokumentiert.
 
-Der Plus-Button öffnet das vorhandene Nuxt-UI-Aktionsmenü mit „Dateien hinzufügen“ und den nativen Mehrfach-Dateidialog. Jeder Upload verwendet die authentifizierte API. Erst eine erfolgreiche `201`-Antwort bestätigt den Anhang; Browserfortschritt allein gilt nicht als erfolgreicher Upload. Fehler lassen sich vor dem Senden erneut versuchen, laufende Uploads abbrechen und bestätigte, noch nicht gesendete Dateien entfernen.
+Der Plus-Button öffnet das vorhandene Nuxt-UI-Aktionsmenü. „Fotos und Dateien hinzufügen“ verwendet den nativen Mehrfach-Dateidialog; Struktur, deaktivierte Erweiterungen, Fokus und Positionierung sind in [COMPOSER-PLUS-MENU.md](COMPOSER-PLUS-MENU.md) dokumentiert. Jeder Upload verwendet die authentifizierte API. Erst eine erfolgreiche `201`-Antwort bestätigt den Anhang; Browserfortschritt allein gilt nicht als erfolgreicher Upload. Fehler lassen sich vor dem Senden erneut versuchen, laufende Uploads abbrechen und bestätigte, noch nicht gesendete Dateien entfernen.
 
 ## API und Persistenz
 
