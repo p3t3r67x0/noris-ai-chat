@@ -1,6 +1,8 @@
 # Automatische Gesprächstitel
 
-Neue Gespräche zeigen zunächst ein lokal erkanntes Thema, etwa **Automatische Chat-Titel**, oder **Neuer Chat**, wenn kein verlässliches Thema erkennbar ist. Es werden keine Frageanfänge oder abgeschnittenen Wörter übernommen. Nach Beginn des vorhandenen Chat-Streams startet unabhängig davon genau ein automatischer Titelversuch. Ein gültiger Titel ersetzt den Fallback in der vorhandenen Sidebar und wird im bestehenden lokalen Chat-Snapshot gespeichert. Nachrichten, Varianten und Scrollverhalten verwenden weiterhin dieselben Komponenten und denselben Streaming-Vertrag.
+Im produktiven WebSocket-Modus erzeugt der Server nach der abgeschlossenen ersten Antwort einen Titel, speichert ihn in PostgreSQL und aktualisiert die Sidebar aller verbundenen Tabs. Der Ablauf mit dauerhaftem Claim und Reconnect-Abgleich steht im Abschnitt **Produktiver WebSocket-Modus**.
+
+Die folgenden REST-/SSE- und Snapshot-Details beschreiben den älteren Browser-Modus: Neue Gespräche zeigen zunächst ein lokal erkanntes Thema, etwa **Automatische Chat-Titel**, oder **Neuer Chat**, wenn kein verlässliches Thema erkennbar ist. Es werden keine Frageanfänge oder abgeschnittenen Wörter übernommen. Nach Beginn des vorhandenen Chat-Streams startet unabhängig davon genau ein automatischer Titelversuch. Ein gültiger Titel ersetzt den Fallback in der vorhandenen Sidebar und wird im bestehenden lokalen Chat-Snapshot gespeichert. Nachrichten, Varianten und Scrollverhalten verwenden weiterhin dieselben Komponenten und denselben Streaming-Vertrag.
 
 ## API und Provider
 
@@ -40,7 +42,7 @@ Die zusätzliche Anfrage überträgt nur den Anfang der ersten Nachricht, keinen
 
 MockTransport erzeugt deterministische lokale Titel ohne Backend-/Provider-Aufruf. Die bestehenden Ziele `make lint`, `make typecheck`, `make check-api`, `make test-unit`, `make test-integration`, `make test-e2e`, `make test-e2e-production` und `make build` prüfen die Erweiterung mit. Titeltests decken zwei Sprachen, technische Namen, gemeinsame Budgets, Streaming, IDs, Umbenennen, Löschen, Archivieren, Reload, alte Snapshots, Fehler und Sidebar-Geometrie ab.
 
-Playwright prüft zusätzlich die tatsächliche DOM-Textbreite, einheitliche Eintragshöhen, Einzeiligkeit, fehlende Ellipsis und die Menübedienung bei 1920 × 975, 1440 × 900, 1280 × 800 und 390 × 844. Die Abnahme-Nachricht zur automatischen Chat-Titelgenerierung ergibt **Automatische Chat-Titel** im Mock-Modus und über den bestehenden Backend-/Provider-Vertrag mit einer lokalen Fixture. Titelaufnahmen und `title-widths.json` enthalten ausschließlich synthetische Inhalte und bleiben in den Testartefakten. Bestehende Screenshot-Baselines und Toleranzen werden unverändert geprüft. Die CI führt außerdem die gesamte Suite am Entwicklungsserver und am frischen Compose-Produktionsstack aus.
+Playwright prüft zusätzlich die tatsächliche DOM-Textbreite, einheitliche Eintragshöhen, Einzeiligkeit, fehlende Ellipsis und die Menübedienung bei 1920 × 975, 1440 × 900, 1280 × 800 und 390 × 844. Die Abnahme-Nachricht zur automatischen Chat-Titelgenerierung ergibt **Automatische Chat-Titel** im Mock-Modus und über den bestehenden Backend-/Provider-Vertrag mit einer lokalen Fixture. Titelaufnahmen und `title-widths.json` enthalten ausschließlich synthetische Inhalte und bleiben in den Testartefakten. Die Screenshot-Toleranzen bleiben unverändert. WebSocket-Composer-Aufnahmen warten auf den erzeugten Titel und den bereiten Composer; die 1700-px-Referenz zeigt jetzt diesen fertigen Zustand. Die CI führt außerdem die gesamte Suite am Entwicklungsserver und am frischen Compose-Produktionsstack aus.
 
 ## Produktiver WebSocket-Modus
 

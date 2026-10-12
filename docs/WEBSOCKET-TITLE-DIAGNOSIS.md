@@ -36,8 +36,11 @@ Frontend-Unit-Tests prüfen Reconnect eines untätigen Tabs und Autoritäts-/Ver
 ## Lokale Prüfung
 
 - Vollständige Backend-Unit-, Vertrags- und lokale HTTP-Provider-Suite: 419 bestanden.
-- Vollständige PostgreSQL-/WebSocket-/Proxy-Integrationssuite: 89 bestanden. Nach Ergänzung des manuellen REST-Broadcasts: 17 gezielte REST-/Titelintegrationstests bestanden, einschließlich des zusätzlichen Zwei-Tab-Tests.
+- Vollständige PostgreSQL-/WebSocket-/Proxy-Integrationssuite auf dem finalen Backend-Stand: 90 bestanden, einschließlich des zusätzlichen Zwei-Tab-Tests für manuelles REST-Umbenennen.
 - Vollständige Frontend-Unit-Suite: 287 bestanden; die gezielt wiederholten Titel-/WebSocket-Unit-Tests sind ebenfalls grün.
+- Vollständige Desktop-/Mobile-WebSocket-Browsersuite: 100 bestanden, 14 planmäßig übersprungen (die Bildschirmbreiten-Screenshot-Matrix läuft bereits im Desktop-Projekt).
 - Ruff-Lint und Formatprüfung, ESLint, strikte Python-/Vue-/Test-/Tool-Typprüfung, OpenAPI-/WebSocket-Vertragsprüfung und Compose-Konfigurationsprüfung bestanden.
+
+Die WebSocket-Composer-Screenshot-Prüfung wartet auf den unabhängig gespeicherten Titel und den bereiten Composer. Eine alte Referenz für 1700 px zeigte noch den Fallback und einen vorübergehend deaktivierten Senden-Button; sie wurde auf den fertigen Zustand aktualisiert. Die Toleranzen bleiben unverändert. Der bestehende Textreferenz-/Bearbeitungstest wartet jetzt auf die neue abgeschlossene Antwortvariante und die gespeicherte Bearbeitung, statt eine ältere abgeschlossene Antwort als Erfolg zu werten; er besteht zusätzlich dreimal auf Desktop und dreimal auf Mobile.
 
 Die Testdatenbanken und HTTP-Provider liegen ausschließlich lokal. Der Produktionsserver wurde weder geprüft noch verändert. Die Migration ist vor dem Start des aktualisierten Backends einzuspielen; es gibt keinen automatischen Daten-Backfill oder Provider-Retry.
