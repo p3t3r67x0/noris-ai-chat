@@ -56,7 +56,7 @@ test('Retry and model switching keep only the original active path', async ({ pa
   await expect(page.locator('[data-generation-status="failed"]')).toBeAttached()
   await page.getByRole('button', { name: 'Modell auswählen', exact: true }).click()
   await page.getByRole('option', { name: 'Fixture Beta' }).click()
-  await page.getByRole('button', { name: 'Erneut versuchen', exact: true }).click()
+  await page.locator('.message-assistant').last().getByRole('button', { name: 'Erneut versuchen', exact: true }).click()
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   const state = await request.get(`${fixtureOrigin}/fixture/state`).then(response => response.json()) as { calls: { model: string, messages: { role: string, content: string }[] }[] }
   const calls = state.calls.filter(call => call.messages.at(-1)?.content === prompt)

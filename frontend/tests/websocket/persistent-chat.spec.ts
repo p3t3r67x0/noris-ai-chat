@@ -112,7 +112,7 @@ test('stop and reload retain partial answer; retry creates another immutable var
   await composer.fill(`/retry ws persistence ${info.project.name} ${globalThis.crypto.randomUUID()}`)
   await composer.press('Enter')
   await expect(page.locator('[data-generation-status="failed"]')).toBeAttached()
-  await page.getByRole('button', { name: 'Erneut versuchen', exact: true }).click()
+  await page.locator('.message-assistant').last().getByRole('button', { name: 'Erneut versuchen', exact: true }).click()
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   const nextRows = (await (await request.get(`/api/v1/conversations/${c.id}/messages`)).json()).messages
   expect(nextRows.filter((m: { role: string }) => m.role === 'assistant')).toHaveLength(3)

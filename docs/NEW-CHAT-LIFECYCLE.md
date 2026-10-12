@@ -247,3 +247,12 @@ die Nachricht als Bereich für „Weiterschreiben“, damit die neue
 Benachrichtigungsaktion denselben Namen verwenden kann. Der Status lautet
 gemäß Main „Antwort unvollständig.“; Nachrichten-ID, vollständiger Text,
 Codeblock, Fortsetzung und Reload bleiben geprüft.
+
+Auch Retry-Browserprüfungen wählen die fehlgeschlagene Nachricht als Bereich,
+damit Nachricht und Toast „Erneut versuchen“ anbieten können. Sechs gezielte
+Fälle bestehen für Mock, HTTP mit Modellwechsel und WebSocket mit PostgreSQL
+auf Desktop/Mobile. Die Prüfungen erhalten Teilantworten und User-Nachrichten,
+vergleichen Provider-Anfragen und kontrollieren die unveränderlichen Varianten.
+Im vorangegangenen CI-Lauf bestehen bereits 516 Backend-Unit-, 456
+Frontend-Unit- und 117 Integrationstests; die beiden veralteten Mock-Selektoren
+sind durch diese gezielte Prüfung korrigiert.
