@@ -133,14 +133,14 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
             const event = events.shift()
             if (event === null) break
             if (!event) continue
-            if (event.type === 'chat.error' && (!event.requestId || event.requestId === request.generationId)) throw new TransportError(event.code, event.message)
+            if (event.type === 'chat.error' && (!event.requestId || event.requestId === request.generationId)) throw new TransportError(event.code, undefined, event.requestId ?? null)
             if (!('generationId' in event) || event.generationId !== request.generationId) continue
             if ('conversationId' in event && (event.conversationId !== request.conversationId || ('messageId' in event && event.messageId !== request.assistantMessageId))) throw new TransportError('INVALID_RESPONSE')
             if (event.type === 'chat.resume.snapshot') {
               if (!Number.isSafeInteger(event.lastSequence) || event.lastSequence < received || typeof event.content !== 'string') throw new TransportError('INVALID_RESPONSE')
               received = event.lastSequence
               const status = event.status === 'queued' ? 'submitting' : event.status === 'running' ? 'streaming' : event.status === 'interrupted' ? 'failed' : event.status
-              yield { type: 'response.snapshot', seq: received, content: event.content, status, continuationCount: event.continuationCount, code: event.code, message: event.message }
+              yield { type: 'response.snapshot', seq: received, content: event.content, status, continuationCount: event.continuationCount, code: event.code, message: event.message, requestId: request.generationId }
               if (status !== 'submitting' && status !== 'streaming') return
               continue
             }
@@ -162,7 +162,7 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
               case 'chat.generation.interrupted': output = { type: 'response.failed', seq: received, code: 'INTERRUPTED', message: 'Die Generierung wurde unterbrochen. Der gespeicherte Antwortstand bleibt erhalten.', content: event.content }; break
               default: throw new TransportError('INVALID_RESPONSE')
             }
-            yield { ...output, continuationCount: event.continuationCount }
+            yield { ...output, continuationCount: event.continuationCount, requestId: request.generationId }
             if (output.type === 'response.completed' || output.type === 'response.incomplete' || output.type === 'response.cancelled' || output.type === 'response.failed') return
           }
         }

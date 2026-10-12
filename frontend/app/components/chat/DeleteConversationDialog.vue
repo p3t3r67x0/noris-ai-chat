@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import type { Conversation } from '../../lib/chat/conversations'
+import { normalizeAppError } from '../../lib/notifications/errors'
+import { useAppNotifications } from '../../composables/useAppNotifications'
+import type { ErrorDiagnostics } from '../../lib/notifications/errors'
 
 const props = defineProps<{
   conversation: Conversation | null
@@ -10,6 +13,8 @@ const props = defineProps<{
 const open = defineModel<boolean>('open', { required: true })
 const pending = ref(false)
 const error = ref<string | null>(null)
+const diagnostics = ref<ErrorDiagnostics | null>(null)
+const notifications = useAppNotifications()
 const cancel = ref<{ $el: HTMLButtonElement } | null>(null)
 const description = computed(() => `Dadurch wird ${props.conversation?.title ?? ''} endgültig gelöscht. Dieser Vorgang kann nicht rückgängig gemacht werden.`)
 
@@ -44,9 +49,11 @@ async function confirmDelete(): Promise<void> {
   try {
     await props.removeConversation(id)
     open.value = false
+    notifications?.notify({ severity: 'success', title: 'Chat gelöscht.' })
   }
-  catch {
-    error.value = 'Der Chat konnte nicht gelöscht werden. Bitte versuche es erneut.'
+  catch (cause) {
+    const failure = normalizeAppError(cause, { operation: 'delete', conversationId: id })
+    error.value = `${failure.title} ${failure.message}`; diagnostics.value = failure.diagnostics
   }
   finally {
     pending.value = false
@@ -72,6 +79,7 @@ async function confirmDelete(): Promise<void> {
     </template>
     <template v-if="error" #body>
       <p role="alert" class="delete-dialog-error">{{ error }}</p>
+      <UButton v-if="diagnostics && notifications" color="neutral" variant="link" label="Details" @click="notifications.details.value = diagnostics" />
     </template>
     <template #footer="{ close }">
       <UButton ref="cancel" color="neutral" variant="soft" label="Abbrechen" class="delete-dialog-button delete-dialog-cancel" :disabled="pending" @click="close" />

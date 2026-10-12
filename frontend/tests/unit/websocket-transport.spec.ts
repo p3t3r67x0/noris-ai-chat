@@ -158,7 +158,7 @@ describe('WebSocketTransport', () => {
     await running
     expect(replace).toHaveBeenCalledWith('Erhaltener Text')
     expect(continuation).toHaveBeenCalledWith(2)
-    expect(failure).toHaveBeenCalledWith('AUTO_CONTINUATION_LIMIT', 'Limit für automatische Fortsetzungen erreicht.')
+    expect(failure).toHaveBeenCalledWith('AUTO_CONTINUATION_LIMIT', 'Das Limit für automatische Fortsetzungen ist erreicht. Der bisherige Text bleibt erhalten.', expect.objectContaining({ generationId: input.generationId }))
     expect(stream.status.value).toBe('incomplete')
     expect(stream.busy.value).toBe(false)
     transport.dispose?.()

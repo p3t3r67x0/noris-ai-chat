@@ -75,7 +75,7 @@ describe('delete conversation dialog', () => {
     await wrapper.get('.delete-dialog-confirm').trigger('click')
     await flushPromises()
     expect(wrapper.props('open')).toBe(true)
-    expect(wrapper.get('[role="alert"]').text()).toBe('Der Chat konnte nicht gelöscht werden. Bitte versuche es erneut.')
+    expect(wrapper.get('[role="alert"]').text()).toContain('Chat konnte nicht gelöscht werden.')
     expect(wrapper.text()).not.toContain('private backend details')
     await wrapper.get('.delete-dialog-confirm').trigger('click')
     await flushPromises()

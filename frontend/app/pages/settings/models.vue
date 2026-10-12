@@ -16,8 +16,9 @@ const tokens = (value?: number) => value ? new Intl.NumberFormat(language.value)
       <USelect v-model="modelId" :items="items" color="neutral" :aria-label="t('defaultModel')" :disabled="loading || chat.stream.busy.value || !items.length" :placeholder="t('chooseModel')" class="settings-select" :ui="{ base: 'settings-select-trigger', content: 'settings-select-content' }" />
     </SettingsRow>
     <p v-if="mode === 'mock'" class="text-sm text-muted">{{ t('demoModels') }}</p>
-    <p v-if="error || notice" role="status" class="text-sm text-muted">{{ error || notice }}</p>
-    <UButton v-if="mode !== 'mock'" color="neutral" variant="outline" :label="t('refreshModels')" :loading="loading" class="settings-action" @click="refresh" />
+    <details v-if="error || notice" class="text-sm text-muted"><summary>Modellzugriff prüfen</summary><p>{{ error || notice }}</p></details>
+    <UButton v-if="mode !== 'mock'" color="neutral" variant="outline" :label="t('refreshModels')" :loading="loading" class="settings-action" @click="refresh()" />
+    <details v-if="chat.storageWarning.value" class="text-sm text-muted"><summary>Einstellung prüfen</summary><p>{{ chat.storageWarning.value }}</p><UButton v-if="chat.retryPersistence.value" color="neutral" variant="link" label="Erneut speichern" @click="chat.retryPersistence.value?.()" /></details>
     <p v-if="!catalogModels.length && !loading" class="text-muted">{{ t('noModels') }}</p>
     <SettingsRow v-for="model in catalogModels" :id="`model-${model.id}`" :key="model.id" :title="model.label" :description="model.providerDescription ?? model.description">
       <template #details>
