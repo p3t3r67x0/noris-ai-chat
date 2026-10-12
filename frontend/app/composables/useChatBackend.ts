@@ -5,6 +5,7 @@ import { conversationFromServer, messageFromServer } from '../lib/chat/backend'
 import type { ApiSchemas } from '../types/generated/api'
 import { ChatLoadCache } from '../lib/chat/loadCache'
 import { CHAT_STORAGE_KEY, parseChatSnapshot } from '../lib/chat/persistence'
+import { compareConversations } from '../lib/chat/conversations'
 
 export const CHAT_CACHE_KEY = 'noris-ai:chat-cache:v2'
 const OFFLINE_DRAFTS_KEY = 'noris-ai:offline-drafts:v1'
@@ -147,7 +148,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     // An active chat outside page one can become recent through a live update.
     // Its metadata then belongs in the sorted sidebar without reloading messages.
     if (value.version < (backend.versions.get(value.id) ?? 0)) return
-    if (!value.archivedAt && value.sidebarVisible !== false && !sidebarIds.value.includes(value.id)) {
+    if (!value.archivedAt && value.sidebarVisible !== false && (!previous || previous.sidebarVisible === false || compareConversations(conversationFromServer(value), previous) < 0) && !sidebarIds.value.includes(value.id)) {
       sidebarIds.value = [value.id, ...sidebarIds.value].slice(0, 500)
     }
     const changedLeaf = previous?.activeLeafMessageId !== value.activeLeafMessageId

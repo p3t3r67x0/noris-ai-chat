@@ -194,6 +194,13 @@ Backend- und zehn Browserfällen:
   dem Browserrunner mehr: Die mit dem vorhandenen Backend-Fixture erzeugte
   synthetische PDF liegt als Testdatei vor. Playwright liest dieselben Upload-Bytes
   direkt; Dateiupload und Draft-/Attachment-Recovery bleiben vollständig geprüft.
+- Reconnect-Metadaten unveränderter Chats erhalten die bisherige Sidebar-Seite.
+  Die vorhandene Aktualitätsprüfung bleibt erhalten; erstmals sichtbare vorbereitete
+  Chats werden zusätzlich aufgenommen. Ein aktiver Chat außerhalb der ersten Seite
+  lädt weiterhin nur sein eigenes Nachrichtenfenster.
+- Der Titel-Fehlertest identifiziert seinen Chat anhand der Conversation-ID statt
+  der durch asynchrone Titelupdates veränderlichen Listenreihenfolge. Er prüft
+  zusätzlich genau einen Fehleraufruf und den Fallback-Titel nach Reload.
 
 Gezielt lokal geprüft: 20 Attachment-/Migrationstests, 31 Backend- und 26
 Frontend-Unit-Fälle, 36 Composer-/Titel-Browserfälle, acht Reasoning-Browserfälle

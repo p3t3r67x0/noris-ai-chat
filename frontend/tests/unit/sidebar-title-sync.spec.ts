@@ -68,7 +68,7 @@ describe('authoritative sidebar title synchronization', () => {
   it('keeps prepared metadata hidden and reveals an authoritative update without a reload', async () => {
     const { wrapper, socket, state } = await fixture({ ...initial, sidebarVisible: false })
     expect(wrapper.findAll('button')).toHaveLength(0)
-    socket.event({ version: 1, type: 'chat.conversation.updated', conversation: { ...generated, sidebarVisible: true } })
+    socket.event({ version: 1, type: 'chat.conversation.updated', conversation: { ...generated, updatedAt: initial.updatedAt, sidebarVisible: true } })
     await vi.waitFor(() => expect(wrapper.get('button').attributes('title')).toBe(generated.title))
     expect(state.conversations.records.value[initial.id]?.sidebarVisible).toBe(true)
   })

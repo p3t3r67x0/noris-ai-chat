@@ -169,16 +169,27 @@ test('draft reload, first response failure, retry and title failure remain recov
   await page.locator('.message-assistant').getByRole('button', { name: 'Antwort erneut generieren', exact: true }).click()
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   expect(await list(request)).toHaveLength(1)
+  async function titleErrorCalls(): Promise<number> {
+    const state = await (await request.get(`${provider}/fixture/state`)).json()
+    return state.title_calls.filter((call: { messages: { content: string }[] }) => call.messages.at(-1)?.content === '/title-error SearXNG').length
+  }
+  const previousTitleErrors = await titleErrorCalls()
   await page.keyboard.press('Control+Shift+O')
   await input.fill('/title-error SearXNG')
   await input.press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
-  const conversation = (await list(request))[0]!
+  // The retry's asynchronous title can reorder the list after this chat completes.
+  const conversations = await list(request)
+  expect(conversations).toHaveLength(2)
+  const conversation = conversations.find(c => c.id !== failed.id)!
+  await expect.poll(titleErrorCalls).toBe(previousTitleErrors + 1)
   expect(conversation.sidebarVisible).toBe(true)
   expect(conversation.titleSource).toBe('fallback')
   expect(conversation.title).not.toBe('Neuer Chat')
   await page.reload()
   await expect(page.locator('.message-user')).toContainText('/title-error SearXNG')
+  expect((await (await request.get(`/api/v1/conversations/${conversation.id}`)).json()).titleSource).toBe('fallback')
+  expect(await titleErrorCalls()).toBe(previousTitleErrors + 1)
 })
 
 test('visualViewport keyboard and landscape keep the empty composer and heading visible', async ({ page }) => {
