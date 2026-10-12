@@ -1,6 +1,6 @@
 # Tool-Architektur für das Plus-Menü
 
-Status: technische Planung, keine Produktimplementierung. Stand: 2026-10-12.
+Status: Architekturplan mit begonnener Implementierung der P1a-Grundlage; keine neue Produktfunktion aktiviert. Stand: 2026-10-12. Bestandsabgleich auf aktuellem `main`, konkrete Registry-/Persistenzverträge, Migration und lokale Tests: [Tool-Grundlage P1a](TOOL-FOUNDATION.md).
 
 ## 1. Grundlage, Umfang und Entscheidungen
 
