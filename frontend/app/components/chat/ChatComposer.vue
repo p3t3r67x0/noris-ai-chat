@@ -75,6 +75,18 @@ function menuKeydown(event: KeyboardEvent): void {
   else if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); returnToComposer = true; uploadMenu.value = false; slashRange.value = null; focus() }
 }
 function menuClosed(event: Event): void {
+  // Closing animations can finish after the user has opened another control.
+  // Preserve that newer focus instead of dismissing its menu via the textarea.
+  const active = document.activeElement
+  if (active && active !== document.body && active !== prompt.value?.textareaRef
+    && active !== fileInput.value && active !== attachmentButton.value?.$el
+    && !active.matches('.chat-main') && !active.closest('.composer-action-menu')) {
+    event.preventDefault()
+    returnToComposer = false
+    returnToActionTrigger = false
+    slashRange.value = null
+    return
+  }
   if (returnToComposer || slashRange.value) { event.preventDefault(); returnToComposer = false; slashRange.value = null; focus() }
   else if (returnToActionTrigger || document.activeElement === document.body || document.activeElement?.matches('.chat-main') || document.activeElement?.closest('.composer-action-menu')) {
     event.preventDefault()

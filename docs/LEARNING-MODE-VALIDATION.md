@@ -105,7 +105,7 @@ keine stochastische Qualitätsgarantie eines live aufgerufenen Modells.
 | PostgreSQL-Integration einschließlich Nginx/Caddy | 83 bestanden |
 | Playwright UI, Desktop und Mobile | 300 bestanden, 25 doppelte Screenshot-/eingabegerätespezifische Fälle übersprungen |
 | Playwright HTTP, Desktop und Mobile | 75 bestanden, 5 gezielte Skip-Fälle |
-| Playwright WebSocket, Desktop und Mobile | 98 bestanden (56 Desktop, 42 Mobile), 14 doppelte Screenshot-Fälle übersprungen |
+| Playwright WebSocket, Desktop und Mobile | 100 bestanden (57 Desktop, 43 Mobile), 14 doppelte Screenshot-Fälle übersprungen |
 | Nuxt-Produktionsbuild und Backend-Wheel/Source-Distribution | Erfolgreich |
 
 Die vorhandenen Make-/pnpm-Aufrufe werden verwendet: `make lint typecheck
@@ -123,3 +123,25 @@ Touch, Fokuszustände, Modellwechsel, Anhänge, Zweige, Kontextlimits, serversei
 Rollen, Capability-Grenzen und Reduced Motion werden durch bestehende und neue
 Tests abgedeckt. Physische Mobilgeräte und ein echter Screenreader wurden nicht
 verwendet; die Browserprüfungen kontrollieren Rollen, Beschriftungen und Fokus.
+
+## CI-Regressionsprüfung: Dateiauswahl und Modellmenü
+
+Die ersten GitHub-Actions-Läufe zeigten eine Fokus-Race: Die Schließanimation des
+Plus-Menüs konnte erst nach dem Öffnen der Modellauswahl enden. Der ausstehende
+Fokusrücksprung ins Textfeld schloss dann das neue Modellmenü. Der Composer prüft
+nun vor dem Rücksprung, ob der Benutzer bereits ein anderes Steuerelement
+fokussiert hat, und erhält dessen Fokus.
+
+Ein neuer WebSocket-Regressionstest verlängert gezielt die native Schließanimation
+und öffnet währenddessen die Modellauswahl. Er prüft, dass Auswahl, Entwurf und
+Anhang erhalten bleiben. Der unveränderte Produktionsbuild scheitert daran auf
+Desktop und Mobile; mit der Korrektur bestehen beide Fälle. Zusammen mit den
+betroffenen Bildanhang-Tests bestanden 24 Prüfungen über drei Wiederholungen.
+ESLint, Nuxt-/Vue-Typecheck, alle 291 Vitest-Tests und der Produktionsbuild wurden
+für die Korrektur erneut erfolgreich ausgeführt.
+
+Der zusätzliche isolierte lokale Compose-Aufbau baute die Images erfolgreich,
+konnte aber PostgreSQL über das Docker-Testnetz nicht erreichen: DNS löste korrekt
+auf, die TCP-Verbindung lief in einen Timeout. Nur dieses Testprojekt wurde
+anschließend entfernt. Die Compose-Abnahme erfolgt im GitHub-Actions-Job
+`compose-smoke`; der lokale WebSocket-Lauf verwendet den eigenen Testcluster.

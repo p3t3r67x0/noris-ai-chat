@@ -66,6 +66,26 @@ test('click toggles, outside click and Escape dismiss without losing text or rep
   await expect.poll(async () => (await buttonAppearance(page)).circle).toBe('rgba(0, 0, 0, 0)')
 })
 
+test('delayed action-menu focus return preserves a newly opened model picker', async ({ page }) => {
+  // Keep the native closing animation active while the next control opens.
+  await page.addStyleTag({ content: '.composer-action-menu[data-state="closed"] { animation-duration: 800ms !important; }' })
+  await inputFor(page).fill(draft)
+  await triggerFor(page).click()
+  const chooser = page.waitForEvent('filechooser')
+  await uploadFor(page).click()
+  await (await chooser).setFiles(uploadFile)
+  const model = page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true })
+  await model.click()
+  await expect(page.getByRole('listbox')).toBeVisible()
+  await expect(page.locator('.composer-action-menu')).toHaveCount(0)
+  await expect(model).toHaveAttribute('aria-expanded', 'true')
+  await expect(inputFor(page)).not.toBeFocused()
+  await page.getByRole('option', { name: 'Fixture Beta' }).click()
+  await expect(model).toContainText('Fixture Beta')
+  await expect(inputFor(page)).toHaveValue(draft)
+  await expect(page.locator('[data-upload-status="uploaded"]')).toHaveCount(1)
+})
+
 test('keyboard opening and arrow navigation skip unavailable actions; Enter and Space use the native multiple chooser', async ({ page }) => {
   const trigger = triggerFor(page)
   const menu = page.locator('.composer-plus-menu')
