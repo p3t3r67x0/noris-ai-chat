@@ -8,6 +8,7 @@ import pytest
 from noris_ai.core.config import Settings
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.openai_compatible import OpenAICompatibleProvider
+from noris_ai.llm.registry import REGISTRY
 from noris_ai.llm.schemas import LLMMessage
 from noris_ai.llm.sse import SSEDecoder
 
@@ -201,12 +202,15 @@ async def test_server_reasoning_hint_preserves_the_output_token_cap(
         assert [
             text
             async for text in provider.stream(
-                llm_messages, config.llm_models[0].model_copy(update={"reasoning_effort": "low"})
+                llm_messages,
+                REGISTRY["vllm/release/gpt-oss-120b"].model_copy(
+                    update={"reasoning_effort": "low"}
+                ),
             )
         ] == ["MCP"]
         body = json.loads(captured[0].content)
         assert body["reasoning_effort"] == "low"
-        assert body["max_tokens"] == config.llm_models[0].max_output_tokens
+        assert body["max_tokens"] == REGISTRY["vllm/release/gpt-oss-120b"].max_output_tokens
         assert body["messages"] == [{"role": "user", "content": "Hallo 🌍"}]
     finally:
         await provider.aclose()

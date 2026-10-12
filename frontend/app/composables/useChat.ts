@@ -73,6 +73,11 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     const preference = conversations.records.value[conversationId]?.reasoningPreference
     return preference && supportsPreference(CHAT_MODELS.find(model => model.id === modelId), preference) ? preference : null
   }
+  function reconcileReasoningPreference(modelId: string): Promise<boolean> {
+    const conversation = conversations.active.value
+    if (!conversation?.reasoningPreference || reasoningPreference(modelId, conversation.id)) return Promise.resolve(true)
+    return setReasoningPreference(null)
+  }
   const preferredLeaves = ref<Record<string, string>>({})
   const titles = createConversationTitles(transport, conversationId => Object.hasOwn(conversations.records.value, conversationId) ? conversations.records.value[conversationId] : undefined)
 
@@ -254,7 +259,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
   }
   const variantIndex = computed(() => indexSiblingVariants(messages.value))
   const variants = (messageId: string): readonly ChatMessage[] => variantIndex.value.get(messageId) ?? []
-  return { settingsBusy, settingsError, setConversationMode, setReasoningPreference, retryConversationSettings, conversations, messages, pathBoundaries, variantSummaries, variantSummary: (id: string) => variantSummaries.value[id], visible, stream, titles, generatingConversationId, drafts, preferredLeaves, send, retry, canContinue, continueResponse, newChat, remove, selectVariant, regenerate, edit, variants, snapshot, hydrate, resume }
+  return { settingsBusy, settingsError, setConversationMode, setReasoningPreference, reconcileReasoningPreference, retryConversationSettings, conversations, messages, pathBoundaries, variantSummaries, variantSummary: (id: string) => variantSummaries.value[id], visible, stream, titles, generatingConversationId, drafts, preferredLeaves, send, retry, canContinue, continueResponse, newChat, remove, selectVariant, regenerate, edit, variants, snapshot, hydrate, resume }
 }
 
 export function useChat(transport: ChatTransport) {

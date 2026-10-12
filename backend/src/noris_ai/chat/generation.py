@@ -166,16 +166,15 @@ class GenerationManager:
                     if (
                         command.attachmentIds
                         and model.input_modalities
-                        and (
-                            "text" not in model.input_modalities
-                            or (
-                                any(
-                                    a.mime_type.startswith("image/")
-                                    for a in input_message.attachments
-                                )
-                                and not supports_images(model)
-                            )
+                        and "text" not in model.input_modalities
+                    ) or (
+                        any(
+                            attachment.mime_type in ("image/png", "image/jpeg")
+                            and attachment.status != "deleted"
+                            for message in path
+                            for attachment in message.attachments
                         )
+                        and not supports_images(model)
                     ):
                         raise ChatError("ATTACHMENT_INCOMPATIBLE", 422)
                     request = PersistedChatRequest(

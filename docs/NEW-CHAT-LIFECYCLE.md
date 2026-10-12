@@ -124,8 +124,9 @@ Zurückspringen auf den Sidebar-Trigger und fokussiert den vorhandenen Composer.
 
 ## Gezielte Validierung
 
-Gemäß der letzten Aufgabenpräzisierung werden nur betroffene Tests ausgeführt;
-die vollständige Testsuite und das Warten auf CI entfallen. Alle Browser-/DB-Tests
+Gemäß der Aufgabenpräzisierung werden lokal nur betroffene Tests ausgeführt;
+die vollständige lokale Testsuite entfällt. Die nachträglich angeforderte
+Konfliktlösung und CI-Prüfung ist unten dokumentiert. Alle Browser-/DB-Tests
 verwenden lokale Fixture-Provider und isolierte PostgreSQL-Testdatenbanken.
 Es gibt keinen Zugriff auf den Produktivserver.
 
@@ -162,5 +163,37 @@ langem Entwurf erfolgreich. Mobile Softwaretastaturen sind über Touch-Emulation
 und `visualViewport`-Ereignisse geprüft, nicht auf einem physischen Smartphone.
 
 Die visuellen Artefakte sind im [Screenshot-Index](screenshots/new-chat/README.md)
-verlinkt. Der Pull Request bleibt offen; keine Zusammenführung, kein Deployment,
-kein Warten auf CI.
+verlinkt. Der Pull Request bleibt offen; keine Zusammenführung in `main`, kein Deployment.
+
+## Konfliktlösung und CI-Korrekturen für PR #57
+
+`main` (Stand `d7c3100`) wird in den PR-Branch übernommen. Die Konfliktlösung
+verbindet die neue Composer-Anordnung mit der aktuellen Modell-/Reasoning-Auswahl.
+Die zwei widersprüchlichen WebSocket-Screenshot-Referenzen des Reasoning-Menüs
+werden mit Playwright aus diesem gemeinsamen Stand neu erzeugt.
+
+Der fehlgeschlagene CI-Lauf `38281756927` zeigte veraltete Annahmen in drei
+Backend- und zehn Browserfällen:
+
+- Attachment-Ablehnungen werden nach gespeicherter Nachricht als terminales
+  Generation-Ereignis übermittelt. Die Tests prüfen jetzt zusätzlich erhaltene
+  Nachrichten/Attachment-IDs, fehlende Provider-Aufrufe und Wiederholen ohne
+  doppelte Benutzernachricht. Die Modellprüfung umfasst wieder Bilder im gesamten
+  Verlauf, damit ein Textmodell auch nach Reload `ATTACHMENT_INCOMPATIBLE` meldet.
+- Der Migrationstest reflektiert das historische Schema vor dem Upgrade und
+  vergleicht dessen vollständige Zeilen vor/nach Upgrade und Rollback. Aktuelle
+  ORM-Spalten werden nicht in ein älteres Schema geschrieben; bestehende Chats
+  erhalten ausdrücklich `sidebar_visible = true`.
+- Titeltests erwarten keinen Sidebar-Eintrag während der ersten Antwort und
+  prüfen Fallback/Generierung nach Abschluss. Manuelles Umbenennen und Löschen
+  während ausstehender Titelgenerierung bleiben geprüft.
+- Der Tastaturtest verlangt die sichtbare Begrüßung direkt über dem Composer.
+  Reasoning-Tests unterscheiden Autosize im zentrierten Startbildschirm vom
+  stabilen unteren Composer einer aktiven Unterhaltung.
+
+Gezielt lokal geprüft: 20 Attachment-/Migrationstests, 31 Backend- und 26
+Frontend-Unit-Fälle, 36 Composer-/Titel-Browserfälle, acht Reasoning-Browserfälle
+sowie vier WebSocket-Fälle für Lernmodus, Draft-Reload und Fehler-Recovery. Ruff/Format, ESLint,
+Nuxt/vue-tsc/Pyright, API-Vertragsprüfung und Nuxt-Produktionsbuild bestehen.
+Die CI-Workflows bleiben vollständig aktiviert und werden auf Anforderung
+erneut geprüft; Tests und Prüfregeln werden nicht übersprungen.

@@ -125,7 +125,9 @@ async def test_failures_coalesce_and_never_authorize_stale(llm_config: Settings,
     if code != "PROVIDER_AUTH_FAILED":
         stale = await catalog.get()
         assert stale.status == "stale" and stale.default_model is None
-        assert all(not model.available for model in stale.models)
+        assert all(
+            not model.available and not model.reasoning_preferences for model in stale.models
+        )
     else:
         assert all(isinstance(value, LLMError) for value in results)
     with pytest.raises(LLMError):

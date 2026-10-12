@@ -1,5 +1,6 @@
 import { FALLBACK_TITLE, normalizeAutomaticTitle } from './titles'
 import type { ReasoningPreference } from './reasoning'
+import { isReasoningPreference } from './reasoning'
 
 export type ConversationMode = 'normal' | 'learning'
 
@@ -53,7 +54,7 @@ function isConversation(value: unknown): value is Conversation {
     && (value.archivedAt === null || isDate(value.archivedAt))
     && (value.activeLeafMessageId === null || typeof value.activeLeafMessageId === 'string')
     && (value.conversationMode === undefined || value.conversationMode === 'normal' || value.conversationMode === 'learning')
-    && (value.reasoningPreference === undefined || value.reasoningPreference === null || ['instant', 'medium', 'high', 'very_high', 'pro'].includes(String(value.reasoningPreference)))
+    && (value.reasoningPreference === undefined || value.reasoningPreference === null || isReasoningPreference(value.reasoningPreference))
 }
 
 export function parseConversationSnapshot(raw: string): ConversationSnapshot | null {
@@ -62,7 +63,9 @@ export function parseConversationSnapshot(raw: string): ConversationSnapshot | n
     const value: unknown = JSON.parse(raw)
     if (!isRecord(value) || value.version !== 1 || !isRecord(value.conversations)) return null
     const conversations: Record<string, Conversation> = {}
-    for (const [id, item] of Object.entries(value.conversations)) {
+    for (const [id, stored] of Object.entries(value.conversations)) {
+      // Invalid legacy preferences must not discard the conversation or draft.
+      const item = isRecord(stored) ? { ...stored, reasoningPreference: isReasoningPreference(stored.reasoningPreference) ? stored.reasoningPreference : null } : stored
       if (!isConversation(item) || item.id !== id) return null
       // Legacy names may be manual: preserve them and never generate retroactively.
       const conversation: Conversation = { ...item, conversationMode: item.conversationMode ?? 'normal', reasoningPreference: item.reasoningPreference ?? null, titleSource: item.titleSource ?? 'manual', titleGenerationAttempted: item.titleGenerationAttempted ?? true }

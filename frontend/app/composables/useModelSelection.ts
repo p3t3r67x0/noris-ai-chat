@@ -2,7 +2,7 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { modelDetails } from '../lib/chat/modelMetadata'
 import { responseError } from '../lib/chat/realTransport'
 import { CHAT_LIMITS, DEFAULT_CHAT_LIMITS, parseChatLimits } from '../lib/chat/limits'
-import { REASONING_CHOICES } from '../lib/chat/reasoning'
+import { isReasoningPreference } from '../lib/chat/reasoning'
 import type { ReasoningPreference } from '../lib/chat/reasoning'
 
 const MOCK_MODELS = [
@@ -54,7 +54,7 @@ export function useModelSelection(options: { mode?: 'mock' | 'real' | 'websocket
             modelDetails(value as Record<string, unknown>, isStale),
           ].filter(Boolean).join(' · '),
           category: 'category' in value && typeof value.category === 'string' ? value.category : '',
-          reasoningPreferences: 'reasoning_preferences' in value && Array.isArray(value.reasoning_preferences) ? value.reasoning_preferences.filter((item): item is ReasoningPreference => REASONING_CHOICES.some(choice => choice.id === item)) : [],
+          reasoningPreferences: !isStale && value.available === true && value.streaming === true && 'reasoning' in value && value.reasoning === true && 'reasoning_preferences' in value && Array.isArray(value.reasoning_preferences) ? value.reasoning_preferences.filter(isReasoningPreference) : [],
           virtual: 'virtual' in value && value.virtual === true, disabled: isStale || value.available !== true || value.streaming !== true,
           imageInput: 'vision' in value && value.vision === true && 'input_modalities' in value && Array.isArray(value.input_modalities) && value.input_modalities.includes('image') && value.input_modalities.includes('text'),
           ...('description' in value && typeof value.description === 'string' ? { providerDescription: value.description } : {}),

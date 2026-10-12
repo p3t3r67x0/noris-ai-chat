@@ -122,7 +122,9 @@ class ModelCatalogService:
                         "expires_in_seconds": 0,
                         "default_model": None,
                         "models": [
-                            model.model_copy(update={"available": False})
+                            model.model_copy(
+                                update={"available": False, "reasoning_preferences": []}
+                            )
                             for model in self._last.models
                         ],
                         "error_code": self._error.code if self._error else "PROVIDER_ERROR",
