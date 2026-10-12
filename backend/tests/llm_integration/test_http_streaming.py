@@ -265,4 +265,5 @@ async def test_title_uses_existing_http_provider_and_closes_socket(
             assert messages[1]["content"] == payload["firstMessage"]
             assert "untrusted" in messages[0]["content"]
             assert captured[0]["max_tokens"] == 1024
-            assert captured[0]["reasoning_effort"] == "low"
+            assert "reasoning_effort" not in captured[0]
+            assert "chat_template_kwargs" not in captured[0]

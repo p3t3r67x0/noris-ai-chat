@@ -120,3 +120,25 @@ describe('Dynamic model permissions', () => {
     wrapper.unmount()
   })
 })
+
+describe('reasoning catalog freshness', () => {
+  it('uses only explicit server preferences and replaces revoked or stale capabilities', async () => {
+    localStorage.clear()
+    const models = [
+      { id: 'gpt', name: 'GPT-OSS 120B', available: true, streaming: true, reasoning: true, reasoning_preferences: ['instant', 'medium', 'high', 'unknown'] },
+      { id: 'glm', name: 'GLM 5.2', available: true, streaming: true, reasoning: true, reasoning_preferences: ['high', 'very_high'] },
+      { id: 'unconfirmed', name: 'Reasoning Max Pro', available: true, streaming: true, reasoning: true, reasoning_efforts: ['low', 'medium', 'high', 'max'] },
+      { id: 'contradictory', name: 'No reasoning', available: true, streaming: true, reasoning: false, reasoning_preferences: ['high'] },
+    ]
+    const catalog = (values: Record<string, unknown>[], status = 'fresh') => Response.json({ models: values, default_model: 'gpt', limits: DEFAULT_CHAT_LIMITS, status })
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(catalog(models)).mockResolvedValueOnce(catalog(models.map(model => ({ ...model, reasoning_preferences: [] })))).mockResolvedValueOnce(catalog(models, 'stale'))
+    const wrapper = mount(defineComponent({ setup: () => useModelSelection({ mode: 'real', fetcher }), template: '<div />' }))
+    await flushPromises()
+    expect(CHAT_MODELS.map(model => model.reasoningPreferences)).toEqual([['instant', 'medium', 'high'], ['high', 'very_high'], [], []])
+    await wrapper.vm.refresh()
+    expect(CHAT_MODELS.every(model => model.reasoningPreferences?.length === 0)).toBe(true)
+    await wrapper.vm.refresh()
+    expect(CHAT_MODELS.every(model => model.disabled && model.reasoningPreferences?.length === 0)).toBe(true)
+    wrapper.unmount()
+  })
+})

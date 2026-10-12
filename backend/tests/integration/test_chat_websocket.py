@@ -50,6 +50,7 @@ class Simulator:
                 "fixture-beta",
                 "vllm/qsu/glm-5-3-flash",
                 "vllm/release/gpt-oss-120b",
+                "vllm/release/glm-5-2",
             ]
         ]
 
@@ -918,3 +919,41 @@ def test_learning_persistence_reasoning_and_branch_policy(
         for row in rows
         if row["role"] == "assistant"
     )
+
+
+@pytest.mark.parametrize(
+    ("model_id", "preference", "effort"),
+    [
+        ("vllm/release/gpt-oss-120b", "very_high", None),
+        ("vllm/release/gpt-oss-120b", "pro", None),
+        ("vllm/release/gpt-oss-120b", "medium", "medium"),
+        ("vllm/qsu/glm-5-3-flash", "high", None),
+        ("vllm/release/glm-5-2", "very_high", "max"),
+        ("vllm/release/glm-5-2", "medium", None),
+    ],
+)
+def test_saved_reasoning_is_checked_against_the_generation_model(
+    client: TestClient, simulator: Simulator, model_id: str, preference: str, effort: str | None
+) -> None:
+    payload = generate(client)
+    resource = f"/api/v1/conversations/{payload['conversationId']}"
+    updated = client.patch(
+        resource,
+        auth=AUTH,
+        headers=ORIGIN.copy(),
+        json={"reasoningPreference": preference, "version": 1},
+    )
+    assert updated.status_code == 200
+    payload.update({"modelId": model_id, "conversationVersion": updated.json()["version"]})
+    with client.websocket_connect(
+        "/api/v1/chat/ws", subprotocols=protocols(client), headers=ORIGIN.copy()
+    ) as socket:
+        socket.receive_json()
+        socket.send_json(payload)
+        while True:
+            event = socket.receive_json()
+            if event["type"] == "chat.generation.completed":
+                break
+            assert event["type"] not in ("chat.error", "chat.generation.failed")
+    assert simulator.models[-1].reasoning_effort == effort
+    assert simulator.models[-1].id == model_id

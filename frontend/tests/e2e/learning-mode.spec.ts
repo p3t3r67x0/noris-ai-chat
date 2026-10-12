@@ -73,7 +73,7 @@ for (const viewport of [{ width: 1920, height: 975 }, { width: 768, height: 1024
       await page.getByRole('menuitem', { name: /^Lernen/ }).click()
       await expect(page.locator('.composer-learning')).toBeVisible()
       if (viewport.width === 390) {
-        await expect(page.locator('.composer-container')).toHaveAttribute('data-layout', 'expanded')
+        await expect(page.locator('.composer-container')).toHaveAttribute('data-layout', 'compact')
         expect(await input.evaluate(element => element.getBoundingClientRect().height <= parseFloat(getComputedStyle(element).lineHeight) + 1)).toBe(true)
       }
       await expect(page).toHaveScreenshot(`learning-${viewport.width}-${theme}-active.png`, { animations: 'disabled', caret: 'hide' })
@@ -81,11 +81,7 @@ for (const viewport of [{ width: 1920, height: 975 }, { width: 768, height: 1024
       await expect(page.getByRole('menuitem', { name: /Lernen Ausgewählt/ })).toBeVisible()
       await expect(page).toHaveScreenshot(`learning-${viewport.width}-${theme}-selected.png`, { animations: 'disabled', caret: 'hide' })
       await page.keyboard.press('Escape')
-      await page.getByRole('button', { name: 'Denkaufwand: Standard', exact: true }).click()
-      await expect(page.getByRole('menuitemcheckbox', { name: /^Pro / })).toHaveAttribute('aria-disabled', 'true')
-      await expect(page.getByRole('menuitemcheckbox', { name: /^Sehr hoch / })).toHaveAttribute('aria-disabled', 'true')
-      await expect(page).toHaveScreenshot(`learning-${viewport.width}-${theme}-reasoning.png`, { animations: 'disabled', caret: 'hide' })
-      await page.keyboard.press('Escape')
+      await expect(page.locator('.composer-reasoning')).toHaveCount(0)
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     })
   }
