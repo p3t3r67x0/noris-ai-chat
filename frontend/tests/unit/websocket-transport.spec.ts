@@ -183,6 +183,9 @@ describe('conversation title metadata', () => {
       titleSource = 'generated'
       first.close()
       await vi.waitFor(() => expect(Socket.instances).toHaveLength(2))
+      // The fake socket is registered in its constructor, before open and the
+      // transport's message listener. A real server event arrives after open.
+      await transport.connect?.()
       Socket.instances.at(-1)!.event({ version: 1, type: 'chat.connected' })
       await vi.waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ titleSource: 'generated', title: 'Docker DNS-Probleme' })))
       expect(fetcher.mock.calls.filter(([path]) => path.endsWith('ws-ticket'))).toHaveLength(2)
