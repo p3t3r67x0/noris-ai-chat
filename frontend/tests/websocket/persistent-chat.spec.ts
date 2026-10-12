@@ -166,6 +166,7 @@ test('manual title, archive, restore and deletion are persisted from the existin
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   const composer = page.getByRole('textbox', { name: 'Nachricht' })
   await composer.fill('Chatverwaltung prüfen')
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await composer.press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   const c = (await (await request.get('/api/v1/conversations')).json()).conversations[0]

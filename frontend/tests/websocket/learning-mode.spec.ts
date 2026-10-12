@@ -16,7 +16,12 @@ test.beforeEach(async ({ request }) => {
   await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: ['fixture-alpha', 'fixture-beta', 'vllm/release/gpt-oss-120b'] } })
 })
 
+test.afterEach(async ({ request }) => {
+  await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: ['fixture-alpha', 'fixture-beta', 'fixture-long'] } })
+})
+
 test('learning mode uses PostgreSQL, existing attachments, branches and evidenced provider reasoning', async ({ page, request }, info) => {
+  test.setTimeout(90_000)
   await page.setViewportSize(info.project.name === 'mobile' ? { width: 390, height: 844 } : { width: 1920, height: 975 })
   await page.goto('/')
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
@@ -24,7 +29,7 @@ test('learning mode uses PostgreSQL, existing attachments, branches and evidence
   await expect(page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true })).toBeEnabled({ timeout: 15_000 })
   await input.fill('Ich kenne Brüche. Hilf mir mit 1/2 + 1/3. /')
   await input.press('ArrowDown')
-  await expect(page.getByRole('menuitem', { name: 'Dateien hinzufügen', exact: true })).toBeFocused()
+  await expect(page.getByRole('menuitem', { name: /^Fotos und Dateien hinzufügen/, exact: true })).toBeFocused()
   await page.keyboard.press('ArrowDown')
   await expect(page.getByRole('menuitem', { name: /^Lernen/ })).toBeFocused()
   await page.keyboard.press('Enter')

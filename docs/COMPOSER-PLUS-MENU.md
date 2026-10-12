@@ -23,6 +23,7 @@ Die Bestandsprüfung fand einen Upload-Eintrag, keine Dateibibliothek, Bilderste
 | Eintrag | Status |
 | --- | --- |
 | Fotos und Dateien hinzufügen | Öffnet den bestehenden nativen Mehrfach-Dateidialog, sobald Backend und Attachment-Limits bereit sind. |
+| Lernen | Aktiviert den persistenten Lernmodus im bestehenden Chat; serverseitige Tutoring-Policy, siehe [Bestandsanalyse](LEARNING-MODE-AUDIT.md). |
 | Aus Bibliothek hinzufügen | Noch nicht verfügbar; deaktiviert. |
 | Bild erstellen | Noch nicht verfügbar; deaktiviert. |
 | Websuche | Noch nicht verfügbar; deaktiviert. |
@@ -34,10 +35,10 @@ Das Plus-Menü ist auch im lokalen Demo-/SSE-Modus erreichbar. Dort erklärt der
 ## Layout, Positionierung und Interaktion
 
 - Hintergrund, Text, Rahmen und Hover verwenden vorhandene `--noris-*`-Theme-Tokens; Nuxt UI liefert den dezenten Schatten. Ein einzelner dünner Rahmen und ein Radius von 1 rem ersetzen die generische Dropdown-Darstellung.
-- Desktop/Tablet: Breite `clamp(700px, 51vw, 880px)`, zusätzlich auf den verfügbaren Viewport begrenzt. Bei 1440 px sind es rund 734 px, bei 1700 px 867 px, bei Tabletbreite 768 px 700 px. Mindestens 48 px hohe Einträge, 20 px große Icons, 15 px große Titel und 14 px große Beschreibungen in einheitlichen Spalten. Es gibt keine zusätzlichen Gruppentrenner oder rechten Statushinweise.
-- Mobile: maximal Viewportbreite abzüglich 24 px und Safe-Area-Inset; mindestens 56 px hohe Einträge, Beschreibung unter dem Titel, Umbruch statt horizontalem Scrollen.
-- Das bestehende Portal zeigt das Menü als Overlay. Eine virtuelle Reka-Referenz verwendet die linke Kante des Plus-Buttons und die obere/untere Kante des tatsächlichen Composers. Dadurch bleibt das Menü auch über einem mehrzeiligen Composer mit Anhängen und bei dessen Größenänderung frei von Überlappungen, soweit Platz vorhanden ist.
-- Reka/Floating UI berücksichtigt den sichtbaren Viewport, 12 px Kollisionsabstand, automatische Verschiebung/Seitenwechsel und die verfügbare Höhe. Der vorhandene Menü-Viewport scrollt bei Platzmangel. Positionen werden während des Öffnens laufend nachgeführt.
+- Desktop/Tablet: Die verbindlichen Lernmodus-Referenzen bestimmen die Breite und linke Kante des tatsächlichen Composers. Einträge sind mindestens 48 px hoch; Titel und direkt anschließende Beschreibungen verwenden 18 px. Aktions- und Denkstufenmenü teilen diese Darstellung.
+- Mobile: maximal Viewportbreite abzüglich 24 px; mindestens 56 px hohe Einträge mit 16 px Text. Beschreibungen umbrechen nach Bedarf, ohne horizontalen Scrollbalken.
+- Das bestehende Portal zeigt dasselbe Menü für Plus und Slash als Overlay. Reka verwendet den tatsächlichen Composer als Referenz. Es gibt keinen zweiten Slash-Composer oder zweiten Aktionsmenü-State.
+- Reka/Floating UI berücksichtigt den sichtbaren Viewport, 12 px Kollisionsabstand, automatische Verschiebung/Seitenwechsel und die verfügbare Höhe. Der vorhandene Menü-Viewport scrollt bei Platzmangel. Positionen werden während des Öffnens laufend nachgeführt. Das Menü ist nicht modal, damit Slash-Eingabe und Fokus im vorhandenen Textfeld möglich bleiben.
 - Klick auf Plus öffnet/schließt, Außenklick und Escape schließen. Die explizite Pointer-Freigabe des geöffneten Plus-Buttons erhält das erneute Anklicken auch im bestehenden modalen Reka-Menü.
 - Geschlossen besitzt Plus eine transparente Fläche. `data-state="open"` des vorhandenen Dropdown-Triggers aktiviert ausschließlich einen 44-px-Kreis aus `--noris-active-background`; es gibt keinen zweiten Active-State. Eine zentrierte CSS-Pseudofläche erhält die bestehende Klickfläche, Button- und Iconposition auch bei größeren Composer-Control-Tokens. Rahmen und Schatten entfallen; Hover und 100-ms-Hintergrundtransition verwenden vorhandene Theme-Tokens. Tastaturfokus bleibt mit 2-px-Outline sichtbar; die bestehende Reduced-Motion-Regel reduziert die Transition.
 - Enter, Leertaste und Pfeil nach unten öffnen per Tastatur. Pfeiltasten, Home und End navigieren durch verfügbare Einträge; deaktivierte Einträge werden übersprungen. Enter/Leertaste aktivieren den nativen Upload und schließen das Menü.
@@ -55,7 +56,14 @@ Beim abschließenden, ausschließlich lesenden Nachtest auf `http://localhost:80
 
 ## Visuelle Referenz und Screenshots
 
-Die genannten ChatGPT- und Noris-Screenshots wurden in dieser Unterhaltung nicht angehängt. Die vorhandene Repository-Referenz `docs/ui-reference/evidence/sanitized/reference-layout-redacted.png` zeigt den Composer, aber kein geöffnetes Plus-Menü. Ein belastbarer Pixelvergleich mit dem Menü-Referenzbild ist deshalb nicht möglich. Das Menü folgt den ausdrücklichen Größen- und Interaktionsvorgaben. Die vor der Korrektur erstellte [Abweichungsliste](ui-reference/plus-menu/DEVIATIONS.md) trennt gemessene Werte von unbekannten Referenzmaßen. Der PR bleibt bis zum Bildvergleich ein Entwurf; eine visuelle Abnahme wird nicht behauptet.
+Für die ursprüngliche Plus-Menü-Korrektur waren keine Menü-Referenzen verfügbar.
+Für den Lernmodus wurden anschließend alle vier verbindlichen ChatGPT-Bilder
+aus dem lokalen Downloads-Ordner gelesen. Ihre Composerbreite, Inline-Beschreibungen,
+kompakte blaue Lernanzeige und Denkstufen-Darstellung bestimmen die aktuelle
+Umsetzung. Vergleich und aktuelle Prüfungsergebnisse stehen im
+[Lernmodus-Prüfbericht](LEARNING-MODE-VALIDATION.md). Die ältere
+[Abweichungsliste](ui-reference/plus-menu/DEVIATIONS.md) dokumentiert den damaligen
+Zwischenstand. Referenzbilder mit Nutzerinhalten werden nicht eingecheckt.
 
 Die sechs [Vorher-Bilder](ui-reference/plus-menu/before/) dokumentieren den lokalen Zwischenstand vor der angeforderten Verbreiterung und Active-State-Korrektur mit synthetischen Gesprächsdaten. Sie sind weder Benutzer-Bildanhänge noch ein Screenshot des unveränderten `main`-Branches.
 

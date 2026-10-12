@@ -27,10 +27,13 @@ const autosize = useComposerAutosize(prompt, text, hasAttachments)
 watch([learning, showReasoning, model], () => nextTick(autosize.resize), { flush: 'post' })
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploadMenu = ref(false)
+const attachmentButton = ref<{ $el: HTMLButtonElement } | null>(null)
 const slashRange = ref<{ start: number, end: number } | null>(null)
 const actionItems = computed(() => composerMenuItems(t, { upload: chooseFiles, learning: activateLearning }, Boolean(props.uploadAvailable), props.uploadUnavailableReason, { learningAvailable: props.learningAvailable !== false && !props.settingsBusy, learningActive: learning.value }))
 function focus(): void { prompt.value?.textareaRef?.focus({ preventScroll: true }) }
 let returnToComposer = false
+let returnToActionTrigger = false
+function menuEscape(): void { returnToActionTrigger = true }
 function removeSlash(): void {
   const range = slashRange.value
   if (range && /^\/(?:lernen|learn)?$/i.test(text.value.slice(range.start, range.end))) {
@@ -73,6 +76,11 @@ function menuKeydown(event: KeyboardEvent): void {
 }
 function menuClosed(event: Event): void {
   if (returnToComposer || slashRange.value) { event.preventDefault(); returnToComposer = false; slashRange.value = null; focus() }
+  else if (returnToActionTrigger || document.activeElement === document.body || document.activeElement?.matches('.chat-main') || document.activeElement?.closest('.composer-action-menu')) {
+    event.preventDefault()
+    void nextTick(() => attachmentButton.value?.$el.focus({ preventScroll: true }))
+  }
+  returnToActionTrigger = false
 }
 function menuFocusOutside(event: Event): void {
   const original = (event as CustomEvent<{ originalEvent: FocusEvent }>).detail?.originalEvent
@@ -146,8 +154,8 @@ defineExpose({ focus })
         </div>
       </template>
       <template #footer>
-        <UDropdownMenu v-model:open="uploadMenu" :items="actionItems" :modal="false" :content="{ side: 'top', align: 'start', ...(container ? { reference: container } : {}), sideOffset: 10, collisionPadding: 12, loop: true, updatePositionStrategy: 'always', onCloseAutoFocus: menuClosed, onFocusOutside: menuFocusOutside }" :ui="{ content: 'composer-plus-menu composer-floating-menu composer-action-menu ring-0', viewport: 'p-0', item: 'composer-plus-menu-item composer-menu-item before:hidden', itemLeadingIcon: 'size-5 text-inherit', itemWrapper: 'composer-menu-copy', itemLabel: 'composer-menu-title', itemDescription: 'composer-menu-description' }">
-          <UButton icon="i-lucide-plus" color="neutral" variant="ghost" class="composer-attachment touch-control" :aria-label="t('composerActions')" :title="t('composerActions')" @click="slashRange = null" />
+        <UDropdownMenu v-model:open="uploadMenu" :items="actionItems" :modal="false" :content="{ side: 'top', align: 'start', ...(container ? { reference: container } : {}), sideOffset: 10, collisionPadding: 12, loop: true, updatePositionStrategy: 'always', onEscapeKeyDown: menuEscape, onCloseAutoFocus: menuClosed, onFocusOutside: menuFocusOutside }" :ui="{ content: 'composer-plus-menu composer-floating-menu composer-action-menu ring-0', viewport: 'p-0', item: 'composer-plus-menu-item composer-menu-item before:hidden', itemLeadingIcon: 'size-5 text-inherit', itemWrapper: 'composer-menu-copy', itemLabel: 'composer-menu-title', itemDescription: 'composer-menu-description' }">
+          <UButton ref="attachmentButton" icon="i-lucide-plus" color="neutral" variant="ghost" class="composer-attachment touch-control" :aria-label="t('composerActions')" :title="t('composerActions')" @click="slashRange = null" />
         </UDropdownMenu>
         <div class="composer-model-controls">
           <ChatModelMenu v-model="model" :busy="busy || settingsBusy" compact :label="t('composerModel')" />

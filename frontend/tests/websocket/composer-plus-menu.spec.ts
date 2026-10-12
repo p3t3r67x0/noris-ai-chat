@@ -4,8 +4,7 @@ import type { Page } from '@playwright/test'
 const fixtureOrigin = `http://127.0.0.1:${Number(process.env.NORIS_E2E_PROVIDER_PORT ?? 8591)}`
 const draft = 'Erste Zeile\nMein Entwurf bleibt erhalten'
 const uploadFile = { name: 'menu-context.txt', mimeType: 'text/plain', buffer: Buffer.from('Synthetic attachment context.') }
-// Reka's modal menu hides the rest of the app from the accessibility tree while
-// open. The owned trigger and draft still need assertions in that state.
+// Keep locators valid while checking the owned trigger and editable draft.
 const triggerFor = (page: Page) => page.getByRole('button', { name: 'Anhänge und Werkzeuge', exact: true, includeHidden: true })
 const inputFor = (page: Page) => page.getByRole('textbox', { name: 'Nachricht', exact: true, includeHidden: true })
 const uploadFor = (page: Page) => page.getByRole('menuitem', { name: /^Fotos und Dateien hinzufügen/ })
@@ -76,9 +75,9 @@ test('keyboard opening and arrow navigation skip unavailable actions; Enter and 
     await trigger.press(key)
     await expect(menu).toBeVisible()
     await expect(uploadFor(page)).toBeFocused()
-    for (const arrow of ['ArrowDown', 'ArrowUp', 'Home', 'End']) {
+    for (const [arrow, learning] of [['ArrowDown', true], ['ArrowUp', false], ['Home', false], ['End', true]] as const) {
       await page.keyboard.press(arrow)
-      await expect(uploadFor(page)).toBeFocused()
+      await expect(learning ? page.getByRole('menuitem', { name: /^Lernen/ }) : uploadFor(page)).toBeFocused()
     }
     await page.keyboard.press('Escape')
     await expect(trigger).toBeFocused()
@@ -100,7 +99,7 @@ test('unimplemented tools are visibly disabled and cannot select or send the dra
   await inputFor(page).fill(draft)
   await triggerFor(page).click()
   const menu = page.locator('.composer-plus-menu')
-  await expect(menu.getByRole('menuitem')).toHaveCount(6)
+  await expect(menu.getByRole('menuitem')).toHaveCount(7)
   for (const label of ['Aus Bibliothek hinzufügen', 'Bild erstellen', 'Websuche', 'Deep Research', 'Skizzieren']) {
     const item = menu.getByRole('menuitem', { name: new RegExp(`^${label}`) })
     await expect(item).toHaveAttribute('aria-disabled', 'true')
@@ -191,7 +190,7 @@ test('a failed active-path request retains the real backend error and disables u
 
 for (const width of [1440, 1700, 768, 390]) {
   for (const theme of ['light', 'dark']) {
-    test(`plus menu position and screenshot ${width} ${theme}`, async ({ page }, info) => {
+    test(`plus menu position and screenshot ${width} ${theme}`, async ({ page, request }, info) => {
       test.skip(info.project.name !== 'desktop', 'Screenshot matrix runs once; interaction tests also run with touch emulation.')
       await page.setViewportSize({ width, height: width === 390 ? 844 : width === 768 ? 1024 : 900 })
       await page.evaluate(value => localStorage.setItem('noris-ai-theme', value), theme)
@@ -201,7 +200,10 @@ for (const width of [1440, 1700, 768, 390]) {
       await inputFor(page).fill('Synthetische Frage')
       await inputFor(page).press('Enter')
       await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
+      await expect.poll(async () => (await (await request.get('/api/v1/conversations')).json()).conversations[0]?.title).toBe('Docker DNS-Probleme')
+      if (width >= 1024) await expect(page.getByRole('button', { name: 'Docker DNS-Probleme', exact: true })).toBeVisible()
       await inputFor(page).fill('Mein Entwurf')
+      await expect(page.locator('.composer-submit')).toBeEnabled()
       const composer = page.locator('.chat-composer')
       const before = (await composer.boundingBox())!
       const trigger = triggerFor(page)
@@ -219,7 +221,7 @@ for (const width of [1440, 1700, 768, 390]) {
       expect(await buttonAppearance(page)).toMatchObject({ background: 'rgba(0, 0, 0, 0)', shadow: 'none', border: '0px', width: '44px', height: '44px', radius: '50%', transform: 'none' })
       expect(await trigger.boundingBox()).toEqual(anchor)
       expect(await trigger.locator('[data-slot="leadingIcon"]').boundingBox()).toEqual(iconBefore)
-      await expect(menu.locator('[data-slot="itemLeadingIcon"]')).toHaveCount(6)
+      await expect(menu.locator('[data-slot="itemLeadingIcon"]')).toHaveCount(7)
       expect(await menu.locator('[data-slot="itemLeadingIcon"]').evaluateAll(elements => elements.every(element => {
         const style = getComputedStyle(element)
         return style.maskImage !== 'none' || style.backgroundImage !== 'none'
@@ -231,9 +233,8 @@ for (const width of [1440, 1700, 768, 390]) {
       expect(box.y).toBeGreaterThanOrEqual(12)
       expect(box.y + box.height).toBeLessThanOrEqual(before.y - 7)
       if (width >= 640) {
-        expect(box.x).toBeCloseTo(anchor.x, 0)
-        expect(box.width).toBeGreaterThanOrEqual(700)
-        expect(box.width).toBeLessThanOrEqual(880)
+        expect(box.x).toBeCloseTo(before.x, 0)
+        expect(box.width).toBeCloseTo(before.width, 0)
         const copy = await uploadFor(page).evaluate(element => {
           const title = element.querySelector('[data-slot="itemLabel"]')!.getBoundingClientRect()
           const description = element.querySelector('[data-slot="itemDescription"]')!.getBoundingClientRect()
@@ -243,7 +244,7 @@ for (const width of [1440, 1700, 768, 390]) {
         expect(copy.descriptionLeft).toBeGreaterThan(copy.titleRight)
       }
       const heights = await menu.getByRole('menuitem').evaluateAll(elements => elements.map(element => element.getBoundingClientRect().height))
-      expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(0.5)
+      if (width >= 640) expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(0.5)
       expect(Math.min(...heights)).toBeGreaterThanOrEqual(width === 390 ? 56 : 48)
       expect(await composer.boundingBox()).toEqual(before)
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)

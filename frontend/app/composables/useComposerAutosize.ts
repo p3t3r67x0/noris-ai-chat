@@ -7,7 +7,7 @@ export function useComposerAutosize(prompt: Ref<{ textareaRef: HTMLTextAreaEleme
   const expanded = ref(false)
   const maximized = ref(false)
   let observer: ResizeObserver | undefined
-  let lastWidth = -1
+  const widths = new WeakMap<Element, number>()
   let mirror: HTMLTextAreaElement | undefined
   function fit(): void {
     const input = prompt.value?.textareaRef
@@ -36,7 +36,11 @@ export function useComposerAutosize(prompt: Ref<{ textareaRef: HTMLTextAreaEleme
     mirror.style.width = `${Math.max(1, compactWidth - (expanded.value ? 8 : 0))}px`
     mirror.value = input.value
     const wrapped = mirror.scrollHeight > Math.ceil(Number.parseFloat(style.lineHeight)) + 1
-    const next = hasAttachments.value || wrapped
+    // Reserve a readable empty input when reasoning adds another control.
+    // Use a stable width threshold while the hint is being repainted.
+    const hintNeedsRow = !input.value && root.querySelector('.composer-reasoning') !== null
+      && compactWidth < Number.parseFloat(style.fontSize) * 8
+    const next = hasAttachments.value || wrapped || hintNeedsRow
     if (expanded.value !== next) {
       expanded.value = next
       void nextTick(fit)
@@ -57,11 +61,17 @@ export function useComposerAutosize(prompt: Ref<{ textareaRef: HTMLTextAreaEleme
     }
     resize()
     observer = new ResizeObserver(entries => {
-      const width = entries[0]?.contentRect.width ?? 0
-      if (width !== lastWidth) { lastWidth = width; resize() }
+      let changed = false
+      for (const entry of entries) {
+        const width = entry.contentRect.width
+        if (widths.get(entry.target) !== width) { widths.set(entry.target, width); changed = true }
+      }
+      if (changed) resize()
     })
     const root = input?.closest('.chat-composer')
     if (root) observer.observe(root)
+    const controls = root?.querySelector('.composer-model-controls')
+    if (controls) observer.observe(controls)
     window.addEventListener('resize', resize)
     window.visualViewport?.addEventListener('resize', resize)
     void document.fonts?.ready.then(resize)

@@ -36,3 +36,19 @@ Ein laufender Stream behält seinen zu Beginn erfassten Modus. Ein ausdrücklich
 Moduswechsel gilt ab der nächsten Antwort. Speicherung verwendet die vorhandene
 Versionsprüfung und Warteschlange. Fehlgeschlagene Speicherung wird angezeigt
 und blockiert das Senden, bis der tatsächliche Serverzustand wiederhergestellt ist.
+
+## Integration des inzwischen aktualisierten main-Branches
+
+Während der Umsetzung wurde die Plus-Menü-Korrektur (#50) mit ihrem zentralen
+`composerMenuItems`-Builder auf `main` zusammengeführt. Der Lernmodus-Branch
+wurde anschließend auf diesen Stand gesetzt. Lernen wird als zweite Aktion in
+diesem Builder registriert. Upload und alle fünf bislang deaktivierten Werkzeuge
+bleiben erhalten; es gibt weiterhin nur ein Plus-/Slash-Dropdown. Auch die
+Upload-Fehlermeldungen, die Übernahme des ersten Attachment-Entwurfs und der
+aktive Plus-Kreis aus dieser Korrektur bleiben erhalten.
+
+Die nun verfügbaren verbindlichen Referenzen bestimmen die weitere Gestaltung:
+Das Aktionsmenü erhält die Breite und linke Kante des Composers sowie kompakte
+Zeilen mit direkt anschließender Beschreibung. Bereits vorhandene Menütests
+prüfen diese Geometrie und die zusätzliche verfügbare Lernaktion. Die Policy-
+und Datenbankarchitektur aus der ursprünglichen Analyse bleibt unverändert.
