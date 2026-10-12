@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import Connection, create_engine, func, inspect, select
+from sqlalchemy import Connection, create_engine, func, insert, inspect, select, update
 from sqlalchemy.orm import Session
 
 from noris_ai.chat.models import (
@@ -35,7 +35,13 @@ LEGACY_TABLES = (
 
 def legacy_rows(connection: Connection) -> list[list[tuple[object, ...]]]:
     return [
-        [tuple(row) for row in connection.execute(select(table)).all()] for table in LEGACY_TABLES
+        [
+            tuple(row)
+            for row in connection.execute(
+                select(*(column for column in table.c if column.name != "pinned_at"))
+            ).all()
+        ]
+        for table in LEGACY_TABLES
     ]
 
 
@@ -47,17 +53,19 @@ def test_tool_upgrade_repeat_drift_and_rollback_preserve_legacy_data(
     owner, conversation, message, generation = uuid4(), uuid4(), uuid4(), uuid4()
     try:
         with Session(engine) as session, session.begin():
-            chat = ChatConversation(
-                id=conversation,
-                owner_id=owner,
-                title="Preserved generated title",
-                title_source="generated",
-                title_generation_claimed_at=datetime.now(UTC),
-                conversation_mode="learning",
-                reasoning_preference="high",
-                version=7,
+            # Seed the historical schema without inserting newer ORM columns.
+            session.execute(
+                insert(ChatConversation).values(
+                    id=conversation,
+                    owner_id=owner,
+                    title="Preserved generated title",
+                    title_source="generated",
+                    title_generation_claimed_at=datetime.now(UTC),
+                    conversation_mode="learning",
+                    reasoning_preference="high",
+                    version=7,
+                )
             )
-            session.add(chat)
             session.flush()
             session.add(
                 ChatMessage(
@@ -69,7 +77,11 @@ def test_tool_upgrade_repeat_drift_and_rollback_preserve_legacy_data(
                 )
             )
             session.flush()
-            chat.active_leaf_message_id = message
+            session.execute(
+                update(ChatConversation)
+                .where(ChatConversation.id == conversation)
+                .values(active_leaf_message_id=message)
+            )
             session.add(
                 ChatGeneration(
                     id=generation,

@@ -101,6 +101,9 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 .touch-control { min-width: 2.75rem; min-height: 2.75rem; }
 .chat-workspace { position: fixed; top: var(--chat-viewport-offset, 0); inset-inline: 0; display: flex; height: 100vh; height: var(--chat-viewport-height, 100dvh); overflow: hidden; container-type: size; }
 .chat-rail { display: none; }
+/* Slot content and icon-only Nuxt UI buttons share one rail geometry. */
+.chat-rail button { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 2.75rem; height: 2.75rem; padding: 0; gap: 0; margin-inline: 0; }
+.chat-rail button > .iconify { width: 1.25rem; height: 1.25rem; flex: none; }
 .chat-sidebar-container { display: contents; }
 .settings-workspace { display: grid; grid-template-columns: var(--noris-rail-width) var(--noris-settings-sidebar-width) minmax(0, 1fr); }
 .settings-layout { display: contents; }
@@ -272,11 +275,26 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 .code-block pre { margin: 0; padding: 1rem; max-width: 100%; font: var(--noris-code-font-size)/var(--noris-code-line-height) ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .code-block[data-wrap="false"] pre { overflow-x: auto; white-space: pre; overflow-wrap: normal; }
 .dark .syntax-token { color: var(--shiki-dark) !important; }
-.conversation-row { display: flex; align-items: center; gap: 0.125rem; min-height: 3rem; border-radius: 0.75rem; }
+.conversation-row { position: relative; display: flex; align-items: center; gap: 0.125rem; min-height: 3rem; border-radius: 0.75rem; }
 .conversation-row:hover { background: var(--noris-hover-background); }
 .conversation-row[data-active="true"] { background: var(--noris-active-background); }
-.conversation-row > button:first-child { flex: 1; min-width: 0; padding: 0.65rem 0.75rem; min-height: 2.75rem; border-radius: inherit; text-align: left; font-size: var(--noris-sidebar-font-size); }
-.conversation-row > button:first-child span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conversation-row > button:first-child { display: flex; align-items: center; flex: 1; min-width: 0; padding: 0.65rem 0.75rem; min-height: 2.75rem; border-radius: inherit; text-align: left; font-size: var(--noris-sidebar-font-size); }
+.conversation-row > button:first-child span { display: block; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conversation-actions { position: absolute; inset-inline-end: 0.25rem; top: 0; bottom: 0; display: flex; align-items: center; gap: 0.125rem; visibility: hidden; opacity: 0; }
+.conversation-row:is(:hover, :focus-within, [data-menu-open="true"]) .conversation-actions { visibility: visible; opacity: 1; }
+.conversation-row:is(:hover, :focus-within, [data-menu-open="true"]) > button:first-child { padding-inline-end: 4.5rem; }
+.conversation-actions button { display: inline-flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; padding: 0; border-radius: 0.5rem; background: transparent; }
+.conversation-actions button:hover, .conversation-actions button[data-state="open"] { background: var(--noris-active-background); }
+.conversation-actions .iconify { width: 1rem; height: 1rem; }
+.conversation-menu { width: 13rem; max-width: calc(100vw - 1rem); padding: 0.25rem; border: 1px solid var(--noris-border); border-radius: 0.875rem; background: var(--noris-background); box-shadow: 0 8px 24px #00000020; }
+.conversation-menu-item { min-height: 2.25rem; padding: 0.5rem 0.625rem; gap: 0.625rem; border-radius: 0.5rem; font-size: 0.875rem; }
+.conversation-menu-item[data-highlighted] { background: var(--noris-hover-background); }
+@media (hover: none), (pointer: coarse) {
+  .conversation-actions { position: static; visibility: visible; opacity: 1; flex: none; padding-inline-end: 0.25rem; }
+  .conversation-actions button { width: 2.75rem; height: 2.75rem; }
+  .conversation-menu-item { min-height: 2.75rem; }
+  .conversation-row:is(:hover, :focus-within, [data-menu-open="true"]) > button:first-child { padding-inline-end: 0.75rem; }
+}
 .status-page { max-width: 40rem; margin: 8vh auto; padding: 2rem; }
 .status-page h1 { font-size: 2rem; font-weight: 600; }
 .service-status { margin-top: 2rem; }
@@ -285,7 +303,7 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 @media (min-width: 1024px) {
   :root { --noris-rail-width: clamp(3.5rem, 3.54167vw, 4.25rem); }
   .chat-rail { display: flex; flex-shrink: 0; flex-direction: column; align-items: center; gap: 1.5rem; width: var(--noris-rail-width); padding: 0.625rem 0 0.75rem; z-index: 11; background: var(--noris-rail-background); }
-  .rail-home { width: 3rem; height: 3rem; background: var(--noris-active-background); border-radius: 0.875rem; }
+  .rail-home { background: var(--noris-active-background); border-radius: 0.875rem; }
   .rail-mark { font-size: 1.5rem; font-weight: 700; line-height: 1; }
   .conversation-sidebar > [data-slot="container"] { inset-inline-start: var(--noris-rail-width); }
   .conversation-sidebar > [data-slot="container"][data-state="collapsed"] { inset-inline-start: calc(var(--noris-rail-width) - var(--noris-sidebar-width)); }

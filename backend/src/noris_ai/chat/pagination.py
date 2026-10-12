@@ -37,8 +37,12 @@ async def conversation_page(
     archived: bool,
     archive_only: bool,
     query: str,
+    pinned: bool | None = None,
 ) -> tuple[Sequence[ChatConversation], str | None]:
     scope = f"conversations:{owner}:{archived}:{archive_only}:{query}"
+    if pinned is not None:
+        scope += f":pinned={pinned}"
+    sort_time = ChatConversation.pinned_at if pinned else ChatConversation.updated_at
     stmt = select(ChatConversation).where(
         ChatConversation.owner_id == owner,
         ChatConversation.deleted_at.is_(None),
@@ -47,6 +51,12 @@ async def conversation_page(
         stmt = stmt.where(ChatConversation.archived_at.is_not(None))
     elif not archived:
         stmt = stmt.where(ChatConversation.archived_at.is_(None))
+    if pinned is True:
+        stmt = stmt.where(
+            ChatConversation.pinned_at.is_not(None), ChatConversation.archived_at.is_(None)
+        )
+    elif pinned is False:
+        stmt = stmt.where(ChatConversation.pinned_at.is_(None))
     if query:
         escaped = query.lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         stmt = stmt.where(func.lower(ChatConversation.title).like(f"%{escaped}%", escape="\\"))
@@ -54,15 +64,12 @@ async def conversation_page(
         seek = Cursor.decode(cursor, scope)
         if seek.timestamp is None or seek.leaf is not None or seek.revision is not None:
             raise ChatError("INVALID_CURSOR", 422)
-        stmt = stmt.where(
-            tuple_(ChatConversation.updated_at, ChatConversation.id)
-            < tuple_(seek.timestamp, seek.id)
-        )
+        stmt = stmt.where(tuple_(sort_time, ChatConversation.id) < tuple_(seek.timestamp, seek.id))
     rows = list(
         (
             await session.scalars(
                 stmt.order_by(
-                    ChatConversation.updated_at.desc(),
+                    sort_time.desc(),
                     ChatConversation.id.desc(),
                 ).limit(limit + 1)
             )
@@ -71,7 +78,11 @@ async def conversation_page(
     more = len(rows) > limit
     rows = rows[:limit]
     after = (
-        Cursor(scope=scope, id=rows[-1].id, timestamp=rows[-1].updated_at).encode()
+        Cursor(
+            scope=scope,
+            id=rows[-1].id,
+            timestamp=rows[-1].pinned_at if pinned else rows[-1].updated_at,
+        ).encode()
         if more
         else None
     )

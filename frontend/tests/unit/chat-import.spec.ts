@@ -10,7 +10,7 @@ const id = '00000000-0000-4000-8000-000000000001'
 const user = '00000000-0000-4000-8000-000000000002'
 const reply = '00000000-0000-4000-8000-000000000003'
 const time = '2026-10-10T00:00:00Z'
-const raw = JSON.stringify({ version: 1, conversations: { version: 1, activeConversationId: id, conversations: { [id]: { id, title: 'Synthetischer Import', titleSource: 'manual', titleGenerationAttempted: true, createdAt: time, updatedAt: time, archivedAt: null, activeLeafMessageId: reply } } }, messages: {
+const raw = JSON.stringify({ version: 1, conversations: { version: 1, activeConversationId: id, conversations: { [id]: { id, title: 'Synthetischer Import', titleSource: 'manual', titleGenerationAttempted: true, createdAt: time, updatedAt: time, archivedAt: null, pinnedAt: time, activeLeafMessageId: reply } } }, messages: {
   [user]: { id: user, conversationId: id, parentMessageId: null, role: 'user', content: 'Synthetische Frage', status: 'completed', createdAt: time },
   [reply]: { id: reply, conversationId: id, parentMessageId: user, role: 'assistant', content: 'Unvollständige Antwort', status: 'streaming', createdAt: time },
 }, drafts: { [id]: 'Synthetischer Entwurf' }, preferredLeaves: { [user]: reply } })
@@ -38,6 +38,7 @@ describe('existing browser snapshot import', () => {
     await sync.importLocalChats()
     expect(request).toHaveBeenCalledExactlyOnceWith('/conversations/import', 'POST', expect.objectContaining({
       drafts: { [id]: 'Synthetischer Entwurf' }, activeConversationId: id,
+      conversations: expect.arrayContaining([expect.objectContaining({ id, pinnedAt: time })]),
       messages: expect.arrayContaining([expect.objectContaining({ id: reply, status: 'cancelled' })]),
     }))
     expect(load).toHaveBeenCalledTimes(2)

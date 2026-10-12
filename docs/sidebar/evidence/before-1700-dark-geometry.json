@@ -1,0 +1,34 @@
+[
+  {
+    "label": "Noris Home – neuer Chat",
+    "buttonCenter": 30.09375,
+    "childCenter": 23.4296875,
+    "width": 48,
+    "padding": "6px 10px",
+    "justify": "normal"
+  },
+  {
+    "label": "Chats suchen",
+    "buttonCenter": 30.09375,
+    "childCenter": 24.09375,
+    "width": 44,
+    "padding": "6px",
+    "justify": "normal"
+  },
+  {
+    "label": "Archivierte Chats",
+    "buttonCenter": 30.09375,
+    "childCenter": 24.09375,
+    "width": 44,
+    "padding": "6px",
+    "justify": "normal"
+  },
+  {
+    "label": "Lokaler Arbeitsbereich",
+    "buttonCenter": 30.09375,
+    "childCenter": 30.09375,
+    "width": 48,
+    "padding": "6px 10px",
+    "justify": "normal"
+  }
+]

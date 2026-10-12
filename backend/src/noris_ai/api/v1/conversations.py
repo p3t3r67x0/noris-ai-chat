@@ -69,6 +69,7 @@ async def list_conversations(
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     cursor: Annotated[str | None, Query(max_length=2048)] = None,
     q: Annotated[str, Query(max_length=200)] = "",
+    pinned: bool | None = None,
 ) -> ConversationListResponse:
     service, owner_id = access
     return await service.conversation_page(
@@ -78,6 +79,7 @@ async def list_conversations(
         include_archived=archived,
         archive_only=archiveOnly,
         query=q.strip(),
+        pinned=pinned,
     )
 
 
@@ -159,9 +161,26 @@ async def update_conversation(
         )
         return conversation
     if "archived" in fields and payload.archived is not None:
-        return await service.set_archived(
+        conversation = await service.set_archived(
             owner_id, conversation_id, payload.archived, payload.version
         )
+    elif "pinned" in fields and payload.pinned is not None:
+        conversation = conversation_response(
+            await service.repository.update_conversation(
+                owner_id, conversation_id, expected_version=payload.version, pinned=payload.pinned
+            )
+        )
+    else:
+        conversation = None
+    if conversation is not None:
+        cast(GenerationManager, request.app.state.chat_generations).broadcast(
+            {
+                "version": 1,
+                "type": "chat.conversation.updated",
+                "conversation": conversation.model_dump(mode="json"),
+            }
+        )
+        return conversation
     if "activeLeafMessageId" in fields and payload.activeLeafMessageId is not None:
         return await service.set_active_leaf(
             owner_id, conversation_id, payload.activeLeafMessageId, payload.version
@@ -184,7 +203,15 @@ async def delete_conversation(
     await cast(GenerationManager, request.app.state.chat_generations).cancel_conversation(
         conversation_id
     )
-    await service.delete_conversation(owner_id, conversation_id)
+    version = await service.delete_conversation(owner_id, conversation_id)
+    cast(GenerationManager, request.app.state.chat_generations).broadcast(
+        {
+            "version": 1,
+            "type": "chat.conversation.deleted",
+            "conversationId": str(conversation_id),
+            "conversationVersion": version,
+        }
+    )
     await cast(AttachmentService, request.app.state.chat_attachments).cleanup()
 
 

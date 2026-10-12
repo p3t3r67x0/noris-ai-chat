@@ -36,6 +36,11 @@ export function createConversationState(dependencies: ConversationDependencies =
     if (conversation) { conversation.title = normalizeTitle(title); conversation.titleSource = 'manual'; conversation.titleGenerationAttempted = true }
   }
 
+  function setPinned(conversationId: string, pinned: boolean): void {
+    const conversation = get(conversationId)
+    if (conversation) conversation.pinnedAt = pinned ? conversation.pinnedAt ?? now() : null
+  }
+
   function fitTitle(conversationId: string, expected: string, title: string): void {
     const conversation = get(conversationId)
     if (conversation && conversation.titleSource !== 'manual' && conversation.title === expected && (validGeneratedTitle(title) || title === FALLBACK_TITLE)) {
@@ -72,7 +77,7 @@ export function createConversationState(dependencies: ConversationDependencies =
     activeId.value = value.activeConversationId
   }
 
-  return { records, activeId, active, visible, archived, select, create, rename, fitTitle, archive, restore, remove, snapshot, hydrate }
+  return { records, activeId, active, visible, archived, select, create, rename, setPinned, fitTitle, archive, restore, remove, snapshot, hydrate }
 }
 
 export function useConversations() {

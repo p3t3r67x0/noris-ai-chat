@@ -6,6 +6,7 @@ export type Conversationmode = ("normal" | "learning")
 export type Createdat = string
 export type Id = string
 export type Lastmessageat = (string | null)
+export type Pinnedat = (string | null)
 export type ReasoningPreference = ("instant" | "medium" | "high" | "very_high" | "pro")
 export type Title = string
 export type Titlesource = ("fallback" | "generated" | "manual")
@@ -65,6 +66,7 @@ export type Archivedat1 = (string | null)
 export type Conversationmode1 = ("normal" | "learning")
 export type Createdat3 = string
 export type Id3 = string
+export type Pinnedat1 = (string | null)
 export type Title1 = string
 export type Titlesource1 = ("fallback" | "generated" | "manual")
 export type Updatedat2 = string
@@ -135,6 +137,7 @@ export type Title3 = string
 export type Activeleafmessageid2 = (string | null)
 export type Archived = (boolean | null)
 export type Conversationmode3 = (("normal" | "learning") | null)
+export type Pinned = (boolean | null)
 export type Title4 = (string | null)
 export type Version2 = number
 export type Delta = string
@@ -309,6 +312,7 @@ export interface ConversationResponse {
   createdAt: Createdat
   id: Id
   lastMessageAt: Lastmessageat
+  pinnedAt?: Pinnedat
   reasoningPreference?: (ReasoningPreference | null)
   title: Title
   titleSource: Titlesource
@@ -385,6 +389,7 @@ export interface ImportConversation {
   conversationMode?: Conversationmode1
   createdAt: Createdat3
   id: Id3
+  pinnedAt?: Pinnedat1
   reasoningPreference?: (ReasoningPreference | null)
   title: Title1
   titleSource: Titlesource1
@@ -473,6 +478,7 @@ export interface ConversationUpdate {
   activeLeafMessageId?: Activeleafmessageid2
   archived?: Archived
   conversationMode?: Conversationmode3
+  pinned?: Pinned
   reasoningPreference?: (ReasoningPreference | null)
   title?: Title4
   version: Version2
@@ -840,6 +846,7 @@ export interface ApiPaths {
           "limit"?: number
           "cursor"?: string | null
           "q"?: string
+          "pinned"?: boolean | null
         }
       }
       responses: {

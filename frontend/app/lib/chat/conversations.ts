@@ -12,6 +12,7 @@ export interface Conversation {
   createdAt: string
   updatedAt: string
   archivedAt: string | null
+  pinnedAt?: string | null
   activeLeafMessageId: string | null
   conversationMode?: ConversationMode
   reasoningPreference?: ReasoningPreference | null
@@ -50,6 +51,7 @@ function isConversation(value: unknown): value is Conversation {
     && (value.titleGenerationAttempted === undefined || typeof value.titleGenerationAttempted === 'boolean')
     && isDate(value.createdAt) && isDate(value.updatedAt)
     && (value.archivedAt === null || isDate(value.archivedAt))
+    && (value.pinnedAt === undefined || value.pinnedAt === null || isDate(value.pinnedAt))
     && (value.activeLeafMessageId === null || typeof value.activeLeafMessageId === 'string')
     && (value.conversationMode === undefined || value.conversationMode === 'normal' || value.conversationMode === 'learning')
     && (value.reasoningPreference === undefined || value.reasoningPreference === null || isReasoningPreference(value.reasoningPreference))
@@ -89,18 +91,25 @@ export function compareConversations(a: Conversation, b: Conversation): number {
     || b.id.localeCompare(a.id)
 }
 
+export function comparePinnedConversations(a: Conversation, b: Conversation): number {
+  return compareConversations({ ...a, updatedAt: a.pinnedAt! }, { ...b, updatedAt: b.pinnedAt! })
+}
+
 export function groupConversations(conversations: readonly Conversation[], now = new Date()): ConversationGroup[] {
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
   const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).getTime()
   const week = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7).getTime()
   const groups: ConversationGroup[] = [
+    { label: 'Fixierte Chats', conversations: [] },
     { label: 'Heute', conversations: [] }, { label: 'Gestern', conversations: [] },
     { label: 'Letzte 7 Tage', conversations: [] }, { label: 'Älter', conversations: [] },
   ]
-  for (const conversation of [...conversations].sort(compareConversations)) {
+  for (const conversation of [...new Map(conversations.map(c => [c.id, c])).values()].filter(c => !c.archivedAt).sort(compareConversations)) {
+    if (conversation.pinnedAt) { groups[0]!.conversations.push(conversation); continue }
     const time = Date.parse(conversation.updatedAt)
     const index = time >= start ? 0 : time >= yesterday ? 1 : time >= week ? 2 : 3
-    groups[index]?.conversations.push(conversation)
+    groups[index + 1]?.conversations.push(conversation)
   }
+  groups[0]!.conversations.sort(comparePinnedConversations)
   return groups.filter(group => group.conversations.length > 0)
 }

@@ -97,4 +97,74 @@ describe('authoritative sidebar title synchronization', () => {
     expect(state.conversations.records.value[initial.id]).toMatchObject(manual)
     expect(backend.versions.get(initial.id)).toBe(4)
   })
+
+  it('keeps an old pin outside regular pagination, and moves it once on a versioned unpin', async () => {
+    const { state, backend, sync, socket } = await fixture()
+    const old = { ...manual, id: '00000000-0000-4000-8000-000000000999', updatedAt: '2020-01-01T00:00:00Z', pinnedAt: '2026-10-12T12:00:00Z', version: 5 }
+    socket.event({ version: 1, type: 'chat.conversation.updated', conversation: old })
+    await vi.waitFor(() => expect(sync.pagination.conversations.value.filter(c => c.id === old.id)).toHaveLength(1))
+    const unpinned = { ...old, pinnedAt: null, version: 6 }
+    backend.remember(unpinned)
+    backend.remember(old)
+    expect(state.conversations.records.value[old.id]?.pinnedAt).toBeNull()
+    expect(sync.pagination.conversations.value.filter(c => c.id === old.id)).toHaveLength(1)
+    expect(state.conversations.activeId.value).toBeNull()
+    backend.forget(old.id, 7)
+    backend.remember(unpinned)
+    expect(sync.pagination.conversations.value.some(c => c.id === old.id)).toBe(false)
+  })
+
+  it('persists direct pin and unpin through the existing versioned resource client', async () => {
+    const { state, backend, sync } = await fixture()
+    vi.spyOn(backend, 'patch').mockImplementation(async (id, change) => {
+      backend.remember({ ...manual, id, pinnedAt: change.pinned ? '2026-10-12T12:00:00Z' : null, version: (backend.versions.get(id) ?? 0) + 1 })
+    })
+    await state.conversations.setPinned(initial.id, true)
+    expect(sync.pagination.conversations.value[0]?.pinnedAt).toBeTruthy()
+    await state.conversations.setPinned(initial.id, false)
+    expect(sync.pagination.conversations.value[0]?.pinnedAt).toBeNull()
+    expect(backend.patch).toHaveBeenNthCalledWith(1, initial.id, { pinned: true })
+    expect(backend.patch).toHaveBeenNthCalledWith(2, initial.id, { pinned: false })
+  })
+
+  it('ignores a stale pinned-page response after a newer unpin event', async () => {
+    const { state, backend, sync } = await fixture()
+    const pinned = { ...manual, pinnedAt: '2026-10-12T12:00:00Z', version: 5 }
+    backend.remember(pinned)
+    let release!: (value: ApiSchemas['ConversationListResponse']) => void
+    vi.spyOn(backend, 'page').mockReturnValue(new Promise(resolve => { release = resolve }))
+    const loading = sync.pagination.reloadPinned()
+    backend.remember({ ...pinned, pinnedAt: null, version: 6 })
+    release({ conversations: [pinned], nextCursor: null, hasMore: false })
+    await loading
+    expect(state.conversations.records.value[initial.id]?.pinnedAt).toBeNull()
+    expect(sync.pagination.conversations.value.filter(c => c.id === initial.id)).toHaveLength(1)
+  })
+
+  it('discovers additional pinned pages after reconnecting a formerly complete list', async () => {
+    const { backend, sync } = await fixture()
+    expect(sync.pagination.hasMorePinned.value).toBe(false)
+    const pin = { ...manual, id: 'synthetic-old-pin', pinnedAt: '2026-10-12T12:00:00Z' }
+    const older = { ...pin, id: 'synthetic-older-pin', pinnedAt: '2026-10-11T12:00:00Z' }
+    vi.spyOn(backend, 'page').mockImplementation(async (options) => options?.pinned === 'true'
+      ? options.cursor
+        ? { conversations: [older], nextCursor: null, hasMore: false }
+        : { conversations: [pin], nextCursor: 'synthetic-pin-seek', hasMore: true }
+      : { conversations: [initial], nextCursor: null, hasMore: false })
+    await backend.refreshMetadata()
+    expect(sync.pagination.hasMorePinned.value).toBe(true)
+    await sync.pagination.loadMorePinned()
+    expect(backend.page).toHaveBeenLastCalledWith({ pinned: 'true', cursor: 'synthetic-pin-seek' })
+    expect(sync.pagination.conversations.value.filter(c => c.pinnedAt)).toHaveLength(2)
+    expect(sync.pagination.hasMorePinned.value).toBe(false)
+  })
+
+  it('bounds the pinned window independently from normal pagination and metadata', async () => {
+    const { state, backend, sync } = await fixture()
+    for (let index = 0; index < 650; index++) backend.remember({ ...manual, id: `synthetic-pin-${index}`, pinnedAt: '2026-10-12T12:00:00Z' })
+    expect(sync.pagination.pinnedWindowedList.value).toBe(true)
+    expect(sync.pagination.conversations.value.filter(c => c.pinnedAt)).toHaveLength(500)
+    expect(sync.pagination.conversations.value.some(c => c.id === initial.id)).toBe(true)
+    expect(Object.keys(state.conversations.records.value).length).toBeLessThanOrEqual(600)
+  }, 15_000)
 })

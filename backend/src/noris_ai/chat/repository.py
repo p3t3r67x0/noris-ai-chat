@@ -82,6 +82,7 @@ class ChatRepository:
                         and existing.title_source == c.titleSource
                         and existing.active_leaf_message_id == c.activeLeafMessageId
                         and existing.archived_at == c.archivedAt
+                        and existing.pinned_at == c.pinnedAt
                         and existing.conversation_mode == c.conversationMode
                         and existing.reasoning_preference == c.reasoningPreference
                         and len(rows) == len(tree)
@@ -127,6 +128,7 @@ class ChatRepository:
                     created_at=c.createdAt,
                     updated_at=c.updatedAt,
                     archived_at=c.archivedAt,
+                    pinned_at=c.pinnedAt,
                     version=1,
                 )
                 session.add(conversation)
@@ -242,6 +244,7 @@ class ChatRepository:
         title: str | None = None,
         title_source: TitleSource | None = None,
         archived: bool | None = None,
+        pinned: bool | None = None,
         conversation_mode: ConversationMode | None = None,
         reasoning_preference: object | ReasoningPreference | None = UNCHANGED,
         active_leaf_message_id: object | uuid.UUID | None = UNCHANGED,
@@ -262,6 +265,11 @@ class ChatRepository:
                 raise ChatError("NOT_FOUND", 404)
             if conversation.version != expected_version:
                 raise ChatError("VERSION_CONFLICT", 409)
+            if pinned is not None:
+                # Repeating an explicit pin state preserves its timestamp and revision.
+                if pinned == (conversation.pinned_at is not None):
+                    return conversation
+                conversation.pinned_at = utc_now() if pinned else None
             if title is not None:
                 conversation.title = title
                 if title_source is not None:
@@ -277,7 +285,8 @@ class ChatRepository:
             if active_leaf_message_id is not UNCHANGED:
                 conversation.active_leaf_message_id = active_leaf_message_id  # type: ignore[assignment]
             conversation.version += 1
-            conversation.updated_at = utc_now()
+            if pinned is None:
+                conversation.updated_at = utc_now()
             if bump_last_message:
                 conversation.last_message_at = utc_now()
             await session.commit()
@@ -334,9 +343,13 @@ class ChatRepository:
 
     async def soft_delete_conversation(
         self, owner_id: uuid.UUID, conversation_id: uuid.UUID
-    ) -> None:
+    ) -> int:
         async with self._database() as session:
-            conversation = await session.get(ChatConversation, conversation_id)
+            conversation = await session.scalar(
+                select(ChatConversation)
+                .where(ChatConversation.id == conversation_id)
+                .with_for_update()
+            )
             if (
                 conversation is None
                 or conversation.owner_id != owner_id
@@ -344,7 +357,9 @@ class ChatRepository:
             ):
                 raise ChatError("NOT_FOUND", 404)
             conversation.deleted_at = utc_now()
+            conversation.version += 1
             await session.commit()
+            return conversation.version
 
     # --- messages ------------------------------------------------------
 

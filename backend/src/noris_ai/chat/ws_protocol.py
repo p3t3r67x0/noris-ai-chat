@@ -140,6 +140,12 @@ class ConversationUpdatedEvent(ServerEnvelope):
     conversation: ConversationResponse
 
 
+class ConversationDeletedEvent(ServerEnvelope):
+    type: Literal["chat.conversation.deleted"] = "chat.conversation.deleted"
+    conversationId: UUID
+    conversationVersion: int = Field(ge=1)
+
+
 class TitleUpdatedEvent(ServerEnvelope):
     type: Literal["chat.title.updated"] = "chat.title.updated"
     conversationId: UUID
@@ -192,6 +198,7 @@ ServerEvent = (
     | GenerationCancelledEvent
     | GenerationInterruptedEvent
     | ConversationUpdatedEvent
+    | ConversationDeletedEvent
     | TitleUpdatedEvent
     | ResumeAcceptedEvent
     | ResumeSnapshotEvent

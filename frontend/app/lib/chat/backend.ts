@@ -36,8 +36,12 @@ export class ChatBackend {
   versions = new Map<string, number>()
   preferredModelId: string | null = null
   onConversation?: (conversation: ServerConversation) => void
+  onPinnedPage?: (page: ApiSchemas['ConversationListResponse']) => void
+  onDeleted?: (id: string) => void
+  private deleted = new Set<string>()
   onMessage?: (message: ServerMessage) => void
   initialPage: ApiSchemas['ConversationListResponse'] | null = null
+  initialPinnedPage: ApiSchemas['ConversationListResponse'] | null = null
   initialPath: ApiSchemas['ActivePathResponse'] | null = null
   onMetadata?: (conversations: ServerConversation[], activeId: string | null) => void
   private pending: Promise<unknown> = Promise.resolve()
@@ -57,21 +61,32 @@ export class ChatBackend {
     return result
   }
   remember(value: ServerConversation): void {
+    if (this.deleted.has(value.id)) return
     if (value.version < (this.versions.get(value.id) ?? 0)) return
     this.versions.set(value.id, value.version)
     this.onConversation?.(value)
   }
+  forget(id: string, version = this.versions.get(id) ?? 1): void {
+    if (version < (this.versions.get(id) ?? 0)) return
+    this.deleted.add(id)
+    this.versions.delete(id)
+    this.onDeleted?.(id)
+    // Bound tombstones along with the existing metadata cache.
+    if (this.deleted.size > 600) this.deleted.delete(this.deleted.values().next().value!)
+  }
+  isDeleted(id: string): boolean { return this.deleted.has(id) }
   async refreshMetadata(): Promise<void> {
     // Recover updates missed while disconnected, including an older active chat.
     // Keep messages and unsent drafts under the existing useChat state.
-    const page = await this.page()
-    for (const value of page.conversations) this.remember(value)
-    const present = new Set(page.conversations.map(value => value.id))
+    const [page, pins] = await Promise.all([this.page({ pinned: 'false' }), this.page({ pinned: 'true' })])
+    for (const value of [...page.conversations, ...pins.conversations]) this.remember(value)
+    this.onPinnedPage?.(pins)
+    const present = new Set([...page.conversations, ...pins.conversations].map(value => value.id))
     const missing = [...this.versions.keys()].filter(id => !present.has(id))
     for (let offset = 0; offset < missing.length; offset += 10) {
       await Promise.all(missing.slice(offset, offset + 10).map(async id => {
         try { this.remember(await this.request<ServerConversation>(`/conversations/${id}`)) }
-        catch (error) { if (!(error instanceof TransportError) || error.code !== 'NOT_FOUND') throw error }
+        catch (error) { if (!(error instanceof TransportError) || error.code !== 'NOT_FOUND') throw error; this.forget(id) }
       }))
     }
   }
@@ -84,7 +99,7 @@ export class ChatBackend {
       return this.versions.get(conversation.id)!
     })
   }
-  patch(id: string, change: { title?: string, archived?: boolean, activeLeafMessageId?: string, conversationMode?: ConversationMode, reasoningPreference?: ReasoningPreference | null }): Promise<void> {
+  patch(id: string, change: { title?: string, archived?: boolean, pinned?: boolean, activeLeafMessageId?: string, conversationMode?: ConversationMode, reasoningPreference?: ReasoningPreference | null }): Promise<void> {
     return this.enqueue(async () => {
       const path = `/conversations/${id}`
       const version = this.versions.get(id)
@@ -109,7 +124,7 @@ export class ChatBackend {
     })
   }
   remove(id: string): Promise<void> {
-    return this.enqueue(async () => { await this.request(`/conversations/${id}`, 'DELETE'); this.versions.delete(id) })
+    return this.enqueue(async () => { await this.request(`/conversations/${id}`, 'DELETE'); this.forget(id) })
   }
   draft(key: string, content: string): Promise<void> {
     return this.enqueue(() => this.request(key === '__new__' ? '/chat/drafts/new' : `/conversations/${key}/draft`, 'PUT', { content }))
@@ -119,15 +134,17 @@ export class ChatBackend {
   }
   async load(): Promise<ChatBootstrap> {
     await this.pending
-    const [list, preferences] = await Promise.all([
-      this.request<ApiSchemas['ConversationListResponse']>('/conversations?limit=50'),
+    const [list, pins, preferences] = await Promise.all([
+      this.page({ pinned: 'false' }),
+      this.page({ pinned: 'true' }),
       this.request<ApiSchemas['PreferencesResponse']>('/chat/preferences'),
     ])
     this.initialPage = list
+    this.initialPinnedPage = pins
     this.preferredModelId = preferences.modelId
-    const conversations = [...list.conversations]
+    const conversations = [...new Map([...list.conversations, ...pins.conversations].map(c => [c.id, c])).values()]
     let activeId = preferences.activeConversationId
-    this.onMetadata?.(list.conversations, conversations.some(c => c.id === activeId) ? activeId : null)
+    this.onMetadata?.([...conversations], conversations.some(c => c.id === activeId) ? activeId : null)
     if (activeId && !conversations.some(c => c.id === activeId)) {
       try { conversations.push(await this.request<ServerConversation>(`/conversations/${activeId}`)) }
       catch (error) { if ((error as { code?: string }).code === 'NOT_FOUND') activeId = null; else throw error }
@@ -148,7 +165,7 @@ export class ChatBackend {
   path(id: string, options: { cursor?: string, beforeMessageId?: string, messageId?: string, preferredLeafId?: string } = {}, signal?: AbortSignal): Promise<ApiSchemas['ActivePathResponse']> {
     return this.request(`/conversations/${id}/active-path?${new URLSearchParams({ limit: '50', ...options })}`, 'GET', undefined, signal)
   }
-  page(options: { cursor?: string, q?: string, archiveOnly?: string } = {}, signal?: AbortSignal): Promise<ApiSchemas['ConversationListResponse']> {
+  page(options: { cursor?: string, q?: string, archiveOnly?: string, pinned?: string } = {}, signal?: AbortSignal): Promise<ApiSchemas['ConversationListResponse']> {
     return this.request(`/conversations?${new URLSearchParams({ limit: '50', ...options })}`, 'GET', undefined, signal)
   }
 }

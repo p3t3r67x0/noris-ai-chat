@@ -1,5 +1,5 @@
 /* Generated WebSocket v1 contract. Run pnpm api:generate. */
-export type ChatWsEvent = (ConnectedEvent | MessageCreatedEvent | GenerationStartedEvent | GenerationDeltaEvent | GenerationCompletedEvent | GenerationIncompleteEvent | GenerationFailedEvent | GenerationCancelledEvent | GenerationInterruptedEvent | ConversationUpdatedEvent | TitleUpdatedEvent | ResumeAcceptedEvent | ResumeSnapshotEvent | ErrorEvent | HeartbeatEvent | PongEvent)
+export type ChatWsEvent = (ConnectedEvent | MessageCreatedEvent | GenerationStartedEvent | GenerationDeltaEvent | GenerationCompletedEvent | GenerationIncompleteEvent | GenerationFailedEvent | GenerationCancelledEvent | GenerationInterruptedEvent | ConversationUpdatedEvent | ConversationDeletedEvent | TitleUpdatedEvent | ResumeAcceptedEvent | ResumeSnapshotEvent | ErrorEvent | HeartbeatEvent | PongEvent)
 export type Heartbeatseconds = number
 export type Type = "chat.connected"
 export type Version = 1
@@ -102,6 +102,7 @@ export type Conversationmode = ("normal" | "learning")
 export type Createdat2 = string
 export type Id2 = string
 export type Lastmessageat = (string | null)
+export type Pinnedat = (string | null)
 export type ReasoningPreference = ("instant" | "medium" | "high" | "very_high" | "pro")
 export type Title = string
 export type Titlesource = ("fallback" | "generated" | "manual")
@@ -110,34 +111,38 @@ export type Version9 = number
 export type Type9 = "chat.conversation.updated"
 export type Version10 = 1
 export type Conversationid10 = string
+export type Conversationversion = number
+export type Type10 = "chat.conversation.deleted"
+export type Version11 = 1
+export type Conversationid11 = string
 export type Title1 = string
 export type Titlesource1 = string
-export type Type10 = "chat.title.updated"
-export type Version11 = 1
+export type Type11 = "chat.title.updated"
+export type Version12 = 1
 export type Generationid8 = string
 export type Lastreceivedseq = number
-export type Type11 = "chat.resume.accepted"
-export type Version12 = 1
+export type Type12 = "chat.resume.accepted"
+export type Version13 = 1
 export type Code2 = (string | null)
 export type Content6 = string
 export type Continuationcount8 = number
-export type Conversationid11 = string
+export type Conversationid12 = string
 export type Generationid9 = string
 export type Lastsequence = number
 export type Message2 = (string | null)
 export type Messageid8 = string
 export type Status2 = ("queued" | "running" | "completed" | "incomplete" | "cancelled" | "failed" | "interrupted")
-export type Type12 = "chat.resume.snapshot"
-export type Version13 = 1
+export type Type13 = "chat.resume.snapshot"
+export type Version14 = 1
 export type Code3 = string
 export type Message3 = string
 export type Requestid = (string | null)
-export type Type13 = "chat.error"
-export type Version14 = 1
-export type Type14 = "chat.heartbeat"
+export type Type14 = "chat.error"
 export type Version15 = 1
-export type Type15 = "chat.pong"
+export type Type15 = "chat.heartbeat"
 export type Version16 = 1
+export type Type16 = "chat.pong"
+export type Version17 = 1
 
 export interface ConnectedEvent {
   heartbeatSeconds: Heartbeatseconds
@@ -273,50 +278,57 @@ export interface ConversationResponse {
   createdAt: Createdat2
   id: Id2
   lastMessageAt: Lastmessageat
+  pinnedAt?: Pinnedat
   reasoningPreference?: (ReasoningPreference | null)
   title: Title
   titleSource: Titlesource
   updatedAt: Updatedat1
   version: Version9
 }
-export interface TitleUpdatedEvent {
+export interface ConversationDeletedEvent {
   conversationId: Conversationid10
-  title: Title1
-  titleSource: Titlesource1
+  conversationVersion: Conversationversion
   type: Type10
   version: Version11
+}
+export interface TitleUpdatedEvent {
+  conversationId: Conversationid11
+  title: Title1
+  titleSource: Titlesource1
+  type: Type11
+  version: Version12
 }
 export interface ResumeAcceptedEvent {
   generationId: Generationid8
   lastReceivedSeq: Lastreceivedseq
-  type: Type11
-  version: Version12
+  type: Type12
+  version: Version13
 }
 export interface ResumeSnapshotEvent {
   code: Code2
   content: Content6
   continuationCount: Continuationcount8
-  conversationId: Conversationid11
+  conversationId: Conversationid12
   generationId: Generationid9
   lastSequence: Lastsequence
   message: Message2
   messageId: Messageid8
   status: Status2
-  type: Type12
-  version: Version13
+  type: Type13
+  version: Version14
 }
 export interface ErrorEvent {
   code: Code3
   message: Message3
   requestId: Requestid
-  type: Type13
-  version: Version14
-}
-export interface HeartbeatEvent {
   type: Type14
   version: Version15
 }
-export interface PongEvent {
+export interface HeartbeatEvent {
   type: Type15
   version: Version16
+}
+export interface PongEvent {
+  type: Type16
+  version: Version17
 }

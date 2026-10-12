@@ -41,6 +41,10 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   let disposed = false
   let userNavigated = false
   const sidebarIds = ref<string[]>([])
+  const pinnedIds = ref<string[]>([])
+  const pinnedCursor = ref<string | null>(null)
+  const pinnedLoading = ref(false)
+  const pinnedError = ref<string | null>(null)
   const sidebarLoading = ref(false)
   const sidebarError = ref<string | null>(null)
   const nextCursor = ref<string | null>(null)
@@ -75,19 +79,34 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
 
   function mergeMetadata(values: ApiSchemas['ConversationResponse'][]): void {
     for (const value of values) {
+      if (backend.isDeleted(value.id)) continue
       const existingVersion = backend.versions.get(value.id) ?? 0
       if (value.version < existingVersion) continue
       backend.versions.set(value.id, value.version)
       // Replace the rendered record so every consumer sees this server revision.
       state.conversations.records.value[value.id] = conversationFromServer(value)
+      if (value.archivedAt && state.conversations.activeId.value === value.id) state.conversations.activeId.value = null
+      pinnedIds.value = pinnedIds.value.filter(id => id !== value.id)
+      if (value.pinnedAt && !value.archivedAt) pinnedIds.value = [...pinnedIds.value, value.id].slice(-500)
     }
-    const pinned = new Set([...sidebarIds.value, ...Object.keys(windows.value), ...values.map(c => c.id), ...Object.keys(pendingDrafts), state.conversations.activeId.value, state.generatingConversationId.value])
+    const pinned = new Set([...sidebarIds.value, ...pinnedIds.value, ...Object.keys(windows.value), ...values.map(c => c.id), ...Object.keys(pendingDrafts), state.conversations.activeId.value, state.generatingConversationId.value])
     const records = Object.entries(state.conversations.records.value)
     const remove = new Set(records.filter(([id]) => !pinned.has(id)).slice(0, Math.max(0, records.length - 600)).map(([id]) => id))
     if (remove.size) {
       state.conversations.records.value = Object.fromEntries(records.filter(([id]) => !remove.has(id)))
       for (const id of remove) { backend.versions.delete(id); cache.invalidate(id) }
     }
+  }
+  backend.onDeleted = (id) => {
+    state.conversations.remove(id)
+    sidebarIds.value = sidebarIds.value.filter(value => value !== id)
+    pinnedIds.value = pinnedIds.value.filter(value => value !== id)
+    cache.invalidate(id)
+  }
+  backend.onPinnedPage = (page) => {
+    // Pins added while disconnected can turn a formerly complete list into
+    // multiple pages. Keep an existing deeper seek, otherwise enable loading.
+    pinnedCursor.value ??= page.nextCursor ?? null
   }
   function evict(): void {
     const pinned = new Set([state.conversations.activeId.value, state.generatingConversationId.value, olderConversation, ...cache.pendingIds(), ...Object.keys(pendingDrafts)].filter((id): id is string => Boolean(id)))
@@ -174,7 +193,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     const previous = state.conversations.records.value[value.id]
     // An active chat outside page one can become recent through a live update.
     // Its metadata then belongs in the sorted sidebar without reloading messages.
-    if (!value.archivedAt && (!previous || compareConversations(conversationFromServer(value), previous) < 0) && !sidebarIds.value.includes(value.id)) {
+    if (!value.archivedAt && !value.pinnedAt && (!previous || previous.archivedAt || previous.pinnedAt || compareConversations(conversationFromServer(value), previous) < 0) && !sidebarIds.value.includes(value.id)) {
       sidebarIds.value = [value.id, ...sidebarIds.value].slice(0, 500)
     }
     const changedLeaf = previous?.activeLeafMessageId !== value.activeLeafMessageId
@@ -204,6 +223,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     state.drafts.records.value = { ...state.drafts.records.value, ...snapshot.drafts, ...pendingDrafts }
     sidebarIds.value = backend.initialPage?.conversations.map(c => c.id) ?? []
     nextCursor.value = backend.initialPage?.nextCursor ?? null
+    pinnedCursor.value = backend.initialPinnedPage?.nextCursor ?? null
     if (backend.initialPath) applyPath(backend.initialPath)
     backendReady.value = true
     const active = state.conversations.activeId.value
@@ -213,7 +233,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     if (sidebarLoading.value || !nextCursor.value) return
     sidebarLoading.value = true; sidebarError.value = null
     try {
-      const result = await backend.page({ cursor: nextCursor.value })
+      const result = await backend.page({ pinned: 'false', cursor: nextCursor.value })
       if (disposed) return
       mergeMetadata(result.conversations); nextCursor.value = result.nextCursor ?? null
       sidebarIds.value = [...new Set([...sidebarIds.value, ...result.conversations.map(c => c.id)])].slice(-500)
@@ -228,17 +248,33 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     try {
       if (!backendReady.value) await refresh()
       else {
-        const result = await backend.page()
+        const result = await backend.page({ pinned: 'false' })
         if (disposed) return
         mergeMetadata(result.conversations)
         sidebarIds.value = result.conversations.map(c => c.id)
         nextCursor.value = result.nextCursor ?? null
       }
+      await reloadPinned()
       await transport.connect?.()
       if (storageWarning.value === previousError) storageWarning.value = null
     }
     catch (error) { sidebarError.value = report(error, { operation: 'sidebar', attemptId: crypto.randomUUID() }, { label: 'Erneut laden', onClick: reloadSidebar }) }
     finally { sidebarLoading.value = false }
+  }
+  async function reloadPinned(more = false): Promise<void> {
+    if (pinnedLoading.value || (more && !pinnedCursor.value)) return
+    pinnedLoading.value = true; pinnedError.value = null
+    const revisions = new Map(backend.versions)
+    try {
+      const result = await backend.page({ pinned: 'true', ...(more ? { cursor: pinnedCursor.value! } : {}) })
+      if (disposed) return
+      if (!more) pinnedIds.value = pinnedIds.value.filter(id => (backend.versions.get(id) ?? 0) > (revisions.get(id) ?? 0))
+      // All metadata uses the same revision guard, including late page responses.
+      mergeMetadata(result.conversations)
+      pinnedCursor.value = result.nextCursor ?? null
+    }
+    catch (error) { pinnedError.value = report(error, { operation: 'sidebar', resourceId: 'pins' }, { label: 'Erneut laden', onClick: () => reloadPinned(more) }) }
+    finally { pinnedLoading.value = false }
   }
   async function loadOlder(): Promise<void> {
     const id = state.conversations.activeId.value
@@ -298,6 +334,22 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       const change = action === 'rename' ? { title: title ?? '' } : { archived: action === 'archive' }
       const operation = action === 'archive' ? 'archive' : action
       void persist(backend.patch(id, change), { operation, conversationId: id, attemptId: crypto.randomUUID() }, () => backend.patch(id, change))
+    }
+  }
+  state.conversations.setPinned = async (id: string, pinned: boolean) => {
+    if (!backendReady.value) throw new TransportError('NOT_READY')
+    const conversation = state.conversations.records.value[id]
+    if (!conversation) throw new TransportError('NOT_FOUND')
+    try {
+      await backend.ensure(conversation)
+      await backend.patch(id, { pinned })
+    }
+    catch (cause) {
+      report(cause, { operation: 'sidebar', conversationId: id, resourceId: 'pin' })
+      // Preserve the requested operation as an explicit user decision on conflict.
+      try { backend.remember(await backend.request<ApiSchemas['ConversationResponse']>(`/conversations/${id}`)) }
+      catch { /* The original error remains the actionable failure. */ }
+      throw cause
     }
   }
   state.selectVariant = (id) => {
@@ -466,7 +518,9 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   }, { deep: true, flush: 'sync' })
   onUnmounted(() => { disposed = true; viewRequest?.abort.abort(); clearTimeout(timer); clearTimeout(draftTimer); flushCache(); transport.dispose?.() })
   const pagination = {
-    conversations: computed(() => sidebarIds.value.flatMap(id => { const c = state.conversations.records.value[id]; return c && !c.archivedAt ? [c] : [] })),
+    conversations: computed(() => [...new Set([...pinnedIds.value, ...sidebarIds.value])].flatMap(id => { const c = state.conversations.records.value[id]; return c && !c.archivedAt ? [c] : [] })),
+    pinnedLoading, pinnedError, hasMorePinned: computed(() => Boolean(pinnedCursor.value)), reloadPinned: () => reloadPinned(), loadMorePinned: () => reloadPinned(true),
+    pinnedWindowedList: computed(() => pinnedIds.value.length >= 500),
     sidebarLoading, sidebarError, hasMore: computed(() => Boolean(nextCursor.value)), loadMore, reloadSidebar,
     windowedList: computed(() => sidebarIds.value.length >= 500),
     historyLoading, historyError, olderLoading,

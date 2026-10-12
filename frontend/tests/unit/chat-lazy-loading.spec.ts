@@ -25,7 +25,7 @@ function client(active = 99) {
     const url = new URL(String(input), 'http://localhost')
     calls.push(url.pathname + url.search)
     let data: unknown = {}
-    if (url.pathname === '/api/v1/conversations') data = { conversations: Array.from({ length: 50 }, (_, i) => conversation(i + 1)), nextCursor: 'page-2', hasMore: true }
+    if (url.pathname === '/api/v1/conversations') data = url.searchParams.get('pinned') === 'true' ? { conversations: [], nextCursor: null, hasMore: false } : { conversations: Array.from({ length: 50 }, (_, i) => conversation(i + 1)), nextCursor: 'page-2', hasMore: true }
     else if (url.pathname === '/api/v1/chat/preferences') data = { activeConversationId: id(active), modelId: 'fixture' }
     else if (url.pathname === '/api/v1/chat/drafts') data = { drafts: [] }
     else if (url.pathname.endsWith('/active-path')) data = path(Number(url.pathname.split('/')[4]?.slice(-12)))

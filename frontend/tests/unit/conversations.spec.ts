@@ -104,4 +104,31 @@ describe('conversation management', () => {
     expect(isChatModelId('unknown-provider')).toBe(false)
     expect(isChatModelId(null)).toBe(false)
   })
+
+  it('pins and unpins without changing selection, title or chronological activity', () => {
+    const chats = state()
+    const chat = chats.create('Titel erhalten')
+    const previous = { ...chat }
+    chats.setPinned(chat.id, true)
+    const timestamp = chat.pinnedAt
+    chats.setPinned(chat.id, true)
+    expect(chat.pinnedAt).toBe(timestamp)
+    expect(chat).toMatchObject(previous)
+    expect(chats.activeId.value).toBe(chat.id)
+    expect(parseConversationSnapshot(JSON.stringify(chats.snapshot()))?.conversations[chat.id]?.pinnedAt).toBe(timestamp)
+    chats.setPinned(chat.id, false)
+    expect(chat.pinnedAt).toBeNull()
+  })
+
+  it('groups pins separately by precise timestamp, excludes archives and deduplicates IDs', () => {
+    const chats = state()
+    const a = chats.create('Älter fixiert'), b = chats.create('Neu fixiert'), c = chats.create('Normal'), archived = chats.create('Archiv')
+    a.pinnedAt = '2026-10-12T12:00:00.123001Z'
+    b.pinnedAt = '2026-10-12T12:00:00.123002Z'
+    archived.pinnedAt = a.pinnedAt; archived.archivedAt = a.pinnedAt
+    const groups = groupConversations([a, c, b, archived, a])
+    expect(groups[0]?.label).toBe('Fixierte Chats')
+    expect(groups[0]?.conversations.map(c => c.id)).toEqual([b.id, a.id])
+    expect(groups.slice(1).flatMap(g => g.conversations.map(c => c.id))).toEqual([c.id])
+  })
 })

@@ -1,3 +1,4 @@
+import { openChatActions } from './sidebar-helpers'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { writeFile } from 'node:fs/promises'
@@ -68,7 +69,7 @@ test('manual rename wins while the synthetic title is pending', async ({ page })
   await send(page, 'Warum funktioniert Docker DNS nicht?')
   await page.clock.runFor(500)
   await sidebar(page)
-  await page.getByRole('button', { name: 'Aktionen für Docker DNS-Probleme' }).click()
+  await openChatActions(page, 'Docker DNS-Probleme')
   await page.getByRole('menuitem', { name: 'Umbenennen' }).click()
   await page.getByRole('textbox', { name: 'Chat-Titel' }).fill('Meine DNS-Notizen')
   await page.getByRole('textbox', { name: 'Chat-Titel' }).press('Enter')
@@ -84,7 +85,7 @@ test('deletion while generating never revives a conversation', async ({ page }) 
   await send(page, 'Warum funktioniert Docker DNS nicht?')
   await page.clock.runFor(500)
   await sidebar(page)
-  await page.getByRole('button', { name: 'Aktionen für Docker DNS-Probleme' }).click()
+  await openChatActions(page, 'Docker DNS-Probleme')
   await page.getByRole('menuitem', { name: 'Löschen', exact: true }).click()
   await page.getByRole('dialog', { name: 'Chat löschen?' }).getByRole('button', { name: 'Chat löschen', exact: true }).click()
   await page.clock.runFor(4000)
@@ -150,7 +151,8 @@ for (const size of [{ width: 1920, height: 975 }, { width: 1440, height: 900 }, 
     await writeFile(evidence, JSON.stringify(geometry, null, 2))
     await info.attach('title-widths', { path: evidence, contentType: 'application/json' })
     await page.screenshot({ path: info.outputPath(`concise-titles-${size.width}.png`), animations: 'disabled' })
-    await rows.first().getByRole('button', { name: 'Aktionen für Automatische Chat-Titel' }).click()
+    await rows.first().hover()
+    await rows.first().getByRole('button', { name: 'Chat-Aktionen' }).click()
     await expect(page.getByRole('menuitem', { name: 'Umbenennen' })).toBeVisible()
   })
 }
