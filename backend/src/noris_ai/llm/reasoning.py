@@ -24,10 +24,12 @@ def preference_mapping(model: "LLMModel") -> dict["ReasoningPreference", str]:
     profile = PROFILES.get(model.id)
     if (
         profile is None
+        or not model.available
+        or not model.streaming
         or model.virtual
         or model.reasoning is not True
         or not model.sources
-        or model.evidence.get("reasoning_parameter", "UNKNOWN") == "UNKNOWN"
+        or model.evidence.get("reasoning_parameter") not in ("DOCUMENTED", "VERIFIED")
         or model.reasoning_parameter != profile[0]
     ):
         return {}

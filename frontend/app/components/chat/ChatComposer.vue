@@ -6,6 +6,7 @@ import ChatModelMenu from './ChatModelMenu.vue'
 import ChatReasoningMenu from './ChatReasoningMenu.vue'
 import { CHAT_MODELS } from '../../composables/useModelSelection'
 import type { ReasoningPreference } from '../../lib/chat/reasoning'
+import { reasoningChoices } from '../../lib/chat/reasoning'
 import type { ConversationMode } from '../../lib/chat/conversations'
 import type { ChatModelId } from '../../composables/useModelSelection'
 import { useComposerAutosize } from '../../composables/useComposerAutosize'
@@ -20,7 +21,7 @@ const emit = defineEmits<{ send: [text: string], stop: [], files: [files: File[]
 const container = ref<HTMLElement | null>(null)
 const learning = computed(() => props.conversationMode === 'learning')
 const selectedModel = computed(() => CHAT_MODELS.find(item => item.id === model.value))
-const showReasoning = computed(() => learning.value || Boolean(props.reasoningPreference) || Boolean(selectedModel.value?.reasoningPreferences?.length))
+const showReasoning = computed(() => reasoningChoices(selectedModel.value).length > 0)
 const prompt = ref<{ textareaRef: HTMLTextAreaElement | undefined } | null>(null)
 const hasAttachments = computed(() => Boolean(props.files?.length))
 const autosize = useComposerAutosize(prompt, text, hasAttachments)

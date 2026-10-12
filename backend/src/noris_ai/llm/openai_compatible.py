@@ -11,6 +11,7 @@ from noris_ai.core.config import Settings
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.provider import ProviderMessage, provider_payload
 from noris_ai.llm.provider_models import ProviderModel, ProviderModels
+from noris_ai.llm.reasoning import preference_mapping
 from noris_ai.llm.schemas import LLMModel
 from noris_ai.llm.sse import SSEDecoder
 from noris_ai.llm.titles import TitleInstruction
@@ -142,17 +143,12 @@ class OpenAICompatibleProvider:
             raise LLMError("MODEL_UNAVAILABLE", 400)
         body[model.token_limit_parameter] = model.max_output_tokens
         effort = model.reasoning_effort
+        supported_efforts = preference_mapping(model).values()
         if any(isinstance(message, TitleInstruction) for message in messages) and (
-            "low" in model.reasoning_efforts
+            "low" in supported_efforts
         ):
             effort = "low"
-        if (
-            effort is not None
-            and model.reasoning is True
-            and model.reasoning_parameter is not None
-            and effort in model.reasoning_efforts
-            and model.evidence.get("reasoning_parameter", "UNKNOWN") != "UNKNOWN"
-        ):
+        if effort is not None and effort in supported_efforts:
             if model.reasoning_parameter == "chat_template_kwargs":
                 body["chat_template_kwargs"] = {"reasoning_effort": effort}
             else:

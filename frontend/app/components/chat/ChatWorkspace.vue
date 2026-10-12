@@ -16,6 +16,7 @@ import { workspaceKey } from '../../composables/useWorkspace'
 import { useAppLocale } from '../../composables/useAppLocale'
 import { useChatAttachments } from '../../composables/useChatAttachments'
 import type { ApiSchemas } from '../../types/generated/api'
+import { supportsPreference } from '../../lib/chat/reasoning'
 
 const { transport, mode } = useChatTransport()
 const chat = useChat(transport)
@@ -52,6 +53,11 @@ watch(inSettings, async (settings) => {
   }
 }, { flush: 'pre' })
 const canSend = computed(() => !chat.settingsBusy.value && !chat.settingsError.value && modelCanSend.value && chat.backendReady.value && !chat.pagination?.historyLoading.value && !chat.pagination?.historyError.value)
+const selectedModel = computed(() => selection.models.find(model => model.id === modelId.value))
+const reasoningPreference = computed(() => {
+  const preference = conversations.active.value?.reasoningPreference
+  return preference && supportsPreference(selectedModel.value, preference) ? preference : null
+})
 let preferencesRestored = false
 watch([chat.backendReady, modelsLoading], ([loaded, loading]) => {
   if (!transport.backend || !loaded || loading || preferencesRestored) return
@@ -59,6 +65,10 @@ watch([chat.backendReady, modelsLoading], ([loaded, loading]) => {
   if (transport.backend.preferredModelId) modelId.value = transport.backend.preferredModelId
 })
 watch(modelId, value => { if (transport.backend && preferencesRestored && value) void transport.backend.preferences(conversations.activeId.value, value).catch(() => {}) })
+watch([modelId, selectedModel, () => conversations.active.value?.reasoningPreference, chat.backendReady, modelsLoading, chat.settingsBusy], () => {
+  if ((transport.backend && !preferencesRestored) || !chat.backendReady.value || modelsLoading.value || chat.settingsBusy.value || chat.settingsError.value) return
+  void chat.reconcileReasoningPreference(modelId.value)
+}, { immediate: true })
 watch(stream.errorCode, (code) => { if (code === 'MODEL_UNAVAILABLE' || code === 'PROVIDER_AUTH_FAILED') void refreshModels() })
 const { draft } = chat.drafts
 const { sidebarOpen } = useSidebarPreference()
@@ -159,7 +169,7 @@ function saveEdit(): void {
             <UButton color="neutral" variant="link" label="Modelle neu laden" :loading="modelsLoading" @click="refreshModels" />
           </div>
           <p class="composer-note">{{ t('disclaimer') }}</p>
-          <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" :conversation-mode="conversations.active.value?.conversationMode ?? 'normal'" :reasoning-preference="conversations.active.value?.reasoningPreference ?? null" :settings-busy="chat.settingsBusy.value" :learning-available="mode !== 'real' && chat.backendReady.value" :busy="stream.busy.value" :model-unavailable="!canSend" :input-error="chat.drafts.error.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" :files="attachments.files.value" :upload-available="attachments.available.value" :upload-unavailable-reason="uploadUnavailableReason" :upload-blocked="attachments.blocked.value" :image-supported="attachments.imageCompatible.value" :upload-error="attachments.error.value" @mode="chat.setConversationMode" @reasoning="chat.setReasoningPreference" @files="attachments.add" @remove-file="attachments.remove" @retry-file="attachments.retry" @send="send" @stop="stop" />
+          <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" :conversation-mode="conversations.active.value?.conversationMode ?? 'normal'" :reasoning-preference="reasoningPreference" :settings-busy="chat.settingsBusy.value" :learning-available="mode !== 'real' && chat.backendReady.value" :busy="stream.busy.value" :model-unavailable="!canSend" :input-error="chat.drafts.error.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" :files="attachments.files.value" :upload-available="attachments.available.value" :upload-unavailable-reason="uploadUnavailableReason" :upload-blocked="attachments.blocked.value" :image-supported="attachments.imageCompatible.value" :upload-error="attachments.error.value" @mode="chat.setConversationMode" @reasoning="chat.setReasoningPreference" @files="attachments.add" @remove-file="attachments.remove" @retry-file="attachments.retry" @send="send" @stop="stop" />
           <div v-if="chat.settingsError.value" role="alert" class="px-4 pt-2 text-sm text-error">{{ chat.settingsError.value }} <UButton label="Einstellung erneut speichern" color="neutral" variant="link" @click="chat.retryConversationSettings" /></div>
           <p v-if="chat.drafts.error.value" role="alert" class="mt-2 text-center text-xs text-error">{{ chat.drafts.error.value }}</p>
         </div>
