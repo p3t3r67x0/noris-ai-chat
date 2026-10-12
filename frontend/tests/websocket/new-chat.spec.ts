@@ -2,11 +2,12 @@ import { expect, test } from '@playwright/test'
 import type { APIRequestContext, Page } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 
 const provider = `http://127.0.0.1:${process.env.NORIS_E2E_PROVIDER_PORT ?? 8591}`
 const image = { name: 'synthetic.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGMMLJ7CQApgIkn1qIZRDUNKAwBO2QF44IsoTQAAAABJRU5ErkJggg==', 'base64') }
-const pdf = { name: 'synthetic.pdf', mimeType: 'application/pdf', buffer: execFileSync('backend/.venv/bin/python', ['-c', 'import sys; from backend.tests.fixtures.attachments import synthetic_pdf; sys.stdout.buffer.write(synthetic_pdf())'], { cwd: '..' }) }
+// Generated once with backend/tests/fixtures/attachments.py; browser runners need no Python.
+const pdf = { name: 'synthetic.pdf', mimeType: 'application/pdf', buffer: readFileSync(new URL('../fixtures/synthetic.pdf', import.meta.url)) }
 
 async function list(request: APIRequestContext) {
   return (await (await request.get('/api/v1/conversations', { params: { archived: true, limit: 100 } })).json()).conversations as { id: string, title: string, titleSource: string, sidebarVisible: boolean }[]

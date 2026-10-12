@@ -190,6 +190,10 @@ Backend- und zehn Browserfällen:
 - Der Tastaturtest verlangt die sichtbare Begrüßung direkt über dem Composer.
   Reasoning-Tests unterscheiden Autosize im zentrierten Startbildschirm vom
   stabilen unteren Composer einer aktiven Unterhaltung.
+- Der nachfolgende Compose-WebSocket-Schritt benötigt keine Python-Umgebung auf
+  dem Browserrunner mehr: Die mit dem vorhandenen Backend-Fixture erzeugte
+  synthetische PDF liegt als Testdatei vor. Playwright liest dieselben Upload-Bytes
+  direkt; Dateiupload und Draft-/Attachment-Recovery bleiben vollständig geprüft.
 
 Gezielt lokal geprüft: 20 Attachment-/Migrationstests, 31 Backend- und 26
 Frontend-Unit-Fälle, 36 Composer-/Titel-Browserfälle, acht Reasoning-Browserfälle
