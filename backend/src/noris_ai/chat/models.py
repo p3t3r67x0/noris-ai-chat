@@ -62,6 +62,7 @@ def _uuid() -> uuid.UUID:
 class ChatConversation(Base):
     __tablename__ = "chat_conversation"
     __table_args__ = (
+        UniqueConstraint("owner_id", "id", name="uq_chat_conversation_owner_id"),
         CheckConstraint("length(title) > 0 AND length(title) <= 200", name="title_length"),
         CheckConstraint("version >= 1", name="version_positive"),
         CheckConstraint("conversation_mode IN ('normal', 'learning')", name="conversation_mode"),
@@ -233,6 +234,9 @@ class ChatAttachment(Base):
 class ChatGeneration(Base):
     __tablename__ = "chat_generation"
     __table_args__ = (
+        UniqueConstraint(
+            "owner_id", "conversation_id", "id", name="uq_chat_generation_owner_conversation_id"
+        ),
         ForeignKeyConstraint(
             ["conversation_id", "source_message_id"],
             ["chat_message.conversation_id", "chat_message.id"],

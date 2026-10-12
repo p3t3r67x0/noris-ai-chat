@@ -1,6 +1,6 @@
 # Plus-Menü: Bestandszuordnung, UX und PR-Roadmap
 
-Status: technische Planung für einen Draft-PR gegen `main`; keine neuen Produktfunktionen implementiert. Stand: 2026-10-12.
+Status: technische Planung mit begonnener Implementierung von P1a; keine neue Produktfunktion aktiviert. Stand: 2026-10-12. Aktueller Implementierungsstand und lokale Testergebnisse: [Tool-Grundlage P1a](TOOL-FOUNDATION.md). P1b folgt als separater PR erst nach Merge von P1a auf aktualisiertem `main`.
 
 Quellstände: noris `4024c0eea62965bd161c8fccc36bc81141535d47`; Codexreferenz `a9b0815167c27ab13719dd12d13b63e02b70d221`. Die [Tool-Architektur](TOOL-ARCHITECTURE.md) enthält Audit, Komponenten-/Endpoint-/Testkarte, Codexstudie, gemeinsame Verträge, Security und Betriebsgrenzen.
 

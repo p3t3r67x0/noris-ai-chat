@@ -34,6 +34,8 @@ from noris_ai.llm.gateway import LLMGateway
 from noris_ai.llm.limits import LLMRequestLimitMiddleware
 from noris_ai.llm.openai_compatible import OpenAICompatibleProvider
 from noris_ai.llm.provider import LLMProvider
+from noris_ai.tools.registry import create_tool_registry
+from noris_ai.tools.repository import ToolRepository
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +46,7 @@ def create_app(
     provider: LLMProvider | None = None,
 ) -> FastAPI:
     config = settings if settings is not None else Settings()
+    tool_registry = create_tool_registry()
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncGenerator[None]:
@@ -64,6 +67,8 @@ def create_app(
         application.state.chat_settings = config
         application.state.chat_database = database
         application.state.chat_repository = repository
+        application.state.tool_registry = tool_registry
+        application.state.tool_repository = ToolRepository(database, tool_registry)
         attachments = AttachmentService(config, database)
         application.state.chat_attachments = attachments
         application.state.chat_service = ChatService(repository)
