@@ -23,7 +23,7 @@ async function importChats(): Promise<void> {
     <UButton color="neutral" variant="outline" :label="t('import')" class="settings-action" :disabled="!importReady || busy" @click="confirmationOpen = true" />
   </SettingsRow>
   <p v-else class="text-sm text-muted">{{ t('noDataActions') }}</p>
-  <p v-if="importFeedback" role="status" aria-live="polite" class="text-sm text-muted">{{ importFeedback }}</p>
+  <details v-if="importFeedback" class="text-sm text-muted"><summary>Letztes Importergebnis</summary><p>{{ importFeedback }}</p></details>
   <UModal v-model:open="importOpen" :title="t('importTitle')" :description="t('importConfirmation')" :dismissible="!busy" :close="!busy">
     <template #footer>
       <div class="flex w-full flex-wrap justify-end gap-2">

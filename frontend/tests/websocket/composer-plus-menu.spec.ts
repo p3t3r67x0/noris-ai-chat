@@ -190,7 +190,7 @@ test('a saved conversation accepts another upload and removal preserves existing
   await expect(page.locator('.message-user')).toHaveCount(1)
 })
 
-test('a failed active-path request retains the real backend error and disables upload honestly', async ({ page }) => {
+test('a failed active-path request provides safe diagnostics and disables upload honestly', async ({ page }) => {
   await inputFor(page).fill('Synthetische Frage')
   await inputFor(page).press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
@@ -199,10 +199,17 @@ test('a failed active-path request retains the real backend error and disables u
     body: JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: 'An internal error occurred', request_id: '00000000-0000-0000-0000-000000000001' } }),
   }))
   await page.reload()
-  await expect(page.getByRole('main', { name: 'Chat', exact: true }).getByRole('alert').filter({ hasText: 'An internal error occurred' })).toBeVisible()
+  const failure = page.locator('.app-notification').filter({ hasText: 'Chatliste konnte nicht geladen werden.' })
+  await expect(failure).toBeVisible()
+  await expect(failure).not.toContainText('An internal error occurred')
+  await failure.getByRole('button', { name: 'Details', exact: true }).click()
+  const details = page.getByRole('dialog', { name: 'Fehlerdetails', exact: true })
+  await expect(details).toContainText('INTERNAL_ERROR')
+  await expect(details).toContainText('00000000-0000-0000-0000-000000000001')
+  await details.getByRole('button', { name: 'Schließen', exact: true }).click()
   await triggerFor(page).click()
   await expect(uploadFor(page)).toHaveAttribute('aria-disabled', 'true')
-  await expect(uploadFor(page)).toContainText('An internal error occurred')
+  await expect(uploadFor(page)).toContainText('Der Chatdienst konnte die Anfrage gerade nicht bearbeiten.')
   await expect(page.locator('.composer-plus-menu')).not.toContainText('gespeicherte WebSocket-Unterhaltung')
   await page.keyboard.press('Escape')
   await expect(triggerFor(page)).toHaveAttribute('data-state', 'closed')

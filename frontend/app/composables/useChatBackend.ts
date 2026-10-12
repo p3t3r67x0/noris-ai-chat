@@ -6,18 +6,35 @@ import type { ApiSchemas } from '../types/generated/api'
 import { ChatLoadCache } from '../lib/chat/loadCache'
 import { CHAT_STORAGE_KEY, parseChatSnapshot } from '../lib/chat/persistence'
 import { compareConversations } from '../lib/chat/conversations'
+import { useAppNotifications } from './useAppNotifications'
+import { normalizeAppError } from '../lib/notifications/errors'
+import type { ErrorContext } from '../lib/notifications/errors'
+import type { NotificationAction } from './useAppNotifications'
+import { TransportError } from '../lib/chat/realTransport'
 
 export const CHAT_CACHE_KEY = 'noris-ai:chat-cache:v2'
 const OFFLINE_DRAFTS_KEY = 'noris-ai:offline-drafts:v1'
 
 /** Synchronizes the existing state through explicit resource operations. */
 export function useChatBackend(state: ReturnType<typeof createChatState>, transport: ChatTransport) {
+  const notifications = useAppNotifications()
+  function report(cause: unknown, context: ErrorContext, action?: NotificationAction): string {
+    notifications?.reportError(cause, context, action)
+    return normalizeAppError(cause, context).message
+  }
   const backend = transport.backend!
   backend.onMessage = (value) => {
     const existing = state.messages.value[value.id]
     if (existing) existing.attachments = value.attachments ?? []
   }
   const storageWarning = ref<string | null>(null)
+  const retryPersistence = ref<(() => Promise<void> | void) | null>(null)
+  const failedPersistence = new Map<string, { message: string, retry: () => Promise<void> }>()
+  const failedDrafts = new Map<string, string>()
+  function syncPersistenceRecovery(): void {
+    storageWarning.value = [...failedPersistence.values()].at(-1)?.message ?? null
+    retryPersistence.value = failedPersistence.size ? async () => { for (const failure of [...failedPersistence.values()]) await failure.retry() } : null
+  }
   const backendReady = ref(false)
   const importAvailable = ref(false)
   const importBusy = ref(false)
@@ -40,6 +57,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   let draftTimer: ReturnType<typeof setTimeout> | undefined
   let sentDrafts: Record<string, string> = {}
   let pendingDrafts: Record<string, string> = {}
+  let preferredModelId: string | null = null
   function localJson(key: string, maximum = Infinity): unknown {
     try {
       const raw = localStorage.getItem(key)
@@ -48,8 +66,11 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     catch { return null }
   }
   function savePendingDrafts(): void {
-    try { localStorage.setItem(OFFLINE_DRAFTS_KEY, JSON.stringify(pendingDrafts)) }
-    catch { storageWarning.value = 'Der lokale Entwurf konnte nicht gesichert werden.' }
+    try {
+      localStorage.setItem(OFFLINE_DRAFTS_KEY, JSON.stringify(pendingDrafts))
+      if (retryPersistence.value === savePendingDrafts) syncPersistenceRecovery()
+    }
+    catch { storageWarning.value = report({ code: 'STORAGE_UNAVAILABLE' }, { operation: 'storage', resourceId: 'drafts' }); retryPersistence.value = savePendingDrafts }
   }
 
   function mergeMetadata(values: ApiSchemas['ConversationResponse'][]): void {
@@ -90,13 +111,19 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     }
   }
   function applyPath(result: ApiSchemas['ActivePathResponse'], append = false): void {
+    const previousMessages = state.messages.value
     const id = result.conversation.id
     const retainsBoundary = append && result.boundaryParentId && state.messages.value[result.boundaryParentId]?.conversationId === id
     if (!append) {
       state.messages.value = Object.fromEntries(Object.entries(state.messages.value).filter(([, m]) => m.conversationId !== id))
       state.variantSummaries.value = Object.fromEntries(Object.entries(state.variantSummaries.value).filter(([key]) => Boolean(state.messages.value[key])))
     }
-    for (const message of result.messages) state.messages.value[message.id] = messageFromServer(message)
+    for (const message of result.messages) {
+      const existing = previousMessages[message.id]
+      const loaded = messageFromServer(message)
+      if (existing?.errorDiagnostics && existing.generationId === loaded.generationId && existing.errorCode === loaded.errorCode) loaded.errorDiagnostics = existing.errorDiagnostics
+      state.messages.value[message.id] = loaded
+    }
     for (const summary of result.variants) state.variantSummaries.value[summary.messageId] = summary
     if (!retainsBoundary) state.pathBoundaries.value[id] = result.boundaryParentId ?? null
     windows.value[id] = retainsBoundary && windows.value[id]
@@ -128,7 +155,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
         if (disposed || controller.signal.aborted || !state.conversations.records.value[id]) return
         // A stream may have started while the request was pending.
         if (id === state.generatingConversationId.value) return
-        if (result.conversation.version < (backend.versions.get(id) ?? 0) && result.leafMessageId !== state.conversations.records.value[id]?.activeLeafMessageId) throw new Error('Der Gesprächspfad wurde geändert. Lade den Chat erneut.')
+        if (result.conversation.version < (backend.versions.get(id) ?? 0) && result.leafMessageId !== state.conversations.records.value[id]?.activeLeafMessageId) throw new TransportError('VERSION_CONFLICT')
         applyPath(result, preserve)
         if (!Object.hasOwn(pendingDrafts, id)) {
           const content = drafts.drafts.find(draft => draft.key === id)?.content ?? ''
@@ -139,7 +166,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       })
     }
     catch (error) {
-      if (!controller.signal.aborted && state.conversations.activeId.value === id) historyError.value = error instanceof Error ? error.message : 'Dieser Chat konnte nicht geladen werden.'
+      if (!controller.signal.aborted && state.conversations.activeId.value === id) historyError.value = report(error, { operation: 'history', conversationId: id, attemptId: String(revision) }, { label: 'Chat erneut laden', onClick: () => loadConversation(id, true) })
     }
     finally { if (foreground && revision === viewRevision) { historyLoading.value = false; viewRequest = undefined } }
   }
@@ -192,11 +219,12 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       mergeMetadata(result.conversations); nextCursor.value = result.nextCursor ?? null
       sidebarIds.value = [...new Set([...sidebarIds.value, ...result.conversations.map(c => c.id)])].slice(-500)
     }
-    catch (error) { sidebarError.value = error instanceof Error ? error.message : 'Weitere Chats konnten nicht geladen werden.' }
+    catch (error) { sidebarError.value = report(error, { operation: 'sidebar', resourceId: 'more', attemptId: crypto.randomUUID() }, { label: 'Erneut laden', onClick: loadMore }) }
     finally { sidebarLoading.value = false }
   }
   async function reloadSidebar(): Promise<void> {
     if (sidebarLoading.value) return
+    const previousError = sidebarError.value
     sidebarLoading.value = true; sidebarError.value = null
     try {
       if (!backendReady.value) await refresh()
@@ -207,8 +235,10 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
         sidebarIds.value = result.conversations.map(c => c.id)
         nextCursor.value = result.nextCursor ?? null
       }
+      await transport.connect?.()
+      if (storageWarning.value === previousError) storageWarning.value = null
     }
-    catch (error) { sidebarError.value = error instanceof Error ? error.message : 'Chats konnten nicht geladen werden.' }
+    catch (error) { sidebarError.value = report(error, { operation: 'sidebar', attemptId: crypto.randomUUID() }, { label: 'Erneut laden', onClick: reloadSidebar }) }
     finally { sidebarLoading.value = false }
   }
   async function loadOlder(): Promise<void> {
@@ -222,7 +252,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       const result = await backend.path(id, { beforeMessageId: boundary })
       if (!disposed && state.conversations.records.value[id] && result.leafMessageId === state.conversations.records.value[id]?.activeLeafMessageId) applyPath(result, true)
     }
-    catch (error) { if (state.conversations.activeId.value === id) historyError.value = error instanceof Error ? error.message : 'Ältere Nachrichten konnten nicht geladen werden.' }
+    catch (error) { if (state.conversations.activeId.value === id) historyError.value = report(error, { operation: 'older-history', conversationId: id, attemptId: crypto.randomUUID() }, { label: 'Erneut laden', onClick: loadOlder }) }
     finally { olderLoading.value = false; olderConversation = undefined }
   }
   async function search(query: string, signal: AbortSignal, cursor?: string): Promise<ApiSchemas['ConversationListResponse']> {
@@ -235,10 +265,13 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     if (!disposed) mergeMetadata(result.conversations)
     return result
   }
-  async function persist(operation: Promise<unknown>): Promise<void> {
-    try { await operation }
+  async function persist(operation: Promise<unknown>, context: ErrorContext, retry: () => Promise<unknown>): Promise<void> {
+    const key = JSON.stringify([context.operation, context.conversationId, context.resourceId])
+    try { await operation; if (failedPersistence.delete(key)) syncPersistenceRecovery() }
     catch (error) {
-      storageWarning.value = error instanceof Error ? error.message : 'Die Änderung konnte nicht gespeichert werden.'
+      const recover = () => persist(retry(), { ...context, attemptId: crypto.randomUUID() }, retry)
+      const message = report(error, context, { label: 'Erneut speichern', onClick: recover })
+      failedPersistence.set(key, { message, retry: recover }); syncPersistenceRecovery()
       // On conflict, re-read authority. Preserve the unsent draft for recovery.
       if (!state.stream.busy.value) {
         const drafts = { ...state.drafts.records.value }
@@ -253,7 +286,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   state.conversations.create = (title?: string) => {
     userNavigated = true
     const conversation = create(title)
-    void persist(backend.ensure(conversation))
+    void persist(backend.ensure(conversation), { operation: 'create', conversationId: conversation.id, attemptId: crypto.randomUUID() }, () => backend.ensure(conversation))
     return conversation
   }
   const newChat = state.newChat
@@ -264,7 +297,9 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       if (!backendReady.value) return
       original(id, title ?? '')
       if (action === 'restore') sidebarIds.value = [id, ...sidebarIds.value.filter(value => value !== id)].slice(0, 500)
-      void persist(backend.patch(id, action === 'rename' ? { title: title ?? '' } : { archived: action === 'archive' }))
+      const change = action === 'rename' ? { title: title ?? '' } : { archived: action === 'archive' }
+      const operation = action === 'archive' ? 'archive' : action
+      void persist(backend.patch(id, change), { operation, conversationId: id, attemptId: crypto.randomUUID() }, () => backend.patch(id, change))
     }
   }
   state.selectVariant = (id) => {
@@ -290,7 +325,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
         result.conversation = { ...result.conversation, ...state.conversations.records.value[conversationId], activeLeafMessageId: result.leafMessageId, version: backend.versions.get(conversationId)! }
         applyPath(result)
       }
-      catch (error) { if (!controller.signal.aborted && state.conversations.activeId.value === conversationId) historyError.value = error instanceof Error ? error.message : 'Die Variante konnte nicht geladen werden.' }
+      catch (error) { if (!controller.signal.aborted && state.conversations.activeId.value === conversationId) historyError.value = report(error, { operation: 'variant', conversationId, resourceId: id, attemptId: String(revision) }, { label: 'Chat erneut laden', onClick: () => loadConversation(conversationId, true) }) }
       finally { if (revision === viewRevision) { historyLoading.value = false; viewRequest = undefined }; if (selectingVariant === conversationId) selectingVariant = undefined }
     })()
     return true
@@ -307,17 +342,22 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     return regenerate(id, modelId)
   }
   const remove = state.remove
-  state.remove = (id) => {
-    if (!backendReady.value) return
+  state.remove = async (id) => {
+    if (!backendReady.value) throw new TransportError('NOT_READY')
+    // Confirm the existing server deletion before discarding messages and drafts.
+    // The confirmation dialog owns the error and remains available for retry.
+    await backend.remove(id)
     cache.invalidate(id)
     windows.value = Object.fromEntries(Object.entries(windows.value).filter(([key]) => key !== id))
     state.pathBoundaries.value = Object.fromEntries(Object.entries(state.pathBoundaries.value).filter(([key]) => key !== id))
     remove(id)
-    void persist(backend.remove(id))
   }
   function flushCache(): void {
-    try { localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify({ version: 2, preferredLeaves: state.preferredLeaves.value })) }
-    catch { storageWarning.value = 'Der lokale Cache ist nicht verfügbar.' }
+    try {
+      localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify({ version: 2, preferredLeaves: state.preferredLeaves.value }))
+      if (retryPersistence.value === flushCache) syncPersistenceRecovery()
+    }
+    catch { storageWarning.value = report({ code: 'STORAGE_UNAVAILABLE' }, { operation: 'storage', resourceId: 'cache' }); retryPersistence.value = flushCache }
   }
   async function importLocalChats(): Promise<void> {
     if (importBusy.value || !backendReady.value) return
@@ -325,31 +365,35 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     try {
       const raw = localStorage.getItem(CHAT_STORAGE_KEY)
       const snapshot = raw ? parseChatSnapshot(raw) : null
-      if (!snapshot) throw new Error('Der lokale Bestand ist ungültig und wurde erhalten.')
+      if (!snapshot) throw new TransportError('IMPORT_INVALID')
       const result = await backend.request<{ conflicts: unknown[], imported: string[], skipped: string[] }>('/conversations/import', 'POST', {
         conversations: Object.values(snapshot.conversations.conversations).map(({ titleGenerationAttempted: _attempted, ...c }) => c),
         messages: Object.values(snapshot.messages).map(m => ({ id: m.id, conversationId: m.conversationId, parentMessageId: m.parentMessageId, role: m.role, content: m.content, modelId: m.modelId ?? null, continuationCount: m.continuationCount ?? 0, errorCode: m.errorCode ?? null, errorMessage: m.errorMessage ?? null, editedFromMessageId: m.editedFromMessageId ?? null, status: m.status === 'submitting' || m.status === 'streaming' ? 'cancelled' : m.status, createdAt: m.createdAt, updatedAt: m.createdAt })),
         drafts: snapshot.drafts, activeConversationId: snapshot.conversations.activeConversationId,
       })
-      if (result.conflicts.length) throw new Error('Der Import enthält Konflikte. Es wurden keine neuen Chats übernommen; der lokale Bestand bleibt erhalten.')
+      if (result.conflicts.length) throw new TransportError('IMPORT_CONFLICT')
       await refresh()
       storageWarning.value = `${result.imported.length} Chats importiert, ${result.skipped.length} bereits vorhanden. Die lokale Sicherung bleibt erhalten.`
+      notifications?.notify({ severity: 'success', title: 'Chats importiert.', description: storageWarning.value })
     }
-    catch (error) { storageWarning.value = error instanceof Error ? error.message : 'Der Import ist fehlgeschlagen.' }
+    catch (error) { storageWarning.value = report(error, { operation: 'import', attemptId: crypto.randomUUID() }, { label: 'Erneut importieren', onClick: importLocalChats }) }
     finally { importBusy.value = false }
   }
   onMounted(async () => {
     sidebarLoading.value = true
     try {
       try { importAvailable.value = Boolean(localStorage.getItem(CHAT_STORAGE_KEY)) }
-      catch { storageWarning.value = 'Der lokale Speicher ist nicht verfügbar.' }
+      catch { storageWarning.value = report({ code: 'STORAGE_UNAVAILABLE' }, { operation: 'storage', resourceId: 'import' }) }
       const offline = localJson(OFFLINE_DRAFTS_KEY)
       if (offline && typeof offline === 'object' && !Array.isArray(offline)) {
         for (const [key, text] of Object.entries(offline)) if (typeof text === 'string' && text.length <= 64000 && (key === '__new__' || /^[0-9a-f-]{36}$/.test(key))) {
           pendingDrafts[key] = text
           state.drafts.records.value[key] = text
         }
-        if (Object.keys(pendingDrafts).length) storageWarning.value = 'Ein lokal noch nicht gespeicherter Entwurf wurde wiederhergestellt.'
+        if (Object.keys(pendingDrafts).length) {
+          storageWarning.value = 'Ein lokal noch nicht gespeicherter Entwurf wurde wiederhergestellt.'
+          notifications?.notify({ severity: 'info', title: 'Entwurf wiederhergestellt.', description: storageWarning.value })
+        }
       }
       await refresh()
       // Recover an explicitly saved reader position with bounded active-chat
@@ -376,7 +420,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       const running = Object.values(state.messages.value).find(m => m.generationId && (m.status === 'streaming' || m.status === 'submitting'))
       if (running) state.resume(running.id)
     }
-    catch (error) { storageWarning.value = error instanceof Error ? error.message : 'Chats konnten nicht geladen werden.'; sidebarError.value = storageWarning.value }
+    catch (error) { storageWarning.value = report(error, { operation: 'sidebar', attemptId: 'initial' }, { label: 'Erneut laden', onClick: reloadSidebar }); sidebarError.value = storageWarning.value }
     finally { sidebarLoading.value = false }
   })
   watch([state.preferredLeaves, state.conversations.activeId], () => {
@@ -386,7 +430,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     if (backendReady.value) {
       if (viewRequest && viewRequest.id !== id) { viewRequest.abort.abort(); cache.cancelRead(viewRequest.id); viewRequest = undefined }
       ++viewRevision; historyLoading.value = false
-      void persist(backend.preferences(id))
+      void persist(backend.preferences(id), { operation: 'preferences', conversationId: id, attemptId: crypto.randomUUID() }, () => backend.preferences(state.conversations.activeId.value))
       historyError.value = null
       if (id) void loadConversation(id)
       else { historyLoading.value = false; viewRequest?.abort.abort() }
@@ -406,11 +450,18 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       if (!backendReady.value) return
       for (const [key, content] of Object.entries(state.drafts.records.value)) {
         if (sentDrafts[key] === content || (key !== '__new__' && !state.conversations.records.value[key])) continue
-        void persist(backend.draft(key, content).then(() => {
-          sentDrafts[key] = content
-          if (pendingDrafts[key] === content) pendingDrafts = Object.fromEntries(Object.entries(pendingDrafts).filter(([id]) => id !== key))
+        if (failedDrafts.get(key) === content) continue
+        const saveDraft = async () => {
+          if (key !== '__new__' && !state.conversations.records.value[key]) return
+          const currentContent = state.drafts.records.value[key] ?? content
+          try { await backend.draft(key, currentContent) }
+          catch (cause) { failedDrafts.set(key, currentContent); throw cause }
+          failedDrafts.delete(key)
+          sentDrafts[key] = currentContent
+          if (pendingDrafts[key] === currentContent) pendingDrafts = Object.fromEntries(Object.entries(pendingDrafts).filter(([id]) => id !== key))
           savePendingDrafts()
-        }))
+        }
+        void persist(saveDraft(), { operation: 'draft', conversationId: key, attemptId: crypto.randomUUID() }, saveDraft)
       }
       flushCache()
     }, 300)
@@ -423,7 +474,11 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     historyLoading, historyError, olderLoading,
     hasOlder: computed(() => Boolean(windows.value[state.conversations.activeId.value ?? '']?.nextCursor)),
     loadOlder, retryHistory: () => { const id = state.conversations.activeId.value; if (id) void loadConversation(id, true) },
-    search, loadArchive,
+    search, loadArchive, loadConversation,
   }
-  return { pagination, storageWarning, backendReady, importAvailable, importBusy, importLocalChats, refresh }
+  function saveModelPreference(modelId: string): Promise<void> {
+    preferredModelId = modelId
+    return persist(backend.preferences(state.conversations.activeId.value, modelId), { operation: 'preferences', resourceId: 'model', attemptId: crypto.randomUUID() }, () => backend.preferences(state.conversations.activeId.value, preferredModelId ?? modelId))
+  }
+  return { pagination, storageWarning, retryPersistence, saveModelPreference, backendReady, importAvailable, importBusy, importLocalChats, refresh }
 }

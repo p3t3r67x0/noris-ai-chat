@@ -5,9 +5,14 @@ import MarkdownContent from './MarkdownContent'
 import type { ApiSchemas } from '../../types/generated/api'
 import MessageVariants from './MessageVariants.vue'
 import { CHAT_LIMITS } from '../../lib/chat/limits'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { formatDiagnostics, normalizeAppError } from '../../lib/notifications/errors'
 
-withDefaults(defineProps<{ message: ChatMessage, summary?: ApiSchemas['VariantSummary'] | undefined, variants?: readonly ChatMessage[], busy?: boolean, canContinue?: boolean }>(), { summary: undefined, variants: () => [], busy: false, canContinue: false })
+const props = withDefaults(defineProps<{ message: ChatMessage, summary?: ApiSchemas['VariantSummary'] | undefined, variants?: readonly ChatMessage[], busy?: boolean, canContinue?: boolean }>(), { summary: undefined, variants: () => [], busy: false, canContinue: false })
+const failure = computed(() => {
+  const timestamp = new Date(props.message.errorDiagnostics?.timestamp ?? props.message.createdAt)
+  return normalizeAppError({ code: props.message.errorCode, requestId: props.message.errorDiagnostics?.requestId }, { operation: 'generation', conversationId: props.message.conversationId, generationId: props.message.generationId ?? null }, Number.isFinite(timestamp.getTime()) ? timestamp : new Date())
+})
 const emit = defineEmits<{ edit: [], regenerate: [], continue: [], rendered: [], selectVariant: [id: string] }>()
 const { copy, copied, copyError } = useCopy()
 const failedImages = ref<Record<string, boolean>>({})
@@ -42,8 +47,12 @@ function retryImage(id: string): void { failedImages.value[id] = false }
       <div v-if="message.content" data-selectable-message><MarkdownContent :content="message.content" :streaming="message.status === 'streaming'" @rendered="emit('rendered')" /></div>
       <div v-else-if="message.status === 'submitting' || message.status === 'streaming'" class="thinking-dot" aria-hidden="true" />
       <p v-if="message.status === 'cancelled'" class="mt-3 text-xs text-muted">Antwort gestoppt.</p>
-      <p v-else-if="message.status === 'incomplete'" class="mt-3 text-xs text-muted">{{ message.errorMessage ?? `Ausgabelimit erreicht${canContinue ? ' – weiterschreiben' : ''}` }}</p>
-      <p v-else-if="message.status === 'failed'" class="mt-3 text-xs text-error">{{ message.errorMessage ?? 'Die Antwort konnte nicht vollständig übertragen werden.' }}</p>
+      <p v-else-if="message.status === 'incomplete'" class="mt-3 text-xs text-muted">Antwort unvollständig.</p>
+      <div v-else-if="message.status === 'failed'" class="mt-3 text-xs text-muted">
+        <span>Antwort fehlgeschlagen.</span>
+        <UButton color="neutral" variant="link" label="Erneut versuchen" :disabled="busy" @click="emit('regenerate')" />
+      </div>
+      <details v-if="message.status === 'failed' || (message.status === 'incomplete' && message.errorCode)" class="message-error-details text-xs text-muted"><summary>Fehlerdetails</summary><p>{{ failure.message }}</p><pre class="notification-diagnostics">{{ formatDiagnostics(failure.diagnostics) }}</pre></details>
       <UButton v-if="canContinue" color="neutral" variant="outline" label="Weiterschreiben" class="mt-3 min-h-11" :disabled="busy" @click="emit('continue')" />
       <p v-if="message.status === 'incomplete' && !message.errorMessage && (message.continuationCount ?? 0) >= CHAT_LIMITS.max_continuations" class="mt-3 text-xs text-muted">Fortsetzungslimit erreicht. Der bisherige Text bleibt erhalten.</p>
       <p v-else-if="message.status === 'incomplete' && message.content.length >= CHAT_LIMITS.max_response_chars" class="mt-3 text-xs text-muted">Die Größenbegrenzung dieser Antwort ist erreicht.</p>
@@ -51,7 +60,7 @@ function retryImage(id: string): void { failedImages.value[id] = false }
     <div v-if="(message.content || (message.role === 'assistant' && message.status === 'failed')) && message.status !== 'streaming' && message.status !== 'submitting'" class="message-actions">
       <UButton v-if="message.content" :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" color="neutral" variant="ghost" class="touch-control" :aria-label="copied ? 'Nachricht kopiert' : 'Nachricht kopieren'" @click="copy(message.content)" />
       <UButton v-if="message.role === 'user'" icon="i-lucide-pencil" color="neutral" variant="ghost" class="touch-control" aria-label="Nachricht bearbeiten" :disabled="busy" @click="emit('edit')" />
-      <UButton v-else icon="i-lucide-rotate-ccw" color="neutral" variant="ghost" class="touch-control" aria-label="Antwort erneut generieren" :disabled="busy" @click="emit('regenerate')" />
+      <UButton v-else-if="message.status !== 'failed'" icon="i-lucide-rotate-ccw" color="neutral" variant="ghost" class="touch-control" aria-label="Antwort erneut generieren" :disabled="busy" @click="emit('regenerate')" />
       <MessageVariants :variants="variants" :summary="summary" :selected-id="message.id" :busy="busy" :role="message.role" @select="emit('selectVariant', $event)" />
     </div>
     <p v-if="copyError" role="status" class="text-xs text-error">{{ copyError }}</p>

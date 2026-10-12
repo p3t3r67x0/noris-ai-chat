@@ -211,3 +211,20 @@ sowie vier WebSocket-Fälle für Lernmodus, Draft-Reload und Fehler-Recovery. Ru
 Nuxt/vue-tsc/Pyright, API-Vertragsprüfung und Nuxt-Produktionsbuild bestehen.
 Die CI-Workflows bleiben vollständig aktiviert und werden auf Anforderung
 erneut geprüft; Tests und Prüfregeln werden nicht übersprungen.
+
+Beim weiteren Update von `main` (`04241a1`, Benachrichtigungen aus PR #58)
+werden dessen zentrale Fehlermeldungen und explizite Wiederholungsaktionen
+übernommen. Der einzelne Composer, die gemeinsame Zentrierung mit der Begrüßung
+und die verzögerte Sidebar-Anzeige bleiben erhalten. Conversation-Erstellung
+verwendet die neue Persistence-Recovery mit Kontext und Retry; sie fügt weiterhin
+keinen vorzeitigen Sidebar-Eintrag hinzu.
+
+Bestehende Browserprüfungen berücksichtigen die sichere Fehlerpräsentation:
+Wiederholen über „Erneut versuchen“, Importergebnisse über aufklappbare Details,
+Fehlerbenachrichtigungen statt interner Servertexte sowie auf den jeweiligen
+Bereich begrenzte ARIA-Selektoren. Der fehlgeschlagene Active-Path-Aufruf prüft
+zusätzlich Fehlercode und Request-ID in der Diagnose. Prüfungen für Datenbestand,
+Attachment-IDs, Upload-Sperren und explizite Wiederholungen bleiben erhalten.
+158 gezielte Unit-Fälle für Chat-Lifecycle, Titel-Synchronisation und
+Benachrichtigungs-Recovery sowie fünf Benachrichtigungs-Browserfälle bestehen.
+Nuxt-Produktionsbuild, Nuxt-/Test-Typecheck und Lint bestehen.

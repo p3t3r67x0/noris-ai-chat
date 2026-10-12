@@ -60,7 +60,7 @@ describe('Real transport and existing contract', () => {
     await stream.start(request, { delta: delta => { text += delta }, status: () => {} })
     expect(text).toBe('Grüße 🌍')
     expect(stream.status.value).toBe('failed')
-    expect(stream.error.value).toBe(failure.message)
+    expect(stream.error.value).toContain('Warte einen Moment')
   })
 
   it('sanitizes HTML proxy errors', async () => {

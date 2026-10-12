@@ -166,7 +166,7 @@ test('draft reload, first response failure, retry and title failure remain recov
   expect(failed.title).not.toBe('Neuer Chat')
   await page.reload()
   await expect(page.locator('.message-user')).toContainText('/retry new-chat')
-  await page.locator('.message-assistant').getByRole('button', { name: 'Antwort erneut generieren', exact: true }).click()
+  await page.locator('.message-assistant').getByRole('button', { name: 'Erneut versuchen', exact: true }).click()
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   expect(await list(request)).toHaveLength(1)
   async function titleErrorCalls(): Promise<number> {

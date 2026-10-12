@@ -3,6 +3,7 @@ import type { ApiPaths, ApiSchemas } from '../../types/generated/api'
 import type { Conversation } from './conversations'
 import type { ChatBackend } from './backend'
 import type { ReasoningPreference } from './reasoning'
+import type { ErrorDiagnostics } from '../notifications/errors'
 
 export type ConversationTitleRequest = ApiPaths['/api/v1/llm/conversation-title']['post']['requestBody']
 export type ConversationTitleResponse = ApiPaths['/api/v1/llm/conversation-title']['post']['responses'][200]
@@ -22,6 +23,7 @@ export interface ChatMessage {
   continuationCount?: number
   errorCode?: string
   errorMessage?: string
+  errorDiagnostics?: ErrorDiagnostics
   generationId?: string
   attachments?: ApiSchemas['AttachmentResponse'][]
 }
@@ -42,7 +44,7 @@ export interface ChatRequest {
   resume?: boolean
   sourceAssistantMessageId?: string
 }
-export type StreamEvent = { seq: number, continuationCount?: number } & (
+export type StreamEvent = { seq: number, continuationCount?: number, requestId?: string | null } & (
   | { type: 'response.started' }
   | { type: 'response.output_text.delta', delta: string }
   | { type: 'response.completed', content?: string }

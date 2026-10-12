@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { normalizeAppError } from '../../lib/notifications/errors'
 import { useAppLocale } from '../../composables/useAppLocale'
 import { computed, ref } from 'vue'
 import type { useChatBackend } from '../../composables/useChatBackend'
@@ -34,7 +35,7 @@ async function loadArchive(more = false): Promise<void> {
     archiveResults.value = [...new Map([...(more ? archiveResults.value : []), ...rows].map(c => [c.id, c])).values()]
     archiveCursor.value = result.nextCursor ?? null
   }
-  catch { archiveError.value = 'Das Archiv konnte nicht geladen werden.' }
+  catch (cause) { archiveError.value = normalizeAppError(cause, { operation: 'archive' }).message }
   finally { archiveLoading.value = false }
 }
 const renameTarget = ref<Conversation | null>(null)
@@ -139,7 +140,7 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
     </template>
 
     <nav :aria-label="t('conversations')" class="pb-4">
-      <p v-if="pagination?.sidebarError.value" role="alert" class="px-3 py-2 text-sm text-warning">{{ pagination.sidebarError.value }}</p>
+      <details v-if="pagination?.sidebarError.value" class="px-3 py-2 text-sm text-warning"><summary>Chatliste nicht verfügbar.</summary><p>{{ pagination.sidebarError.value }}</p></details>
       <UButton v-if="pagination?.sidebarError.value || pagination?.windowedList.value" color="neutral" variant="ghost" label="Neueste Chats laden" :loading="pagination?.sidebarLoading.value" @click="pagination?.reloadSidebar" />
       <p v-if="pagination?.sidebarLoading.value && groups.length === 0" role="status" class="px-3 py-2 text-sm text-muted">Chats werden geladen …</p>
       <p v-if="groups.length === 0 && !pagination?.sidebarLoading.value && !pagination?.sidebarError.value" class="px-3 py-6 text-sm leading-relaxed text-muted">{{ t('emptyConversations') }}</p>

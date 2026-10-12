@@ -62,7 +62,7 @@ describe('settings data controls', () => {
     expect(button(wrapper, 'Import ausdrücklich starten')).toBeUndefined()
     expect(wrapper.findAllComponents(Modal)[0]!.props('dismissible')).toBe(true)
     await wrapper.setProps({ importFeedback: '1 Chats importiert, 0 bereits vorhanden. Die lokale Sicherung bleibt erhalten.' })
-    expect(wrapper.get('[role="status"]').text()).toContain('1 Chats importiert')
+    expect(wrapper.get('details').text()).toContain('1 Chats importiert')
   })
 
   it('disables importing until the backend is ready', () => {
