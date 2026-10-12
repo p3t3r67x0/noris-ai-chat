@@ -263,3 +263,14 @@ die öffentliche Benachrichtigung beim leeren Katalog eindeutig aus. Entwurf,
 bisherige Nachrichten, explizite Fallback-Auswahl und gesperrtes Senden bei
 fehlenden Modellen bleiben geprüft. Der vorangegangene Compose-CI-Job ist
 vollständig erfolgreich, einschließlich der PostgreSQL-/WebSocket-Browserfälle.
+
+Im CI-Lauf `38295929611` bestehen 516 Backend-Unit-, 456 Frontend-Unit-,
+117 Integrations- sowie 300 Mock-, 83 LLM- und 122 WebSocket-Browsertests.
+Der Compose-Smoke-Job ist ebenfalls erfolgreich. Der Checks-Job wird erst
+während des Produktionsbuilds nach 20 Minuten abgebrochen; GitHub bestätigt
+„The job has exceeded the maximum execution time of 20m0s“.
+Das Zeitlimit dieses Jobs beträgt deshalb jetzt 30 Minuten. Sämtliche Schritte,
+Tests und Prüfregeln bleiben erhalten; Compose-Smoke behält sein Zeitlimit.
+Die Workflow-Konfiguration ist lokal als YAML geprüft und mit der vorherigen
+Version verglichen: Nur das Checks-Zeitlimit ändert sich. Auf den anschließend
+ausgelösten CI-Lauf wird gemäß Anweisung nicht gewartet.
