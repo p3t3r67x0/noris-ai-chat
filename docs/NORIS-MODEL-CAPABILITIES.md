@@ -51,7 +51,7 @@ Ohne explizite Kontextgrenze entspricht der effektive Kontext dem gültigen Prov
 
 Die effektive Ausgabe ist das Minimum aus Modellpolicy, globalem `NORIS_LLM_MAX_OUTPUT_TOKENS`, gemeldeten Kapazitäten, gegebenenfalls Betreiber-/Live-Prüfgrenzen sowie Kontext nach Reasoning-, System- und Sicherheitsreserve. Ein Kontext von einer Million Tokens erhöht niemals die Ausgabe. Unbekannte Tokenunits liefern kein gemeldetes Maximum und erlauben keine automatische Erweiterung; konservative Rückfallgrenzen sind höchstens 8192 Kontext und 1024 Ausgabe. Ungültige/conflicting Konfigurationen bleiben gesperrt.
 
-Pro Anfrage sendet der Provider exakt das durch Admission gebundene `max_output_tokens`, Titel höchstens `NORIS_LLM_TITLE_MAX_OUTPUT_TOKENS` (Default 96). Der Client kann kein größeres Tokenlimit übergeben. Die bestehenden UTF-16-, Byte-, Tokenbudget-, Parallelitäts-, Raten- und Timeoutgrenzen gelten zusätzlich.
+Pro Anfrage sendet der Provider exakt das durch Admission gebundene `max_output_tokens`, Titel höchstens `NORIS_LLM_TITLE_MAX_OUTPUT_TOKENS` (Default 1024 einschließlich Reasoning). Der Client kann kein größeres Tokenlimit übergeben. Die bestehenden UTF-16-, Byte-, Tokenbudget-, Parallelitäts-, Raten- und Timeoutgrenzen gelten zusätzlich.
 
 ## Betreiberkonfiguration und Herkunft
 

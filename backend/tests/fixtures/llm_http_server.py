@@ -144,6 +144,20 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
             if prompt.startswith("/slow"):
                 chunks += [" weiterer Text"] * 100
             if is_title:
+                if prompt.startswith("/title-reasoning"):
+                    reasoning = {
+                        "choices": [
+                            {"index": 0, "delta": {"reasoning_content": "Synthetic reasoning"}}
+                        ]
+                    }
+                    yield ("data: " + json.dumps(reasoning) + "\n\n").encode()
+                    if body.get("max_tokens", 0) <= 96:
+                        limit: dict[str, object] = {
+                            "choices": [{"index": 0, "delta": {}, "finish_reason": "length"}]
+                        }
+                        yield ("data: " + json.dumps(limit) + "\n\n").encode()
+                        yield b"data: [DONE]\n\n"
+                        return
                 await asyncio.sleep(0.4)
                 title = "Docker DNS-Probleme"
                 if "Rust" in prompt:

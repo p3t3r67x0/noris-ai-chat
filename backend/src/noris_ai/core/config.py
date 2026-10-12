@@ -46,8 +46,9 @@ class Settings(BaseSettings):
     llm_read_timeout_seconds: float = Field(default=120, ge=1, le=600)
     llm_total_timeout_seconds: float = Field(default=1800, ge=1, le=3600)
     llm_heartbeat_seconds: float = Field(default=10, ge=1, le=30)
-    llm_title_timeout_seconds: float = Field(default=6, gt=0, le=30)
-    llm_title_max_output_tokens: int = Field(default=96, ge=1, le=256)
+    llm_title_timeout_seconds: float = Field(default=20, gt=0, le=30)
+    # This is the TOTAL completion budget, including hidden reasoning tokens.
+    llm_title_max_output_tokens: int = Field(default=1024, ge=1, le=2048)
     llm_max_concurrent: int = Field(default=4, ge=1, le=32)
     llm_requests_per_minute: int = Field(default=20, ge=1, le=120)
     llm_daily_token_budget: int = Field(default=100_000, ge=1, le=10_000_000)

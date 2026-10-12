@@ -202,6 +202,10 @@ for (const width of [1440, 1700, 768, 390]) {
       await inputFor(page).press('Enter')
       await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
       await inputFor(page).fill('Mein Entwurf')
+      // The title commits independently after the answer. Capture the completed
+      // metadata and ready composer together.
+      await expect(page.locator('[data-conversation-id] button').first()).toHaveAttribute('title', 'Docker DNS-Probleme')
+      await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
       const composer = page.locator('.chat-composer')
       const before = (await composer.boundingBox())!
       const trigger = triggerFor(page)

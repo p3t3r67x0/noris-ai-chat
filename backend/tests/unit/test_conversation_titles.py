@@ -140,7 +140,7 @@ async def test_title_endpoint_uses_server_instruction_and_only_first_input(
             {"role": "system", "content": TITLE_INSTRUCTION},
             {"role": "user", "content": PAYLOAD["firstMessage"]},
         ]
-        assert model.max_output_tokens == 96
+        assert model.max_output_tokens == 1024
         assert llm_config.llm_models[0].max_output_tokens == 1024
         duplicate = await client.post("/api/v1/llm/conversation-title", json=PAYLOAD)
         assert duplicate.status_code == 409
@@ -275,7 +275,7 @@ async def test_titles_charge_budget_even_when_invalid_and_limit_output(
     provider = TitleProvider("x" * 257)
     # Preserve the first-title allowance with the added system/context reserves;
     # the remaining budget still cannot admit another chat request.
-    budget = 1500 + llm_config.llm_context_safety_tokens + llm_config.llm_system_reserved_tokens
+    budget = 2500 + llm_config.llm_context_safety_tokens + llm_config.llm_system_reserved_tokens
     gateway = LLMGateway(
         llm_config.model_copy(update={"llm_max_concurrent": 1, "llm_daily_token_budget": budget}),
         provider,
@@ -284,7 +284,7 @@ async def test_titles_charge_budget_even_when_invalid_and_limit_output(
         await gateway.conversation_title(ConversationTitleRequest.model_validate(PAYLOAD))
     assert raised.value.code == "INVALID_RESPONSE"
     assert provider.closed.is_set()
-    assert provider.calls[0][1].max_output_tokens == 96
+    assert provider.calls[0][1].max_output_tokens == 1024
     # The released slot does not erase the failed title's shared token charge.
     with pytest.raises(LLMError) as budget:
         await gateway.reserve(chat_request())

@@ -8,10 +8,8 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
+from sqlalchemy import create_engine, text
 
-from noris_ai.chat.models import ChatConversation, ChatMessage
 from noris_ai.core.config import Settings
 from noris_ai.main import create_app
 from tests.integration.test_chat_websocket import AUTH, ORIGIN, Simulator
@@ -33,28 +31,29 @@ def test_pdf_migration_restores_active_path_and_uploads_without_losing_messages(
     conversation_id, message_id = uuid4(), uuid4()
     engine = create_engine(url)
     try:
-        with Session(engine) as session:
-            conversation = ChatConversation(
-                id=conversation_id,
-                owner_id=config.chat_owner_id,
-                title="Synthetic migration regression",
-                title_source="fallback",
-                version=1,
+        # Seed the historical schema without importing current ORM columns.
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO chat_conversation (id, owner_id, title, title_source, version) "
+                    "VALUES (:id, :owner, 'Synthetic migration regression', 'fallback', 1)"
+                ),
+                {"id": conversation_id, "owner": config.chat_owner_id},
             )
-            session.add(conversation)
-            session.flush()
-            session.add(
-                ChatMessage(
-                    id=message_id,
-                    conversation_id=conversation_id,
-                    role="user",
-                    content="Synthetic preserved message",
-                    status="completed",
-                )
+            connection.execute(
+                text(
+                    "INSERT INTO chat_message (id, conversation_id, role, content, status) "
+                    "VALUES (:id, :conversation, 'user', "
+                    "'Synthetic preserved message', 'completed')"
+                ),
+                {"id": message_id, "conversation": conversation_id},
             )
-            session.flush()
-            conversation.active_leaf_message_id = message_id
-            session.commit()
+            connection.execute(
+                text(
+                    "UPDATE chat_conversation SET active_leaf_message_id = :message WHERE id = :id"
+                ),
+                {"message": message_id, "id": conversation_id},
+            )
     finally:
         engine.dispose()
 

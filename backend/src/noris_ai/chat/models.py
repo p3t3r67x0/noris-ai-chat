@@ -99,6 +99,7 @@ class ChatConversation(Base):
     owner_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     title: Mapped[str] = mapped_column(Text, nullable=False)
     title_source: Mapped[str] = mapped_column(TITLE_SOURCE_ENUM, nullable=False)
+    title_generation_claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

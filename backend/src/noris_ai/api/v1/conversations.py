@@ -120,15 +120,24 @@ async def update_conversation(
     conversation_id: UUID,
     payload: ConversationUpdate,
     access: ChatAccess,
+    request: Request,
 ) -> ConversationResponse:
     service, owner_id = access
     fields = payload.model_fields_set
     if len(fields - {"version"}) != 1:
         raise ChatError("INVALID_INPUT", 422)
     if "title" in fields and payload.title is not None:
-        return await service.rename_conversation(
+        conversation = await service.rename_conversation(
             owner_id, conversation_id, payload.title, payload.version
         )
+        cast(GenerationManager, request.app.state.chat_generations).broadcast(
+            {
+                "version": 1,
+                "type": "chat.conversation.updated",
+                "conversation": conversation.model_dump(mode="json"),
+            }
+        )
+        return conversation
     if "archived" in fields and payload.archived is not None:
         return await service.set_archived(
             owner_id, conversation_id, payload.archived, payload.version
