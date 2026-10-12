@@ -106,7 +106,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
         if (next === 'failed' && transport.backend && !reply.content) drafts.records.value[input.conversationId] = input.content
         if (next === 'streaming' && titleRequest) void titles.generate(titleRequest)
         const conversation = conversations.records.value[input.conversationId]
-        if (next === 'completed' && messages.value[reply.id] === reply && conversation?.titleSource === 'fallback' && conversation.title === FALLBACK_TITLE) {
+        if (!transport.backend && next === 'completed' && messages.value[reply.id] === reply && conversation?.titleSource === 'fallback' && conversation.title === FALLBACK_TITLE) {
           const context = path(input.conversationId, reply.id).map(message => message.content).join('\n')
           conversation.title = fallbackConversationTitle(context)
         }
@@ -137,7 +137,10 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     const parent = visible.value.at(-1)
     if (parent?.role === 'user') return false
     const needsTitle = conversation.activeLeafMessageId === null && !conversation.titleGenerationAttempted && conversation.titleSource === 'fallback'
-    if (needsTitle) { conversation.title = fallbackConversationTitle(content); conversation.titleGenerationAttempted = true }
+    if (needsTitle) {
+      if (!transport.backend) conversation.title = fallbackConversationTitle(content)
+      conversation.titleGenerationAttempted = true
+    }
     const input = append(conversation.id, conversation.activeLeafMessageId, 'user', content)
     if (attachments.length) input.attachments = attachments
     generate(input, modelId, 1, needsTitle ? { conversationId: conversation.id, inputMessageId: input.id, modelId, firstMessage: Array.from(content).slice(0, TITLE_INPUT_LIMIT).join('') } : undefined)

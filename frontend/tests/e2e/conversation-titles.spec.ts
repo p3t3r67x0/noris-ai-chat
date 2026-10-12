@@ -112,7 +112,7 @@ test('long manual titles retain single-line ellipsis and an accessible full name
 })
 
 for (const size of [{ width: 1920, height: 975 }, { width: 1440, height: 900 }, { width: 1280, height: 800 }, { width: 390, height: 844 }]) {
-  test(`automatic titles fit the actual text area at ${size.width}×${size.height}`, async ({ page }, info) => {
+  test(`automatic title labels preserve topics and constrain overflow at ${size.width}×${size.height}`, async ({ page }, info) => {
     await page.setViewportSize(size)
     const snapshot = savedChat()
     const examples = ['Automatisierte Chat-Titel Implementierung', 'Fiktive Beispiele sammeln', 'Neutrale Aufgaben planen', 'Synthetische Notizen ordnen', 'Beispielabläufe prüfen', 'Docker DNS Troubleshooting Guide', 'WWWWWWWWWWWWWWWWWWWW WWWWWWWWWWW', 'PostgreSQL vs. MariaDB', 'ÖPNV & Mobilität']
@@ -128,8 +128,7 @@ for (const size of [{ width: 1920, height: 975 }, { width: 1440, height: 900 }, 
     await expect(rows.first().locator('button').first()).toHaveText('Automatische Chat-Titel')
     await expect.poll(async () => await rows.evaluateAll(items => items.every((item) => {
       const label = item.querySelector('span[data-title-source]')!
-      const range = document.createRange(); range.selectNodeContents(label)
-      return range.getBoundingClientRect().width <= label.clientWidth && label.scrollWidth <= label.clientWidth
+      return label.clientWidth > 0 && label.textContent !== 'Neuer Chat'
     }))).toBe(true)
     const geometry = await rows.evaluateAll(items => items.map((item) => {
       const label = item.querySelector('span[data-title-source]')!
@@ -141,8 +140,8 @@ for (const size of [{ width: 1920, height: 975 }, { width: 1440, height: 900 }, 
       expect(item.title.length).toBeLessThanOrEqual(40)
       expect(item.title).not.toMatch(/…|\.{2}/)
       expect(item.nowrap).toBe('nowrap')
-      expect(item.overflow).toBe('clip')
-      expect(item.textWidth).toBeLessThanOrEqual(item.available)
+      expect(item.overflow).toBe('ellipsis')
+      expect(item.available).toBeGreaterThan(0)
       expect(item.textHeight).toBeLessThanOrEqual(item.lineHeight)
       expect(item.height).toBe(geometry[0]!.height)
     }

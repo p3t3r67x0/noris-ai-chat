@@ -36,6 +36,27 @@ function client(active = 99) {
 }
 
 describe('lazy chat resources', () => {
+  it('preserves a newly generated title when selecting a variant from an older path response', async () => {
+    const { backend } = client(1)
+    const transport = { backend, stream: async function* () {} }
+    const state = createChatState(transport)
+    let sync!: ReturnType<typeof useChatBackend>
+    wrappers.push(mount(defineComponent({ setup() { sync = useChatBackend(state, transport); return () => h('div') } })))
+    await vi.waitFor(() => expect(sync.backendReady.value).toBe(true))
+    const result = path(1)
+    result.conversation = { ...result.conversation, title: 'Neuer Chat', titleSource: 'fallback' }
+    result.leafMessageId = id(2001)
+    result.messages[0] = { ...result.messages[0]!, id: id(2001), content: 'Selected variant' }
+    vi.spyOn(backend, 'path').mockResolvedValue(result)
+    vi.spyOn(backend, 'patch').mockImplementation(async () => {
+      backend.remember({ ...conversation(1), title: 'Automatische Chat-Zusammenfassungen', titleSource: 'generated', version: 3, activeLeafMessageId: id(2001) })
+    })
+    expect(state.selectVariant(id(1001))).toBe(true)
+    await vi.waitFor(() => expect(state.visible.value[0]?.content).toBe('Selected variant'))
+    expect(state.conversations.active.value).toMatchObject({ title: 'Automatische Chat-Zusammenfassungen', titleSource: 'generated', activeLeafMessageId: id(2001) })
+    expect(backend.versions.get(id(1))).toBe(3)
+  })
+
   it('loads exactly one active window, including an active conversation outside page one', async () => {
     const { backend, calls } = client()
     const metadata = vi.fn(); backend.onMetadata = metadata

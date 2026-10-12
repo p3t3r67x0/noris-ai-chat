@@ -79,7 +79,7 @@ export class ChatBackend {
     return this.enqueue(async () => {
       if (!this.versions.has(conversation.id)) {
         const value = await this.request<ServerConversation>('/conversations', 'POST', { id: conversation.id, title: conversation.title, conversationMode: conversation.conversationMode ?? 'normal', reasoningPreference: conversation.reasoningPreference ?? null })
-        this.versions.set(value.id, value.version)
+        this.versions.set(value.id, Math.max(value.version, this.versions.get(value.id) ?? 0))
       }
       return this.versions.get(conversation.id)!
     })
@@ -133,7 +133,7 @@ export class ChatBackend {
       catch (error) { if ((error as { code?: string }).code === 'NOT_FOUND') activeId = null; else throw error }
     }
     if (conversations.find(c => c.id === activeId)?.archivedAt) activeId = null
-    for (const conversation of conversations) this.versions.set(conversation.id, conversation.version)
+    for (const conversation of conversations) this.versions.set(conversation.id, Math.max(conversation.version, this.versions.get(conversation.id) ?? 0))
     if (conversations.length !== list.conversations.length) this.onMetadata?.(conversations, activeId)
     const [drafts, path] = await Promise.all([
       this.request<ApiSchemas['DraftListResponse']>(`/chat/drafts?${new URLSearchParams([['keys', '__new__'], ...(activeId ? [['keys', activeId]] : [])])}`),

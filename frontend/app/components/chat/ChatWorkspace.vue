@@ -138,7 +138,6 @@ function saveEdit(): void {
         :demo="mode === 'mock'" :conversations="chat.pagination?.conversations.value ?? conversations.visible.value" :archived="conversations.archived.value"
         :active-id="conversations.activeId.value" :remove-conversation="chat.remove" :pagination="chat.pagination"
         @new-chat="newChat" @select="conversations.select" @rename="conversations.rename"
-        @fit-title="conversations.fitTitle"
         @archive="conversations.archive" @restore="conversations.restore"
         @settings="openSettings"
       />

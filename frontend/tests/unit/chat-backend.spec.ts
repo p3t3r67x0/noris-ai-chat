@@ -9,6 +9,41 @@ const conversation: ApiSchemas['ConversationResponse'] = {
 const conflict = () => Response.json({ error: { code: 'VERSION_CONFLICT', message: 'Der Chat wurde geändert.' } }, { status: 409 })
 
 describe('chat metadata version conflicts', () => {
+  it('does not lower the known version when an initial load finishes after a live update', async () => {
+    let release!: (value: Response) => void
+    const preferences = new Promise<Response>(resolve => { release = resolve })
+    const fallback = { ...conversation, title: 'Neuer Chat', titleSource: 'fallback' as const, version: 1 }
+    const manual = { ...conversation, title: 'Mein manueller Titel', titleSource: 'manual' as const, version: 4 }
+    const fetcher = vi.fn<typeof fetch>(async (input) => {
+      const path = String(input)
+      if (path.includes('/chat/preferences')) return preferences
+      if (path.includes('/chat/drafts')) return Response.json({ drafts: [] })
+      return Response.json({ conversations: [fallback] })
+    })
+    const backend = new ChatBackend(fetcher)
+    const update = vi.fn(); backend.onConversation = update
+    const loading = backend.load()
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2))
+    backend.remember(manual)
+    release(Response.json({ activeConversationId: null, modelId: null }))
+    await loading
+    backend.remember(conversation)
+    expect(backend.versions.get(conversation.id)).toBe(4)
+    expect(update).toHaveBeenCalledExactlyOnceWith(manual)
+  })
+
+  it('does not lower the known version when creation returns after a live update', async () => {
+    let release!: (value: Response) => void
+    const fetcher = vi.fn<typeof fetch>(() => new Promise(resolve => { release = resolve }))
+    const backend = new ChatBackend(fetcher)
+    const creating = backend.ensure({ ...conversation, titleGenerationAttempted: true })
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledOnce())
+    backend.remember(conversation)
+    release(Response.json({ ...conversation, version: 1 }))
+    expect(await creating).toBe(3)
+    expect(backend.versions.get(conversation.id)).toBe(3)
+  })
+
   it('reapplies only the explicit mode after a generation changes the version', async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(conflict())
       .mockResolvedValueOnce(Response.json({ ...conversation, activeLeafMessageId: 'answer' }))

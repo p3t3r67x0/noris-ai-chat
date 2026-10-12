@@ -57,9 +57,8 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       const existingVersion = backend.versions.get(value.id) ?? 0
       if (value.version < existingVersion) continue
       backend.versions.set(value.id, value.version)
-      const existing = state.conversations.records.value[value.id]
-      if (existing) Object.assign(existing, conversationFromServer(value))
-      else state.conversations.records.value[value.id] = conversationFromServer(value)
+      // Replace the rendered record so every consumer sees this server revision.
+      state.conversations.records.value[value.id] = conversationFromServer(value)
     }
     const pinned = new Set([...sidebarIds.value, ...Object.keys(windows.value), ...values.map(c => c.id), ...Object.keys(pendingDrafts), state.conversations.activeId.value, state.generatingConversationId.value])
     const records = Object.entries(state.conversations.records.value)
@@ -284,7 +283,9 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
         if (!result.leafMessageId) return
         // Persist selection before presenting the resolved path.
         await backend.patch(conversationId, { activeLeafMessageId: result.leafMessageId })
-        result.conversation = { ...result.conversation, activeLeafMessageId: result.leafMessageId, version: backend.versions.get(conversationId)! }
+        // The PATCH may have observed a title committed after this path was read.
+        // Preserve that metadata when presenting the selected message window.
+        result.conversation = { ...result.conversation, ...state.conversations.records.value[conversationId], activeLeafMessageId: result.leafMessageId, version: backend.versions.get(conversationId)! }
         applyPath(result)
       }
       catch (error) { if (!controller.signal.aborted && state.conversations.activeId.value === conversationId) historyError.value = error instanceof Error ? error.message : 'Die Variante konnte nicht geladen werden.' }
