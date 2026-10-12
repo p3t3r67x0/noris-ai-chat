@@ -168,3 +168,11 @@ die API-Vertragsprüfung und beide Produktionsbuilds. Die vollständigen Browser
 und Compose-Prüfungen werden zusätzlich auf dem aktuellen PR-Commit ausgeführt;
 ihre Ergebnisse stehen in den
 [Prüfungen von PR 52](https://github.com/p3t3r67x0/noris-ai-chat/pull/52/checks).
+
+Die neuen Titel-Browsertests halten den tatsächlich abgefragten Modellkatalog
+während ihrer Prüfung gültig und warten vor Enter auf die Sendebereitschaft.
+Die separate Katalogaktualisierung bleibt anderweitig abgedeckt. Der Profiltest
+liest die bekannte Playwright-Viewportgröße statt einer Seitenauswertung, die
+eine noch laufende Navigation unterbrechen kann. 18 wiederholte Titel-/Persistenz-
+prüfungen auf Desktop und Mobile und drei Desktop-Profilprüfungen bestanden mit
+den unveränderten Testfristen; die drei mobilen Fälle sind gezielt übersprungen.

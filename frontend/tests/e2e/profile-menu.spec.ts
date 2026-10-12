@@ -4,7 +4,7 @@ import { savedChat, seedChat } from './chat-fixtures'
 import { returnToChat } from './settings-helpers'
 
 async function openProfile(page: Page) {
-  if (await page.evaluate(() => !matchMedia('(min-width: 1024px)').matches) && !await page.locator('.settings-main').isVisible()) {
+  if ((page.viewportSize()?.width ?? 1024) < 1024 && !await page.locator('.settings-main').isVisible()) {
     await page.getByRole('button', { name: 'Sidebar öffnen', exact: true }).click()
   }
   const trigger = page.locator('.profile-trigger:visible')
