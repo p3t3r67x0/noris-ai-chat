@@ -228,3 +228,14 @@ Attachment-IDs, Upload-Sperren und explizite Wiederholungen bleiben erhalten.
 158 gezielte Unit-Fälle für Chat-Lifecycle, Titel-Synchronisation und
 Benachrichtigungs-Recovery sowie fünf Benachrichtigungs-Browserfälle bestehen.
 Nuxt-Produktionsbuild, Nuxt-/Test-Typecheck und Lint bestehen.
+
+Auch die sechs durch das Main-Update veralteten Unit-Erwartungen verwenden jetzt
+die zentral normalisierten Fehler. Proxy-Titelfehler prüfen den sicheren
+Transportcode; Fortsetzungstests prüfen den persistierten Code, die zugehörige
+öffentliche Meldung und den vollständigen Antworttext. Der Fehler-Details-Test
+prüft die Wiederholungsaktion und dass interne Servertexte verborgen bleiben.
+Die beiden betroffenen Unit-Dateien bestehen mit 87 Fällen. Zusätzlich bestehen
+20 Import-/Such-/History-Browserfälle, sechs Upload-/Diagnosefälle und sechs
+Statusseitenfälle auf Desktop und Mobile. Die Diagnose prüft Fehlercode und
+Request-ID sowie Schließen per Escape, bevor die bestehende Upload-Sperre
+kontrolliert wird.

@@ -288,7 +288,7 @@ describe('bounded conversation titles', () => {
     expect(await transport.generateTitle!(request, signal)).toMatchObject({ title: 'Docker Compose Einrichtung' })
     expect(fetcher.mock.calls[0]).toEqual(['/api/v1/llm/conversation-title', expect.objectContaining({ method: 'POST', credentials: 'same-origin', signal, body: JSON.stringify(request) })])
     const failing = createRealTransport({ fetcher: async () => new Response('synthetic-secret', { status: 502 }) })
-    await expect(failing.generateTitle!(request, signal)).rejects.toThrow('Modellanfrage')
+    await expect(failing.generateTitle!(request, signal)).rejects.toMatchObject({ code: 'REQUEST_FAILED', message: 'Chat request failed' })
     const invalid = createRealTransport({ fetcher: async () => Response.json({ conversationId: 'wrong', inputMessageId: 'u', title: 'Docker Setup' }) })
     await expect(invalid.generateTitle!(request, signal)).rejects.toThrow()
   })
