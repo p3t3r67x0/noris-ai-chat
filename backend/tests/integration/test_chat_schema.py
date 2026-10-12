@@ -75,6 +75,60 @@ def test_message_tree_and_active_leaf(migration_config: Config) -> None:
     _run(run())
 
 
+def test_learning_migration_preserves_legacy_messages_and_defaults(
+    migration_config: Config,
+) -> None:
+    command.upgrade(migration_config, "0008_pdf_sections")
+
+    async def seed() -> tuple[uuid.UUID, uuid.UUID, uuid.UUID]:
+        engine = create_async_engine(_database_url())
+        try:
+            return await _insert_chat_tree(engine)
+        finally:
+            await engine.dispose()
+
+    conversation, user, assistant = asyncio.run(seed())
+    command.upgrade(migration_config, "head")
+
+    async def verify() -> None:
+        engine = create_async_engine(_database_url())
+        try:
+            async with engine.connect() as connection:
+                row = (
+                    await connection.execute(
+                        text(
+                            "SELECT conversation_mode, reasoning_preference, "
+                            "active_leaf_message_id "
+                            "FROM chat_conversation WHERE id = :id"
+                        ),
+                        {"id": conversation},
+                    )
+                ).one()
+                assert tuple(row) == ("normal", None, assistant)
+                assert set(
+                    (
+                        await connection.execute(
+                            text("SELECT id FROM chat_message WHERE conversation_id = :id"),
+                            {"id": conversation},
+                        )
+                    ).scalars()
+                ) == {user, assistant}
+            async with engine.begin() as connection:
+                with pytest.raises(IntegrityError):
+                    await connection.execute(
+                        text(
+                            "UPDATE chat_conversation SET conversation_mode = 'forged' "
+                            "WHERE id = :id"
+                        ),
+                        {"id": conversation},
+                    )
+        finally:
+            await engine.dispose()
+
+    _run(verify())
+    command.check(migration_config)
+
+
 def test_foreign_keys_reject_cross_conversation_parent(migration_config: Config) -> None:
     command.upgrade(migration_config, "head")
 

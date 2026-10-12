@@ -6,6 +6,7 @@ from time import monotonic
 from noris_ai.core.config import Settings
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.provider import LLMProvider
+from noris_ai.llm.reasoning import preference_mapping
 from noris_ai.llm.registry import REGISTRY_VERSION, chat_compatible, resolve_model
 from noris_ai.llm.schemas import ChatLimits, LLMModel, ModelCatalog
 
@@ -49,6 +50,12 @@ class ModelCatalogService:
                         facts = await self.provider.discover_models()
                     models = [resolve_model(fact, self.config) for fact in facts]
                     models = [model for model in models if chat_compatible(model)]
+                    models = [
+                        model.model_copy(
+                            update={"reasoning_preferences": list(preference_mapping(model))}
+                        )
+                        for model in models
+                    ]
                     models.sort(key=lambda model: (not model.virtual, model.name.casefold()))
                     # The legacy reasoning option applies ONLY to exact GPT-OSS metadata.
                     configured_effort = self.config.llm_reasoning_effort

@@ -1,7 +1,8 @@
 import type { ApiSchemas } from '../../types/generated/api'
-import type { Conversation } from './conversations'
+import type { Conversation, ConversationMode } from './conversations'
 import type { ChatMessage } from './types'
 import { responseError, TransportError } from './realTransport'
+import type { ReasoningPreference } from './reasoning'
 
 type ServerConversation = ApiSchemas['ConversationResponse']
 type ServerMessage = ApiSchemas['MessageResponse']
@@ -63,19 +64,26 @@ export class ChatBackend {
   ensure(conversation: Conversation): Promise<number> {
     return this.enqueue(async () => {
       if (!this.versions.has(conversation.id)) {
-        const value = await this.request<ServerConversation>('/conversations', 'POST', { id: conversation.id, title: conversation.title })
+        const value = await this.request<ServerConversation>('/conversations', 'POST', { id: conversation.id, title: conversation.title, conversationMode: conversation.conversationMode ?? 'normal', reasoningPreference: conversation.reasoningPreference ?? null })
         this.versions.set(value.id, value.version)
       }
       return this.versions.get(conversation.id)!
     })
   }
-  patch(id: string, change: { title?: string, archived?: boolean, activeLeafMessageId?: string }): Promise<void> {
+  patch(id: string, change: { title?: string, archived?: boolean, activeLeafMessageId?: string, conversationMode?: ConversationMode, reasoningPreference?: ReasoningPreference | null }): Promise<void> {
     return this.enqueue(async () => {
       const path = `/conversations/${id}`
       const version = this.versions.get(id)
       let value: ServerConversation
       try { value = await this.request<ServerConversation>(path, 'PATCH', { ...change, version }) }
       catch (error) {
+        if (error instanceof TransportError && error.code === 'VERSION_CONFLICT' && (change.conversationMode !== undefined || Object.hasOwn(change, 'reasoningPreference'))) {
+          const current = await this.request<ServerConversation>(path)
+          this.remember(current)
+          value = await this.request<ServerConversation>(path, 'PATCH', { ...change, version: current.version })
+          this.remember(value)
+          return
+        }
         if (!(error instanceof TransportError) || error.code !== 'VERSION_CONFLICT' || typeof change.title !== 'string' || change.archived !== undefined || change.activeLeafMessageId !== undefined) throw error
         // A generated title can commit before its WebSocket update reaches us.
         // Reapply only the explicit title, once; competing manual edits still win.

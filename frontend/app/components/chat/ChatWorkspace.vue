@@ -51,7 +51,7 @@ watch(inSettings, async (settings) => {
     requestAnimationFrame(() => { if (scroll) scroll.scrollTop = readingPosition; composer.value?.focus() })
   }
 }, { flush: 'pre' })
-const canSend = computed(() => modelCanSend.value && chat.backendReady.value && !chat.pagination?.historyLoading.value && !chat.pagination?.historyError.value)
+const canSend = computed(() => !chat.settingsBusy.value && !chat.settingsError.value && modelCanSend.value && chat.backendReady.value && !chat.pagination?.historyLoading.value && !chat.pagination?.historyError.value)
 let preferencesRestored = false
 watch([chat.backendReady, modelsLoading], ([loaded, loading]) => {
   if (!transport.backend || !loaded || loading || preferencesRestored) return
@@ -160,7 +160,8 @@ function saveEdit(): void {
             <UButton color="neutral" variant="link" label="Modelle neu laden" :loading="modelsLoading" @click="refreshModels" />
           </div>
           <p class="composer-note">{{ t('disclaimer') }}</p>
-          <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" :busy="stream.busy.value" :model-unavailable="!canSend" :input-error="chat.drafts.error.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" :files="attachments.files.value" :upload-available="attachments.available.value" :upload-unavailable-reason="uploadUnavailableReason" :upload-blocked="attachments.blocked.value" :image-supported="attachments.imageCompatible.value" :upload-error="attachments.error.value" @files="attachments.add" @remove-file="attachments.remove" @retry-file="attachments.retry" @send="send" @stop="stop" />
+          <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" :conversation-mode="conversations.active.value?.conversationMode ?? 'normal'" :reasoning-preference="conversations.active.value?.reasoningPreference ?? null" :settings-busy="chat.settingsBusy.value" :learning-available="mode !== 'real' && chat.backendReady.value" :busy="stream.busy.value" :model-unavailable="!canSend" :input-error="chat.drafts.error.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" :files="attachments.files.value" :upload-available="attachments.available.value" :upload-unavailable-reason="uploadUnavailableReason" :upload-blocked="attachments.blocked.value" :image-supported="attachments.imageCompatible.value" :upload-error="attachments.error.value" @mode="chat.setConversationMode" @reasoning="chat.setReasoningPreference" @files="attachments.add" @remove-file="attachments.remove" @retry-file="attachments.retry" @send="send" @stop="stop" />
+          <div v-if="chat.settingsError.value" role="alert" class="px-4 pt-2 text-sm text-error">{{ chat.settingsError.value }} <UButton label="Einstellung erneut speichern" color="neutral" variant="link" @click="chat.retryConversationSettings" /></div>
           <p v-if="chat.drafts.error.value" role="alert" class="mt-2 text-center text-xs text-error">{{ chat.drafts.error.value }}</p>
         </div>
         <div class="chat-status" :data-attention="stream.status.value === 'failed' || (stream.busy.value && chat.generatingConversationId.value !== conversations.activeId.value)" role="status" aria-live="polite" aria-atomic="true" :data-generation-status="stream.status.value">

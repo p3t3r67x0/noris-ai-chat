@@ -9,6 +9,8 @@ from typing import cast
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from noris_ai.learning.policy import LEARNING_INSTRUCTION
+from noris_ai.llm.continuation import ContinuationInstruction
 from noris_ai.llm.titles import TITLE_INSTRUCTION
 
 from .provider_catalog import provider_data
@@ -77,7 +79,14 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
         body["messages"][0]["role"] == "system"
         and body["messages"][0]["content"] == TITLE_INSTRUCTION
     )
-    is_continuation = body["messages"][0]["role"] == "system" and not is_title
+    is_continuation = any(
+        message["role"] == "system" and message["content"] == ContinuationInstruction().content
+        for message in body["messages"]
+    )
+    is_learning = any(
+        message["role"] == "system" and message["content"] == LEARNING_INSTRUCTION
+        for message in body["messages"]
+    )
     (title_calls if is_title else calls).append(body)
     content = body["messages"][-1]["content"]
     prompt = (
@@ -155,6 +164,8 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
                 if prompt.startswith("/title-invalid"):
                     title = "x" * 51
                 chunks = [title]
+            elif is_learning and not is_continuation:
+                chunks = ["Welchen gemeinsamen Nenner könnten wir für 1/2 und 1/3 verwenden?"]
             for text in chunks:
                 data = (
                     "data: "

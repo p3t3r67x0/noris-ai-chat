@@ -20,6 +20,7 @@ MESSAGES = {
         "mit größerem Kontext."
     ),
     "MODEL_UNAVAILABLE": "Das ausgewählte Modell ist nicht verfügbar.",
+    "REASONING_UNSUPPORTED": "Diese Denkstufe wird vom ausgewählten Modell nicht unterstützt.",
     "RATE_LIMIT": "Zu viele Modellanfragen. Bitte versuche es später erneut.",
     "BUDGET_LIMIT": "Das konfigurierte tägliche Tokenbudget ist ausgeschöpft.",
     "GENERATION_ACTIVE": "Diese Generierung läuft bereits.",

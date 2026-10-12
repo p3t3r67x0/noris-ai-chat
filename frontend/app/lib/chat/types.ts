@@ -2,6 +2,7 @@ import type { ChatModelId } from '../../composables/useModelSelection'
 import type { ApiPaths, ApiSchemas } from '../../types/generated/api'
 import type { Conversation } from './conversations'
 import type { ChatBackend } from './backend'
+import type { ReasoningPreference } from './reasoning'
 
 export type ConversationTitleRequest = ApiPaths['/api/v1/llm/conversation-title']['post']['requestBody']
 export type ConversationTitleResponse = ApiPaths['/api/v1/llm/conversation-title']['post']['responses'][200]
@@ -26,6 +27,7 @@ export interface ChatMessage {
 }
 export type MessageRecords = Record<string, ChatMessage>
 export interface ChatRequest {
+  reasoningPreference?: ReasoningPreference | null
   generationId: string
   conversationId: string
   inputMessageId: string

@@ -8,6 +8,7 @@ create siblings instead of overwriting messages.
 import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
+from typing import cast
 
 from sqlalchemy import delete, desc, func, insert, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -27,12 +28,14 @@ from noris_ai.chat.models import (
 from noris_ai.chat.schemas import (
     ChatImportRequest,
     ChatImportResponse,
+    ConversationMode,
     ImportConflict,
     ImportMessage,
     MessageStatus,
     TitleSource,
 )
 from noris_ai.chat.ws_protocol import GenerateIncomingMessage
+from noris_ai.llm.schemas import ReasoningPreference
 
 ModelDatabase = async_sessionmaker[AsyncSession]
 UNCHANGED = object()
@@ -79,6 +82,8 @@ class ChatRepository:
                         and existing.title_source == c.titleSource
                         and existing.active_leaf_message_id == c.activeLeafMessageId
                         and existing.archived_at == c.archivedAt
+                        and existing.conversation_mode == c.conversationMode
+                        and existing.reasoning_preference == c.reasoningPreference
                         and len(rows) == len(tree)
                         and all(
                             m.id in by_id
@@ -117,6 +122,8 @@ class ChatRepository:
                     owner_id=owner_id,
                     title=c.title,
                     title_source=c.titleSource,
+                    conversation_mode=c.conversationMode,
+                    reasoning_preference=c.reasoningPreference,
                     created_at=c.createdAt,
                     updated_at=c.updatedAt,
                     archived_at=c.archivedAt,
@@ -200,6 +207,8 @@ class ChatRepository:
         *,
         title: str,
         title_source: TitleSource = "fallback",
+        conversation_mode: ConversationMode = "normal",
+        reasoning_preference: ReasoningPreference | None = None,
         conversation_id: uuid.UUID | None = None,
         created_at: datetime | None = None,
         active_leaf_message_id: uuid.UUID | None = None,
@@ -210,6 +219,8 @@ class ChatRepository:
             "owner_id": owner_id,
             "title": title,
             "title_source": title_source,
+            "conversation_mode": conversation_mode,
+            "reasoning_preference": reasoning_preference,
             "active_leaf_message_id": active_leaf_message_id,
         }
         if created_at is not None:
@@ -231,6 +242,8 @@ class ChatRepository:
         title: str | None = None,
         title_source: TitleSource | None = None,
         archived: bool | None = None,
+        conversation_mode: ConversationMode | None = None,
+        reasoning_preference: object | ReasoningPreference | None = UNCHANGED,
         active_leaf_message_id: object | uuid.UUID | None = UNCHANGED,
         bump_last_message: bool = False,
     ) -> ChatConversation:
@@ -255,6 +268,12 @@ class ChatRepository:
                     conversation.title_source = title_source
             if archived is not None:
                 conversation.archived_at = utc_now() if archived else None
+            if conversation_mode is not None:
+                conversation.conversation_mode = conversation_mode
+            if reasoning_preference is not UNCHANGED:
+                conversation.reasoning_preference = cast(
+                    ReasoningPreference | None, reasoning_preference
+                )
             if active_leaf_message_id is not UNCHANGED:
                 conversation.active_leaf_message_id = active_leaf_message_id  # type: ignore[assignment]
             conversation.version += 1

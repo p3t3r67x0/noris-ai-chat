@@ -26,7 +26,7 @@ export function useComposerAutosize(prompt: Ref<{ textareaRef: HTMLTextAreaEleme
     if (!input || !root || !mirror) return
     const style = getComputedStyle(input)
     const layout = getComputedStyle(root)
-    const controls = [...root.querySelectorAll<HTMLElement>('.composer-attachment, .composer-model, .composer-submit')]
+    const controls = [...root.querySelectorAll<HTMLElement>('.composer-attachment, .composer-model-controls, .composer-submit')]
     // Measure at the hypothetical compact width even while expanded. Measuring
     // only the expanded textarea would repeatedly toggle long wrapped sentences.
     const compactWidth = root.clientWidth - Number.parseFloat(layout.paddingLeft) - Number.parseFloat(layout.paddingRight)

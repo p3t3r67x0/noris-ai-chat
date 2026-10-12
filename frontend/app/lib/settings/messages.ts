@@ -43,6 +43,8 @@ export const messages = {
   sketch: ['Skizzieren', 'Sketch'], drawAndAttach: ['Zeichnen und anhängen', 'Draw and attach'],
   uploadPreparing: ['Datei-Upload wird vorbereitet …', 'Preparing file upload …'],
   uploadDemoUnavailable: ['Datei-Upload ist im lokalen Demo-Modus nicht verfügbar.', 'File upload is unavailable in local demo mode.'],
+  learning: ['Lernen', 'Learn'], learnNew: ['Lerne Neues', 'Learn something new'],
+  stopLearning: ['Lernmodus deaktivieren', 'Turn off learning mode'], selected: ['Ausgewählt', 'Selected'],
   conversations: ['Gespräche', 'Conversations'], closeConversations: ['Gesprächsliste schließen', 'Close conversation list'],
   emptyConversations: ['Hier ist Platz für deine Gedanken. Deine Chats erscheinen hier.', 'Room for your ideas. Your chats appear here.'],
   moreChats: ['Weitere Chats laden', 'Load more chats'], rename: ['Umbenennen', 'Rename'], archive: ['Archivieren', 'Archive'],

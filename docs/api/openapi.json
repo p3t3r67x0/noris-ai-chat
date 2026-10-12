@@ -457,6 +457,16 @@
             ],
             "title": "Operation",
             "type": "string"
+          },
+          "reasoningPreference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReasoningPreference"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -494,6 +504,15 @@
       "ConversationCreate": {
         "additionalProperties": false,
         "properties": {
+          "conversationMode": {
+            "default": "normal",
+            "enum": [
+              "normal",
+              "learning"
+            ],
+            "title": "Conversationmode",
+            "type": "string"
+          },
           "id": {
             "anyOf": [
               {
@@ -505,6 +524,16 @@
               }
             ],
             "title": "Id"
+          },
+          "reasoningPreference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReasoningPreference"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "title": {
             "anyOf": [
@@ -583,6 +612,15 @@
             ],
             "title": "Archivedat"
           },
+          "conversationMode": {
+            "default": "normal",
+            "enum": [
+              "normal",
+              "learning"
+            ],
+            "title": "Conversationmode",
+            "type": "string"
+          },
           "createdAt": {
             "format": "date-time",
             "title": "Createdat",
@@ -604,6 +642,16 @@
               }
             ],
             "title": "Lastmessageat"
+          },
+          "reasoningPreference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReasoningPreference"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "title": {
             "title": "Title",
@@ -732,6 +780,31 @@
               }
             ],
             "title": "Archived"
+          },
+          "conversationMode": {
+            "anyOf": [
+              {
+                "enum": [
+                  "normal",
+                  "learning"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversationmode"
+          },
+          "reasoningPreference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReasoningPreference"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "title": {
             "anyOf": [
@@ -1010,6 +1083,15 @@
             ],
             "title": "Archivedat"
           },
+          "conversationMode": {
+            "default": "normal",
+            "enum": [
+              "normal",
+              "learning"
+            ],
+            "title": "Conversationmode",
+            "type": "string"
+          },
           "createdAt": {
             "format": "date-time",
             "title": "Createdat",
@@ -1019,6 +1101,16 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "reasoningPreference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReasoningPreference"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "title": {
             "maxLength": 120,
@@ -1556,6 +1648,13 @@
               }
             ],
             "title": "Reasoning Parameter"
+          },
+          "reasoning_preferences": {
+            "items": {
+              "$ref": "#/components/schemas/ReasoningPreference"
+            },
+            "title": "Reasoning Preferences",
+            "type": "array"
           },
           "reasoning_reserve_tokens": {
             "default": 0,
@@ -2162,6 +2261,16 @@
         },
         "title": "ReadinessResponse",
         "type": "object"
+      },
+      "ReasoningPreference": {
+        "enum": [
+          "instant",
+          "medium",
+          "high",
+          "very_high",
+          "pro"
+        ],
+        "type": "string"
       },
       "StartedEvent": {
         "additionalProperties": false,

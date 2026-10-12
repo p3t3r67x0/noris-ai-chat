@@ -64,6 +64,11 @@ class ChatConversation(Base):
     __table_args__ = (
         CheckConstraint("length(title) > 0 AND length(title) <= 200", name="title_length"),
         CheckConstraint("version >= 1", name="version_positive"),
+        CheckConstraint("conversation_mode IN ('normal', 'learning')", name="conversation_mode"),
+        CheckConstraint(
+            "reasoning_preference IN ('instant', 'medium', 'high', 'very_high', 'pro')",
+            name="reasoning_preference",
+        ),
         # The active leaf must belong to this conversation.
         ForeignKeyConstraint(
             ["id", "active_leaf_message_id"],
@@ -99,6 +104,8 @@ class ChatConversation(Base):
     owner_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     title: Mapped[str] = mapped_column(Text, nullable=False)
     title_source: Mapped[str] = mapped_column(TITLE_SOURCE_ENUM, nullable=False)
+    conversation_mode: Mapped[str] = mapped_column(Text, nullable=False, server_default="normal")
+    reasoning_preference: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

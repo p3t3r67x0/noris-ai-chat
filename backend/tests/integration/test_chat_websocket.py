@@ -21,6 +21,7 @@ from noris_ai.chat.repository import ModelDatabase
 from noris_ai.chat.service import ChatService
 from noris_ai.chat.ws_protocol import GenerateIncomingMessage
 from noris_ai.core.config import Settings
+from noris_ai.learning.policy import LearningInstruction
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.provider import ProviderMessage
 from noris_ai.llm.provider_models import ProviderModel
@@ -37,6 +38,7 @@ ORIGIN = {"origin": "http://localhost:3000", "host": "localhost:3000"}
 class Simulator:
     def __init__(self) -> None:
         self.calls: list[list[ProviderMessage]] = []
+        self.models: list[LLMModel] = []
         self.finished = False
         self.auto_closed = 0
 
@@ -58,6 +60,10 @@ class Simulator:
             yield "Persistente Gespräche"
             return
         self.calls.append(list(messages))
+        self.models.append(model)
+        if isinstance(messages[0], LearningInstruction):
+            yield "Welchen gemeinsamen Nenner könnten wir für 1/2 und 1/3 verwenden?"
+            return
         self.finished = False
         prompt = next(m.content for m in messages if m.role == "user")
         if prompt.startswith("/auto"):
@@ -817,3 +823,81 @@ def test_thousand_message_context_reaches_the_existing_provider(
             auth=AUTH,
         )
         assert page.status_code == 200 and len(page.json()["messages"]) == 50
+
+
+def test_learning_persistence_reasoning_and_branch_policy(
+    client: TestClient, simulator: Simulator
+) -> None:
+    payload = generate(client, "Hilf mir mit 1/2 + 1/3.")
+    resource = f"/api/v1/conversations/{payload['conversationId']}"
+    assert client.get(resource, auth=AUTH).json()["conversationMode"] == "normal"
+    activated = client.patch(
+        resource,
+        auth=AUTH,
+        headers=ORIGIN.copy(),
+        json={"conversationMode": "learning", "version": 1},
+    )
+    assert activated.status_code == 200
+    preference = client.patch(
+        resource,
+        auth=AUTH,
+        headers=ORIGIN.copy(),
+        json={"reasoningPreference": "high", "version": 2},
+    )
+    assert preference.status_code == 200
+    payload["conversationVersion"] = preference.json()["version"]
+    payload["modelId"] = "vllm/release/gpt-oss-120b"
+    with client.websocket_connect(
+        "/api/v1/chat/ws", subprotocols=protocols(client), headers=ORIGIN.copy()
+    ) as socket:
+        socket.receive_json()
+        socket.send_json(payload)
+        while True:
+            event = socket.receive_json()
+            if event["type"] == "chat.generation.completed":
+                assert event["content"].count("?") == 1
+                assert "gemeinsamen Nenner" in event["content"]
+                break
+            assert event["type"] not in ("chat.error", "chat.generation.failed")
+    assert isinstance(simulator.calls[-1][0], LearningInstruction)
+    assert simulator.models[-1].reasoning_effort == "high"
+    current = client.get(resource, auth=AUTH).json()
+    assert current["conversationMode"] == "learning"
+    assert current["reasoningPreference"] == "high"
+    rows = client.get(resource + "/messages", auth=AUTH).json()["messages"]
+    original_ids = {row["id"] for row in rows}
+    assert {row["role"] for row in rows} == {"user", "assistant"}
+    assert all("interactive tutor" not in row["content"] for row in rows)
+    disabled = client.patch(
+        resource,
+        auth=AUTH,
+        headers=ORIGIN.copy(),
+        json={"conversationMode": "normal", "version": current["version"]},
+    )
+    assert disabled.status_code == 200
+    assert disabled.json()["activeLeafMessageId"] == current["activeLeafMessageId"]
+    # Regeneration retains the original branch and uses the newly stored mode.
+    payload.update(
+        {
+            "requestId": str(uuid4()),
+            "assistantMessageId": str(uuid4()),
+            "conversationVersion": disabled.json()["version"],
+            "attempt": 2,
+        }
+    )
+    with client.websocket_connect(
+        "/api/v1/chat/ws", subprotocols=protocols(client), headers=ORIGIN.copy()
+    ) as socket:
+        socket.receive_json()
+        socket.send_json(payload)
+        while socket.receive_json()["type"] != "chat.generation.completed":
+            pass
+    assert not any(isinstance(message, LearningInstruction) for message in simulator.calls[-1])
+    rows = client.get(resource + "/messages", auth=AUTH).json()["messages"]
+    assert original_ids < {row["id"] for row in rows}
+    assert len(rows) == 3
+    assert all(
+        row["parentMessageId"] == payload["inputMessageId"]
+        for row in rows
+        if row["role"] == "assistant"
+    )

@@ -9,11 +9,13 @@ from time import monotonic
 import anyio
 
 from noris_ai.core.config import Settings
+from noris_ai.learning.policy import LearningInstruction
 from noris_ai.llm.catalog import ModelCatalogService
 from noris_ai.llm.continuation import ContinuationFilter, continuation_messages, utf16_length
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.pricing import estimate_cost
 from noris_ai.llm.provider import LLMProvider, ProviderMessage, provider_payload
+from noris_ai.llm.reasoning import apply_preference
 from noris_ai.llm.schemas import (
     ChatRequest,
     CompletedEvent,
@@ -24,6 +26,7 @@ from noris_ai.llm.schemas import (
     IncompleteEvent,
     LLMMessage,
     LLMModel,
+    PersistedChatRequest,
     StartedEvent,
 )
 from noris_ai.llm.titles import TitleInstruction, title_source, validate_title
@@ -50,7 +53,9 @@ class LLMGateway:
         self._continuation_ids: set[str] = set()
 
     async def reserve(self, request: ChatRequest) -> None:
-        model = await self.catalog.require(request.modelId)
+        model = apply_preference(
+            await self.catalog.require(request.modelId), request.reasoningPreference
+        )
         self.check_input(request, model)
         target = (request.conversationId, request.assistantMessageId or request.generationId)
         if target in self._answer_targets.values():
@@ -64,7 +69,7 @@ class LLMGateway:
                 raise LLMError("GENERATION_ACTIVE", 409)
             if len(self._continuation_ids) >= 10_000:
                 raise LLMError("RATE_LIMIT", 429)
-        self._reserve(request.generationId, model, continuation_messages(request))
+        self._reserve(request.generationId, model, self.provider_messages(request))
         self._answer_targets[request.generationId] = target
         if request.operation == "continue":
             self._continuation_ids.add(request.generationId)
@@ -79,7 +84,7 @@ class LLMGateway:
             )
             if utf16_length(message.content) > limit:
                 raise LLMError("REQUEST_TOO_LARGE", 413)
-        messages = continuation_messages(request)
+        messages = self.provider_messages(request)
         payload = json.dumps([provider_payload(m) for m in messages], ensure_ascii=False)
         envelope_bytes = (
             2048
@@ -146,6 +151,13 @@ class LLMGateway:
         self._recent.append(now)
         self._reserved_tokens += reservation
         return model
+
+    @staticmethod
+    def provider_messages(request: ChatRequest) -> list[ProviderMessage]:
+        messages: list[ProviderMessage] = list(continuation_messages(request))
+        if isinstance(request, PersistedChatRequest) and request.conversationMode == "learning":
+            messages.insert(0, LearningInstruction())
+        return messages
 
     async def conversation_title(
         self, request: ConversationTitleRequest
@@ -219,7 +231,7 @@ class LLMGateway:
             yield FailedEvent(seq=2, code="LLM_DISABLED", message=LLMError("LLM_DISABLED").message)
             return
         model = self._admitted[request.generationId]
-        iterator = provider.stream(continuation_messages(request), model)
+        iterator = provider.stream(self.provider_messages(request), model)
         previous = request.messages[-1].content if request.operation == "continue" else ""
         filter_ = ContinuationFilter(previous)
         text_length = utf16_length(previous)

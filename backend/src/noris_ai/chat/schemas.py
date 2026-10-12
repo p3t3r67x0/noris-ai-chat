@@ -12,7 +12,9 @@ from uuid import UUID
 from pydantic import Field
 
 from noris_ai.core.schemas import ApiSchema
+from noris_ai.llm.schemas import ReasoningPreference
 
+ConversationMode = Literal["normal", "learning"]
 TitleSource = Literal["fallback", "generated", "manual"]
 MessageRole = Literal["user", "assistant"]
 MessageStatus = Literal["pending", "streaming", "completed", "incomplete", "cancelled", "failed"]
@@ -34,11 +36,15 @@ class JsonApiSchema(ApiSchema):
 
 
 class ConversationCreate(JsonApiSchema):
+    conversationMode: ConversationMode = "normal"
+    reasoningPreference: ReasoningPreference | None = None
     id: UUID | None = None
     title: str | None = Field(default=None, min_length=1, max_length=MAX_TITLE_LENGTH)
 
 
 class ConversationUpdate(JsonApiSchema):
+    conversationMode: ConversationMode | None = None
+    reasoningPreference: ReasoningPreference | None = None
     title: str | None = Field(default=None, min_length=1, max_length=MAX_TITLE_LENGTH)
     archived: bool | None = None
     activeLeafMessageId: UUID | None = None
@@ -46,6 +52,8 @@ class ConversationUpdate(JsonApiSchema):
 
 
 class ConversationResponse(JsonApiSchema):
+    conversationMode: ConversationMode = "normal"
+    reasoningPreference: ReasoningPreference | None = None
     id: UUID
     title: str
     titleSource: TitleSource
@@ -188,6 +196,8 @@ class ImportMessage(JsonApiSchema):
 
 
 class ImportConversation(JsonApiSchema):
+    conversationMode: ConversationMode = "normal"
+    reasoningPreference: ReasoningPreference | None = None
     id: UUID
     title: str = Field(min_length=1, max_length=MAX_TITLE_LENGTH)
     titleSource: TitleSource
