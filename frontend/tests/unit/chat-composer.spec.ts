@@ -29,4 +29,23 @@ describe('composer application behavior', () => {
     expect(wrapper.findComponent({ name: 'UChatPromptSubmit' }).attributes('aria-label')).toBe('Antwort stoppen')
     wrapper.unmount()
   })
+  it('passes multiple native files to the existing attachment boundary without editing the draft', async () => {
+    const wrapper = composer('Mein Entwurf')
+    const input = wrapper.get('input[type="file"]')
+    const selected = [new File(['First'], 'first.txt', { type: 'text/plain' }), new File(['Second'], 'second.md', { type: 'text/markdown' })]
+    expect(input.attributes('multiple')).toBeDefined()
+    Object.defineProperty(input.element, 'files', { value: selected })
+    await input.trigger('change')
+    expect(wrapper.emitted('files')).toEqual([[selected]])
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    wrapper.unmount()
+  })
+  it('does not create an attachment conversation when native selection is empty or cancelled', async () => {
+    const wrapper = composer('Mein Entwurf')
+    await wrapper.get('input[type="file"]').trigger('change')
+    await wrapper.get('input[type="file"]').trigger('cancel')
+    expect(wrapper.emitted('files')).toBeUndefined()
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    wrapper.unmount()
+  })
 })

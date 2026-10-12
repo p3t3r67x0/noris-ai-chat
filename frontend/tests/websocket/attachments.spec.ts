@@ -20,7 +20,7 @@ async function selectFiles(page: Page, files = [textFile]): Promise<void> {
   await expect(page.locator('.composer-attachment')).toBeEnabled()
   await page.locator('.composer-attachment').click()
   const chooser = page.waitForEvent('filechooser')
-  await page.getByRole('menuitem', { name: 'Dateien hinzufügen', exact: true }).click()
+  await page.getByRole('menuitem', { name: /^Fotos und Dateien hinzufügen/ }).click()
   await (await chooser).setFiles(files)
 }
 

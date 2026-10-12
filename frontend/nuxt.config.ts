@@ -32,6 +32,7 @@ export default defineNuxtConfig({
         'lucide:archive', 'lucide:trash-2', 'lucide:undo-2', 'lucide:settings', 'lucide:user',
         'lucide:arrow-up', 'lucide:arrow-down', 'lucide:copy', 'lucide:check-check',
         'lucide:rotate-ccw', 'lucide:square', 'lucide:plus', 'lucide:paperclip',
+        'lucide:folder-open', 'lucide:image', 'lucide:globe', 'lucide:telescope',
         'lucide:loader-circle', 'lucide:circle-alert', 'lucide:info', 'lucide:external-link',
         'lucide:sparkles', 'lucide:circle-check',
         'lucide:command', 'lucide:shield', 'lucide:box', 'lucide:arrow-left', 'lucide:circle-help', 'lucide:book-open', 'lucide:bug',
