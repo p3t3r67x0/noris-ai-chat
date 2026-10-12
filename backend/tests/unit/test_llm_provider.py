@@ -134,18 +134,20 @@ async def test_usage_trailer_after_stop_preserves_completed_response(
         await provider.aclose()
 
 
-@pytest.mark.parametrize(
-    "choices,usage,finish",
-    [
-        ([{"index": 0, "delta": {}}], None, "stop"),
-        ([{"index": 0, "delta": {}}], {"total_tokens": 579}, None),
-        ([{"index": 0, "delta": {"content": "late text"}}], {"total_tokens": 579}, "stop"),
-        ([{"index": 0, "delta": {"reasoning": "late reasoning"}}], {}, "stop"),
-        ([{"index": 0, "delta": {"tool_calls": [{"id": "late-tool"}]}}], {}, "stop"),
-        ([{"index": 0, "delta": {}, "finish_reason": "stop"}], {}, "stop"),
-        ([{"index": 0, "delta": {}}, {"index": 1, "delta": {}}], {}, "stop"),
-    ],
-)
+INVALID_USAGE_TRAILERS: list[
+    tuple[list[dict[str, object]], dict[str, object] | None, str | None]
+] = [
+    ([{"index": 0, "delta": {}}], None, "stop"),
+    ([{"index": 0, "delta": {}}], {"total_tokens": 579}, None),
+    ([{"index": 0, "delta": {"content": "late text"}}], {"total_tokens": 579}, "stop"),
+    ([{"index": 0, "delta": {"reasoning": "late reasoning"}}], {}, "stop"),
+    ([{"index": 0, "delta": {"tool_calls": [{"id": "late-tool"}]}}], {}, "stop"),
+    ([{"index": 0, "delta": {}, "finish_reason": "stop"}], {}, "stop"),
+    ([{"index": 0, "delta": {}}, {"index": 1, "delta": {}}], {}, "stop"),
+]
+
+
+@pytest.mark.parametrize("choices,usage,finish", INVALID_USAGE_TRAILERS)
 async def test_usage_trailer_does_not_hide_invalid_or_missing_completion(
     llm_config: Settings,
     llm_messages: list[LLMMessage],

@@ -153,6 +153,8 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
             if prompt.startswith("/slow"):
                 chunks += [" weiterer Text"] * 100
             if is_title:
+                if prompt.startswith("/title-summary-switch"):
+                    await asyncio.sleep(1)
                 if prompt.startswith("/title-reasoning"):
                     reasoning = {
                         "choices": [
@@ -175,6 +177,8 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
                     title = "Automatisierte Chat-Titel Implementierung"
                 if prompt.startswith("/title-wide"):
                     title = "Docker DNS Troubleshooting Guide"
+                if prompt.startswith("/title-summary"):
+                    title = "Automatische Chat-Zusammenfassungen"
                 if prompt.startswith("/title-invalid"):
                     title = "x" * 51
                 chunks = [title]

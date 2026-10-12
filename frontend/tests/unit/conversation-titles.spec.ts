@@ -4,6 +4,7 @@ import { defineComponent, h } from 'vue'
 import { createChatState, useChat } from '../../app/composables/useChat'
 import { createMockTransport } from '../../app/lib/chat/mockTransport'
 import { createRealTransport } from '../../app/lib/chat/realTransport'
+import { ChatBackend } from '../../app/lib/chat/backend'
 import { parseChatSnapshot, CHAT_STORAGE_KEY } from '../../app/lib/chat/persistence'
 import { automaticTitleCandidates, fallbackConversationTitle, mockConversationTitle, normalizeAutomaticTitle, validGeneratedTitle } from '../../app/lib/chat/titles'
 import type { ConversationTitleRequest, ConversationTitleResponse } from '../../app/lib/chat/types'
@@ -24,6 +25,19 @@ function fixture(chunkSize = 32_000) {
 afterEach(() => { vi.useRealTimers(); localStorage.clear() })
 
 describe('bounded conversation titles', () => {
+  it('keeps server metadata authoritative while a backend answer streams and completes', async () => {
+    vi.useFakeTimers()
+    const transport = createMockTransport({ initialDelay: 10, chunkDelay: 10, chunkSize: 32_000 })
+    transport.backend = new ChatBackend()
+    delete transport.generateTitle
+    const chat = createChatState(transport)
+    chat.send('Warum funktioniert Docker DNS nicht?', 'fixture-alpha')
+    expect(chat.conversations.active.value?.title).toBe('Neuer Chat')
+    await vi.runAllTimersAsync()
+    expect(chat.stream.status.value).toBe('completed')
+    expect(chat.conversations.active.value).toMatchObject({ title: 'Neuer Chat', titleSource: 'fallback' })
+  })
+
   it.each([
     ['Welche Vorteile bietet Rust gegenüber C++?', 'Rust vs. C++'],
     ['Warum funktioniert Docker DNS nicht?', 'Docker DNS-Probleme'],

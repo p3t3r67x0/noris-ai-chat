@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import type { Conversation } from '../../lib/chat/conversations'
-import { automaticTitleCandidates } from '../../lib/chat/titles'
+import { automaticTitleCandidates, FALLBACK_TITLE } from '../../lib/chat/titles'
 
 const props = defineProps<{ title: string, source: Conversation['titleSource'] }>()
-const emit = defineEmits<{ fit: [expected: string, title: string] }>()
+const displayTitle = ref(props.title)
 const element = ref<HTMLElement | null>(null)
 let observer: ResizeObserver | undefined
 let mounted = false
 
 function fit(): void {
+  displayTitle.value = props.title
   const label = element.value
   if (!mounted || !label || props.source === 'manual' || label.clientWidth === 0 || !label.getClientRects().length) return
   const measurement = document.createElement('span')
@@ -19,10 +20,12 @@ function fit(): void {
   try {
     // DOM layout includes the actual font, size, weight and letter spacing.
     const title = automaticTitleCandidates(props.title).find((candidate) => {
+      // Width is presentation only. Never replace a real topic with a placeholder.
+      if (candidate === FALLBACK_TITLE && props.title !== candidate) return false
       measurement.textContent = candidate
       return measurement.getBoundingClientRect().width <= label.clientWidth - 1
     })
-    if (title && title !== props.title) emit('fit', props.title, title)
+    if (title) displayTitle.value = title
   }
   finally { measurement.remove() }
 }
@@ -46,5 +49,5 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <span ref="element" :data-title-source="source">{{ title }}</span>
+  <span ref="element" :data-title-source="source">{{ displayTitle }}</span>
 </template>
