@@ -20,6 +20,7 @@ test('automatically completes Markdown on one node with a continuous streaming s
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   const composer = page.getByRole('textbox', { name: 'Nachricht', exact: true })
   await composer.fill(`/long automatic ${info.project.name}`)
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await composer.press('Enter')
   const reply = page.locator('.message-assistant')
   await expect(reply).toHaveAttribute('data-status', 'streaming')
@@ -61,6 +62,14 @@ test('automatically completes Markdown on one node with a continuous streaming s
 })
 
 test('reload and WebSocket reconnect during an automatic continuation preserve the same answer', async ({ page, request }, info) => {
+  // Hydration can finish while the authoritative bootstrap is still pending.
+  // Keep that window open to exercise the send-button readiness guard reliably.
+  let releaseBootstrap!: () => void
+  const bootstrap = new Promise<void>(resolve => { releaseBootstrap = resolve })
+  await page.route('**/api/v1/chat/drafts?**', async route => {
+    await bootstrap
+    await route.continue()
+  })
   await page.addInitScript(() => {
     const Original = window.WebSocket
     const sockets: WebSocket[] = []
@@ -73,6 +82,9 @@ test('reload and WebSocket reconnect during an automatic continuation preserve t
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   const composer = page.getByRole('textbox', { name: 'Nachricht', exact: true })
   await composer.fill(`/long-stop reload ${info.project.name}`)
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeDisabled()
+  releaseBootstrap()
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await composer.press('Enter')
   const reply = page.locator('.message-assistant')
   await expect(reply).toContainText("print('neu')", { timeout: 15_000 })
@@ -103,6 +115,7 @@ test('Stop during automatic continuation keeps all persisted text after reload',
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   const composer = page.getByRole('textbox', { name: 'Nachricht', exact: true })
   await composer.fill(`/long-stop stop ${info.project.name}`)
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await composer.press('Enter')
   const reply = page.locator('.message-assistant')
   await expect(reply).toContainText("print('neu')", { timeout: 15_000 })

@@ -55,6 +55,7 @@ for (const eventType of ['chat.title.updated', 'chat.conversation.updated'] as c
     const composer = page.getByRole('textbox', { name: 'Nachricht', exact: true })
     await expect(composer).toBeEnabled()
     await composer.fill('/title-summary-switch')
+    await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
     await composer.press('Enter')
     await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
     const conversation = (await (await request.get('/api/v1/conversations')).json()).conversations[0] as ApiSchemas['ConversationResponse']
@@ -128,6 +129,7 @@ test('a manual title committed during title generation wins immediately in every
   const composer = page.getByRole('textbox', { name: 'Nachricht', exact: true })
   await expect(composer).toBeEnabled()
   await composer.fill('/title-summary-switch')
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await composer.press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   await expect.poll(async () => (await (await request.get(`${providerURL}/fixture/state`)).json()).title_calls.length).toBe(before + 1)

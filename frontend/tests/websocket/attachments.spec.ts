@@ -183,6 +183,7 @@ test('vision attachments survive model changes and reload and reach the provider
   await page.reload()
   await expect(page.locator('[data-upload-status="uploaded"]')).toContainText('Für Bildanalyse bereit')
   await expect(input).toHaveValue('Describe this synthetic image')
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await input.press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   await expect(page.locator('.message-attachments a')).toHaveCount(1)

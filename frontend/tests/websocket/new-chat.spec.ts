@@ -161,6 +161,7 @@ test('draft reload, first response failure, retry and title failure remain recov
   await expect(input).toHaveValue('Noch ungesendeter Entwurf')
   expect(await list(request)).toHaveLength(0)
   await input.fill(`/retry new-chat ${info.project.name} ${crypto.randomUUID()}`)
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await input.press('Enter')
   await expect(page.locator('[data-generation-status="failed"]')).toBeAttached()
   const failed = (await list(request))[0]!
@@ -178,6 +179,7 @@ test('draft reload, first response failure, retry and title failure remain recov
   const previousTitleErrors = await titleErrorCalls()
   await page.keyboard.press('Control+Shift+O')
   await input.fill('/title-error SearXNG')
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await input.press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   // The retry's asynchronous title can reorder the list after this chat completes.
