@@ -648,6 +648,18 @@
             ],
             "title": "Lastmessageat"
           },
+          "pinnedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pinnedat"
+          },
           "reasoningPreference": {
             "anyOf": [
               {
@@ -805,6 +817,17 @@
               }
             ],
             "title": "Conversationmode"
+          },
+          "pinned": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pinned"
           },
           "reasoningPreference": {
             "anyOf": [
@@ -1111,6 +1134,18 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "pinnedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pinnedat"
           },
           "reasoningPreference": {
             "anyOf": [
@@ -3832,6 +3867,22 @@
               "maxLength": 200,
               "title": "Q",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pinned",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Pinned"
             }
           }
         ],

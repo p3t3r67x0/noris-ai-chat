@@ -1,0 +1,29 @@
+{
+  "axis": 28,
+  "items": [
+    {
+      "button": 28,
+      "icon": 27.9921875,
+      "width": 44,
+      "height": 44
+    },
+    {
+      "button": 28,
+      "icon": 28,
+      "width": 44,
+      "height": 44
+    },
+    {
+      "button": 28,
+      "icon": 28,
+      "width": 44,
+      "height": 44
+    },
+    {
+      "button": 28,
+      "icon": 28,
+      "width": 44,
+      "height": 44
+    }
+  ]
+}

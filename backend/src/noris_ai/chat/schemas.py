@@ -48,6 +48,7 @@ class ConversationUpdate(JsonApiSchema):
     reasoningPreference: ReasoningPreference | None = None
     title: str | None = Field(default=None, min_length=1, max_length=MAX_TITLE_LENGTH)
     archived: bool | None = None
+    pinned: bool | None = None
     activeLeafMessageId: UUID | None = None
     version: int = Field(ge=1)
 
@@ -62,6 +63,7 @@ class ConversationResponse(JsonApiSchema):
     createdAt: datetime
     updatedAt: datetime
     archivedAt: datetime | None
+    pinnedAt: datetime | None = None
     version: int
     lastMessageAt: datetime | None
     activeLeafMessageId: UUID | None
@@ -206,6 +208,7 @@ class ImportConversation(JsonApiSchema):
     createdAt: datetime
     updatedAt: datetime
     archivedAt: datetime | None = None
+    pinnedAt: datetime | None = None
     activeLeafMessageId: UUID | None = None
     version: int = Field(default=1, ge=1)
 

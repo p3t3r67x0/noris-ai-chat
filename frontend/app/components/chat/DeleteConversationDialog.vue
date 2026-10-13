@@ -29,7 +29,10 @@ function restoreFocus(event: Event): void {
   event.preventDefault()
   // Mobile drawers and deleted rows can remove the original menu trigger.
   const trigger = props.returnFocus
-  if (trigger?.isConnected && !trigger.closest('[inert]')) trigger.focus()
+  if (trigger?.isConnected && !trigger.closest('[inert]')) {
+    trigger.closest('.conversation-row')?.querySelector<HTMLElement>('button')?.focus()
+    trigger.focus()
+  }
   else document.querySelector<HTMLElement>('#settings-heading, #chat-main:not([inert])')?.focus()
 }
 

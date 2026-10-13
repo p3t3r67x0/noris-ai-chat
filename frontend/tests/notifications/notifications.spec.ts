@@ -1,3 +1,4 @@
+import { openChatActions } from '../e2e/sidebar-helpers'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import type { AppNotifications } from '../../app/composables/useAppNotifications'
@@ -213,7 +214,7 @@ test('failed deletion keeps the chat, retries in the dialog and confirms success
   await page.setViewportSize({ width: 1440, height: 900 })
   const state = await notificationBackend(page, { failDelete: 1 })
   await ready(page)
-  await page.getByRole('button', { name: 'Aktionen für Benachrichtigungen prüfen' }).click()
+  await openChatActions(page, 'Benachrichtigungen prüfen')
   await page.getByRole('menuitem', { name: 'Löschen', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Chat löschen?' })
   await dialog.getByRole('button', { name: 'Chat löschen', exact: true }).click()

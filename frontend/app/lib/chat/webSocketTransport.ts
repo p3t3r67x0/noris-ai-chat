@@ -53,6 +53,7 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
           void backend.refreshMetadata().then(() => { backgroundReconnects = 0 }).catch(() => { socket.close() })
         }
         if (event.type === 'chat.conversation.updated') backend.remember(event.conversation)
+        if (event.type === 'chat.conversation.deleted') backend.forget(event.conversationId, event.conversationVersion)
         if (event.type === 'chat.title.updated') {
           // Fetch the versioned authority so a late title event cannot undo a
           // manual rename or a newer update from another tab.

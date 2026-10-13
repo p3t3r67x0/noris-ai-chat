@@ -176,6 +176,7 @@ function saveEdit(): void {
         ref="sidebar" v-model:open="chatSidebarOpen"
         :demo="mode === 'mock'" :conversations="chat.pagination?.conversations.value ?? conversations.visible.value" :archived="conversations.archived.value"
         :active-id="conversations.activeId.value" :remove-conversation="chat.remove" :pagination="chat.pagination"
+        :set-pinned="conversations.setPinned"
         @new-chat="newChat" @focus-composer="composer?.focus()" @select="conversations.select" @rename="conversations.rename"
         @archive="conversations.archive" @restore="conversations.restore"
         @settings="openSettings"

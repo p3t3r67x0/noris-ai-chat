@@ -52,6 +52,7 @@ def conversation_response(conversation: ChatConversation) -> ConversationRespons
         createdAt=conversation.created_at,
         updatedAt=conversation.updated_at,
         archivedAt=conversation.archived_at,
+        pinnedAt=conversation.pinned_at,
         version=conversation.version,
         lastMessageAt=conversation.last_message_at,
         activeLeafMessageId=conversation.active_leaf_message_id,
@@ -154,6 +155,7 @@ class ChatService:
         include_archived: bool = False,
         archive_only: bool = False,
         query: str = "",
+        pinned: bool | None = None,
     ) -> ConversationListResponse:
         async with self.repository.database() as session:
             rows, next_cursor = await pagination.conversation_page(
@@ -164,6 +166,7 @@ class ChatService:
                 archived=include_archived,
                 archive_only=archive_only,
                 query=query,
+                pinned=pinned,
             )
         return ConversationListResponse(
             conversations=[conversation_response(c) for c in rows],
@@ -216,8 +219,8 @@ class ChatService:
         )
         return conversation_response(conversation)
 
-    async def delete_conversation(self, owner_id: uuid.UUID, conversation_id: uuid.UUID) -> None:
-        await self.repository.soft_delete_conversation(owner_id, conversation_id)
+    async def delete_conversation(self, owner_id: uuid.UUID, conversation_id: uuid.UUID) -> int:
+        return await self.repository.soft_delete_conversation(owner_id, conversation_id)
 
     async def message_page(
         self,

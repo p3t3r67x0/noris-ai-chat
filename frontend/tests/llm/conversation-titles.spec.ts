@@ -1,3 +1,4 @@
+import { openChatActions } from '../e2e/sidebar-helpers'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { CHAT_STORAGE_KEY } from '../../app/lib/chat/persistence'
@@ -54,22 +55,27 @@ test('the existing provider contract compacts a verbose title without another pa
   expect(await (await response).json()).toMatchObject({ title: 'Automatische Chat-Titel' })
   await sidebar(page)
   const label = page.getByRole('navigation', { name: 'Gespräche' }).locator('span[data-title-source="generated"]').first()
-  await expect(label).toHaveText('Automatische Chat-Titel')
-  expect(await label.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+  await expect(label.locator('..')).toHaveAttribute('title', 'Automatische Chat-Titel')
+  // Touch actions can require ellipsis for a title with no shorter candidate.
+  await expect(label).toHaveCSS('text-overflow', 'ellipsis')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.reload()
   await expect(page.locator('[data-ready="true"]')).toBeVisible()
   await sidebar(page)
-  await expect(page.getByRole('navigation', { name: 'Gespräche' }).getByRole('button', { name: 'Automatische Chat-Titel', exact: true })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Gespräche' }).locator('button[title="Automatische Chat-Titel"]')).toBeVisible()
   expect(results).toHaveLength(1)
 })
 
-test('a character-valid provider title is shortened to fit the actual sidebar width', async ({ page }) => {
+test('a generated title uses available space and fits beside hover or touch actions without changing storage', async ({ page, isMobile }) => {
   await page.setViewportSize({ width: 1280, height: 800 })
   await send(page, '/title-wide')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   await sidebar(page)
   const label = page.getByRole('navigation', { name: 'Gespräche' }).locator('span[data-title-source="generated"]').first()
-  await expect(label).toHaveText('Docker DNS Troubleshooting')
+  await expect(label).toHaveText(isMobile ? 'Docker DNS' : 'Docker DNS Troubleshooting Guide')
+  await expect(label.locator('..')).toHaveAttribute('title', 'Docker DNS Troubleshooting Guide')
+  await label.locator('..').hover()
+  await expect(label).toHaveText('Docker DNS')
   expect(await label.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
 })
 
@@ -83,7 +89,7 @@ test('a late backend title cannot overwrite a manual rename', async ({ page }) =
   await pending
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   await sidebar(page)
-  await page.getByRole('button', { name: 'Aktionen für Docker DNS-Probleme' }).click()
+  await openChatActions(page, 'Docker DNS-Probleme')
   await page.getByRole('menuitem', { name: 'Umbenennen' }).click()
   await page.getByRole('textbox', { name: 'Chat-Titel' }).fill('Meine DNS-Notizen')
   await page.getByRole('textbox', { name: 'Chat-Titel' }).press('Enter')
@@ -122,7 +128,7 @@ test('deletion closes a pending title request and never restores the conversatio
   await started
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   await sidebar(page)
-  await page.getByRole('button', { name: 'Aktionen für Neuer Chat' }).click()
+  await openChatActions(page, 'Neuer Chat')
   await page.getByRole('menuitem', { name: 'Löschen', exact: true }).click()
   await page.getByRole('dialog', { name: 'Chat löschen?' }).getByRole('button', { name: 'Chat löschen', exact: true }).click()
   await expect.poll(async () => (await request.get(`${fixtureOrigin}/fixture/state`).then(response => response.json()) as { title_cancelled: number }).title_cancelled).toBeGreaterThan(before.title_cancelled)

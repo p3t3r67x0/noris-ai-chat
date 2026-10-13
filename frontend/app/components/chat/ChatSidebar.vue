@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { normalizeAppError } from '../../lib/notifications/errors'
 import { useAppLocale } from '../../composables/useAppLocale'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import type { useChatBackend } from '../../composables/useChatBackend'
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { Conversation } from '../../lib/chat/conversations'
@@ -12,10 +12,34 @@ import ProfileMenu from './ProfileMenu.vue'
 import ChatSearchDialog from './ChatSearchDialog.vue'
 const { t } = useAppLocale()
 
-const props = defineProps<{ demo?: boolean, pagination?: ReturnType<typeof useChatBackend>['pagination'] | undefined, conversations: readonly Conversation[], archived: readonly Conversation[], activeId: string | null, removeConversation: (id: string) => void | Promise<void> }>()
+const props = defineProps<{ demo?: boolean, pagination?: ReturnType<typeof useChatBackend>['pagination'] | undefined, conversations: readonly Conversation[], archived: readonly Conversation[], activeId: string | null, removeConversation: (id: string) => void | Promise<void>, setPinned: (id: string, pinned: boolean) => void | Promise<void> }>()
 const open = defineModel<boolean>('open', { required: true })
 const emit = defineEmits<{ newChat: [], focusComposer: [], select: [id: string], rename: [id: string, title: string], archive: [id: string], restore: [id: string], settings: [] }>()
 const groups = computed(() => groupConversations(props.conversations))
+const openMenuId = ref<string | null>(null)
+const pendingPins = ref(new Set<string>())
+const pinAnnouncement = ref('')
+async function togglePin(conversation: Conversation): Promise<void> {
+  if (pendingPins.value.has(conversation.id)) return
+  const pinned = !conversation.pinnedAt
+  const returnFocus = document.activeElement?.closest('[data-conversation-id]')?.getAttribute('data-conversation-id') === conversation.id || openMenuId.value === conversation.id
+  pendingPins.value.add(conversation.id)
+  try {
+    await props.setPinned(conversation.id, pinned)
+    pendingPins.value.delete(conversation.id)
+    await nextTick()
+    if (returnFocus) {
+      const row = Array.from(document.querySelectorAll<HTMLElement>(`[data-conversation-id="${CSS.escape(conversation.id)}"]`)).find(element => element.getClientRects().length)
+      // The row changes groups. Reveal its actions via title focus before
+      // restoring focus to a control that desktop CSS would otherwise hide.
+      row?.querySelector<HTMLElement>('button')?.focus()
+      row?.querySelector<HTMLElement>('.conversation-actions button[aria-pressed]')?.focus()
+    }
+    pinAnnouncement.value = `${conversation.title}: ${pinned ? t('chatPinned') : t('chatUnpinned')}`
+  }
+  catch { pinAnnouncement.value = `${conversation.title}: ${t('pinFailed')}` }
+  finally { pendingPins.value.delete(conversation.id) }
+}
 const searchOpen = ref(false)
 const archiveOpen = ref(false)
 const searchReturnFocus = ref<HTMLElement | null>(null)
@@ -42,6 +66,22 @@ const renameTarget = ref<Conversation | null>(null)
 const deleteTarget = ref<Conversation | null>(null)
 const deleteReturnFocus = ref<HTMLElement | null>(null)
 const actionsTrigger = ref<HTMLElement | null>(null)
+const menuAnchor = computed(() => actionsTrigger.value?.closest<HTMLElement>('.conversation-row'))
+const menuInDrawer = computed(() => Boolean(menuAnchor.value?.closest('[role="dialog"]')))
+// Keep the reference prop present before the menu mounts. Nuxt UI/Reka's
+// forwarded props retain the initially declared keys across portal mounts.
+const menuReference = {
+  getBoundingClientRect: () => menuAnchor.value?.getBoundingClientRect() ?? new DOMRect(),
+  get contextElement() { return menuAnchor.value! },
+}
+function restoreActionsFocus(event: Event): void {
+  const trigger = actionsTrigger.value
+  if (!trigger?.isConnected || !trigger.getClientRects().length) return
+  event.preventDefault()
+  // Portal focus leaves the row; reveal the trigger before Reka restores it.
+  trigger.closest('.conversation-row')?.querySelector<HTMLElement>('button')?.focus()
+  trigger.focus()
+}
 const renameTitle = ref('')
 const renameOpen = computed({ get: () => renameTarget.value !== null, set: (value: boolean) => { if (!value) renameTarget.value = null } })
 const deleteOpen = computed({ get: () => deleteTarget.value !== null, set: (value: boolean) => { if (!value) deleteTarget.value = null } })
@@ -94,6 +134,7 @@ function showSettings(): void { closeOnMobile(); emit('settings') }
 function actions(conversation: Conversation): DropdownMenuItem[] {
   return [
     { label: t('rename'), icon: 'i-lucide-pencil', onSelect: () => { closeOnMobile(); renameTarget.value = conversation; renameTitle.value = conversation.title } },
+    { label: conversation.pinnedAt ? t('unpinChat') : t('pinChat'), icon: conversation.pinnedAt ? 'i-lucide-pin-off' : 'i-lucide-pin', disabled: pendingPins.value.has(conversation.id), onSelect: () => { void togglePin(conversation) } },
     { label: t('archive'), icon: 'i-lucide-archive', onSelect: () => emit('archive', conversation.id) },
     { label: t('delete'), icon: 'i-lucide-trash-2', color: 'error', onSelect: () => showDelete(conversation, actionsTrigger.value) },
   ]
@@ -140,23 +181,30 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
     </template>
 
     <nav :aria-label="t('conversations')" class="pb-4">
+      <span role="status" aria-live="polite" class="sr-only">{{ pinAnnouncement }}</span>
       <details v-if="pagination?.sidebarError.value" class="px-3 py-2 text-sm text-warning"><summary>Chatliste nicht verfügbar.</summary><p>{{ pagination.sidebarError.value }}</p></details>
       <UButton v-if="pagination?.sidebarError.value || pagination?.windowedList.value" color="neutral" variant="ghost" label="Neueste Chats laden" :loading="pagination?.sidebarLoading.value" @click="pagination?.reloadSidebar" />
       <p v-if="pagination?.sidebarLoading.value && groups.length === 0" role="status" class="px-3 py-2 text-sm text-muted">Chats werden geladen …</p>
       <p v-if="groups.length === 0 && !pagination?.sidebarLoading.value && !pagination?.sidebarError.value" class="px-3 py-6 text-sm leading-relaxed text-muted">{{ t('emptyConversations') }}</p>
-      <section v-for="group in groups" :key="group.label" class="mt-5" :aria-label="group.label">
-        <h2 class="sidebar-group">{{ group.label }}</h2>
+      <section v-for="group in groups" :key="group.label" class="mt-5" :aria-label="group.label === 'Fixierte Chats' ? t('pinnedChats') : group.label">
+        <h2 class="sidebar-group">{{ group.label === 'Fixierte Chats' ? t('pinnedChats') : group.label }}</h2>
         <ul class="space-y-0.5">
-          <li v-for="conversation in group.conversations" :key="conversation.id" class="conversation-row" :data-conversation-id="conversation.id" :data-active="activeId === conversation.id">
+          <li v-for="conversation in group.conversations" :key="conversation.id" class="conversation-row group" :data-conversation-id="conversation.id" :data-active="activeId === conversation.id" :data-menu-open="openMenuId === conversation.id">
             <button type="button" :aria-current="activeId === conversation.id ? 'page' : undefined" :title="conversation.title" @click="selectChat(conversation.id)">
               <ConversationTitle :title="conversation.title" :source="conversation.titleSource" />
             </button>
-            <UDropdownMenu :items="actions(conversation)" :content="{ align: 'start', side: 'right' }">
-              <UButton icon="i-lucide-ellipsis" color="neutral" variant="ghost" class="touch-control shrink-0" :aria-label="`Aktionen für ${conversation.title}`" @focus="actionsTrigger = $event.currentTarget as HTMLElement" @click="actionsTrigger = $event.currentTarget as HTMLElement" />
-            </UDropdownMenu>
+            <div class="conversation-actions">
+              <UDropdownMenu :modal="false" :items="actions(conversation)" :content="{ align: menuInDrawer ? 'end' : 'start', side: menuInDrawer ? 'bottom' : 'right', sideOffset: 8, collisionPadding: 8, avoidCollisions: true, prioritizePosition: true, reference: menuReference, onCloseAutoFocus: restoreActionsFocus }" :ui="{ content: 'conversation-menu', viewport: 'p-0', item: 'conversation-menu-item', itemLeadingIcon: 'size-4' }" @update:open="openMenuId = $event ? conversation.id : null">
+                <UButton icon="i-lucide-ellipsis" color="neutral" variant="ghost" :aria-label="t('chatActions')" :title="`${t('chatActions')}: ${conversation.title}`" aria-haspopup="menu" :aria-expanded="openMenuId === conversation.id" @focus="actionsTrigger = $event.currentTarget as HTMLElement" @click="actionsTrigger = $event.currentTarget as HTMLElement" />
+              </UDropdownMenu>
+              <UButton :icon="conversation.pinnedAt ? 'i-lucide-pin-off' : 'i-lucide-pin'" color="neutral" variant="ghost" :aria-label="conversation.pinnedAt ? t('unpinChat') : t('pinChat')" :aria-pressed="Boolean(conversation.pinnedAt)" :disabled="pendingPins.has(conversation.id)" @click="togglePin(conversation)" />
+            </div>
           </li>
         </ul>
+        <UButton v-if="group.label === 'Fixierte Chats' && pagination?.hasMorePinned.value" color="neutral" variant="ghost" :label="t('morePinnedChats')" :loading="pagination.pinnedLoading.value" class="mt-2 w-full" @click="pagination.loadMorePinned" />
+        <UButton v-if="group.label === 'Fixierte Chats' && pagination?.pinnedWindowedList.value" color="neutral" variant="ghost" label="Neueste fixierte Chats laden" :loading="pagination.pinnedLoading.value" class="mt-2 w-full" @click="pagination.reloadPinned" />
       </section>
+      <p v-if="pagination?.pinnedError.value" role="alert" class="px-3 py-2 text-sm text-warning">{{ pagination.pinnedError.value }} <UButton label="Fixierte Chats erneut laden" variant="link" @click="pagination.reloadPinned" /></p>
       <UButton v-if="pagination?.hasMore.value" color="neutral" variant="ghost" :label="t('moreChats')" :loading="pagination.sidebarLoading.value" class="mt-3 w-full" @click="pagination.loadMore" />
     </nav>
 

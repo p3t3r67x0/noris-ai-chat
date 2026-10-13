@@ -1,3 +1,4 @@
+import { openChatActions } from './sidebar-helpers'
 import { expect, test } from '@playwright/test'
 import { savedChat, seedChat } from './chat-fixtures'
 
@@ -79,7 +80,7 @@ test('search, deletion and persisted navigation remain keyboard usable', async (
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
-  await page.getByRole('button', { name: 'Aktionen für Gedanken 1', exact: true }).click()
+  await openChatActions(page, 'Gedanken 1')
   await page.getByRole('menuitem', { name: 'Löschen', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Chat löschen?', exact: true })
   await expect(dialog).toBeVisible()

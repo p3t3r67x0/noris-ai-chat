@@ -23,7 +23,7 @@ describe('chat metadata version conflicts', () => {
     const backend = new ChatBackend(fetcher)
     const update = vi.fn(); backend.onConversation = update
     const loading = backend.load()
-    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2))
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(3))
     backend.remember(manual)
     release(Response.json({ activeConversationId: null, modelId: null }))
     await loading

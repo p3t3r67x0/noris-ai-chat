@@ -52,4 +52,3 @@ Nachher:
 Eine reale Softwaretastatur lässt sich in Desktop-Playwright nicht vollständig
 abbilden. Die betroffenen Tests emulieren Touch und die vorhandenen
 `visualViewport`-Resize-/Offset-Ereignisse einschließlich Landscape.
-

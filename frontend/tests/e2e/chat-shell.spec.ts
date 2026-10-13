@@ -1,3 +1,4 @@
+import { conversationRow, chatActions, openChatActions } from './sidebar-helpers'
 import { expect, test } from '@playwright/test'
 import { returnToChat } from './settings-helpers'
 
@@ -43,13 +44,13 @@ test('conversation menu supports rename, search, archive and restore by keyboard
   await page.getByRole('textbox', { name: 'Nachricht', exact: true }).press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   await openSidebar(page)
-  await page.getByRole('button', { name: 'Aktionen für Docker Compose Einrichtung' }).click()
+  await openChatActions(page, 'Docker Compose Einrichtung')
   await page.getByRole('menuitem', { name: 'Umbenennen' }).click()
   await page.getByRole('textbox', { name: 'Chat-Titel' }).fill('Meine Notizen')
   await page.getByRole('textbox', { name: 'Chat-Titel' }).press('Enter')
   await expect(page.getByRole('dialog', { name: 'Chat umbenennen' })).not.toBeVisible()
   await openSidebar(page)
-  await expect(page.getByRole('button', { name: 'Aktionen für Meine Notizen' })).toBeVisible()
+  await expect(conversationRow(page, 'Meine Notizen')).toBeVisible()
   await page.getByRole('button', { name: 'Chats suchen' }).click()
   await page.getByPlaceholder('Suchen...').fill('Notizen')
   await expect(page.getByRole('option', { name: 'Meine Notizen', exact: true })).toBeVisible()
@@ -57,9 +58,9 @@ test('conversation menu supports rename, search, archive and restore by keyboard
   await page.keyboard.press('Enter')
   await expect(page.getByRole('dialog', { name: 'Chats suchen' })).not.toBeVisible()
   await openSidebar(page)
-  await page.getByRole('button', { name: 'Aktionen für Meine Notizen' }).click()
+  await openChatActions(page, 'Meine Notizen')
   await page.getByRole('menuitem', { name: 'Archivieren' }).click()
-  await expect(page.getByRole('button', { name: 'Aktionen für Meine Notizen' })).toHaveCount(0)
+  await expect(chatActions(page, 'Meine Notizen')).toHaveCount(0)
   await page.getByRole('button', { name: 'Archivierte Chats' }).click()
   await page.getByRole('button', { name: 'Meine Notizen wiederherstellen' }).click()
   if (page.url().includes('/settings/')) await returnToChat(page)

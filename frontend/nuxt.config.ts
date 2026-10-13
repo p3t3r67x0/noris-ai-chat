@@ -29,7 +29,7 @@ export default defineNuxtConfig({
         'lucide:square-pen', 'lucide:search', 'lucide:chevron-down', 'lucide:chevron-up',
         'lucide:chevron-left', 'lucide:chevron-right', 'lucide:check', 'lucide:x',
         'lucide:moon', 'lucide:sun', 'lucide:monitor', 'lucide:ellipsis', 'lucide:pencil',
-        'lucide:archive', 'lucide:trash-2', 'lucide:undo-2', 'lucide:settings', 'lucide:user',
+        'lucide:archive', 'lucide:trash-2', 'lucide:undo-2', 'lucide:settings', 'lucide:user', 'lucide:pin', 'lucide:pin-off',
         'lucide:arrow-up', 'lucide:arrow-down', 'lucide:copy', 'lucide:check-check',
         'lucide:rotate-ccw', 'lucide:square', 'lucide:plus', 'lucide:paperclip',
         'lucide:folder-open', 'lucide:image', 'lucide:globe', 'lucide:telescope',

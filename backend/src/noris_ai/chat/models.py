@@ -94,6 +94,15 @@ class ChatConversation(Base):
             postgresql_where=text("deleted_at IS NULL AND archived_at IS NULL"),
         ),
         Index(
+            "ix_chat_conversation_pinned_seek",
+            "owner_id",
+            text("pinned_at DESC"),
+            text("id DESC"),
+            postgresql_where=text(
+                "deleted_at IS NULL AND archived_at IS NULL AND pinned_at IS NOT NULL"
+            ),
+        ),
+        Index(
             "ix_chat_conversation_title_search",
             func.lower(text("title")).label("title_lower"),
             postgresql_using="gin",
@@ -119,6 +128,7 @@ class ChatConversation(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    pinned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     last_message_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

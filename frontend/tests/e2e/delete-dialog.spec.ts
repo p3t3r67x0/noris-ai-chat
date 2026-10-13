@@ -1,3 +1,4 @@
+import { conversationRow, chatActions } from './sidebar-helpers'
 import { expect, test, type Page } from '@playwright/test'
 import { savedChat, seedChat } from './chat-fixtures'
 import { CHAT_STORAGE_KEY } from '../../app/lib/chat/persistence'
@@ -22,7 +23,8 @@ async function start(page: Page, theme = 'light', targetTitle = title) {
 async function openDelete(page: Page, targetTitle = title, keyboard = false) {
   const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
-  const trigger = page.getByRole('button', { name: `Aktionen für ${targetTitle}`, exact: true })
+  await conversationRow(page, targetTitle).getByRole('button', { name: targetTitle, exact: true }).focus()
+  const trigger = chatActions(page, `${targetTitle}`)
   if (keyboard) { await trigger.focus(); await trigger.press('Enter') }
   else await trigger.click()
   await page.getByRole('menuitem', { name: 'Löschen', exact: true }).click()
@@ -127,7 +129,7 @@ for (const theme of ['light', 'dark']) {
     await page.keyboard.press('Escape')
     await expect(dialog).not.toBeVisible()
     if (mobile) await expect(page.locator('#chat-main')).toBeFocused()
-    else await expect(page.getByRole('button', { name: `Aktionen für ${title}`, exact: true })).toBeFocused()
+    else await expect(chatActions(page, `${title}`)).toBeFocused()
     await expect(page.getByRole('textbox', { name: 'Nachricht', exact: true })).toHaveValue('Synthetischer Entwurf bleibt erhalten')
     expect((await snapshot(page)).conversations.activeConversationId).toBe('main')
   })
