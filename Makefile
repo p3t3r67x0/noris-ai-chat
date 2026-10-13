@@ -1,6 +1,6 @@
 COMPOSE ?= sh infrastructure/scripts/compose.sh
 
-.PHONY: install dev backend-dev db-up db-diagnose network-repair dev-up generate-api check-api lint typecheck test test-unit test-integration test-llm-integration test-e2e test-e2e-production test-e2e-websocket build up down migrate python-typecheck
+.PHONY: install dev backend-dev db-up db-diagnose network-repair searxng-network-repair dev-up generate-api check-api lint typecheck test test-unit test-integration test-llm-integration test-e2e test-e2e-production test-e2e-websocket build up down migrate python-typecheck
 
 install:
 	uv sync --project backend --locked
@@ -20,6 +20,9 @@ db-diagnose:
 
 network-repair:
 	sh infrastructure/scripts/repair-docker-network.sh
+
+searxng-network-repair:
+	sh infrastructure/scripts/repair-searxng-network.sh
 
 dev-up:
 	pnpm --dir /tmp self-update
