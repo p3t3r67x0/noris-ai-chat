@@ -291,7 +291,10 @@ Providerunits decken Sprachen/Unicode, Operatoren, HTML, URLangriffe, Dubletten,
 Mengen-/Bytegrenzen, Status-/Transportfehler und JSONangriffe ab. Netzwerkunits
 prüfen exakte interne Freigaben, Metadaten, gemischtes DNS, DNS-Rebinding mit
 geprüfter tatsächlicher Verbindung, DNS-Cancel/-Timeout sowie Host-/SNI-Erhalt.
-Echte Loopbacksockets prüfen Streams, langsame Antworten und Abbruch.
+Echte Loopbacksockets prüfen Streams, langsame Antworten und Abbruch. Zusätzlich
+belegen lokale TLS-Sockets mit einer ausschließlich für den Test erzeugten CA,
+dass IP-Pinning die Hostzertifikatsprüfung erhält: passender Host erfolgreich,
+falscher Host `PROVIDER_ERROR` ohne HTTP-Suchdispatch. Zertifikatsprüfung bleibt aktiv.
 
 `test_searxng_runtime.py` verbindet den echten Handler mit lokalen HTTP-Sockets
 und einer disposable PostgreSQL-Datenbank (`*_test`). Es prüft Admission,

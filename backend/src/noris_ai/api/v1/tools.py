@@ -33,13 +33,14 @@ async def capabilities(request: Request, access: ChatAccess) -> ToolCapabilities
     del access  # Existing Basic/origin dependency identifies the single server owner.
     service = runtime(request)
     features: list[ToolCapability] = []
-    for definition in service.registry.definitions:
+    # Keep the existing public catalogue closed; consult the one runtime registry.
+    for tool_id in ("web.search.v1", "web.fetch.v1"):
         try:
-            service.policy.require(service.registry.get(definition.name))
-            features.append(ToolCapability(toolId=definition.name, status="available"))
+            service.policy.require(service.registry.get(tool_id))
+            features.append(ToolCapability(toolId=tool_id, status="available"))
         except ToolError as error:
             features.append(
-                ToolCapability(toolId=definition.name, status="unavailable", reasonCode=error.code)
+                ToolCapability(toolId=tool_id, status="unavailable", reasonCode=error.code)
             )
     return ToolCapabilitiesResponse(features=features)
 

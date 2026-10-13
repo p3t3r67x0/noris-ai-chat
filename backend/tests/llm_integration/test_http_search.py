@@ -1,7 +1,9 @@
 """Real loopback sockets only; no live SearXNG/search engines or PostgreSQL required."""
 
 import asyncio
+import ssl
 from collections.abc import AsyncIterator
+from pathlib import Path
 from urllib.parse import parse_qs
 
 import httpx
@@ -194,3 +196,63 @@ async def test_connection_refusal_is_safe_over_actual_socket() -> None:
     assert error.value.reason == "connection_error"
     assert error.value.code == "PROVIDER_ERROR"
     assert not isinstance(error.value, httpx.RequestError)
+
+
+@pytest.mark.parametrize("matching_hostname", [True, False])
+async def test_actual_tls_pinning_preserves_certificate_validation(
+    matching_hostname: bool, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    key, certificate = tmp_path / "key.pem", tmp_path / "certificate.pem"
+    process = await asyncio.create_subprocess_exec(
+        "openssl",
+        "req",
+        "-x509",
+        "-newkey",
+        "rsa:2048",
+        "-nodes",
+        "-days",
+        "1",
+        "-subj",
+        "/CN=search.example.org",
+        "-addext",
+        "subjectAltName=DNS:search.example.org",
+        "-keyout",
+        str(key),
+        "-out",
+        str(certificate),
+        stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.DEVNULL,
+    )
+    assert await process.wait() == 0
+    trusted = ssl.create_default_context()
+    trusted.load_verify_locations(cafile=str(certificate))
+    assert trusted.check_hostname and trusted.verify_mode == ssl.CERT_REQUIRED
+    monkeypatch.setattr(ssl, "create_default_context", lambda **_: trusted)
+    loop = asyncio.get_running_loop()
+    original = loop.getaddrinfo
+
+    async def resolve(host: str, port: int, **kwargs: object):
+        return await original("127.0.0.1", port, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(loop, "getaddrinfo", resolve)
+    calls = 0
+    upstream = FastAPI()
+
+    async def search() -> JSONResponse:
+        nonlocal calls
+        calls += 1
+        return JSONResponse({"results": []})
+
+    upstream.add_api_route("/search", search, methods=["POST"])
+    host = "search.example.org" if matching_hostname else "wrong.example.org"
+    async with (
+        serve(upstream, key=key, certificate=certificate) as base,
+        SearXNGProvider(config(base.replace("127.0.0.1", host), allowed_hosts=(host,))) as provider,
+    ):
+        if matching_hostname:
+            result = await provider.search(SearchInput(query="TLS", language="en"))
+            assert result.sources == []
+        else:
+            with pytest.raises(SearXNGError, match="PROVIDER_ERROR"):
+                await provider.search(SearchInput(query="TLS", language="en"))
+    assert calls == int(matching_hostname)
