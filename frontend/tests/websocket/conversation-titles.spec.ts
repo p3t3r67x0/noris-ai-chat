@@ -1,3 +1,4 @@
+import { clearTestConversations } from './chat-fixtures'
 import { expect, test } from '@playwright/test'
 import type { Page, WebSocketRoute } from '@playwright/test'
 import type { ApiSchemas } from '../../app/types/generated/api'
@@ -9,8 +10,7 @@ const nativeModels = ['vllm/qsu/deepseek-v41-flash', 'vllm/release/gpt-oss-120b'
 test.setTimeout(60_000)
 
 test.beforeEach(async ({ request }) => {
-  const result: ApiSchemas['ConversationListResponse'] = await (await request.get('/api/v1/conversations', { params: { archived: true, limit: 100 } })).json()
-  for (const value of result.conversations) await request.delete(`/api/v1/conversations/${value.id}`)
+  await clearTestConversations(request)
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
   await request.post(`${providerURL}/fixture/catalog`, { data: { ids: ['fixture-alpha', 'fixture-beta', 'fixture-long', ...nativeModels] } })

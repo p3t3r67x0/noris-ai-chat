@@ -1,3 +1,4 @@
+import { clearTestConversations } from './chat-fixtures'
 import { expect, test } from '@playwright/test'
 import type { APIRequestContext, Page } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
@@ -21,7 +22,7 @@ async function upload(page: Page, file: typeof image): Promise<void> {
   await expect(page.locator('[data-upload-status="uploaded"]')).toHaveCount(1)
 }
 test.beforeEach(async ({ request }) => {
-  for (const c of await list(request)) await request.delete(`/api/v1/conversations/${c.id}`)
+  await clearTestConversations(request)
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
   await request.post(`${provider}/fixture/catalog`, { data: { ids: ['fixture-alpha', 'fixture-beta', 'fixture-long'], imageIds: ['fixture-alpha'] } })

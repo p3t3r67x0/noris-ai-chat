@@ -1,15 +1,11 @@
+import { clearTestConversations } from './chat-fixtures'
 import type { ApiSchemas } from '../../app/types/generated/api'
 import { expect, test } from '@playwright/test'
 
 test.setTimeout(60_000)
 
 test.beforeEach(async ({ request }) => {
-  let cursor: string | null = null
-  do {
-    const data: ApiSchemas['ConversationListResponse'] = await (await request.get('/api/v1/conversations', { params: { archived: true, limit: 100, ...(cursor ? { cursor } : {}) } })).json()
-    for (const conversation of data.conversations) await request.delete(`/api/v1/conversations/${conversation.id}`)
-    cursor = data.nextCursor ?? null
-  } while (cursor)
+  await clearTestConversations(request)
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
 })

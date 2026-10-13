@@ -1,16 +1,10 @@
+import { clearTestConversations } from './chat-fixtures'
 import { expect, test } from '@playwright/test'
 import type { ApiSchemas } from '../../app/types/generated/api'
 import type { APIRequestContext } from '@playwright/test'
 
 async function clearChats(request: APIRequestContext): Promise<void> {
-  let cursor: string | null = null
-  do {
-    const response = await request.get('/api/v1/conversations', { params: { archived: true, limit: 100, ...(cursor ? { cursor } : {}) } })
-    expect(response.ok()).toBe(true)
-    const data: ApiSchemas['ConversationListResponse'] = await response.json()
-    for (const row of data.conversations) expect((await request.delete(`/api/v1/conversations/${row.id}`)).ok()).toBe(true)
-    cursor = data.nextCursor ?? null
-  } while (cursor)
+  await clearTestConversations(request)
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
 }
 let prefix = globalThis.crypto.randomUUID().slice(0, 8)

@@ -1,20 +1,11 @@
+import { clearTestConversations as clear } from './chat-fixtures'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 import { chatActions } from '../e2e/sidebar-helpers'
-import type { ApiSchemas } from '../../app/types/generated/api'
 import { randomUUID } from 'node:crypto'
 
 const namespace = randomUUID().slice(0, 24)
 const id = (n: number) => `${namespace}${String(n).padStart(12, '0')}`
-async function clear(request: APIRequestContext) {
-  let cursor: string | null = null
-  do {
-    const result = await request.get('/api/v1/conversations', { params: { archived: 'true', limit: 100, ...(cursor ? { cursor } : {}) } })
-    expect(result.ok()).toBe(true)
-    const data: ApiSchemas['ConversationListResponse'] = await result.json()
-    for (const c of data.conversations) await request.delete(`/api/v1/conversations/${c.id}`)
-    cursor = data.nextCursor ?? null
-  } while (cursor)
-}
+
 async function open(page: Page) {
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')

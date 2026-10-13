@@ -1,3 +1,4 @@
+import { clearTestConversations } from './chat-fixtures'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
@@ -21,9 +22,7 @@ const buttonAppearance = (page: Page) => triggerFor(page).evaluate(element => {
 
 test.beforeEach(async ({ page, request }) => {
   await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: ['fixture-alpha', 'fixture-beta', 'fixture-long'] } })
-  const response = await request.get('/api/v1/conversations', { params: { archived: true, limit: 100 } })
-  expect(response.ok()).toBe(true)
-  for (const conversation of (await response.json()).conversations) await request.delete(`/api/v1/conversations/${conversation.id}`)
+  await clearTestConversations(request)
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
   await page.goto('/')

@@ -1,3 +1,4 @@
+import { clearTestConversations } from './chat-fixtures'
 import { expect, test } from '@playwright/test'
 import type { APIRequestContext, Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
@@ -21,11 +22,7 @@ async function newChat(page: Page) {
   await page.locator('.sidebar-primary-actions').filter({ visible: true }).getByRole('button', { name: 'Neuer Chat', exact: true }).click()
 }
 test.beforeEach(async ({ request }) => {
-  // This runner uses only a disposable local database. Include hidden fixture
-  // preparations in cleanup so they cannot interfere with recovery assertions.
-  for (const params of [{ archived: 'true' }, { archived: 'true', preparedOnly: 'true' }]) {
-    for (const row of await list(request, params)) await request.delete(`/api/v1/conversations/${row.id}`)
-  }
+  await clearTestConversations(request)
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: 'fixture-alpha' } })
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
   await request.post(`${provider}/fixture/catalog`, { data: { ids: ['fixture-alpha', 'fixture-beta', 'fixture-long'], imageIds: ['fixture-alpha'] } })

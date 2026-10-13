@@ -423,7 +423,15 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       const snapshot = raw ? parseChatSnapshot(raw) : null
       if (!snapshot) throw new TransportError('IMPORT_INVALID')
       const result = await backend.request<{ conflicts: unknown[], imported: string[], skipped: string[] }>('/conversations/import', 'POST', {
-        conversations: Object.values(snapshot.conversations.conversations).map(({ titleGenerationAttempted: _attempted, ...c }) => c),
+        // Project onto the strict import contract to exclude recovered display
+        // metadata such as visibility, which the server derives from messages.
+        conversations: Object.values(snapshot.conversations.conversations).map((c): ApiSchemas['ImportConversation'] => ({
+          id: c.id, title: c.title, titleSource: c.titleSource,
+          createdAt: c.createdAt, updatedAt: c.updatedAt,
+          archivedAt: c.archivedAt, pinnedAt: c.pinnedAt ?? null,
+          activeLeafMessageId: c.activeLeafMessageId,
+          conversationMode: c.conversationMode ?? 'normal', reasoningPreference: c.reasoningPreference ?? null,
+        })),
         messages: Object.values(snapshot.messages).map(m => ({ id: m.id, conversationId: m.conversationId, parentMessageId: m.parentMessageId, role: m.role, content: m.content, modelId: m.modelId ?? null, continuationCount: m.continuationCount ?? 0, errorCode: m.errorCode ?? null, errorMessage: m.errorMessage ?? null, editedFromMessageId: m.editedFromMessageId ?? null, status: m.status === 'submitting' || m.status === 'streaming' ? 'cancelled' : m.status, createdAt: m.createdAt, updatedAt: m.createdAt })),
         drafts: snapshot.drafts, activeConversationId: snapshot.conversations.activeConversationId,
       })
