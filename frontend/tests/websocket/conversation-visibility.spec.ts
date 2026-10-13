@@ -20,6 +20,9 @@ async function newChat(page: Page) {
   const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
   await page.locator('.sidebar-primary-actions').filter({ visible: true }).getByRole('button', { name: 'Neuer Chat', exact: true }).click()
+  // Mobile focus remains trapped until the drawer's closing transition ends.
+  await expect(page.locator('[role="dialog"]').filter({ has: page.locator('.sidebar-primary-actions') })).toHaveCount(0)
+  await expect(page.getByRole('textbox', { name: 'Nachricht', exact: true })).toBeFocused()
 }
 test.beforeEach(async ({ request }) => {
   await clearTestConversations(request)
