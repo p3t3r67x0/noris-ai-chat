@@ -102,6 +102,7 @@ export type Conversationmode = ("normal" | "learning")
 export type Createdat2 = string
 export type Id2 = string
 export type Lastmessageat = (string | null)
+export type Lifecycle = ("EMPTY" | "STARTED" | "GENERATING" | "FAILED" | "COMPLETED")
 export type Pinnedat = (string | null)
 export type ReasoningPreference = ("instant" | "medium" | "high" | "very_high" | "pro")
 export type Sidebarvisible = boolean
@@ -279,6 +280,7 @@ export interface ConversationResponse {
   createdAt: Createdat2
   id: Id2
   lastMessageAt: Lastmessageat
+  lifecycle?: Lifecycle
   pinnedAt?: Pinnedat
   reasoningPreference?: (ReasoningPreference | null)
   sidebarVisible?: Sidebarvisible

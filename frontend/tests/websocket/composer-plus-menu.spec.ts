@@ -1,3 +1,4 @@
+import { clearTestConversations } from './chat-fixtures'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
@@ -21,9 +22,7 @@ const buttonAppearance = (page: Page) => triggerFor(page).evaluate(element => {
 
 test.beforeEach(async ({ page, request }) => {
   await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: ['fixture-alpha', 'fixture-beta', 'fixture-long'] } })
-  const response = await request.get('/api/v1/conversations', { params: { archived: true, limit: 100 } })
-  expect(response.ok()).toBe(true)
-  for (const conversation of (await response.json()).conversations) await request.delete(`/api/v1/conversations/${conversation.id}`)
+  await clearTestConversations(request)
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
   await page.goto('/')
@@ -168,6 +167,7 @@ test('upload uses existing progress, previews, MIME validation and errors and re
 
 test('a saved conversation accepts another upload and removal preserves existing attachments and draft', async ({ page, request }) => {
   await inputFor(page).fill('Synthetische Frage')
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await inputFor(page).press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   const before = (await (await request.get('/api/v1/conversations')).json()).conversations
@@ -192,6 +192,7 @@ test('a saved conversation accepts another upload and removal preserves existing
 
 test('a failed active-path request provides safe diagnostics and disables upload honestly', async ({ page }) => {
   await inputFor(page).fill('Synthetische Frage')
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await inputFor(page).press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   await page.route('**/api/v1/conversations/*/active-path?*', route => route.fulfill({
@@ -226,6 +227,7 @@ for (const width of [1440, 1700, 768, 390]) {
       await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
       // Anchor to the dock, as in an ongoing chat, with synthetic fixture content.
       await inputFor(page).fill('Synthetische Frage')
+      await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
       await inputFor(page).press('Enter')
       await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
       await expect.poll(async () => (await (await request.get('/api/v1/conversations')).json()).conversations[0]?.title).toBe('Docker DNS-Probleme')

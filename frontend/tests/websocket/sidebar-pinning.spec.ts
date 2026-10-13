@@ -1,20 +1,11 @@
+import { clearTestConversations as clear } from './chat-fixtures'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 import { chatActions } from '../e2e/sidebar-helpers'
-import type { ApiSchemas } from '../../app/types/generated/api'
 import { randomUUID } from 'node:crypto'
 
 const namespace = randomUUID().slice(0, 24)
 const id = (n: number) => `${namespace}${String(n).padStart(12, '0')}`
-async function clear(request: APIRequestContext) {
-  let cursor: string | null = null
-  do {
-    const result = await request.get('/api/v1/conversations', { params: { archived: 'true', limit: 100, ...(cursor ? { cursor } : {}) } })
-    expect(result.ok()).toBe(true)
-    const data: ApiSchemas['ConversationListResponse'] = await result.json()
-    for (const c of data.conversations) await request.delete(`/api/v1/conversations/${c.id}`)
-    cursor = data.nextCursor ?? null
-  } while (cursor)
-}
+
 async function open(page: Page) {
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
@@ -23,7 +14,8 @@ async function open(page: Page) {
 }
 async function seed(request: APIRequestContext) {
   const conversations = Array.from({ length: 65 }, (_, i) => ({ id: id(i + 1), title: i === 0 ? 'Sehr alter fixierter Chat' : `Synthetic ${i}`, titleSource: 'manual', createdAt: '2020-01-01T00:00:00Z', updatedAt: new Date(Date.UTC(2020, 0, 1 + i)).toISOString(), archivedAt: null, activeLeafMessageId: null }))
-  const result = await request.post('/api/v1/conversations/import', { data: { conversations, messages: [], drafts: {}, activeConversationId: id(65) } })
+  const messages = conversations.map((conversation, i) => ({ id: id(1000 + i), conversationId: conversation.id, role: 'user', content: 'Synthetic persisted input', status: 'completed', createdAt: conversation.createdAt, updatedAt: conversation.updatedAt }))
+  const result = await request.post('/api/v1/conversations/import', { data: { conversations, messages, drafts: {}, activeConversationId: id(65) } })
   expect(result.ok()).toBe(true)
   expect((await request.put('/api/v1/chat/preferences', { data: { activeConversationId: id(65), modelId: 'fixture-alpha' } })).ok()).toBe(true)
   expect((await request.patch(`/api/v1/conversations/${id(1)}`, { data: { pinned: true, version: 1 } })).ok()).toBe(true)

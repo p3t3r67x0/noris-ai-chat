@@ -153,6 +153,18 @@ class GenerationManager:
                 attachment_quota_bytes=self.config.chat_attachment_owner_quota_bytes,
             )
             if created:
+                # begin_generation committed the first input atomically. Publish
+                # the same authority to every tab before provider/title work.
+                saved = await self.repository.get_conversation(
+                    self.config.chat_owner_id, command.conversationId
+                )
+                self.broadcast(
+                    {
+                        "version": 1,
+                        "type": "chat.conversation.updated",
+                        "conversation": conversation_response(saved).model_dump(mode="json"),
+                    }
+                )
                 live = LiveGeneration(command, peers={peer})
                 self.live[generation.id] = live
                 input_message = next(m for m in path if m.id == command.inputMessageId)

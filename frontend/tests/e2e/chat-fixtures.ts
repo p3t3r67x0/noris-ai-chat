@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test'
 import type { ChatSnapshot } from '../../app/lib/chat/persistence'
-import { CHAT_STORAGE_KEY } from '../../app/lib/chat/persistence'
+import { CHAT_STORAGE_KEY, parseChatSnapshot } from '../../app/lib/chat/persistence'
 
 export function savedChat(turns = 1): ChatSnapshot {
   const date = '2026-10-09T12:00:00.000Z'
@@ -23,6 +23,19 @@ export function savedChat(turns = 1): ChatSnapshot {
   return snapshot
 }
 export async function seedChat(page: Page, snapshot: ChatSnapshot, theme = 'light') {
+  // Listed fixture conversations represent chats that have actually started.
+  // Keep the active empty-chat fixture empty and prune rows removed by a test.
+  snapshot.messages = Object.fromEntries(Object.entries(snapshot.messages).filter(([, message]) => Object.hasOwn(snapshot.conversations.conversations, message.conversationId)))
+  for (const conversation of Object.values(snapshot.conversations.conversations)) {
+    if (conversation.id === 'main' || Object.values(snapshot.messages).some(message => message.conversationId === conversation.id)) continue
+    const id = `fixture-user-${conversation.id}`
+    snapshot.messages[id] = { id, conversationId: conversation.id, parentMessageId: null, role: 'user', content: 'Synthetic persisted question', status: 'completed', createdAt: conversation.createdAt }
+    conversation.activeLeafMessageId = id
+  }
+  // Expected snapshots include the same recovered metadata as the application.
+  const normalized = parseChatSnapshot(JSON.stringify(snapshot))
+  if (!normalized) throw new Error('Invalid synthetic chat fixture')
+  Object.assign(snapshot, normalized)
   await page.addInitScript(({ key, value, selectedTheme }) => {
     if (localStorage.getItem(key) === null) localStorage.setItem(key, value)
     if (localStorage.getItem('noris-ai-theme') === null) localStorage.setItem('noris-ai-theme', selectedTheme)

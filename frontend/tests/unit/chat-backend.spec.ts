@@ -9,6 +9,22 @@ const conversation: ApiSchemas['ConversationResponse'] = {
 const conflict = () => Response.json({ error: { code: 'VERSION_CONFLICT', message: 'Der Chat wurde geändert.' } }, { status: 409 })
 
 describe('chat metadata version conflicts', () => {
+  it('keeps the started revision when recovery and normal lists overlap during the first send', async () => {
+    const started = { ...conversation, sidebarVisible: true, lifecycle: 'GENERATING', version: 2 }
+    const prepared = { ...conversation, sidebarVisible: false, lifecycle: 'EMPTY', version: 1 }
+    const fetcher = vi.fn<typeof fetch>(async (input) => {
+      const path = String(input)
+      if (path.includes('/chat/preferences')) return Response.json({ activeConversationId: null, modelId: null })
+      if (path.includes('/chat/drafts')) return Response.json({ drafts: [] })
+      return Response.json({ conversations: path.includes('preparedOnly=true') ? [prepared] : [started] })
+    })
+    const backend = new ChatBackend(fetcher)
+    const metadata = vi.fn(); backend.onMetadata = metadata
+    const result = await backend.load()
+    expect(result.metadata).toEqual([started])
+    expect(metadata).toHaveBeenCalledWith([started], null)
+    expect(backend.versions.get(conversation.id)).toBe(2)
+  })
   it('does not lower the known version when an initial load finishes after a live update', async () => {
     let release!: (value: Response) => void
     const preferences = new Promise<Response>(resolve => { release = resolve })
@@ -23,7 +39,7 @@ describe('chat metadata version conflicts', () => {
     const backend = new ChatBackend(fetcher)
     const update = vi.fn(); backend.onConversation = update
     const loading = backend.load()
-    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(3))
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(4))
     backend.remember(manual)
     release(Response.json({ activeConversationId: null, modelId: null }))
     await loading

@@ -16,7 +16,7 @@ export function createConversationState(dependencies: ConversationDependencies =
   const get = (key: string): Conversation | undefined => Object.hasOwn(records.value, key) ? records.value[key] : undefined
   const active = computed(() => activeId.value === null ? null : get(activeId.value) ?? null)
   const visible = computed(() => Object.values(records.value).filter(item => item.archivedAt === null && item.sidebarVisible !== false))
-  const archived = computed(() => Object.values(records.value).filter(item => item.archivedAt !== null))
+  const archived = computed(() => Object.values(records.value).filter(item => item.archivedAt !== null && item.sidebarVisible !== false))
 
   function select(conversationId: string): void {
     const conversation = get(conversationId)
@@ -25,7 +25,7 @@ export function createConversationState(dependencies: ConversationDependencies =
 
   function create(title?: string): Conversation {
     const time = now()
-    const conversation: Conversation = { id: id(), title: normalizeTitle(title ?? 'Neuer Chat'), titleSource: title === undefined ? 'fallback' : 'manual', titleGenerationAttempted: title !== undefined, sidebarVisible: title !== undefined, createdAt: time, updatedAt: time, archivedAt: null, activeLeafMessageId: null }
+    const conversation: Conversation = { id: id(), title: normalizeTitle(title ?? 'Neuer Chat'), titleSource: title === undefined ? 'fallback' : 'manual', titleGenerationAttempted: title !== undefined, sidebarVisible: false, createdAt: time, updatedAt: time, archivedAt: null, activeLeafMessageId: null }
     records.value = { ...records.value, [conversation.id]: conversation }
     activeId.value = conversation.id
     return conversation
@@ -33,7 +33,7 @@ export function createConversationState(dependencies: ConversationDependencies =
 
   function rename(conversationId: string, title: string): void {
     const conversation = get(conversationId)
-    if (conversation) { conversation.title = normalizeTitle(title); conversation.titleSource = 'manual'; conversation.titleGenerationAttempted = true; conversation.sidebarVisible = true }
+    if (conversation) { conversation.title = normalizeTitle(title); conversation.titleSource = 'manual'; conversation.titleGenerationAttempted = true }
   }
 
   function setPinned(conversationId: string, pinned: boolean): void {

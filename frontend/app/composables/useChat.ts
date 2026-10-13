@@ -101,7 +101,10 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     const message: ChatMessage = { id: id(), conversationId, parentMessageId, role, content, status: role === 'user' ? 'completed' : 'submitting', createdAt: now() }
     messages.value = { ...messages.value, [message.id]: message }
     const conversation = conversations.records.value[conversationId]
-    if (conversation) { conversation.activeLeafMessageId = message.id; conversation.updatedAt = message.createdAt }
+    if (conversation) {
+      conversation.activeLeafMessageId = message.id; conversation.updatedAt = message.createdAt
+      if (role === 'user' && !transport.backend) conversation.sidebarVisible = true
+    }
     return messages.value[message.id] ?? message
   }
 
@@ -120,9 +123,6 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
         reply.status = next
         if (next === 'failed' && transport.backend && !reply.content) drafts.records.value[input.conversationId] = input.content
         const conversation = conversations.records.value[input.conversationId]
-        if (!transport.backend && ['completed', 'failed', 'cancelled', 'incomplete'].includes(next) && conversation) {
-          conversation.sidebarVisible = true
-        }
         if (!transport.backend && next === 'completed' && messages.value[reply.id] === reply && conversation?.titleSource === 'fallback' && conversation.title === FALLBACK_TITLE) {
           const context = path(input.conversationId, reply.id).map(message => message.content).join('\n')
           conversation.title = fallbackConversationTitle(context)

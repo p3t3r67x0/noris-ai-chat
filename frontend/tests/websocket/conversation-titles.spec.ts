@@ -1,3 +1,4 @@
+import { clearTestConversations } from './chat-fixtures'
 import { expect, test } from '@playwright/test'
 import type { Page, WebSocketRoute } from '@playwright/test'
 import type { ApiSchemas } from '../../app/types/generated/api'
@@ -9,8 +10,7 @@ const nativeModels = ['vllm/qsu/deepseek-v41-flash', 'vllm/release/gpt-oss-120b'
 test.setTimeout(60_000)
 
 test.beforeEach(async ({ request }) => {
-  const result: ApiSchemas['ConversationListResponse'] = await (await request.get('/api/v1/conversations', { params: { archived: true, limit: 100 } })).json()
-  for (const value of result.conversations) await request.delete(`/api/v1/conversations/${value.id}`)
+  await clearTestConversations(request)
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
   await request.post(`${providerURL}/fixture/catalog`, { data: { ids: ['fixture-alpha', 'fixture-beta', 'fixture-long', ...nativeModels] } })
@@ -55,6 +55,7 @@ for (const eventType of ['chat.title.updated', 'chat.conversation.updated'] as c
     const composer = page.getByRole('textbox', { name: 'Nachricht', exact: true })
     await expect(composer).toBeEnabled()
     await composer.fill('/title-summary-switch')
+    await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
     await composer.press('Enter')
     await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
     const conversation = (await (await request.get('/api/v1/conversations')).json()).conversations[0] as ApiSchemas['ConversationResponse']
@@ -128,6 +129,7 @@ test('a manual title committed during title generation wins immediately in every
   const composer = page.getByRole('textbox', { name: 'Nachricht', exact: true })
   await expect(composer).toBeEnabled()
   await composer.fill('/title-summary-switch')
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await composer.press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   await expect.poll(async () => (await (await request.get(`${providerURL}/fixture/state`)).json()).title_calls.length).toBe(before + 1)

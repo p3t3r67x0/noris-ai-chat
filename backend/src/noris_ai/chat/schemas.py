@@ -53,8 +53,12 @@ class ConversationUpdate(JsonApiSchema):
     version: int = Field(ge=1)
 
 
+ConversationLifecycle = Literal["EMPTY", "STARTED", "GENERATING", "FAILED", "COMPLETED"]
+
+
 class ConversationResponse(JsonApiSchema):
-    sidebarVisible: bool = True
+    lifecycle: ConversationLifecycle = "EMPTY"
+    sidebarVisible: bool = False
     conversationMode: ConversationMode = "normal"
     reasoningPreference: ReasoningPreference | None = None
     id: UUID

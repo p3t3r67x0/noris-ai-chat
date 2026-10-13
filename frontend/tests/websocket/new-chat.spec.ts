@@ -1,3 +1,4 @@
+import { clearTestConversations } from './chat-fixtures'
 import { expect, test } from '@playwright/test'
 import type { APIRequestContext, Page } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
@@ -9,8 +10,8 @@ const image = { name: 'synthetic.png', mimeType: 'image/png', buffer: Buffer.fro
 // Generated once with backend/tests/fixtures/attachments.py; browser runners need no Python.
 const pdf = { name: 'synthetic.pdf', mimeType: 'application/pdf', buffer: readFileSync(new URL('../fixtures/synthetic.pdf', import.meta.url)) }
 
-async function list(request: APIRequestContext) {
-  return (await (await request.get('/api/v1/conversations', { params: { archived: true, limit: 100 } })).json()).conversations as { id: string, title: string, titleSource: string, sidebarVisible: boolean }[]
+async function list(request: APIRequestContext, preparedOnly = false) {
+  return (await (await request.get('/api/v1/conversations', { params: { archived: true, limit: 100, ...(preparedOnly ? { preparedOnly: true } : {}) } })).json()).conversations as { id: string, title: string, titleSource: string, sidebarVisible: boolean }[]
 }
 async function upload(page: Page, file: typeof image): Promise<void> {
   await expect(page.locator('.composer-attachment')).toBeEnabled()
@@ -21,7 +22,7 @@ async function upload(page: Page, file: typeof image): Promise<void> {
   await expect(page.locator('[data-upload-status="uploaded"]')).toHaveCount(1)
 }
 test.beforeEach(async ({ request }) => {
-  for (const c of await list(request)) await request.delete(`/api/v1/conversations/${c.id}`)
+  await clearTestConversations(request)
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
   await request.post(`${provider}/fixture/catalog`, { data: { ids: ['fixture-alpha', 'fixture-beta', 'fixture-long'], imageIds: ['fixture-alpha'] } })
@@ -96,8 +97,8 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
       await expect(input).toBeFocused()
       await expect(input).toHaveAttribute('data-instance', 'same-composer')
       await input.press('Enter')
-      expect(await list(request)).toHaveLength(1)
-      expect((await list(request))[0]?.sidebarVisible).toBe(false)
+      expect(await list(request)).toHaveLength(0)
+      expect((await list(request, true))[0]?.sidebarVisible).toBe(false)
       await expect(page.locator('.conversation-row')).toHaveCount(0)
       await capture('sending')
       release()
@@ -124,7 +125,7 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
       await page.keyboard.press('Control+Shift+O')
       await input.fill('Entwurf mit Anhang')
       await upload(page, image)
-      expect(await list(request)).toHaveLength(2)
+      expect(await list(request)).toHaveLength(1)
       expect((await list(request)).filter(c => c.sidebarVisible)).toHaveLength(1)
       await expect(input).toHaveValue('Entwurf mit Anhang')
       await expect(input).toBeFocused()
@@ -132,12 +133,12 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
       await page.getByRole('button', { name: 'synthetic.png entfernen' }).click()
       await upload(page, pdf)
       await capture('pdf')
-      const prepared = (await list(request)).find(c => !c.sidebarVisible)!
+      const prepared = (await list(request, true)).find(c => !c.sidebarVisible)!
       await expect.poll(async () => (await (await request.get('/api/v1/chat/drafts')).json()).drafts.find((d: { key: string }) => d.key === prepared.id)?.content).toBe('Entwurf mit Anhang')
       await page.reload()
       await expect(input).toHaveValue('Entwurf mit Anhang')
       await expect(page.locator('[data-upload-status="uploaded"]')).toHaveCount(1)
-      expect(await list(request)).toHaveLength(2)
+      expect(await list(request)).toHaveLength(1)
       await expect(page.locator('.empty-chat')).toBeVisible()
       if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
       await page.locator(`.conversation-row[data-conversation-id="${conversation.id}"]`).filter({ visible: true }).locator('button').first().click()
@@ -145,7 +146,7 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
       await page.keyboard.press('Control+Shift+O')
       await expect(input).toHaveValue('Entwurf mit Anhang')
       await expect(page.locator('[data-upload-status="uploaded"]')).toHaveCount(1)
-      expect(await list(request)).toHaveLength(2)
+      expect(await list(request)).toHaveLength(1)
     })
   }
 }
@@ -160,6 +161,7 @@ test('draft reload, first response failure, retry and title failure remain recov
   await expect(input).toHaveValue('Noch ungesendeter Entwurf')
   expect(await list(request)).toHaveLength(0)
   await input.fill(`/retry new-chat ${info.project.name} ${crypto.randomUUID()}`)
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await input.press('Enter')
   await expect(page.locator('[data-generation-status="failed"]')).toBeAttached()
   const failed = (await list(request))[0]!
@@ -177,6 +179,7 @@ test('draft reload, first response failure, retry and title failure remain recov
   const previousTitleErrors = await titleErrorCalls()
   await page.keyboard.press('Control+Shift+O')
   await input.fill('/title-error SearXNG')
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await input.press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   // The retry's asynchronous title can reorder the list after this chat completes.

@@ -134,15 +134,23 @@ export class ChatBackend {
   }
   async load(): Promise<ChatBootstrap> {
     await this.pending
-    const [list, pins, preferences] = await Promise.all([
+    const [list, pins, prepared, preferences] = await Promise.all([
       this.page({ pinned: 'false' }),
       this.page({ pinned: 'true' }),
+      // Recover upload/settings drafts through the existing metadata state.
+      // This explicit recovery page never feeds a conversation picker.
+      this.page({ preparedOnly: 'true' }),
       this.request<ApiSchemas['PreferencesResponse']>('/chat/preferences'),
     ])
     this.initialPage = list
     this.initialPinnedPage = pins
     this.preferredModelId = preferences.modelId
-    const conversations = [...new Map([...list.conversations, ...pins.conversations].map(c => [c.id, c])).values()]
+    const metadata = new Map<string, ServerConversation>()
+    for (const value of [...list.conversations, ...pins.conversations, ...prepared.conversations]) {
+      // The first send can commit between the parallel list/recovery reads.
+      if (value.version >= (metadata.get(value.id)?.version ?? 0)) metadata.set(value.id, value)
+    }
+    const conversations = [...metadata.values()]
     let activeId = preferences.activeConversationId
     this.onMetadata?.([...conversations], conversations.some(c => c.id === activeId) ? activeId : null)
     if (activeId && !conversations.some(c => c.id === activeId)) {
@@ -165,7 +173,7 @@ export class ChatBackend {
   path(id: string, options: { cursor?: string, beforeMessageId?: string, messageId?: string, preferredLeafId?: string } = {}, signal?: AbortSignal): Promise<ApiSchemas['ActivePathResponse']> {
     return this.request(`/conversations/${id}/active-path?${new URLSearchParams({ limit: '50', ...options })}`, 'GET', undefined, signal)
   }
-  page(options: { cursor?: string, q?: string, archiveOnly?: string, pinned?: string } = {}, signal?: AbortSignal): Promise<ApiSchemas['ConversationListResponse']> {
+  page(options: { cursor?: string, q?: string, archiveOnly?: string, pinned?: string, preparedOnly?: string } = {}, signal?: AbortSignal): Promise<ApiSchemas['ConversationListResponse']> {
     return this.request(`/conversations?${new URLSearchParams({ limit: '50', ...options })}`, 'GET', undefined, signal)
   }
 }

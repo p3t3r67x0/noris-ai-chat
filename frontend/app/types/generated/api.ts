@@ -6,6 +6,7 @@ export type Conversationmode = ("normal" | "learning")
 export type Createdat = string
 export type Id = string
 export type Lastmessageat = (string | null)
+export type Lifecycle = ("EMPTY" | "STARTED" | "GENERATING" | "FAILED" | "COMPLETED")
 export type Pinnedat = (string | null)
 export type ReasoningPreference = ("instant" | "medium" | "high" | "very_high" | "pro")
 export type Sidebarvisible = boolean
@@ -192,7 +193,7 @@ export type HuggingFaceId = (string | null)
 export type Id6 = string
 export type InputModalities = string[]
 export type IsReady = (boolean | null)
-export type Lifecycle = ("LTS" | "PRODUCTIVE" | "EXPERIMENTAL" | "DEPRECATED" | "UNKNOWN")
+export type Lifecycle1 = ("LTS" | "PRODUCTIVE" | "EXPERIMENTAL" | "DEPRECATED" | "UNKNOWN")
 export type MaxOutputTokens = number
 export type Name = string
 export type OutputModalities = string[]
@@ -386,6 +387,7 @@ export interface ConversationResponse {
   createdAt: Createdat
   id: Id
   lastMessageAt: Lastmessageat
+  lifecycle?: Lifecycle
   pinnedAt?: Pinnedat
   reasoningPreference?: (ReasoningPreference | null)
   sidebarVisible?: Sidebarvisible
@@ -633,7 +635,7 @@ export interface LLMModel {
   id: Id6
   input_modalities?: InputModalities
   is_ready?: IsReady
-  lifecycle?: Lifecycle
+  lifecycle?: Lifecycle1
   max_output_tokens?: MaxOutputTokens
   name: Name
   output_modalities?: OutputModalities
@@ -1052,6 +1054,7 @@ export interface ApiPaths {
         query: {
           "archived"?: boolean
           "archiveOnly"?: boolean
+          "preparedOnly"?: boolean
           "limit"?: number
           "cursor"?: string | null
           "q"?: string

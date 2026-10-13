@@ -12,15 +12,36 @@ afterEach(() => { scopes.splice(0).forEach(scope => scope.stop()); vi.useRealTim
 
 function setup(search = vi.fn().mockResolvedValue(page(['recent'])), server = true) {
   const open = ref(false)
-  const source = { search } as unknown as ReturnType<typeof useChatBackend>['pagination']
+  const revision = ref(0)
+  const source = { search, revision } as unknown as ReturnType<typeof useChatBackend>['pagination']
   const scope = effectScope()
   scopes.push(scope)
   const state = scope.run(() => useConversationSearch(open, () => [{ ...row('cached'), titleGenerationAttempted: true }], () => server ? source : undefined))!
   open.value = true
-  return { open, request: search, ...state }
+  return { open, revision, request: search, ...state }
 }
 
 describe('existing conversation search coordination', () => {
+  it('requeries an open search on authoritative updates and resets stale pagination', async () => {
+    vi.useFakeTimers()
+    const request = vi.fn().mockResolvedValueOnce(page([], 'old-cursor')).mockResolvedValueOnce(page(['started'])).mockResolvedValueOnce({ ...page(['started']), conversations: [{ ...row('started'), title: 'Generated title', titleSource: 'generated' }] })
+    const state = setup(request)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(state.results.value).toEqual([])
+    state.revision.value++
+    expect(state.cursor.value).toBeNull()
+    await vi.advanceTimersByTimeAsync(200)
+    expect(state.results.value.map(row => row.id)).toEqual(['started'])
+    state.query.value = 'Generated'
+    state.revision.value++
+    await vi.advanceTimersByTimeAsync(200)
+    expect(request).toHaveBeenLastCalledWith('Generated', expect.any(AbortSignal), undefined)
+    expect(state.results.value[0]?.title).toBe('Generated title')
+    state.open.value = false
+    state.revision.value++
+    await vi.advanceTimersByTimeAsync(200)
+    expect(request).toHaveBeenCalledTimes(3)
+  })
   it('loads recent chats immediately, resets on reopen and debounces only server queries', async () => {
     vi.useFakeTimers()
     const state = setup()

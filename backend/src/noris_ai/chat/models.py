@@ -22,10 +22,11 @@ from sqlalchemy import (
     UniqueConstraint,
     Uuid,
     func,
+    select,
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from noris_ai.db.base import Base
 
@@ -58,6 +59,62 @@ GENERATION_STATUS_ENUM = Enum(
 
 def _uuid() -> uuid.UUID:
     return uuid.uuid4()
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_message"
+    __table_args__ = (
+        # A parent must be a message of the same conversation.
+        ForeignKeyConstraint(
+            ["conversation_id", "parent_message_id"],
+            ["chat_message.conversation_id", "chat_message.id"],
+            name="parent",
+        ),
+        ForeignKeyConstraint(
+            ["conversation_id", "edited_from_message_id"],
+            ["chat_message.conversation_id", "chat_message.id"],
+            name="edited_from",
+        ),
+        UniqueConstraint("conversation_id", "id", name="uq_chat_message_conversation_id"),
+        CheckConstraint("length(content) <= 1048576", name="content_length"),
+        Index("ix_chat_message_conversation_created", "conversation_id", "created_at"),
+        Index("ix_chat_message_seek", "conversation_id", text("created_at DESC"), text("id DESC")),
+        Index(
+            "ix_chat_message_siblings",
+            "conversation_id",
+            "parent_message_id",
+            "role",
+            "created_at",
+            "id",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=_uuid)
+    conversation_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("chat_conversation.id"), nullable=False
+    )
+    parent_message_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    role: Mapped[str] = mapped_column(MESSAGE_ROLE_ENUM, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    model_id: Mapped[str | None] = mapped_column(Text)
+    continuation_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    error_code: Mapped[str | None] = mapped_column(Text)
+    error_message: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(MESSAGE_STATUS_ENUM, nullable=False)
+    generation_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("chat_generation.id"))
+    edited_from_message_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    attachments: Mapped[list["ChatAttachment"]] = relationship(
+        lazy="selectin",
+        viewonly=True,
+        foreign_keys="ChatAttachment.message_id",
+        order_by="ChatAttachment.created_at, ChatAttachment.id",
+    )
 
 
 class ChatConversation(Base):
@@ -134,61 +191,40 @@ class ChatConversation(Base):
     last_message_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     active_leaf_message_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
 
-
-class ChatMessage(Base):
-    __tablename__ = "chat_message"
-    __table_args__ = (
-        # A parent must be a message of the same conversation.
-        ForeignKeyConstraint(
-            ["conversation_id", "parent_message_id"],
-            ["chat_message.conversation_id", "chat_message.id"],
-            name="parent",
-        ),
-        ForeignKeyConstraint(
-            ["conversation_id", "edited_from_message_id"],
-            ["chat_message.conversation_id", "chat_message.id"],
-            name="edited_from",
-        ),
-        UniqueConstraint("conversation_id", "id", name="uq_chat_message_conversation_id"),
-        CheckConstraint("length(content) <= 1048576", name="content_length"),
-        Index("ix_chat_message_conversation_created", "conversation_id", "created_at"),
-        Index("ix_chat_message_seek", "conversation_id", text("created_at DESC"), text("id DESC")),
-        Index(
-            "ix_chat_message_siblings",
-            "conversation_id",
-            "parent_message_id",
-            "role",
-            "created_at",
-            "id",
-        ),
+    # Derived from persisted messages, including legacy rows. Neither drafts,
+    # uploads nor title metadata can start a conversation. These expressions
+    # reuse the existing conversation/message indexes and need no migration.
+    has_user_message: Mapped[bool] = column_property(
+        select(ChatMessage.id)
+        .where(
+            ChatMessage.conversation_id == id,
+            ChatMessage.role == "user",
+            ChatMessage.status == "completed",
+        )
+        .correlate_except(ChatMessage)
+        .exists()
+    )
+    latest_assistant_status: Mapped[str | None] = column_property(
+        select(ChatMessage.status)
+        .where(ChatMessage.conversation_id == id, ChatMessage.role == "assistant")
+        .order_by(ChatMessage.created_at.desc(), ChatMessage.id.desc())
+        .limit(1)
+        .correlate_except(ChatMessage)
+        .scalar_subquery()
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=_uuid)
-    conversation_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("chat_conversation.id"), nullable=False
-    )
-    parent_message_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
-    role: Mapped[str] = mapped_column(MESSAGE_ROLE_ENUM, nullable=False)
-    content: Mapped[str] = mapped_column(Text, nullable=False)
-    model_id: Mapped[str | None] = mapped_column(Text)
-    continuation_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
-    error_code: Mapped[str | None] = mapped_column(Text)
-    error_message: Mapped[str | None] = mapped_column(Text)
-    status: Mapped[str] = mapped_column(MESSAGE_STATUS_ENUM, nullable=False)
-    generation_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("chat_generation.id"))
-    edited_from_message_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    attachments: Mapped[list["ChatAttachment"]] = relationship(
-        lazy="selectin",
-        viewonly=True,
-        foreign_keys="ChatAttachment.message_id",
-        order_by="ChatAttachment.created_at, ChatAttachment.id",
-    )
+    @property
+    def lifecycle(self) -> str:
+        if not self.has_user_message:
+            return "EMPTY"
+        if self.latest_assistant_status in ("pending", "streaming"):
+            return "GENERATING"
+        if self.latest_assistant_status == "failed":
+            return "FAILED"
+        if self.latest_assistant_status == "completed":
+            return "COMPLETED"
+        # Cancelled/incomplete replies retain the successfully persisted input.
+        return "STARTED"
 
 
 class ChatAttachment(Base):
