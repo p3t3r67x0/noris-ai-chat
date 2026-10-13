@@ -14,12 +14,14 @@ from typing import cast
 from uuid import UUID
 
 from pydantic import ValidationError
+from sqlalchemy import select
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from noris_ai.chat.attachments import AttachmentService
 from noris_ai.chat.errors import ChatError
-from noris_ai.chat.models import ChatMessage
+from noris_ai.chat.models import ChatConversation, ChatGeneration, ChatMessage
 from noris_ai.chat.pdf_context import pdf_request
+from noris_ai.chat.replay import replay
 from noris_ai.chat.repository import ChatRepository
 from noris_ai.chat.schemas import ConversationMode, MessageRole
 from noris_ai.chat.service import ChatService, conversation_response, message_response
@@ -80,8 +82,15 @@ def attachment_context(message: ChatMessage) -> str:
 class Peer:
     queue: asyncio.Queue[Payload]
     overflow: asyncio.Event = field(default_factory=asyncio.Event)
+    detached: bool = False
+    # Existing socket, bounded generation subscriptions; no in-memory outbox.
+    subscriptions: dict[UUID, tuple[int, bool, bool]] = field(
+        default_factory=lambda: dict[UUID, tuple[int, bool, bool]]()
+    )
 
     def offer(self, event: Payload) -> None:
+        if self.detached:
+            return
         try:
             self.queue.put_nowait(event)
         except asyncio.QueueFull:
@@ -115,13 +124,16 @@ class GenerationManager:
         self.admission = asyncio.Lock()
         self.peers: set[Peer] = set()
         self.tasks: set[asyncio.Task[None]] = set()
+        self.delivery_lock = asyncio.Lock()
 
     def broadcast(self, event: Payload) -> None:
         for peer in self.peers:
             peer.offer(event)
 
     def detach(self, peer: Peer) -> None:
+        peer.detached = True
         self.peers.discard(peer)
+        peer.subscriptions.clear()
         for live in self.live.values():
             live.peers.discard(peer)
             if not live.peers and live.detached_at is None:
@@ -247,11 +259,13 @@ class GenerationManager:
                     )
                     peer.offer(payload)
                     return
+                async with self.delivery_lock:
+                    self.subscribe(peer, generation.id, 0, command.toolEventVersion == 1)
                 live.task = asyncio.create_task(self._run(live, request, path))
                 self.tasks.add(live.task)
                 live.task.add_done_callback(self.task_finished)
             else:
-                await self.resume(peer, command.requestId, 0)
+                await self.resume(peer, command.requestId, 0, command.toolEventVersion)
 
     def task_finished(self, task: asyncio.Task[None]) -> None:
         self.tasks.discard(task)
@@ -267,60 +281,102 @@ class GenerationManager:
                 if live.task is not None:
                     await asyncio.gather(live.task, return_exceptions=True)
 
-    async def resume(self, peer: Peer, generation_id: UUID, last_sequence: int) -> None:
+    def subscribe(
+        self, peer: Peer, generation_id: UUID, sequence: int, tools: bool, tools_only: bool = False
+    ) -> None:
+        if peer.detached:
+            return
+        peer.subscriptions[generation_id] = (sequence, tools, tools_only)
+        if len(peer.subscriptions) > 64:
+            oldest = next(key for key in peer.subscriptions if key not in self.live)
+            peer.subscriptions.pop(oldest)
+
+    async def deliver(self, peer: Peer) -> None:
+        # A single serialized drain makes commit order authoritative even when
+        # runtime workers finish concurrently or an earlier publisher crashes.
+        async with self.delivery_lock:
+            if not peer.subscriptions:
+                return
+            async with self.repository.database() as session:
+                rows = (
+                    await session.execute(
+                        select(ChatGeneration.id, ChatGeneration.last_sequence)
+                        .join(
+                            ChatConversation, ChatConversation.id == ChatGeneration.conversation_id
+                        )
+                        .where(
+                            ChatGeneration.owner_id == self.config.chat_owner_id,
+                            ChatGeneration.id.in_(peer.subscriptions),
+                            ChatConversation.owner_id == self.config.chat_owner_id,
+                            ChatConversation.deleted_at.is_(None),
+                        )
+                    )
+                ).all()
+            visible = {row[0] for row in rows}
+            for generation_id in list(peer.subscriptions):
+                if generation_id not in visible:
+                    peer.subscriptions.pop(generation_id, None)
+            for generation_id, sequence in rows:
+                subscription = peer.subscriptions.get(generation_id)
+                if subscription is None:
+                    continue
+                after, include_tools, tools_only = subscription
+                if after >= sequence:
+                    continue
+                events, last = await replay(
+                    self.repository.database,
+                    self.config.chat_owner_id,
+                    generation_id,
+                    after,
+                    max(1, peer.queue.maxsize - peer.queue.qsize() - 1),
+                    self.tools.repository if self.tools else None,
+                    include_tools=include_tools,
+                    initial=False,
+                    tools_only=tools_only,
+                )
+                if generation_id not in peer.subscriptions:
+                    continue
+                for event in events:
+                    peer.offer(event)
+                peer.subscriptions[generation_id] = (last, include_tools, tools_only)
+
+    async def resume(
+        self,
+        peer: Peer,
+        generation_id: UUID,
+        last_sequence: int,
+        tool_version: int | None = None,
+        tools_only: bool = False,
+    ) -> None:
+        if tools_only and tool_version != 1:
+            raise ChatError("INVALID_INPUT", 422)
         live = self.live.get(generation_id)
         # Writer and subscription share a lock: replay cannot race a live delta.
         async with live.lock if live is not None else asyncio.Lock():
-            generation = await self.repository.get_generation(
-                self.config.chat_owner_id, generation_id
-            )
-            await self.repository.get_conversation(
-                self.config.chat_owner_id, generation.conversation_id
-            )
-            if last_sequence > generation.last_sequence:
-                raise ChatError("INVALID_INPUT", 422)
-            events = await self.repository.list_stream_events(
-                generation_id, after_sequence=last_sequence
-            )
-            peer.offer(
-                {
-                    "version": 1,
-                    "type": "chat.resume.accepted",
-                    "generationId": str(generation_id),
-                    "lastReceivedSeq": last_sequence,
-                }
-            )
-            capacity = peer.queue.maxsize - peer.queue.qsize() - 2
-            contiguous = (
-                events
-                and events[0].sequence == last_sequence + 1
-                and events[-1].sequence == generation.last_sequence
-            )
-            if contiguous and len(events) <= capacity and generation.operation != "continue":
-                for event in events:
-                    peer.offer(event.payload)
-            else:
-                message = await self.repository.get_message(
+            async with self.delivery_lock:
+                events, last = await replay(
+                    self.repository.database,
                     self.config.chat_owner_id,
-                    generation.conversation_id,
-                    generation.assistant_message_id,  # type: ignore[arg-type]
+                    generation_id,
+                    last_sequence,
+                    max(1, peer.queue.maxsize - peer.queue.qsize() - 2),
+                    self.tools.repository if self.tools else None,
+                    include_tools=tool_version == 1,
+                    initial=True,
+                    tools_only=tools_only,
                 )
                 peer.offer(
                     {
                         "version": 1,
-                        "type": "chat.resume.snapshot",
+                        "type": "chat.resume.accepted",
                         "generationId": str(generation_id),
-                        "conversationId": str(generation.conversation_id),
-                        "messageId": str(message.id),
-                        "content": message.content,
-                        "status": generation.status,
-                        "lastSequence": generation.last_sequence,
-                        "continuationCount": message.continuation_count,
-                        "code": message.error_code,
-                        "message": message.error_message,
+                        "lastReceivedSeq": last_sequence,
                     }
                 )
-            if live is not None:
+                for event in events:
+                    peer.offer(event)
+                self.subscribe(peer, generation_id, last, tool_version == 1, tools_only)
+            if live is not None and not peer.detached:
                 live.peers.add(peer)
                 live.detached_at = None
 
@@ -449,9 +505,12 @@ class GenerationManager:
                             ),
                         }
                     )
-                sequence += 1
-                for peer in live.peers:
-                    peer.offer(payload)
+                sequence = int(str(payload["seq"]))
+                for peer in list(live.peers):
+                    if command.requestId in peer.subscriptions:
+                        await self.deliver(peer)
+                    else:
+                        peer.offer(payload)
 
         def check_cancellation() -> None:
             if live.cancellation_requested:

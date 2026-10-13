@@ -34,6 +34,7 @@ from noris_ai.chat.schemas import (
     MessageStatus,
     TitleSource,
 )
+from noris_ai.chat.stream import append_event
 from noris_ai.chat.ws_protocol import GenerateIncomingMessage
 from noris_ai.llm.schemas import ReasoningPreference
 from noris_ai.llm.titles import fallback_title
@@ -903,13 +904,25 @@ class ChatRepository:
     ) -> None:
         """Answer snapshot, sequence and replay event commit together before delivery."""
         async with self._database() as session, session.begin():
-            generation = await session.get(ChatGeneration, generation_id)
+            scope = await session.get(ChatGeneration, generation_id)
+            if scope is None:
+                raise ChatError("GENERATION_NOT_FOUND", 404)
+            await session.execute(
+                select(ChatConversation.id)
+                .where(ChatConversation.id == scope.conversation_id)
+                .with_for_update()
+            )
+            generation = await session.scalar(
+                select(ChatGeneration)
+                .where(ChatGeneration.id == generation_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
             if generation is None or generation.status not in ("queued", "running"):
                 raise ChatError("GENERATION_NOT_FOUND", 404)
-            sequence = payload["seq"]
-            if sequence != generation.last_sequence + 1:
-                raise ChatError("INVALID_INPUT", 422)
-            generation.last_sequence = int(str(sequence))
+            # Tool writes may have advanced the same sequence since the last
+            # chat batch. Allocate under the DB lock, never from local memory.
+            append_event(session, generation, payload)
             generation.status = status
             generation.error_code = error_code
             if generation.started_at is None:
@@ -933,14 +946,6 @@ class ChatRepository:
             message.error_message = str(payload["message"]) if "message" in payload else None
             if "continuationCount" in payload:
                 message.continuation_count = int(str(payload["continuationCount"]))
-            session.add(
-                ChatStreamEvent(
-                    generation_id=generation.id,
-                    sequence=generation.last_sequence,
-                    event_type=str(payload["type"]),
-                    payload=payload,
-                )
-            )
 
     async def prune_stream_events(self, hours: int) -> None:
         async with self._database() as session, session.begin():

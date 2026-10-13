@@ -47,6 +47,10 @@ export type Status1 = ("pending" | "streaming" | "completed" | "incomplete" | "c
 export type Updatedat1 = string
 export type Messages = MessageResponse[]
 export type Nextcursor = (string | null)
+/**
+ * @maxItems 50
+ */
+export type Toolgenerationids = string[]
 export type Index = number
 export type Messageid1 = string
 export type Nextmessageid = (string | null)
@@ -378,6 +382,7 @@ export interface ActivePathResponse {
   leafMessageId: Leafmessageid
   messages: Messages
   nextCursor?: Nextcursor
+  toolGenerationIds?: Toolgenerationids
   variants: Variants
 }
 export interface ConversationResponse {

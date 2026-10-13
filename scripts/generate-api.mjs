@@ -123,6 +123,19 @@ try {
     outputs.push({ path: join(root, `frontend/app/types/generated/chat-ws-${direction}.ts`), content: `/* Generated WebSocket v1 contract. Run pnpm api:generate. */\n${wsTypes}` })
   }
   outputs.push({ path: join(root, 'docs/websocket/chat-v1.json'), content: wsContract })
+  // Ship only the public tool definitions for runtime validation. This is
+  // generated from the same Pydantic contract, including nested allowlists.
+  const toolDefinitions = {}
+  const pendingDefinitions = ['ToolEvent', 'ToolSnapshotEvent']
+  while (pendingDefinitions.length) {
+    const name = pendingDefinitions.pop()
+    if (!name || Object.hasOwn(toolDefinitions, name)) continue
+    const definition = wsDocument.properties.server.$defs[name]
+    if (!definition) throw new Error(`Missing WebSocket definition ${name}`)
+    Object.assign(toolDefinitions, { [name]: definition })
+    for (const match of JSON.stringify(definition).matchAll(/#\/\$defs\/([^"\s]+)/g)) if (match[1]) pendingDefinitions.push(match[1])
+  }
+  outputs.push({ path: join(root, 'frontend/app/types/generated/tool-ws-schema.ts'), content: `/* Generated public tool event schemas. Run pnpm api:generate. */\nexport const toolWsDefinitions: Record<string, unknown> = ${JSON.stringify(toolDefinitions, null, 2)}\n` })
   outputs.push({ path: join(root, 'frontend/app/types/generated/chat-ws.ts'), content: "/* Generated WebSocket v1 contract. */\nexport type { ChatWsCommand } from './chat-ws-client'\nexport type { ChatWsEvent } from './chat-ws-server'\n" })
   for (const output of outputs) {
     if (check) {

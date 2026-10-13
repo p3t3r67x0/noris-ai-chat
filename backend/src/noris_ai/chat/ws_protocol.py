@@ -15,6 +15,7 @@ from noris_ai.chat.schemas import (
     JsonApiSchema,
     MessageResponse,
 )
+from noris_ai.tools.events import ToolEvent, ToolSnapshotEvent
 
 PROTOCOL_VERSION = 1
 MAX_INPUT_LENGTH = 32_000
@@ -26,6 +27,7 @@ class ClientEnvelope(JsonApiSchema):
 
 class GenerateIncomingMessage(ClientEnvelope):
     type: Literal["chat.generate"]
+    toolEventVersion: Literal[1] | None = None
     requestId: UUID  # generation id, idempotent
     conversationId: UUID
     inputMessageId: UUID
@@ -48,6 +50,8 @@ class CancelIncomingMessage(ClientEnvelope):
 
 class ResumeIncomingMessage(ClientEnvelope):
     type: Literal["chat.resume"]
+    toolEventVersion: Literal[1] | None = None
+    toolEventsOnly: bool = Field(default=False, strict=True)
     generationId: UUID
     lastReceivedSeq: int = Field(default=0, ge=0)
 
@@ -205,4 +209,6 @@ ServerEvent = (
     | ErrorEvent
     | HeartbeatEvent
     | PongEvent
+    | ToolEvent
+    | ToolSnapshotEvent
 )

@@ -22,9 +22,15 @@ import { supportsPreference } from '../lib/chat/reasoning'
 import { CHAT_MODELS } from './useModelSelection'
 import { useAppNotifications } from './useAppNotifications'
 import { normalizeAppError } from '../lib/notifications/errors'
+import { applyToolProjection } from '../lib/chat/toolEvents'
+import type { ToolRunRecords } from '../lib/chat/toolEvents'
 
 export function createChatState(transport: ChatTransport, dependencies: ConversationDependencies = {}, conversations = createConversationState(dependencies)) {
   const notifications = useAppNotifications()
+  const toolRuns = ref<ToolRunRecords>({})
+  if (transport.backend) transport.backend.onToolState = next => {
+    toolRuns.value = applyToolProjection(toolRuns.value, next)
+  }
   const messages = ref<MessageRecords>({})
   const stream = useChatStream(transport)
   const id = dependencies.id ?? (() => globalThis.crypto.randomUUID())
@@ -255,6 +261,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     titles.cancel(conversationId)
     if (generatingConversationId.value === conversationId) stream.stop()
     messages.value = Object.fromEntries(Object.entries(messages.value).filter(([, message]) => message.conversationId !== conversationId))
+    toolRuns.value = Object.fromEntries(Object.entries(toolRuns.value).filter(([, run]) => run.conversationId !== conversationId))
     drafts.remove(conversationId)
     preferredLeaves.value = Object.fromEntries(Object.entries(preferredLeaves.value).filter(([node, leaf]) => Object.hasOwn(messages.value, node) && Object.hasOwn(messages.value, leaf)))
     conversations.remove(conversationId)
@@ -270,7 +277,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
   }
   const variantIndex = computed(() => indexSiblingVariants(messages.value))
   const variants = (messageId: string): readonly ChatMessage[] => variantIndex.value.get(messageId) ?? []
-  return { settingsBusy, settingsError, setConversationMode, setReasoningPreference, reconcileReasoningPreference, retryConversationSettings, conversations, messages, pathBoundaries, variantSummaries, variantSummary: (id: string) => variantSummaries.value[id], visible, stream, titles, generatingConversationId, drafts, preferredLeaves, send, retry, canContinue, continueResponse, newChat, remove, selectVariant, regenerate, edit, variants, snapshot, hydrate, resume }
+  return { toolRuns, settingsBusy, settingsError, setConversationMode, setReasoningPreference, reconcileReasoningPreference, retryConversationSettings, conversations, messages, pathBoundaries, variantSummaries, variantSummary: (id: string) => variantSummaries.value[id], visible, stream, titles, generatingConversationId, drafts, preferredLeaves, send, retry, canContinue, continueResponse, newChat, remove, selectVariant, regenerate, edit, variants, snapshot, hydrate, resume }
 }
 
 export function useChat(transport: ChatTransport) {

@@ -1,5 +1,5 @@
 /* Generated WebSocket v1 contract. Run pnpm api:generate. */
-export type ChatWsEvent = (ConnectedEvent | MessageCreatedEvent | GenerationStartedEvent | GenerationDeltaEvent | GenerationCompletedEvent | GenerationIncompleteEvent | GenerationFailedEvent | GenerationCancelledEvent | GenerationInterruptedEvent | ConversationUpdatedEvent | ConversationDeletedEvent | TitleUpdatedEvent | ResumeAcceptedEvent | ResumeSnapshotEvent | ErrorEvent | HeartbeatEvent | PongEvent)
+export type ChatWsEvent = (ConnectedEvent | MessageCreatedEvent | GenerationStartedEvent | GenerationDeltaEvent | GenerationCompletedEvent | GenerationIncompleteEvent | GenerationFailedEvent | GenerationCancelledEvent | GenerationInterruptedEvent | ConversationUpdatedEvent | ConversationDeletedEvent | TitleUpdatedEvent | ResumeAcceptedEvent | ResumeSnapshotEvent | ErrorEvent | HeartbeatEvent | PongEvent | ToolEvent | ToolSnapshotEvent)
 export type Heartbeatseconds = number
 export type Type = "chat.connected"
 export type Version = 1
@@ -145,6 +145,38 @@ export type Type15 = "chat.heartbeat"
 export type Version16 = 1
 export type Type16 = "chat.pong"
 export type Version17 = 1
+export type Conversationid13 = string
+export type Eventversion = 1
+export type Generationid10 = string
+export type Approvalid = string
+export type Expiresat = string
+export type Inputdigest = string
+export type State = ("pending" | "approved" | "denied" | "expired")
+export type Cancelrequested = boolean
+export type Errorcode1 = (("TOOL_UNAVAILABLE" | "TOOL_FORBIDDEN" | "TOOL_INPUT_INVALID" | "TOOL_OUTPUT_INVALID" | "TOOL_NOT_FOUND" | "TOOL_CONFLICT" | "TOOL_STATE_CONFLICT" | "APPROVAL_REQUIRED" | "APPROVAL_EXPIRED" | "BUDGET_LIMIT" | "TOOL_TIMEOUT" | "TOOL_INTERRUPTED" | "TOOL_CANCELLED" | "PROVIDER_RATE_LIMIT" | "PROVIDER_ERROR" | "PROVIDER_OUTCOME_UNKNOWN") | null)
+export type Lastsequence1 = number
+export type Resultversion = 1
+export type Sourcecount = (number | null)
+export type Runid = string
+export type State1 = ("queued" | "awaiting_approval" | "running" | "succeeded" | "failed" | "cancelled" | "timed_out" | "interrupted" | "outcome_unknown")
+export type Toolid = ("web.search.v1" | "web.fetch.v1")
+export type Updatedat2 = string
+export type Runid1 = string
+export type Seq7 = number
+export type Timestamp = string
+export type Type17 = ("tool.started" | "tool.progress" | "tool.result" | "tool.approval_required" | "tool.completed" | "tool.failed" | "tool.cancelled" | "tool.timed_out")
+export type Version18 = 1
+export type Conversationid14 = string
+export type Eventversion1 = 1
+export type Generationid11 = string
+export type Lastsequence2 = number
+/**
+ * @maxItems 16
+ */
+export type Runs = ToolProjection[]
+export type Timestamp1 = string
+export type Type18 = "tool.snapshot"
+export type Version19 = 1
 
 export interface ConnectedEvent {
   heartbeatSeconds: Heartbeatseconds
@@ -335,4 +367,46 @@ export interface HeartbeatEvent {
 export interface PongEvent {
   type: Type16
   version: Version17
+}
+export interface ToolEvent {
+  conversationId: Conversationid13
+  eventVersion: Eventversion
+  generationId: Generationid10
+  payload: ToolProjection
+  runId: Runid1
+  seq: Seq7
+  timestamp: Timestamp
+  type: Type17
+  version: Version18
+}
+export interface ToolProjection {
+  approval: (ToolApprovalProjection | null)
+  cancelRequested: Cancelrequested
+  errorCode: Errorcode1
+  lastSequence: Lastsequence1
+  result: (ToolResultReference | null)
+  runId: Runid
+  state: State1
+  toolId: Toolid
+  updatedAt: Updatedat2
+}
+export interface ToolApprovalProjection {
+  approvalId: Approvalid
+  expiresAt: Expiresat
+  inputDigest: Inputdigest
+  state: State
+}
+export interface ToolResultReference {
+  resultVersion: Resultversion
+  sourceCount: Sourcecount
+}
+export interface ToolSnapshotEvent {
+  conversationId: Conversationid14
+  eventVersion: Eventversion1
+  generationId: Generationid11
+  lastSequence: Lastsequence2
+  runs: Runs
+  timestamp: Timestamp1
+  type: Type18
+  version: Version19
 }

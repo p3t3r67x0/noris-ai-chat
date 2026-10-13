@@ -153,8 +153,9 @@ weil `/tmp` seine Schreibquota überschritten hatte. Ein Fortsetzungs-Bestandste
 wartet nun explizit auf die unabhängige Titelphase, bevor er eine Conversationversion
 für Regeneration übernimmt. Dies ändert keine Produktlogik.
 
-P2 muss gemeinsame versionierte Toolereignisse, persistente Sequenzen und Replay
-ergänzen. P6 bindet den vorhandenen SearXNGProvider an und speichert Sources. P7
+P2 ergänzt gemeinsame versionierte Toolereignisse, persistente Sequenzen und Replay
+im bestehenden v1-Transport; Details und Migration `0015_tool_events` stehen in
+[TOOL-EVENTS.md](TOOL-EVENTS.md). P6 bindet den vorhandenen SearXNGProvider an und speichert Sources. P7
 liefert sicheren Source-ID-Fetch, Extraktion, budgetierten Quellenkontext, überprüfbare
 Zitate und UX. Reale Engines, GPT-OSS/DeepSeek, Egress und Produktionsperformance
 werden erst mit diesen Funktionen abgenommen. Dieser PR aktiviert keine Websuche.

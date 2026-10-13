@@ -16,6 +16,7 @@ export type Operation = ("generate" | "continue")
 export type Parentmessageid = (string | null)
 export type Requestid = string
 export type Sourceassistantmessageid = (string | null)
+export type Tooleventversion = (1 | null)
 export type Type = "chat.generate"
 export type Version = 1
 export type Generationid = string
@@ -23,6 +24,8 @@ export type Type1 = "chat.cancel"
 export type Version1 = 1
 export type Generationid1 = string
 export type Lastreceivedseq = number
+export type Tooleventversion1 = (1 | null)
+export type Tooleventsonly = boolean
 export type Type2 = "chat.resume"
 export type Version2 = 1
 export type Type3 = "chat.ping"
@@ -42,6 +45,7 @@ export interface GenerateIncomingMessage {
   parentMessageId?: Parentmessageid
   requestId: Requestid
   sourceAssistantMessageId?: Sourceassistantmessageid
+  toolEventVersion?: Tooleventversion
   type: Type
   version: Version
 }
@@ -53,6 +57,8 @@ export interface CancelIncomingMessage {
 export interface ResumeIncomingMessage {
   generationId: Generationid1
   lastReceivedSeq?: Lastreceivedseq
+  toolEventVersion?: Tooleventversion1
+  toolEventsOnly?: Tooleventsonly
   type: Type2
   version: Version2
 }

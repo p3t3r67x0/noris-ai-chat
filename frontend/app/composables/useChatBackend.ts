@@ -145,6 +145,8 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       if (existing?.errorDiagnostics && existing.generationId === loaded.generationId && existing.errorCode === loaded.errorCode) loaded.errorDiagnostics = existing.errorDiagnostics
       state.messages.value[message.id] = loaded
     }
+    const generations = [...result.messages.flatMap(message => message.generationId ? [message.generationId] : []), ...(result.toolGenerationIds ?? [])]
+    void transport.observeTools?.(id, generations).catch(cause => report(cause, { operation: 'history', conversationId: id }))
     for (const summary of result.variants) state.variantSummaries.value[summary.messageId] = summary
     if (!retainsBoundary) state.pathBoundaries.value[id] = result.boundaryParentId ?? null
     windows.value[id] = retainsBoundary && windows.value[id]
