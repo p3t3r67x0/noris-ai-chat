@@ -19,10 +19,16 @@ from noris_ai.chat.errors import ChatError
 from noris_ai.chat.generation import GenerationManager, Peer
 from noris_ai.chat.schemas import JsonApiSchema
 from noris_ai.chat.tickets import WsTicketStore
-from noris_ai.chat.ws_protocol import ClientMessage, GenerateIncomingMessage
+from noris_ai.chat.ws_protocol import (
+    CancelIncomingMessage,
+    ClientMessage,
+    GenerateIncomingMessage,
+    ResumeIncomingMessage,
+)
 from noris_ai.core.access import security, verify_basic, verify_write_origin
 from noris_ai.core.config import Settings
 from noris_ai.llm.errors import LLMError
+from noris_ai.tools.errors import ToolError
 
 router = APIRouter(tags=["Chat"])
 commands: TypeAdapter[ClientMessage] = TypeAdapter(ClientMessage)
@@ -152,12 +158,17 @@ async def websocket_chat(socket: WebSocket) -> None:
                 if isinstance(command, GenerateIncomingMessage):
                     await manager.generate(peer, command)
                 elif command.type == "chat.resume":
-                    await manager.resume(peer, command.generationId, command.lastReceivedSeq)
+                    await manager.resume(
+                        peer,
+                        command.generationId,
+                        command.lastReceivedSeq,
+                        command.toolEventVersion,
+                    )
                 elif command.type == "chat.cancel":
                     await manager.cancel(command.generationId)
                 else:
                     peer.offer({"version": 1, "type": "chat.pong"})
-            except (ChatError, LLMError) as error:
+            except (ChatError, LLMError, ToolError) as error:
                 peer.offer(
                     {
                         "version": 1,
@@ -166,6 +177,8 @@ async def websocket_chat(socket: WebSocket) -> None:
                         "message": error.message,
                         "requestId": str(command.requestId)
                         if isinstance(command, GenerateIncomingMessage)
+                        else str(command.generationId)
+                        if isinstance(command, (ResumeIncomingMessage, CancelIncomingMessage))
                         else None,
                     }
                 )
@@ -178,6 +191,8 @@ async def websocket_chat(socket: WebSocket) -> None:
                         "message": "Die Chatanfrage konnte nicht verarbeitet werden.",
                         "requestId": str(command.requestId)
                         if isinstance(command, GenerateIncomingMessage)
+                        else str(command.generationId)
+                        if isinstance(command, (ResumeIncomingMessage, CancelIncomingMessage))
                         else None,
                     }
                 )
@@ -197,10 +212,18 @@ async def websocket_chat(socket: WebSocket) -> None:
     async def overflow() -> None:
         await peer.overflow.wait()
 
+    async def deliver() -> None:
+        # The durable outbox also covers tools committed after chat completion
+        # and commits with no local publisher. Reconnect drains the same rows.
+        while True:
+            await asyncio.sleep(0.1)
+            await manager.deliver(peer)
+
     tasks = [
         asyncio.create_task(receive()),
         asyncio.create_task(send()),
         asyncio.create_task(overflow()),
+        asyncio.create_task(deliver()),
     ]
     try:
         await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)

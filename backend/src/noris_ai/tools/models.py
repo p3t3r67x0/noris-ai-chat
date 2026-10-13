@@ -26,6 +26,7 @@ from noris_ai.db.base import Base
 class ToolRun(Base):
     __tablename__ = "chat_tool_run"
     __table_args__ = (
+        CheckConstraint("event_sequence >= 0", name="tool_event_sequence"),
         ForeignKeyConstraint(
             ["owner_id", "id", "reservation_id"],
             [
@@ -142,6 +143,8 @@ class ToolRun(Base):
     approval_id: Mapped[UUID | None] = mapped_column(Uuid)
     dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     policy_snapshot: Mapped[dict[str, object] | None] = mapped_column(JSONB)
+    event_sequence: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    event_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class ToolResult(Base):

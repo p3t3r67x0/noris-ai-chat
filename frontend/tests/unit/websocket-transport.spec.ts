@@ -3,6 +3,8 @@ import { createWebSocketTransport } from '../../app/lib/chat/webSocketTransport'
 import { ChatBackend } from '../../app/lib/chat/backend'
 import { useChatStream } from '../../app/composables/useChatStream'
 import type { ChatRequest } from '../../app/lib/chat/types'
+import { applyToolProjection } from '../../app/lib/chat/toolEvents'
+import type { ToolRunRecords } from '../../app/lib/chat/toolEvents'
 
 class Socket extends EventTarget {
   static OPEN = 1
@@ -37,6 +39,56 @@ function fixture() {
 }
 
 describe('WebSocketTransport', () => {
+  it('shares chat sequence with tool events and reconstructs an offline terminal snapshot', async () => {
+    const transport = fixture()
+    const input = request()
+    let records: ToolRunRecords = {}
+    transport.backend!.onToolState = next => { records = applyToolProjection(records, next) }
+    const stream = useChatStream(transport)
+    const running = stream.start(input, { delta: () => {}, status: () => {} })
+    const socket = await connected()
+    const envelope = { version: 1, generationId: input.generationId, conversationId: input.conversationId, messageId: input.assistantMessageId }
+    const runId = crypto.randomUUID()
+    const timestamp = new Date().toISOString()
+    const payload = { runId, toolId: 'web.search.v1', state: 'running', lastSequence: 2, updatedAt: timestamp, cancelRequested: false, approval: null, result: null, errorCode: null }
+    expect(socket.sent[0]?.toolEventVersion).toBe(1)
+    socket.event({ ...envelope, type: 'chat.generation.started', seq: 1 })
+    socket.event({ version: 1, eventVersion: 1, type: 'tool.started', generationId: input.generationId, conversationId: input.conversationId, runId, seq: 2, timestamp, payload })
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(records[runId]?.state).toBe('running')
+    socket.close()
+    await new Promise(resolve => setTimeout(resolve, 700))
+    const resumed = await connected()
+    resumed.event({ version: 1, eventVersion: 1, type: 'tool.snapshot', generationId: input.generationId, conversationId: input.conversationId, lastSequence: 5, timestamp,
+      runs: [{ ...payload, state: 'succeeded', lastSequence: 4, result: { resultVersion: 1, sourceCount: 5 } }] })
+    resumed.event({ ...envelope, type: 'chat.resume.snapshot', lastSequence: 5, content: 'Fertig', status: 'completed' })
+    await running
+    expect(records[runId]?.state).toBe('succeeded')
+    expect(stream.status.value).toBe('completed')
+    transport.dispose?.()
+  })
+  it('restores completed tools on a fresh page and filters unrelated generations', async () => {
+    const transport = fixture()
+    const generationId = crypto.randomUUID()
+    const update = vi.fn()
+    transport.backend!.onToolState = update
+    await transport.observeTools?.(conversation.id, [generationId])
+    const socket = await connected()
+    expect(socket.sent[0]).toMatchObject({ type: 'chat.resume', generationId, lastReceivedSeq: 0, toolEventVersion: 1 })
+    const run = { runId: crypto.randomUUID(), toolId: 'web.search.v1', state: 'cancelled', lastSequence: 7, updatedAt: new Date().toISOString(), cancelRequested: true, approval: null, result: null, errorCode: 'TOOL_CANCELLED' }
+    const snapshot = { version: 1, eventVersion: 1, type: 'tool.snapshot', conversationId: conversation.id, generationId, lastSequence: 7, timestamp: run.updatedAt, runs: [run] }
+    socket.event({ ...snapshot, generationId: crypto.randomUUID() })
+    socket.event({ ...snapshot, conversationId: crypto.randomUUID() })
+    expect(update).not.toHaveBeenCalled()
+    socket.event(snapshot)
+    expect(update).toHaveBeenCalledOnce()
+    socket.event({ ...snapshot, lastSequence: 6, runs: [] })
+    expect(update).toHaveBeenCalledOnce()
+    await transport.observeTools?.(conversation.id, [generationId])
+    expect(socket.sent).toHaveLength(2)
+    expect(socket.sent[1]).toMatchObject({ type: 'chat.resume', generationId, toolEventVersion: 1 })
+    transport.dispose?.()
+  })
   it('buys a fresh authenticated ticket for each WSS connection on an HTTPS page', async () => {
     Socket.instances = []
     vi.stubGlobal('location', { protocol: 'https:', host: 'chat.oklabflensburg.de' })

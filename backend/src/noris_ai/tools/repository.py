@@ -5,11 +5,12 @@ from datetime import datetime, timedelta
 from typing import cast
 from uuid import UUID, uuid4
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from noris_ai.chat.models import ChatConversation, ChatGeneration
 from noris_ai.chat.repository import ModelDatabase, utc_now
+from noris_ai.chat.stream import append_event
 from noris_ai.tools.api_schemas import ToolApprovalResponse, ToolRunResponse
 from noris_ai.tools.budget import (
     DIMENSIONS,
@@ -20,6 +21,14 @@ from noris_ai.tools.budget import (
     lock_owner,
 )
 from noris_ai.tools.errors import ToolError, ToolErrorCode
+from noris_ai.tools.events import (
+    MAX_GENERATION_TOOL_RUNS,
+    ToolApprovalProjection,
+    ToolEvent,
+    ToolEventType,
+    ToolProjection,
+    ToolResultReference,
+)
 from noris_ai.tools.models import ToolApproval, ToolResult, ToolRun
 from noris_ai.tools.policy import ToolPolicy
 from noris_ai.tools.registry import ToolRegistry, canonical_payload, payload_digest
@@ -39,6 +48,74 @@ class ToolRepository:
     def __init__(self, database: ModelDatabase, registry: ToolRegistry) -> None:
         self._database = database
         self._registry = registry
+
+    async def projection(self, session: AsyncSession, run: ToolRun) -> ToolProjection:
+        # Explicit allowlist, also during recovery: registry membership alone
+        # does not permit a new tool or private schema onto the browser stream.
+        if run.tool_id not in ("web.search.v1", "web.fetch.v1"):
+            raise ToolError("TOOL_FORBIDDEN")
+        definition = self._registry.get(run.tool_id)
+        approval = await session.scalar(select(ToolApproval).where(ToolApproval.run_id == run.id))
+        reference = None
+        if run.state == "succeeded":
+            result = await session.get(ToolResult, (run.id, 1))
+            if result is None:
+                raise ToolError("TOOL_OUTPUT_INVALID")
+            output = definition.validate_output(json.dumps(result.output).encode())
+            reference = ToolResultReference(
+                sourceCount=len(output.sources) if isinstance(output, SearchResult) else None
+            )
+        return ToolProjection(
+            runId=run.id,
+            toolId=run.tool_id,
+            state=cast(ToolRunState, run.state),
+            lastSequence=run.event_sequence,
+            updatedAt=run.event_updated_at or run.finished_at or run.started_at or run.created_at,
+            cancelRequested=run.cancel_requested_at is not None,
+            result=reference,
+            errorCode=cast(ToolErrorCode | None, run.error_code),
+            approval=ToolApprovalProjection(
+                approvalId=approval.id,
+                inputDigest=approval.input_digest,
+                state=cast(ApprovalState, approval.state),
+                expiresAt=approval.expires_at,
+            )
+            if approval is not None and run.state == "awaiting_approval"
+            else None,
+        )
+
+    async def _event(
+        self,
+        session: AsyncSession,
+        generation: ChatGeneration,
+        run: ToolRun,
+        kind: ToolEventType | None = None,
+    ) -> None:
+        kinds: dict[str, ToolEventType] = {
+            "queued": "tool.progress",
+            "awaiting_approval": "tool.approval_required",
+            "running": "tool.started",
+            "succeeded": "tool.completed",
+            "failed": "tool.failed",
+            "cancelled": "tool.cancelled",
+            "timed_out": "tool.timed_out",
+            "interrupted": "tool.failed",
+            "outcome_unknown": "tool.failed",
+        }
+        await session.flush()
+        run.event_sequence = generation.last_sequence + 1
+        run.event_updated_at = utc_now()
+        projection = await self.projection(session, run)
+        event = ToolEvent(
+            type=kind or kinds[run.state],
+            conversationId=run.conversation_id,
+            generationId=run.generation_id,
+            runId=run.id,
+            seq=run.event_sequence,
+            timestamp=projection.updatedAt,
+            payload=projection,
+        )
+        append_event(session, generation, event.model_dump(mode="json"))
 
     async def _scope(
         self,
@@ -173,6 +250,13 @@ class ToolRepository:
                 raise ToolError("TOOL_CONFLICT")
             if generation.status not in ("queued", "running"):
                 raise ToolError("TOOL_STATE_CONFLICT")
+            count = await session.scalar(
+                select(func.count())
+                .select_from(ToolRun)
+                .where(ToolRun.generation_id == generation.id)
+            )
+            if count is not None and count >= MAX_GENERATION_TOOL_RUNS:
+                raise ToolError("BUDGET_LIMIT")
             if request.deadline_at <= utc_now():
                 raise ToolError("TOOL_TIMEOUT")
             run = ToolRun(
@@ -199,6 +283,7 @@ class ToolRepository:
                 await self._live_parent(session, run)
             session.add(run)
             await session.flush()
+            await self._event(session, generation, run)
             return run, True
 
     async def get_run(self, owner_id: UUID, run_id: UUID) -> ToolRun:
@@ -262,6 +347,10 @@ class ToolRepository:
             if target == "cancelled":
                 run.cancel_requested_at = now
             await session.flush()
+            # awaiting_approval is public only with the authoritative grant.
+            await self._event(
+                session, generation, run, "tool.progress" if target == "awaiting_approval" else None
+            )
             return run
 
     async def complete(
@@ -316,6 +405,8 @@ class ToolRepository:
                     session, reservation, unused=False
                 )
             await session.flush()
+            await self._event(session, generation, run, "tool.result")
+            await self._event(session, generation, run)
             return result
 
     async def claim(self, owner: UUID, run_id: UUID, policy: ToolPolicy) -> ToolRun:
@@ -397,6 +488,7 @@ class ToolRepository:
             run.policy_snapshot = permission.snapshot(definition.permission)
             run.state, run.started_at = "running", utc_now()
             await session.flush()
+            await self._event(session, generation, run)
             return run
 
     async def dispatch(
@@ -534,6 +626,7 @@ class ToolRepository:
             run.state = "awaiting_approval"
             session.add(approval)
             await session.flush()
+            await self._event(session, generation, run)
             return approval
 
     async def decide(
@@ -593,6 +686,9 @@ class ToolRepository:
             if target == "denied":
                 run.state, run.finished_at, run.error_code = "failed", utc_now(), "TOOL_FORBIDDEN"
             await session.flush()
+            await self._event(
+                session, generation, run, "tool.progress" if target == "approved" else None
+            )
             return approval
 
     @staticmethod
@@ -664,7 +760,7 @@ class ToolRepository:
     ) -> None:
         async with self._database() as session, session.begin():
             await lock_owner(session, owner)
-            run, _ = await self._run(session, owner, run_id, write=True, finalizing=True)
+            run, generation = await self._run(session, owner, run_id, write=True, finalizing=True)
             if run.state in TERMINAL_STATES or (not recovery and run.execution_id != execution_id):
                 return
             check_transition(cast(ToolRunState, run.state), state)
@@ -684,6 +780,7 @@ class ToolRepository:
                     await BudgetCoordinator(self._database).settle_in(
                         session, reservation, unused=True, unknown=state == "outcome_unknown"
                     )
+            await self._event(session, generation, run)
 
     async def cancel_runs(
         self, owner: UUID, generation_id: UUID, *, root_id: UUID | None = None
@@ -707,10 +804,14 @@ class ToolRepository:
             for candidate in runs:
                 if candidate.id not in selected:
                     continue
-                run, _ = await self._run(session, owner, candidate.id, write=True, finalizing=True)
+                run, generation = await self._run(
+                    session, owner, candidate.id, write=True, finalizing=True
+                )
                 if run.state in TERMINAL_STATES:
                     continue
                 active.add(run.id)
+                if run.cancel_requested_at is not None:
+                    continue
                 run.cancel_requested_at = utc_now()
                 # Commit cancellation fence first. The worker closes network then finalizes.
                 if run.state != "running":
@@ -727,6 +828,9 @@ class ToolRepository:
                 )
                 for approval in approvals:
                     approval.state, approval.decided_at = "expired", utc_now()
+                await self._event(
+                    session, generation, run, "tool.progress" if run.state == "running" else None
+                )
             return active
 
     async def recover(self, owner: UUID) -> None:
@@ -747,8 +851,16 @@ class ToolRepository:
             await self.finalize(
                 owner,
                 run.id,
-                "outcome_unknown" if unknown else "interrupted",
-                "PROVIDER_OUTCOME_UNKNOWN" if unknown else "TOOL_INTERRUPTED",
+                "outcome_unknown"
+                if unknown
+                else "cancelled"
+                if run.cancel_requested_at
+                else "interrupted",
+                "PROVIDER_OUTCOME_UNKNOWN"
+                if unknown
+                else "TOOL_CANCELLED"
+                if run.cancel_requested_at
+                else "TOOL_INTERRUPTED",
                 recovery=True,
             )
         async with self._database() as session, session.begin():

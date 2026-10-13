@@ -46,6 +46,7 @@ export interface ChatRequest {
 }
 export type StreamEvent = { seq: number, continuationCount?: number, requestId?: string | null } & (
   | { type: 'response.started' }
+  | { type: 'response.tool' }
   | { type: 'response.output_text.delta', delta: string }
   | { type: 'response.completed', content?: string }
   | { type: 'response.incomplete', reason: 'output_limit', content?: string, code?: string | null, message?: string | null }
@@ -59,6 +60,7 @@ export interface ChatTransport {
   backend?: ChatBackend
   connect?: () => Promise<void>
   dispose?: () => void
+  observeTools?: (conversationId: string, generationIds: string[]) => Promise<void>
 }
 export const NEW_CHAT_DRAFT = '__new__'
 export const isBusy = (status: GenerationStatus): boolean => status === 'submitting' || status === 'streaming'

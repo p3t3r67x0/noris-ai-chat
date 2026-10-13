@@ -234,7 +234,17 @@ Neue Ressourcenvorschläge unter `/api/v1`:
 
 HTTPerrors behalten `ErrorResponse(error:{code,message,request_id})`. Codes: `TOOL_UNAVAILABLE`, `TOOL_FORBIDDEN`, `TOOL_INPUT_INVALID`, `APPROVAL_REQUIRED`, `APPROVAL_EXPIRED`, `BUDGET_LIMIT`, `TOOL_TIMEOUT`, `PROVIDER_RATE_LIMIT`, `SOURCE_BLOCKED`, `PROVIDER_OUTCOME_UNKNOWN`, `PROTOCOL_UPGRADE_REQUIRED`. Zuordnung: 401 Zugang, 403 Policy, 404 fremde/gelöschte Ressource, 409 Konflikt/Approvalzustand, 413 Größenlimit, 422 Eingabe, 429 Budget/Rate, 502 Providerdaten, 503 unkonfiguriert, 504 Timeout. Fehlermeldungen aus festem Katalog; Korrelation statt Rawexception.
 
-**WS-v2 ergänzen, v1 erhalten:** gleiche `/chat/ws`-Route und Tickets, Subprotocol `noris-chat.v2`, `version:2`. v1-Vertrag/SSE bleiben unverändert funktionsfähig. Server bevorzugt v2, wenn angeboten; nur Clients mit v2 bekommen neue Ereignisse. Kein stiller v1-Fallback für eine Toolaktion. v1-Resume einer Toolgeneration wird vor Subscription mit `PROTOCOL_UPGRADE_REQUIRED` abgewiesen, damit ausgefilterte Toolsequenzen keine Lücken erzeugen.
+**Umgesetzter P2-Vertrag:** `/chat/ws`, Tickets und `noris-chat.v1` bleiben bestehen.
+`chat.generate/resume` bieten optional `toolEventVersion:1` an. Lifecycleevents heißen
+`tool.*` und tragen `version:1`, `eventVersion:1`, Scope-IDs, `seq` und `timestamp`.
+Ein separater `tool.snapshot` rekonstruiert Runs aus den vorhandenen Tabellen.
+Alte Clients erhalten bei Toolsequenzen einen vorhandenen Chat-Snapshot ohne
+Sequenzlücke. Writer und Replay nutzen denselben persistenten Generationzähler.
+Der verbindliche Vertrag steht in [TOOL-EVENTS.md](TOOL-EVENTS.md).
+
+Die nachfolgenden v2-/ResponseMode-Beispiele bleiben **frühere Planungsentwürfe
+für spätere Produktphasen**. P2 implementiert kein v2-Subprotokoll und keine
+neuen ResponseModes, Researchereignisse oder Sourceevents.
 
 V2 `chat.generate` übernimmt bestehende Identitäts-/Version-/Attachmentfelder und ergänzt eine diskriminierte Auswahl:
 
@@ -271,7 +281,10 @@ Typen: `chat.tool.{queued,approval.required,started,progress,result,failed,cance
 
 V2-Resumesnapshot enthält bestehende Antwortfelder plus Run-/Quellen-/Attachmentprojektionen und eine Snapshotsequenz. Snapshot und Subscription werden unter demselben Generationlock aufgenommen; neue Events liegen danach lückenlos. Frontendreducer verarbeitet jedes Sequenzevent, selbst wenn es keinen Textdelta gibt. Progress coalescen und auf etwa 2 Events/s je Run begrenzen; terminale Events nie verwerfen. Bestehende Queue-/Sendlimits, Overflowclose und Replay weiterverwenden. Unbekannte versionierte Events lösen kontrolliertes Resync aus.
 
-RESTlisten/Reload müssen auch Toolresults liefern; WebSocket ist ein Zustellungskanal, keine zweite Zustandswahrheit. OpenAPI-, WS-v2-JSON und TS-Typen werden mit bestehenden Exportscripts erzeugt. `make check-api` muss **beide** WS-Versionen und unveränderte v1-Fixtures prüfen.
+REST/Reload liefern Toolresults über den vorhandenen autorisierten Run-Endpunkt;
+WebSocket ist ein Zustellungskanal, keine zweite Zustandswahrheit. Der bestehende
+Generator exportiert OpenAPI, ergänztes v1-JSON, TS-Typen und öffentliche
+Toolschemas. `make check-api` prüft alle erzeugten Artefakte und v1-Kompatibilität.
 
 ## 8. Timeouts, Abbruch und Recovery
 

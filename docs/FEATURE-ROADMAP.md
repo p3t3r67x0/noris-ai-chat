@@ -3,7 +3,9 @@
 Status: technische Planung mit gemergter P1a-Grundlage und separat
 [vorbereitetem SearXNG-Provider](SEARXNG-PROVIDER.md); keine neue Produktfunktion
 aktiviert. Stand: 2026-10-13. Registry und Persistenz: [Tool-Grundlage P1a](TOOL-FOUNDATION.md).
-P1b bleibt ein eigener Entwicklungsstrang auf aktualisiertem `main`.
+P1b ist mit PR #63 gemergt. P2 ergänzt die technische Ereignis-/Replayebene
+auf diesem aktuellen `main`: [Toolereignisse](TOOL-EVENTS.md). Produktive
+Suchhandler und die P6-/P7-UI bleiben separate Phasen.
 
 Quellstände: noris `4024c0eea62965bd161c8fccc36bc81141535d47`; Codexreferenz `a9b0815167c27ab13719dd12d13b63e02b70d221`. Die [Tool-Architektur](TOOL-ARCHITECTURE.md) enthält Audit, Komponenten-/Endpoint-/Testkarte, Codexstudie, gemeinsame Verträge, Security und Betriebsgrenzen.
 
@@ -13,7 +15,7 @@ Quellstände: noris `4024c0eea62965bd161c8fccc36bc81141535d47`; Codexreferenz `a
 | --- | --- |
 | A Bestandsanalyse | [Komponentenkarte und tatsächlich vorhandene Verträge](TOOL-ARCHITECTURE.md#2-konkrete-komponentenkarte-des-bestands) mit Backend-/Frontend-/Testpfaden und DBinvarianten |
 | B Codex | [Commitfixierte Architekturstudie](TOOL-ARCHITECTURE.md#3-codex-architekturstudie-verifizierte-konzepte), übertragbare Entscheidungen und begründete Nichtübernahme von Rust |
-| C Zielarchitektur | [FastAPI-Module, Ausführung, Persistenz, Berechtigungen, Budget und WS-v2](TOOL-ARCHITECTURE.md#4-fastapi-zielarchitektur) |
+| C Zielarchitektur | [FastAPI-Module, Ausführung, Persistenz, Berechtigungen und Budget](TOOL-ARCHITECTURE.md#4-fastapi-zielarchitektur); tatsächlicher P2-Vertrag: [versioniertes v1-Opt-in](TOOL-EVENTS.md#vertrag-und-versionierung) |
 | D fünf Funktionskonzepte | [Websuche](WEB-SEARCH-DESIGN.md), [Bibliothek](FILE-LIBRARY-DESIGN.md), [Bilderstellung](IMAGE-GENERATION-DESIGN.md), [Deep Research](DEEP-RESEARCH-DESIGN.md), [Skizzieren](SKETCH-DESIGN.md), jeweils alle zehn geforderten Konzeptpunkte |
 | E UX | Gemeinsamer Vertrag in diesem Dokument und die jeweiligen Feature-UXabschnitte |
 | F Umsetzung | Getrennte testbare PRs mit Vertrags-/Browser-/Sicherheitsgates unten |
@@ -113,9 +115,18 @@ Unit: allow/deny/approval, Digests/Expiry, konservative Kosten, Timeouts, Retryp
 
 ### P2 — Versioniertes Toolstreaming im vorhandenen WebSocket
 
-Zweck: v2 neben v1, zentraler atomic Eventwriter, typed Tool-/Sourcesnapshot, reducer und Capabilityclient. Keine finale Featureaktivierung; bestehender Transport wird erweitert.
+Umsetzung: optionales `toolEventVersion:1` im bestehenden v1-Transport, gemeinsamer
+atomarer Eventwriter in `chat_stream_event`, typisierte Toolprojektion und Replay
+aus vorhandenen Run-/Result-/Approvaltabellen. [Verbindlicher Vertrag](TOOL-EVENTS.md).
+Sourceevents, Produktmodi und Such-UI bleiben P6/P7 vorbehalten.
 
-Unit: diskriminierte v1/v2-Commands, reducer/sequence/gaps/duplicates/snapshots. Integration: Commit-/Cancelrace, parallele Childprogress, Eventretention, reconnect/slow peer, v1-Resume von Toolgeneration korrekt abweisen, Ticket/Proxy/Origin. Playwright: vorhandene WSsuite plus Simulator-Toolprogress/reload/Stop Desktop/Mobile; Composer-/Scrollregression. API: beide WS-JSON-/TS-Verträge aus Exportscripts, `make check-api`, keine v1-Drift. Security: gleiche Origin/Host/WSS/Ticketgrenzen, keine Bildbytes/Secrets im Event. Abnahme: v1/SSE/mock funktionieren weiter, v2 lückenlos. Abhängigkeit: P1a/P1b.
+Unit: Schema-/Versionsvalidierung, reducer/sequence/gaps/duplicates/snapshots.
+Integration: atomarer Result-/Eventrollback, konkurrierende Chat-/Toolwrites,
+Approval-/Cancel-/Recoveryfälle, Retention, Ownergrenzen und alte Clients mit
+Chat-Snapshotfallback. Playwright: bestehende WSsuite plus deterministische
+Toolprogress-/Parallel-/Reconnect-/Reload-/Stop-/Fehlerfälle auf Desktop/Mobile
+in beiden Themes. Exportscripts erzeugen alle WS-/TS-Schemas; `make check-api`
+prüft Drift. Abhängigkeit: gemergte P1a/P1b-Grundlage.
 
 ### P3 — Attachmentmehrfachbindungen und sichere Lebensdauer
 

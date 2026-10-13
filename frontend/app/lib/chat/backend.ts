@@ -3,6 +3,7 @@ import type { Conversation, ConversationMode } from './conversations'
 import type { ChatMessage } from './types'
 import { responseError, TransportError } from './realTransport'
 import type { ReasoningPreference } from './reasoning'
+import type { ToolRunState } from './toolEvents'
 
 type ServerConversation = ApiSchemas['ConversationResponse']
 type ServerMessage = ApiSchemas['MessageResponse']
@@ -40,6 +41,7 @@ export class ChatBackend {
   onDeleted?: (id: string) => void
   private deleted = new Set<string>()
   onMessage?: (message: ServerMessage) => void
+  onToolState?: (state: ToolRunState) => void
   initialPage: ApiSchemas['ConversationListResponse'] | null = null
   initialPinnedPage: ApiSchemas['ConversationListResponse'] | null = null
   initialPath: ApiSchemas['ActivePathResponse'] | null = null
