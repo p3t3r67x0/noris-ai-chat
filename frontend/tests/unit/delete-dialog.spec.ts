@@ -21,7 +21,7 @@ const Button = defineComponent({
 })
 const conversation: Conversation = { id: 'delete-me', title: 'Synthetische Statusübersicht', titleSource: 'manual', titleGenerationAttempted: true, createdAt: '2026-10-09T12:00:00.000Z', updatedAt: '2026-10-09T12:00:00.000Z', archivedAt: null, activeLeafMessageId: null }
 const wrappers: ReturnType<typeof mount>[] = []
-afterEach(() => { wrappers.splice(0).forEach(wrapper => wrapper.unmount()); document.body.innerHTML = '' })
+afterEach(() => { wrappers.splice(0).forEach(wrapper => wrapper.unmount()); document.body.innerHTML = ''; vi.useRealTimers() })
 function dialog(removeConversation: (id: string) => void | Promise<void> = vi.fn(), target: Conversation | null = conversation, returnFocus?: HTMLElement) {
   const wrapper = mount(DeleteConversationDialog, {
     props: { conversation: target, removeConversation, open: true, ...(returnFocus ? { returnFocus } : {}), 'onUpdate:open': value => { void wrapper.setProps({ open: value }) } },
@@ -109,16 +109,27 @@ describe('delete conversation dialog', () => {
     expect(document.activeElement).toBe(main)
   })
 
-  it.each([true, false])('preserves the store contract when deleting an active conversation: %s', async (active) => {
-    const chat = createChatState(createMockTransport())
+  it.each([[true, true], [false, true], [true, false], [false, false]])('preserves the store contract when deleting a conversation: active %s, started %s', async (active, started) => {
+    vi.useFakeTimers()
+    const chat = createChatState(createMockTransport({ chunkSize: 32_000 }))
     const remove = chat.conversations.create('Entfernen')
+    if (started) {
+      expect(chat.send('Gespeicherte Frage entfernen', 'balanced')).toBe(true)
+      await vi.runAllTimersAsync()
+    }
     const keep = chat.conversations.create('Behalten')
+    if (started) {
+      expect(chat.send('Gespeicherte Frage behalten', 'balanced')).toBe(true)
+      await vi.runAllTimersAsync()
+    }
     chat.drafts.records.value = { [remove.id]: 'Entwurf entfernen', [keep.id]: 'Entwurf behalten' }
     if (active) chat.conversations.select(remove.id)
     const wrapper = dialog(chat.remove, remove)
     await wrapper.get('.delete-dialog-confirm').trigger('click')
     await flushPromises()
-    expect(chat.conversations.visible.value.map(item => item.id)).toEqual([keep.id])
+    expect(chat.conversations.visible.value.map(item => item.id)).toEqual(started ? [keep.id] : [])
+    expect(Object.keys(chat.conversations.records.value)).toEqual([keep.id])
+    expect(Object.values(chat.messages.value).map(message => message.conversationId)).toEqual(started ? [keep.id, keep.id] : [])
     expect(chat.conversations.activeId.value).toBe(active ? null : keep.id)
     expect(chat.drafts.records.value).toEqual({ [keep.id]: 'Entwurf behalten' })
     expect(wrapper.props('open')).toBe(false)
