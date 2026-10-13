@@ -79,6 +79,8 @@ test('learning mode uses PostgreSQL, existing attachments, branches and evidence
   await page.getByRole('option', { name: /Fixture Beta/ }).click()
   await expect(page.locator('.composer-reasoning')).toHaveCount(0)
   await input.fill('Wie gehen wir weiter?')
+  // Switching to Beta clears the persisted reasoning preference before sending.
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await input.press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   expect((await calls()).at(-1)!.model).toBe('fixture-beta')
