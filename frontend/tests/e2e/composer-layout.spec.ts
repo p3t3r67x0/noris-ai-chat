@@ -119,8 +119,12 @@ test('an empty chat keeps a growing draft visible above the visual keyboard view
     }, height)
     await expect(input).toBeFocused()
     await expect(input).toHaveValue(draft)
-    await expect(page.locator('.empty-chat')).not.toBeVisible()
+    await expect(page.locator('.empty-chat')).toBeVisible()
+    await expect.poll(() => page.locator('.chat-workspace').evaluate(element => element.getBoundingClientRect().height)).toBe(height)
     const composer = await page.locator('.chat-composer').boundingBox()
+    const heading = (await page.locator('.empty-chat').boundingBox())!
+    expect(heading.y).toBeGreaterThanOrEqual(20)
+    expect(heading.y + heading.height).toBeLessThanOrEqual(composer!.y)
     expect(composer!.y).toBeGreaterThanOrEqual(20)
     expect(composer!.y + composer!.height).toBeLessThanOrEqual(height + 20)
     await expect(page.locator('.composer-model')).toBeInViewport()

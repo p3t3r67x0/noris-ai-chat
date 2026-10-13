@@ -8,6 +8,7 @@ import { createRealTransport, parseStreamEvent } from '../../app/lib/chat/realTr
 import type { ChatRequest, ChatTransport } from '../../app/lib/chat/types'
 import MarkdownContent from '../../app/components/chat/MarkdownContent'
 import ChatMessage from '../../app/components/chat/ChatMessage.vue'
+import { ERROR_PRESENTATIONS } from '../../app/lib/notifications/errors'
 
 afterEach(() => { Object.assign(CHAT_LIMITS, DEFAULT_CHAT_LIMITS); vi.useRealTimers() })
 
@@ -74,8 +75,9 @@ describe('long responses and explicit continuation', () => {
     chat.send('Frage', 'fixture-alpha'); await settle()
     const reply = chat.visible.value[1]!
     chat.continueResponse(reply.id, 'fixture-alpha'); await settle()
-    expect(reply).toMatchObject({ status: 'failed', errorCode: failure, errorMessage: 'Fortsetzung fehlgeschlagen.' })
+    expect(reply).toMatchObject({ status: 'failed', errorCode: failure, errorMessage: ERROR_PRESENTATIONS[failure]!.message })
     expect(reply.content).toBe(original + continuation)
+    expect(parseChatSnapshot(JSON.stringify(chat.snapshot()))?.messages[reply.id]).toMatchObject({ errorCode: failure, errorMessage: ERROR_PRESENTATIONS[failure]!.message, content: original + continuation })
     chat.retry('another-model'); await settle()
     expect(Object.keys(chat.messages.value)).toHaveLength(2)
     expect(requests.at(-1)?.operation).toBe('continue')
@@ -160,17 +162,21 @@ describe('long responses and explicit continuation', () => {
     wrapper.unmount()
   })
 
-  it('shows an explicit continuation action and precise persisted errors', async () => {
+  it('shows explicit continuation and safe error recovery', async () => {
     const { chat, settle } = fixture()
     chat.send('Frage', 'fixture-alpha'); await settle()
     const reply = chat.visible.value[1]!
     const wrapper = mount(ChatMessage, { props: { message: reply, canContinue: true }, global: { stubs: { UButton: { props: ['label'], emits: ['click'], template: '<button @click="$emit(\'click\')">{{ label }}</button>' }, MessageVariants: true, MarkdownContent: true } } })
-    expect(wrapper.text()).toContain('Ausgabelimit erreicht – weiterschreiben')
+    expect(wrapper.text()).toContain('Antwort unvollständig.')
     await wrapper.findAll('button').find(button => button.text() === 'Weiterschreiben')!.trigger('click')
     expect(wrapper.emitted('continue')).toHaveLength(1)
-    reply.status = 'failed'; reply.errorMessage = 'Kontextlimit erreicht.'
+    reply.status = 'failed'; reply.errorCode = 'CONTEXT_LIMIT'; reply.errorMessage = 'synthetic-secret'
     await wrapper.setProps({ message: { ...reply } })
-    expect(wrapper.text()).toContain('Kontextlimit erreicht.')
+    await wrapper.get('summary').trigger('click')
+    expect(wrapper.text()).toContain(ERROR_PRESENTATIONS.CONTEXT_LIMIT!.message)
+    expect(wrapper.text()).not.toContain('synthetic-secret')
+    await wrapper.findAll('button').find(button => button.text() === 'Erneut versuchen')!.trigger('click')
+    expect(wrapper.emitted('regenerate')).toHaveLength(1)
     expect(wrapper.text()).not.toContain('Antwort nicht abgeschlossen')
     wrapper.unmount()
   })

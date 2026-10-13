@@ -60,7 +60,7 @@ test('mock failure keeps partial output and supports another attempt', async ({ 
   await expect(page.locator('.message-assistant')).toContainText('Teilantwort')
   await page.clock.install()
   await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 100))
-  await page.getByRole('button', { name: 'Erneut versuchen', exact: true }).click()
+  await page.locator('.message-assistant').last().getByRole('button', { name: 'Erneut versuchen', exact: true }).click()
   await expect(page.locator('[data-generation-status]')).toHaveAttribute('data-generation-status', 'submitting')
   await page.clock.runFor(450)
   await expect(page.locator('[data-generation-status]')).toHaveAttribute('data-generation-status', 'streaming')

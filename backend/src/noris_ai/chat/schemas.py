@@ -36,6 +36,7 @@ class JsonApiSchema(ApiSchema):
 
 
 class ConversationCreate(JsonApiSchema):
+    prepared: bool = False
     conversationMode: ConversationMode = "normal"
     reasoningPreference: ReasoningPreference | None = None
     id: UUID | None = None
@@ -52,6 +53,7 @@ class ConversationUpdate(JsonApiSchema):
 
 
 class ConversationResponse(JsonApiSchema):
+    sidebarVisible: bool = True
     conversationMode: ConversationMode = "normal"
     reasoningPreference: ReasoningPreference | None = None
     id: UUID

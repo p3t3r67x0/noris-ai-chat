@@ -62,9 +62,12 @@ describe('bounded conversation titles', () => {
     expect(chat.visible.value[0]?.content).toBe('Wie installiere ich Docker Compose?')
     expect(calls).toHaveLength(0)
     await vi.advanceTimersByTimeAsync(20)
-    expect(calls).toHaveLength(1)
+    expect(calls).toHaveLength(0)
     expect(chat.visible.value.at(-1)?.content.length).toBeGreaterThan(0)
     expect(chat.stream.status.value).toBe('streaming')
+    await vi.advanceTimersByTimeAsync(100)
+    expect(chat.stream.status.value).toBe('completed')
+    expect(calls).toHaveLength(1)
     const messages = JSON.stringify(chat.messages.value)
     resolve(0)
     await vi.advanceTimersByTimeAsync(0)
@@ -116,7 +119,7 @@ describe('bounded conversation titles', () => {
 
   it('does not request a title for a chat renamed before its first message', async () => {
     const { chat, calls } = fixture()
-    chat.newChat()
+    chat.conversations.create()
     chat.conversations.rename(chat.conversations.activeId.value!, 'Vorgegebener Titel')
     chat.send('Docker', 'balanced')
     await vi.advanceTimersByTimeAsync(100)
@@ -143,17 +146,15 @@ describe('bounded conversation titles', () => {
     expect(chat.conversations.activeId.value).toBe(first.id)
   })
 
-  it('keeps a title request independent of Stop on the chat answer', async () => {
-    const { chat, calls, resolve } = fixture()
+  it('does not request a title for a stopped first answer and makes the chat visible', async () => {
+    const { chat, calls } = fixture()
     chat.send('Docker', 'balanced')
     await vi.advanceTimersByTimeAsync(10)
     chat.stream.stop()
     await vi.advanceTimersByTimeAsync(0)
     expect(chat.stream.status.value).toBe('cancelled')
-    expect(calls[0]!.signal.aborted).toBe(false)
-    resolve(0)
-    await vi.advanceTimersByTimeAsync(0)
-    expect(chat.conversations.active.value?.titleSource).toBe('generated')
+    expect(calls).toHaveLength(0)
+    expect(chat.conversations.visible.value).toHaveLength(1)
   })
 
   it('deleting cancels the request and late results never restore a chat', async () => {
@@ -237,7 +238,7 @@ describe('bounded conversation titles', () => {
 
   it('migrates old snapshots without changing names or generating titles retroactively', async () => {
     const { chat, calls, transport } = fixture()
-    chat.newChat()
+    chat.conversations.create()
     const id = chat.conversations.activeId.value!
     const legacy = JSON.parse(JSON.stringify(chat.snapshot()))
     delete legacy.conversations.conversations[id].titleSource
@@ -287,7 +288,7 @@ describe('bounded conversation titles', () => {
     expect(await transport.generateTitle!(request, signal)).toMatchObject({ title: 'Docker Compose Einrichtung' })
     expect(fetcher.mock.calls[0]).toEqual(['/api/v1/llm/conversation-title', expect.objectContaining({ method: 'POST', credentials: 'same-origin', signal, body: JSON.stringify(request) })])
     const failing = createRealTransport({ fetcher: async () => new Response('synthetic-secret', { status: 502 }) })
-    await expect(failing.generateTitle!(request, signal)).rejects.toThrow('Modellanfrage')
+    await expect(failing.generateTitle!(request, signal)).rejects.toMatchObject({ code: 'REQUEST_FAILED', message: 'Chat request failed' })
     const invalid = createRealTransport({ fetcher: async () => Response.json({ conversationId: 'wrong', inputMessageId: 'u', title: 'Docker Setup' }) })
     await expect(invalid.generateTitle!(request, signal)).rejects.toThrow()
   })
@@ -329,8 +330,7 @@ describe('bounded conversation titles', () => {
     const automatic = chat.conversations.active.value!
     automatic.title = 'und wie steht es aus sicht der...'
     automatic.titleSource = 'generated'
-    chat.newChat()
-    const manual = chat.conversations.active.value!
+    const manual = chat.conversations.create()
     chat.conversations.rename(manual.id, 'Automatisierte Chat-Titel Implementierung – Meine vollständigen Notizen')
     const restored = parseChatSnapshot(JSON.stringify(chat.snapshot()))!
     expect(restored.conversations.conversations[automatic.id]?.title).toBe('Docker und nftables')
@@ -345,7 +345,7 @@ describe('bounded conversation titles', () => {
 
   it('never applies a stale width adjustment to a renamed title', () => {
     const { chat } = fixture()
-    chat.newChat()
+    chat.conversations.create()
     const conversation = chat.conversations.active.value!
     conversation.title = 'Docker DNS Troubleshooting Guide'
     conversation.titleSource = 'generated'

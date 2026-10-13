@@ -53,7 +53,7 @@ test('click toggles, outside click and Escape dismiss without losing text or rep
     expect(await trigger.locator('[data-slot="leadingIcon"]').boundingBox()).toEqual(iconBefore)
     expect(await page.locator('.chat-composer').boundingBox()).toEqual(before)
     if (close === 'toggle') await trigger.click()
-    else if (close === 'outside') await page.mouse.click(page.viewportSize()!.width - 16, 20)
+    else if (close === 'outside') await page.mouse.click(2, 2)
     else await page.keyboard.press('Escape')
     await expect(menu).toBeHidden()
     await expect(trigger).toHaveAttribute('aria-expanded', 'false')
@@ -190,7 +190,7 @@ test('a saved conversation accepts another upload and removal preserves existing
   await expect(page.locator('.message-user')).toHaveCount(1)
 })
 
-test('a failed active-path request retains the real backend error and disables upload honestly', async ({ page }) => {
+test('a failed active-path request provides safe diagnostics and disables upload honestly', async ({ page }) => {
   await inputFor(page).fill('Synthetische Frage')
   await inputFor(page).press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
@@ -199,10 +199,18 @@ test('a failed active-path request retains the real backend error and disables u
     body: JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: 'An internal error occurred', request_id: '00000000-0000-0000-0000-000000000001' } }),
   }))
   await page.reload()
-  await expect(page.getByRole('main', { name: 'Chat', exact: true }).getByRole('alert').filter({ hasText: 'An internal error occurred' })).toBeVisible()
+  const failure = page.locator('.app-notification').filter({ hasText: 'Chatliste konnte nicht geladen werden.' })
+  await expect(failure).toBeVisible()
+  await expect(failure).not.toContainText('An internal error occurred')
+  await failure.getByRole('button', { name: 'Details', exact: true }).click()
+  const details = page.getByRole('dialog', { name: 'Fehlerdetails', exact: true })
+  await expect(details).toContainText('INTERNAL_ERROR')
+  await expect(details).toContainText('00000000-0000-0000-0000-000000000001')
+  await page.keyboard.press('Escape')
+  await expect(details).not.toBeVisible()
   await triggerFor(page).click()
   await expect(uploadFor(page)).toHaveAttribute('aria-disabled', 'true')
-  await expect(uploadFor(page)).toContainText('An internal error occurred')
+  await expect(uploadFor(page)).toContainText('Der Chatdienst konnte die Anfrage gerade nicht bearbeiten.')
   await expect(page.locator('.composer-plus-menu')).not.toContainText('gespeicherte WebSocket-Unterhaltung')
   await page.keyboard.press('Escape')
   await expect(triggerFor(page)).toHaveAttribute('data-state', 'closed')
@@ -315,11 +323,16 @@ test('the open menu repositions and scrolls within the keyboard viewport without
     Object.defineProperty(visualViewport!, 'height', { configurable: true, value: 300 })
     visualViewport!.dispatchEvent(new Event('resize'))
   })
+  // Popper aligns to device pixels, yielding fractional CSS pixels on mobile.
+  await expect.poll(async () => Math.round((await menu.boundingBox())!.y)).toBeGreaterThanOrEqual(12)
   await expect.poll(async () => {
     const box = (await menu.boundingBox())!
+    return box.y + box.height - (await page.locator('.chat-composer').boundingBox())!.y
+  }).toBeLessThanOrEqual(0)
+  await expect.poll(async () => {
     const composer = (await page.locator('.chat-composer').boundingBox())!
-    return box.y >= 12 && box.y + box.height <= composer.y && composer.y + composer.height <= 300
-  }).toBe(true)
+    return composer.y + composer.height
+  }).toBeLessThanOrEqual(300)
   expect(await menu.locator('[data-slot="viewport"]').evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true)
   await page.keyboard.press('Escape')
   await expect(triggerFor(page)).toBeFocused()

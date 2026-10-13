@@ -174,7 +174,8 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     const previous = state.conversations.records.value[value.id]
     // An active chat outside page one can become recent through a live update.
     // Its metadata then belongs in the sorted sidebar without reloading messages.
-    if (!value.archivedAt && (!previous || compareConversations(conversationFromServer(value), previous) < 0) && !sidebarIds.value.includes(value.id)) {
+    if (value.version < (backend.versions.get(value.id) ?? 0)) return
+    if (!value.archivedAt && value.sidebarVisible !== false && (!previous || previous.sidebarVisible === false || compareConversations(conversationFromServer(value), previous) < 0) && !sidebarIds.value.includes(value.id)) {
       sidebarIds.value = [value.id, ...sidebarIds.value].slice(0, 500)
     }
     const changedLeaf = previous?.activeLeafMessageId !== value.activeLeafMessageId
@@ -285,10 +286,11 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   state.conversations.create = (title?: string) => {
     userNavigated = true
     const conversation = create(title)
-    sidebarIds.value = [conversation.id, ...sidebarIds.value].slice(0, 500)
     void persist(backend.ensure(conversation), { operation: 'create', conversationId: conversation.id, attemptId: crypto.randomUUID() }, () => backend.ensure(conversation))
     return conversation
   }
+  const newChat = state.newChat
+  state.newChat = () => { userNavigated = true; newChat() }
   for (const action of ['rename', 'archive', 'restore'] as const) {
     const original = state.conversations[action]
     state.conversations[action] = (id: string, title?: string) => {
@@ -466,7 +468,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   }, { deep: true, flush: 'sync' })
   onUnmounted(() => { disposed = true; viewRequest?.abort.abort(); clearTimeout(timer); clearTimeout(draftTimer); flushCache(); transport.dispose?.() })
   const pagination = {
-    conversations: computed(() => sidebarIds.value.flatMap(id => { const c = state.conversations.records.value[id]; return c && !c.archivedAt ? [c] : [] })),
+    conversations: computed(() => sidebarIds.value.flatMap(id => { const c = state.conversations.records.value[id]; return c && !c.archivedAt && c.sidebarVisible !== false ? [c] : [] })),
     sidebarLoading, sidebarError, hasMore: computed(() => Boolean(nextCursor.value)), loadMore, reloadSidebar,
     windowedList: computed(() => sidebarIds.value.length >= 500),
     historyLoading, historyError, olderLoading,

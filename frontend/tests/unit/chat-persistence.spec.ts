@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { defineComponent, h } from 'vue'
+import { defineComponent, h, ref } from 'vue'
 import { useChat } from '../../app/composables/useChat'
 import { CHAT_STORAGE_KEY, parseChatSnapshot } from '../../app/lib/chat/persistence'
 import type { ChatTransport } from '../../app/lib/chat/types'
+import { useChatDrafts } from '../../app/composables/useChatDrafts'
 
 const transport: ChatTransport = { async *stream() { yield { seq: 1, type: 'response.started' }; yield { seq: 2, type: 'response.completed' } } }
 function workspace() {
@@ -12,7 +13,14 @@ function workspace() {
 afterEach(() => { vi.useRealTimers(); localStorage.clear() })
 
 describe('atomic persistence lifecycle', () => {
-  it('flushes a new conversation and its latest draft together on pagehide', () => {
+  it('renders a lazily loaded draft after selecting a conversation without a cached draft', () => {
+    const active = ref<string | null>('older-chat')
+    const drafts = useChatDrafts(active)
+    expect(drafts.draft.value).toBe('')
+    drafts.records.value['older-chat'] = 'Mein gespeicherter Entwurf'
+    expect(drafts.draft.value).toBe('Mein gespeicherter Entwurf')
+  })
+  it('flushes a new draft without creating a conversation on pagehide', () => {
     vi.useFakeTimers()
     const wrapper = workspace()
     wrapper.vm.newChat()
@@ -20,9 +28,9 @@ describe('atomic persistence lifecycle', () => {
     window.dispatchEvent(new Event('pagehide'))
     const saved = parseChatSnapshot(localStorage.getItem(CHAT_STORAGE_KEY) ?? '')
     expect(saved).not.toBeNull()
-    const id = saved!.conversations.activeConversationId!
-    expect(saved!.conversations.conversations[id]?.title).toBe('Neuer Chat')
-    expect(saved!.drafts[id]).toBe('Mein letzter Entwurf')
+    expect(saved!.conversations.activeConversationId).toBeNull()
+    expect(saved!.conversations.conversations).toEqual({})
+    expect(saved!.drafts.__new__).toBe('Mein letzter Entwurf')
     wrapper.unmount()
   })
   it('does not overwrite external changes after another tab writes', async () => {

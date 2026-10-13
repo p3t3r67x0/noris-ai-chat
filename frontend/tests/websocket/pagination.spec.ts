@@ -82,7 +82,7 @@ test('a failed older page preserves messages and offers retry', async ({ page, r
   await page.route('**/active-path?*beforeMessageId=*', route => route.fulfill({ status: 503, json: { error: { code: 'UNAVAILABLE', message: 'Vorübergehend offline', request_id: uuid(888) } } }))
   await page.locator('.chat-scroll').evaluate(element => { element.scrollTop = 0 })
   await page.getByRole('button', { name: 'Ältere Nachrichten laden', exact: true }).click()
-  await expect(page.getByRole('alert')).toContainText('Vorübergehend offline')
+  await expect(page.locator('.app-notification')).toContainText('Ältere Nachrichten konnten nicht geladen werden.')
   await expect(page.locator('[data-message-id]')).toHaveCount(50)
   await page.unroute('**/active-path?*beforeMessageId=*')
   await page.getByRole('button', { name: 'Ältere Nachrichten laden', exact: true }).click()
@@ -165,7 +165,7 @@ test('search keeps rows while loading, handles failures and ignores an obsolete 
   await settled
   await expect(dialog.getByRole('option', { name: 'Sidebar chat 1', exact: true })).toBeVisible()
   await input.fill('failure')
-  await expect(dialog.getByRole('alert')).toContainText('Die Suche ist fehlgeschlagen')
+  await expect(dialog.getByRole('alert')).toContainText('Die Aktion konnte gerade nicht ausgeführt werden.')
   await expect(dialog.getByRole('option', { name: 'Sidebar chat 1', exact: true })).toBeVisible()
   await page.unroute('**/api/v1/conversations?*')
   await dialog.getByRole('button', { name: 'Suche erneut versuchen' }).click()

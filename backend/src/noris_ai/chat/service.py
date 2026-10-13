@@ -43,6 +43,7 @@ NEW_CHAT_DRAFT_KEY = "__new__"
 
 def conversation_response(conversation: ChatConversation) -> ConversationResponse:
     return ConversationResponse(
+        sidebarVisible=conversation.sidebar_visible is not False,
         id=conversation.id,
         title=conversation.title,
         conversationMode=cast(ConversationMode, conversation.conversation_mode or "normal"),
@@ -124,6 +125,7 @@ class ChatService:
         conversation_id: uuid.UUID | None = None,
         conversation_mode: ConversationMode = "normal",
         reasoning_preference: ReasoningPreference | None = None,
+        prepared: bool = False,
     ) -> ConversationResponse:
         try:
             conversation = await self.repository.create_conversation(
@@ -132,6 +134,7 @@ class ChatService:
                 conversation_id=conversation_id,
                 conversation_mode=conversation_mode,
                 reasoning_preference=reasoning_preference,
+                sidebar_visible=not prepared,
             )
         except IntegrityError as error:
             if conversation_id is not None:

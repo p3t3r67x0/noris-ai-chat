@@ -1,6 +1,6 @@
 import type { ApiSchemas } from '../../app/types/generated/api'
 import { expect, test } from '@playwright/test'
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { openDataControls, returnToChat } from '../e2e/settings-helpers'
 
 test.beforeEach(async ({ request }) => {
@@ -35,6 +35,13 @@ async function seedLocal(page: Page, raw: string, theme: string) {
   await expect(page.locator('.chat-main').getByText('Lokale Chats importieren', { exact: true })).toHaveCount(0)
 }
 
+async function importResult(settings: Locator, content: string): Promise<void> {
+  const result = settings.locator('details').filter({ hasText: 'Letztes Importergebnis' })
+  await expect(result.locator('summary')).toBeVisible()
+  if (await result.getAttribute('open') === null) await result.locator('summary').click()
+  await expect(result.locator('p')).toContainText(content)
+}
+
 for (const theme of ['light', 'dark']) {
   test(`imports from data controls only after confirmation and skips duplicates in ${theme}`, async ({ page, request }, testInfo) => {
     const { id, user, reply, variant, snapshot } = localSnapshot()
@@ -50,7 +57,7 @@ for (const theme of ['light', 'dark']) {
     await expect(dialog).toContainText('Die lokale Sicherung bleibt erhalten')
     expect((await request.get(`/api/v1/conversations/${id}`)).status()).toBe(404)
     await dialog.getByRole('button', { name: 'Import ausdrücklich starten' }).click()
-    await expect(settings.getByRole('status')).toContainText('1 Chats importiert')
+    await importResult(settings, '1 Chats importiert')
     await expect(dialog).not.toBeVisible()
     const result = (await (await request.get(`/api/v1/conversations/${id}/messages`)).json()).messages
     expect(result.map((m: { id: string }) => m.id).sort()).toEqual([user, reply, variant].sort())
@@ -58,7 +65,7 @@ for (const theme of ['light', 'dark']) {
     expect(await page.evaluate(() => localStorage.getItem('noris-ai:chat:v1'))).toBe(raw)
     await settings.getByRole('button', { name: 'Importieren', exact: true }).click()
     await dialog.getByRole('button', { name: 'Import ausdrücklich starten' }).click()
-    await expect(settings.getByRole('status')).toContainText('0 Chats importiert, 1 bereits vorhanden')
+    await importResult(settings, '0 Chats importiert, 1 bereits vorhanden')
     await expect(dialog).not.toBeVisible()
     const again = (await (await request.get(`/api/v1/conversations/${id}/messages`)).json()).messages
     expect(again).toEqual(result)
@@ -101,14 +108,15 @@ for (const theme of ['light', 'dark']) {
     await settings.getByRole('button', { name: 'Importieren', exact: true }).click()
     const dialog = page.getByRole('dialog', { name: 'Lokale Chats importieren', exact: true })
     await dialog.getByRole('button', { name: 'Import ausdrücklich starten' }).click()
-    await expect(settings.getByRole('status')).toContainText('Synthetischer Importfehler')
+    await importResult(settings, 'Die Aktion konnte gerade nicht ausgeführt werden.')
+    await expect(page.locator('.app-notification')).toContainText('Chats konnten nicht importiert werden.')
     await expect(dialog).not.toBeVisible()
     expect((await request.get(`/api/v1/conversations/${id}`)).status()).toBe(404)
     expect(await page.evaluate(() => localStorage.getItem('noris-ai:chat:v1'))).toBe(raw)
     await page.unroute('**/api/v1/conversations/import')
     await settings.getByRole('button', { name: 'Importieren', exact: true }).click()
     await dialog.getByRole('button', { name: 'Import ausdrücklich starten' }).click()
-    await expect(settings.getByRole('status')).toContainText('1 Chats importiert')
+    await importResult(settings, '1 Chats importiert')
   })
 
   test(`a conflicting chat prevents partial imports and preserves database data in ${theme}`, async ({ page, request }) => {
@@ -125,7 +133,7 @@ for (const theme of ['light', 'dark']) {
     const settings = await openDataControls(page)
     await settings.getByRole('button', { name: 'Importieren', exact: true }).click()
     await page.getByRole('dialog', { name: 'Lokale Chats importieren', exact: true }).getByRole('button', { name: 'Import ausdrücklich starten' }).click()
-    await expect(settings.getByRole('status')).toContainText('Der Import enthält Konflikte')
+    await importResult(settings, 'Der Import enthält Konflikte')
     expect(await (await request.get(`/api/v1/conversations/${id}`)).json()).toEqual(before)
     expect((await request.get(`/api/v1/conversations/${other.id}`)).status()).toBe(404)
     expect(await page.evaluate(() => localStorage.getItem('noris-ai:chat:v1'))).toBe(raw)
@@ -138,7 +146,7 @@ for (const theme of ['light', 'dark']) {
     const settings = await openDataControls(page)
     await settings.getByRole('button', { name: 'Importieren', exact: true }).click()
     await page.getByRole('dialog', { name: 'Lokale Chats importieren', exact: true }).getByRole('button', { name: 'Import ausdrücklich starten' }).click()
-    await expect(settings.getByRole('status')).toContainText('Der lokale Bestand ist ungültig und wurde erhalten.')
+    await importResult(settings, 'Die lokale Chatsicherung konnte nicht gelesen werden. Sie bleibt erhalten.')
     expect(imports).toBe(0)
     expect(await page.evaluate(() => localStorage.getItem('noris-ai:chat:v1'))).toBe('{synthetic-invalid-snapshot')
   })

@@ -71,6 +71,24 @@ def title_source(message: str) -> str:
     return PRIVATE_DATA.sub("[private data]", message)
 
 
+def fallback_title(message: str) -> str:
+    """Local topic excerpt; no provider call and no copying obvious private data."""
+    source = title_source(message[:1024])
+    source = re.sub(r"\[private data\]", "", source)
+    source = re.sub(
+        r"^(?:erkläre\s+mir|erkläre|bitte|explain|please|wie\s+funktioniert)\s+",
+        "",
+        source.strip(),
+        flags=re.I,
+    )
+    words = re.findall(r"[\w]+(?:[.+/#-][\w]+)*", source, flags=re.UNICODE)[:5]
+    title = " ".join(words)
+    while len(title) > 40 and len(words) > 1:
+        words.pop()
+        title = " ".join(words)
+    return title[:40] if title and title.casefold() != "neuer chat" else "Gespräch fortsetzen"
+
+
 def validate_title(raw: str) -> str:
     title = unicodedata.normalize("NFKC", raw).strip(" \n\r")
     if any(unicodedata.category(char) in {"Cc", "Cf", "So"} for char in title) or ".." in title:
