@@ -34,7 +34,9 @@ test('native multiple selection persists previews, layout and server context thr
   await expect(page.locator('.composer-container')).toHaveAttribute('data-layout', 'expanded')
   await expect(input).toBeFocused()
   const attached = (await page.locator('.chat-composer').boundingBox())!
-  expect(attached.y + attached.height).toBeCloseTo(original.y + original.height, 0)
+  // A new draft grows with its welcome/composer group; active chats stay docked.
+  expect(attached.height).toBeGreaterThan(original.height)
+  expect(attached.y + attached.height).toBeLessThan(page.viewportSize()!.height)
   await input.fill('Summarize the synthetic attachments')
   await page.reload()
   await expect(page.locator('[data-upload-status="uploaded"]')).toHaveCount(2)
@@ -68,7 +70,8 @@ test('upload error retries the real API and removing the last file restores comp
   })
   await page.goto('/')
   await selectFiles(page)
-  await expect(page.locator('[data-upload-status="failed"]')).toContainText('Synthetischer Uploadfehler')
+  await expect(page.locator('[data-upload-status="failed"]')).toContainText('Der Chatdienst konnte die Anfrage gerade nicht bearbeiten.')
+  await expect(page.locator('[data-upload-status="failed"]')).not.toContainText('Synthetischer Uploadfehler')
   await page.getByRole('button', { name: 'synthetic.txt erneut hochladen' }).click()
   await expect(page.locator('[data-upload-status="uploaded"]')).toHaveCount(1)
   await page.getByRole('button', { name: 'synthetic.txt entfernen' }).click()
@@ -99,7 +102,7 @@ test('removing an in-flight upload aborts its request without leaving a preview'
 test('file count, type and size limits are visible and never create usable attachments', async ({ page, request }) => {
   await page.goto('/')
   await selectFiles(page, Array.from({ length: 6 }, (_, i) => ({ ...textFile, name: `synthetic-${i}.txt` })))
-  await expect(page.getByRole('alert')).toContainText('Maximal 5 Dateien')
+  await expect(page.locator('.composer-dock').getByRole('alert')).toContainText('Maximal 5 Dateien')
   await expect(page.locator('.attachment-preview')).toHaveCount(0)
   const conversations = await request.get('/api/v1/conversations')
   expect(conversations.ok()).toBe(true)
@@ -108,7 +111,7 @@ test('file count, type and size limits are visible and never create usable attac
   await expect(page.locator('[data-upload-status="failed"]')).toContainText('Dateityp wird nicht unterstützt')
   await page.getByRole('button', { name: 'synthetic.zip entfernen' }).click()
   await selectFiles(page, [{ ...textFile, buffer: Buffer.alloc(10_485_761, 'x') }])
-  await expect(page.locator('[data-upload-status="failed"]')).toContainText('maximal 10 MB')
+  await expect(page.locator('[data-upload-status="failed"]')).toContainText('Die Datei ist leer oder zu groß.')
   await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeDisabled()
 })
 
@@ -134,6 +137,7 @@ for (const width of [1701, 1440, 390]) {
           Object.defineProperty(visualViewport!, 'height', { configurable: true, value: 250 })
           visualViewport!.dispatchEvent(new Event('resize'))
         })
+        await expect.poll(() => page.locator('.chat-workspace').evaluate(element => element.getBoundingClientRect().height)).toBe(250)
         const box = (await page.locator('.chat-composer').boundingBox())!
         expect(box.y).toBeGreaterThanOrEqual(0)
         expect(box.y + box.height).toBeLessThanOrEqual(250)

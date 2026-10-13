@@ -14,7 +14,7 @@ const { t } = useAppLocale()
 
 const props = defineProps<{ demo?: boolean, pagination?: ReturnType<typeof useChatBackend>['pagination'] | undefined, conversations: readonly Conversation[], archived: readonly Conversation[], activeId: string | null, removeConversation: (id: string) => void | Promise<void>, setPinned: (id: string, pinned: boolean) => void | Promise<void> }>()
 const open = defineModel<boolean>('open', { required: true })
-const emit = defineEmits<{ newChat: [], select: [id: string], rename: [id: string, title: string], archive: [id: string], restore: [id: string], settings: [] }>()
+const emit = defineEmits<{ newChat: [], focusComposer: [], select: [id: string], rename: [id: string, title: string], archive: [id: string], restore: [id: string], settings: [] }>()
 const groups = computed(() => groupConversations(props.conversations))
 const openMenuId = ref<string | null>(null)
 const pendingPins = ref(new Set<string>())
@@ -44,6 +44,7 @@ const searchOpen = ref(false)
 const archiveOpen = ref(false)
 const searchReturnFocus = ref<HTMLElement | null>(null)
 let searchDrawerHandoff = false
+let newChatDrawerHandoff = false
 const archiveLoading = ref(false)
 const archiveError = ref<string | null>(null)
 const archiveCursor = ref<string | null>(null)
@@ -96,6 +97,7 @@ function selectChat(id: string): void {
 }
 
 function newChat(): void {
+  newChatDrawerHandoff = open.value && window.matchMedia('(max-width: 1023px)').matches
   emit('newChat')
   closeOnMobile()
 }
@@ -108,7 +110,12 @@ function showSearch(event?: Event): void {
   searchOpen.value = true
 }
 
-function finishSearchDrawerHandoff(event: Event): void {
+function finishDrawerHandoff(event: Event): void {
+  if (newChatDrawerHandoff) {
+    newChatDrawerHandoff = false
+    event.preventDefault()
+    emit('focusComposer')
+  }
   if (!searchDrawerHandoff) return
   searchDrawerHandoff = false
   // The drawer's delayed cleanup must not reclaim focus from search or the
@@ -154,7 +161,7 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
     id="chat-sidebar" v-model:open="open" :title="t('conversations')" description="Deine Chats mit noris AI"
     collapsible="offcanvas" mode="slideover" :aria-hidden="!open" :inert="!open"
     class="conversation-sidebar" style="--sidebar-width: var(--noris-sidebar-width)"
-    :menu="{ side: 'left', content: { onCloseAutoFocus: finishSearchDrawerHandoff }, ui: { content: 'max-w-[min(23.5rem,90vw)] bg-[var(--noris-sidebar-background)]' } }"
+    :menu="{ side: 'left', content: { onCloseAutoFocus: finishDrawerHandoff }, ui: { content: 'max-w-[min(23.5rem,90vw)] bg-[var(--noris-sidebar-background)]' } }"
     :ui="{
       container: 'h-[var(--chat-viewport-height,100dvh)] bottom-auto',
       inner: 'bg-[var(--noris-sidebar-background)] divide-transparent',

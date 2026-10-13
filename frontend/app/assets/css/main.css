@@ -166,9 +166,11 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 .sidebar-account-avatar, .sidebar-account-label { font-size: var(--noris-account-label-font-size); line-height: var(--noris-account-label-line-height); }
 .sidebar-account-caption { font-size: var(--noris-account-caption-font-size); line-height: var(--noris-account-caption-line-height); }
 .chat-content { display: flex; flex: 1; flex-direction: column; min-height: 0; min-width: 0; }
-.chat-content[data-empty="true"] { justify-content: flex-end; }
-.empty-chat { display: flex; flex: 1; justify-content: center; min-height: 0; flex-direction: column; align-items: center; padding: 1rem 1.5rem 0; }
-.empty-chat h1 { margin: 0 0 1.75rem; font-size: clamp(1.65rem, 2vw, 2.2rem); font-weight: 600; line-height: 1.25; letter-spacing: -0.025em; text-align: center; }
+.chat-content[data-empty="true"] { justify-content: flex-start; overflow-y: auto; overscroll-behavior: contain; padding-block: 1rem max(1rem, env(safe-area-inset-bottom)); }
+.chat-content[data-empty="true"]::before, .chat-content[data-empty="true"]::after { content: ''; flex: 2 0 0; }
+.chat-content[data-empty="true"]::after { flex-grow: 3; }
+.empty-chat { width: 100%; max-width: var(--noris-composer-max-width); padding-inline: 1rem; }
+.empty-chat h1 { margin: 0 0 clamp(1.25rem, 3.5cqh, 2.75rem); font-size: clamp(1.65rem, 2vw, 2.2rem); font-weight: 600; line-height: 1.25; letter-spacing: -0.025em; text-align: center; overflow-wrap: anywhere; }
 .composer-container { width: 100%; max-width: var(--noris-composer-max-width); min-width: 0; }
 .chat-composer { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; column-gap: 0.5rem; min-height: var(--noris-composer-height); padding: calc((var(--noris-composer-height) - var(--noris-composer-control-size) - 2px) / 2); border: 1px solid var(--noris-border); border-radius: var(--noris-composer-radius); background: var(--noris-composer-background); box-shadow: var(--noris-composer-shadow); }
 .chat-composer:has(textarea:focus-visible) { outline: 2px solid var(--noris-text-primary); outline-offset: 2px; }
@@ -231,7 +233,7 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 .composer-submit { border-radius: 50%; }
 .composer-submit:not(:disabled):hover { background: color-mix(in srgb, var(--ui-bg-inverted) 85%, var(--noris-composer-background)); }
 .composer-dock { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; padding: 0.625rem var(--noris-content-padding) max(var(--noris-composer-bottom-gap), env(safe-area-inset-bottom)); }
-.chat-content[data-empty="true"] .composer-dock { padding-top: 0; }
+.chat-content[data-empty="true"] .composer-dock { padding-block: 0; }
 .composer-note { max-width: var(--noris-composer-max-width); margin: 0 0 0.625rem; font-size: var(--noris-caption-font-size); line-height: 1.25; color: var(--noris-text-secondary); text-align: center; overflow-wrap: anywhere; }
 .chat-history { position: relative; display: flex; flex: 1; min-height: 0; min-width: 0; }
 .chat-scroll { flex: 1; min-width: 0; min-height: 0; max-width: 100%; padding-inline: var(--noris-content-padding); overflow-y: auto; overscroll-behavior-y: contain; overflow-anchor: none; }
@@ -325,8 +327,12 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 /* VisualViewport can shrink while the layout viewport and media queries stay
    unchanged. Reserve the visible space for a growing draft and its controls. */
 @container (max-height: 500px) {
-  .chat-content[data-empty="true"] { justify-content: flex-end; padding-bottom: 0; }
-  .empty-chat { display: none; }
+  .chat-content[data-empty="true"] { padding-block: 0.5rem max(0.5rem, env(safe-area-inset-bottom)); }
+  .empty-chat h1 { font-size: 1.25rem; margin-bottom: 0.75rem; }
+}
+@container (max-height: 300px) {
+  .chat-content[data-empty="true"] { padding-block: 0 env(safe-area-inset-bottom); }
+  .empty-chat h1 { font-size: 1rem; margin-bottom: 0.25rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }

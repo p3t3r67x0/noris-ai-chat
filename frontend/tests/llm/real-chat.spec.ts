@@ -56,7 +56,7 @@ test('Retry and model switching keep only the original active path', async ({ pa
   await expect(page.locator('[data-generation-status="failed"]')).toBeAttached()
   await page.getByRole('button', { name: 'Modell auswählen', exact: true }).click()
   await page.getByRole('option', { name: 'Fixture Beta' }).click()
-  await page.getByRole('button', { name: 'Erneut versuchen', exact: true }).click()
+  await page.locator('.message-assistant').last().getByRole('button', { name: 'Erneut versuchen', exact: true }).click()
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   const state = await request.get(`${fixtureOrigin}/fixture/state`).then(response => response.json()) as { calls: { model: string, messages: { role: string, content: string }[] }[] }
   const calls = state.calls.filter(call => call.messages.at(-1)?.content === prompt)
@@ -75,7 +75,7 @@ for (const finish of ['long', 'length'] as const) {
     const answer = page.locator('.message-assistant').last()
     await expect(answer).toHaveAttribute('data-status', finish === 'long' ? 'completed' : 'incomplete')
     await expect.poll(async () => (await answer.locator('.assistant-content').textContent())?.match(/token/g)?.length).toBe(9000)
-    if (finish === 'length') await expect(page.getByRole('button', { name: 'Weiterschreiben', exact: true })).toBeVisible()
+    if (finish === 'length') await expect(answer.getByRole('button', { name: 'Weiterschreiben', exact: true })).toBeVisible()
     await expect.poll(async () => page.evaluate(key => Object.values((JSON.parse(localStorage.getItem(key) ?? '{}') as { messages?: Record<string, { content: string }> }).messages ?? {}).some(message => message.content === ' token'.repeat(9000)), CHAT_STORAGE_KEY)).toBe(true)
     await page.reload()
     await expect.poll(async () => (await page.locator('.message-assistant').last().textContent())?.match(/token/g)?.length).toBe(9000)

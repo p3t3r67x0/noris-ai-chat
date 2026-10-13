@@ -181,6 +181,10 @@ describe('lazy chat resources', () => {
     await vi.waitFor(() => expect(sync.backendReady.value).toBe(true))
     expect(sync.pagination.conversations.value.some(c => c.id === id(99))).toBe(false)
     const read = vi.spyOn(backend, 'path')
+    // Reconnect metadata for an unchanged active chat preserves the loaded page.
+    backend.remember(conversation(99))
+    expect(sync.pagination.conversations.value).toHaveLength(50)
+    expect(sync.pagination.conversations.value.some(c => c.id === id(99))).toBe(false)
     backend.remember({ ...conversation(99), version: 2, title: 'Updated title', updatedAt: '2026-01-02T00:00:00Z' })
     expect(sync.pagination.conversations.value[0]?.title).toBe('Updated title')
     expect(state.visible.value[0]?.content).toBe('Answer 99')

@@ -204,7 +204,7 @@ def test_pending_count_and_owner_storage_quotas(client: TestClient) -> None:
 
 
 def test_pdf_extraction_and_image_storage_do_not_authorize_text_only_models(
-    client: TestClient,
+    client: TestClient, simulator: Simulator
 ) -> None:
     payload = generate(client)
     pdf = upload(
@@ -222,10 +222,24 @@ def test_pdf_extraction_and_image_storage_do_not_authorize_text_only_models(
     ) as socket:
         socket.receive_json()
         socket.send_json(payload)
-        assert socket.receive_json()["code"] == "ATTACHMENT_INCOMPATIBLE"
+        while (event := socket.receive_json())["type"] != "chat.generation.failed":
+            assert event["type"] != "chat.error"
+        assert event["code"] == "ATTACHMENT_INCOMPATIBLE"
+    messages = client.get(
+        f"/api/v1/conversations/{payload['conversationId']}/messages", auth=AUTH
+    ).json()["messages"]
+    assert messages[0]["id"] == payload["inputMessageId"]
+    assert messages[0]["attachments"][0]["id"] == image.json()["id"]
+    assert messages[1]["status"] == "failed"
+    assert not simulator.calls
 
     # A corrupt row cannot route image data through the text contract, even with vision.
     payload["modelId"] = "fixture-beta"
+    payload["requestId"] = str(uuid4())
+    payload["assistantMessageId"] = str(uuid4())
+    payload["conversationVersion"] = client.get(
+        f"/api/v1/conversations/{payload['conversationId']}", auth=AUTH
+    ).json()["version"]
     database = cast(ModelDatabase, cast(FastAPI, client.app).state.chat_database)
 
     async def inconsistent_extraction() -> None:
@@ -243,7 +257,10 @@ def test_pdf_extraction_and_image_storage_do_not_authorize_text_only_models(
     ) as socket:
         socket.receive_json()
         socket.send_json(payload)
-        assert socket.receive_json()["code"] == "ATTACHMENT_INCOMPATIBLE"
+        event = socket.receive_json()
+        assert event["type"] == "chat.error"
+        assert event["code"] == "ATTACHMENT_INCOMPATIBLE"
+    assert not simulator.calls
 
 
 def test_websocket_binding_reconstructs_context_and_preserves_download_after_reload(
@@ -339,11 +356,24 @@ def test_image_provider_input_and_history_survive_reload_without_websocket_binar
     ) as socket:
         socket.receive_json()
         socket.send_json(followup)
-        assert socket.receive_json()["code"] == "ATTACHMENT_INCOMPATIBLE"
+        while (event := socket.receive_json())["type"] != "chat.generation.failed":
+            assert event["type"] != "chat.error"
+        assert event["code"] == "ATTACHMENT_INCOMPATIBLE"
     assert len(simulator.calls) == before
+    messages = client.get(path + "/messages", auth=AUTH).json()["messages"]
+    assert any(message["id"] == followup["inputMessageId"] for message in messages)
+    assert (
+        next(message for message in messages if message["id"] == followup["assistantMessageId"])[
+            "status"
+        ]
+        == "failed"
+    )
 
     # A compatible follow-up receives the original image again from owned storage.
     followup["modelId"] = "fixture-beta"
+    followup["requestId"] = str(uuid4())
+    followup["assistantMessageId"] = str(uuid4())
+    followup["conversationVersion"] = client.get(path, auth=AUTH).json()["version"]
     with client.websocket_connect(
         "/api/v1/chat/ws", subprotocols=protocols(client), headers=ORIGIN.copy()
     ) as socket:
@@ -352,6 +382,8 @@ def test_image_provider_input_and_history_survive_reload_without_websocket_binar
         while socket.receive_json()["type"] != "chat.generation.completed":
             pass
     assert isinstance(simulator.calls[-1][0], VisionMessage)
+    messages = client.get(path + "/messages", auth=AUTH).json()["messages"]
+    assert len([message for message in messages if message["role"] == "user"]) == 2
 
 
 def test_tampered_image_storage_fails_before_provider_generation(

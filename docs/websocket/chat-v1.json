@@ -472,6 +472,11 @@
               ],
               "default": null
             },
+            "sidebarVisible": {
+              "default": true,
+              "title": "Sidebarvisible",
+              "type": "boolean"
+            },
             "title": {
               "title": "Title",
               "type": "string"

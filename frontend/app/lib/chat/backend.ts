@@ -93,7 +93,7 @@ export class ChatBackend {
   ensure(conversation: Conversation): Promise<number> {
     return this.enqueue(async () => {
       if (!this.versions.has(conversation.id)) {
-        const value = await this.request<ServerConversation>('/conversations', 'POST', { id: conversation.id, title: conversation.title, conversationMode: conversation.conversationMode ?? 'normal', reasoningPreference: conversation.reasoningPreference ?? null })
+        const value = await this.request<ServerConversation>('/conversations', 'POST', { id: conversation.id, title: conversation.title, prepared: conversation.sidebarVisible === false, conversationMode: conversation.conversationMode ?? 'normal', reasoningPreference: conversation.reasoningPreference ?? null })
         this.versions.set(value.id, Math.max(value.version, this.versions.get(value.id) ?? 0))
       }
       return this.versions.get(conversation.id)!

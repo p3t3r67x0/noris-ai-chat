@@ -20,6 +20,14 @@ async function pause(page: Page) {
   await page.clock.install()
   await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 100))
 }
+async function completeAnswer(page: Page): Promise<void> {
+  // Stop virtual time at completion so the existing delayed title is still pending.
+  for (let step = 0; step < 60; step++) {
+    await page.clock.runFor(100)
+    if (await page.locator('[data-generation-status="completed"]').count()) return
+  }
+  await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
+}
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true', { timeout: 15_000 })
@@ -31,6 +39,10 @@ test('mock fallback updates asynchronously, retains row geometry and survives sw
   await sidebar(page)
   await pause(page)
   await send(page, 'Welche Vorteile bietet Rust gegenüber C++?')
+  await page.clock.runFor(500)
+  await expect(page.locator('[data-generation-status="streaming"]')).toBeAttached()
+  await expect(page.locator('.conversation-row')).toHaveCount(0)
+  await completeAnswer(page)
   await sidebar(page)
   const row = page.getByRole('navigation', { name: 'Gespräche' }).locator('.conversation-row').first()
   await expect(row.locator('button').first()).toHaveAttribute('title', 'Rust vs. C++')
@@ -39,7 +51,7 @@ test('mock fallback updates asynchronously, retains row geometry and survives sw
   await page.clock.runFor(800)
   await expect(row.locator('button').first()).toHaveAttribute('title', 'Rust vs. C++')
   await expect(row.locator('span[data-title-source]')).toHaveAttribute('data-title-source', 'generated')
-  await expect(page.locator('[data-generation-status="streaming"]')).toBeAttached()
+  await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   const after = await row.boundingBox()
   expect(after!.width).toBeCloseTo(before!.width, 0)
   expect(after!.height).toBeCloseTo(before!.height, 0)
@@ -67,7 +79,7 @@ test('mock fallback updates asynchronously, retains row geometry and survives sw
 test('manual rename wins while the synthetic title is pending', async ({ page }) => {
   await pause(page)
   await send(page, 'Warum funktioniert Docker DNS nicht?')
-  await page.clock.runFor(500)
+  await completeAnswer(page)
   await sidebar(page)
   await openChatActions(page, 'Docker DNS-Probleme')
   await page.getByRole('menuitem', { name: 'Umbenennen' }).click()
@@ -80,10 +92,10 @@ test('manual rename wins while the synthetic title is pending', async ({ page })
   expect(sources).toEqual(['manual'])
 })
 
-test('deletion while generating never revives a conversation', async ({ page }) => {
+test('deletion while title generation is pending never revives a conversation', async ({ page }) => {
   await pause(page)
   await send(page, 'Warum funktioniert Docker DNS nicht?')
-  await page.clock.runFor(500)
+  await completeAnswer(page)
   await sidebar(page)
   await openChatActions(page, 'Docker DNS-Probleme')
   await page.getByRole('menuitem', { name: 'Löschen', exact: true }).click()
@@ -157,16 +169,19 @@ for (const size of [{ width: 1920, height: 975 }, { width: 1440, height: 900 }, 
   })
 }
 
-test('the acceptance prompt produces a complete thematic title during streaming', async ({ page }) => {
+test('the acceptance prompt produces a complete thematic title after the response', async ({ page }) => {
   await pause(page)
   await send(page, 'Kannst du mir helfen, eine automatische Chat-Titelgenerierung für Noris AI zu implementieren und dabei die bestehende Architektur zu erhalten?')
+  await page.clock.runFor(500)
+  await expect(page.locator('.conversation-row')).toHaveCount(0)
+  await completeAnswer(page)
   await sidebar(page)
   const row = page.getByRole('navigation', { name: 'Gespräche' }).locator('.conversation-row').first()
   await expect(row.locator('button').first()).toHaveText('Automatische Chat-Titel')
   await expect(row.locator('span[data-title-source]')).toHaveAttribute('data-title-source', 'fallback')
   await page.clock.runFor(800)
   await expect(row.locator('span[data-title-source]')).toHaveAttribute('data-title-source', 'generated')
-  await expect(page.locator('[data-generation-status="streaming"]')).toBeAttached()
+  await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   await page.clock.runFor(4000)
   await page.clock.resume()
   await page.reload()

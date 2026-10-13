@@ -30,7 +30,7 @@ Pin-Aktionen werden erst nach bestätigtem Server-Update angezeigt. Doppelte gle
 
 ## Migration und API
 
-`0012_conversation_pinning` ergänzt `chat_conversation.pinned_at TIMESTAMPTZ NULL` sowie einen partiellen Index auf `(owner_id, pinned_at DESC, id DESC)` für nicht gelöschte, nicht archivierte, fixierte Chats. Bestehende Daten werden nicht umgeschrieben. Readiness erwartet die neue Migration.
+`0013_conversation_pinning` ergänzt `chat_conversation.pinned_at TIMESTAMPTZ NULL` sowie einen partiellen Index auf `(owner_id, pinned_at DESC, id DESC)` für nicht gelöschte, nicht archivierte, fixierte Chats. Bestehende Daten werden nicht umgeschrieben. Readiness erwartet die neue Migration.
 
 Die bestehende PATCH-API akzeptiert genau eine Änderung zusammen mit der vorhandenen Version:
 

@@ -22,25 +22,29 @@ test('shell is responsive, has a bounded composer and renders without client err
   expect(errors).toEqual([])
 })
 
-test('sidebar opens, creates a chat, collapses and restores navigation', async ({ page }) => {
+test('sidebar opens a draft without a conversation row and restores navigation', async ({ page }) => {
   await page.goto('/')
   await openSidebar(page)
   const navigation = page.getByRole('navigation', { name: 'Gespräche' })
   await page.getByRole('button', { name: 'Neuer Chat', exact: true }).last().click()
+  await expect(page.getByRole('textbox', { name: 'Nachricht', exact: true })).toBeFocused()
   await openSidebar(page)
-  await expect(navigation.getByRole('button', { name: 'Neuer Chat', exact: true })).toHaveAttribute('aria-current', 'page')
+  await expect(navigation.locator('.conversation-row')).toHaveCount(0)
   await page.getByRole('button', { name: 'Gesprächsliste schließen' }).click()
   await expect(page.getByRole('button', { name: 'Sidebar öffnen', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Sidebar öffnen', exact: true }).click()
-  await expect(navigation.getByRole('button', { name: 'Neuer Chat', exact: true })).toBeVisible()
+  await expect(navigation.locator('.conversation-row')).toHaveCount(0)
 })
 
 test('conversation menu supports rename, search, archive and restore by keyboard', async ({ page }) => {
   await page.goto('/')
   await openSidebar(page)
   await page.getByRole('button', { name: 'Neuer Chat', exact: true }).last().click()
+  await page.getByRole('textbox', { name: 'Nachricht', exact: true }).fill('Docker Compose')
+  await page.getByRole('textbox', { name: 'Nachricht', exact: true }).press('Enter')
+  await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   await openSidebar(page)
-  await openChatActions(page, 'Neuer Chat')
+  await openChatActions(page, 'Docker Compose Einrichtung')
   await page.getByRole('menuitem', { name: 'Umbenennen' }).click()
   await page.getByRole('textbox', { name: 'Chat-Titel' }).fill('Meine Notizen')
   await page.getByRole('textbox', { name: 'Chat-Titel' }).press('Enter')

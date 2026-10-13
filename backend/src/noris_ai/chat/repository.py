@@ -36,6 +36,7 @@ from noris_ai.chat.schemas import (
 )
 from noris_ai.chat.ws_protocol import GenerateIncomingMessage
 from noris_ai.llm.schemas import ReasoningPreference
+from noris_ai.llm.titles import fallback_title
 
 ModelDatabase = async_sessionmaker[AsyncSession]
 UNCHANGED = object()
@@ -214,6 +215,7 @@ class ChatRepository:
         conversation_id: uuid.UUID | None = None,
         created_at: datetime | None = None,
         active_leaf_message_id: uuid.UUID | None = None,
+        sidebar_visible: bool = True,
     ) -> ChatConversation:
         created_id = conversation_id if conversation_id is not None else uuid.uuid4()
         values: dict[str, object] = {
@@ -224,6 +226,7 @@ class ChatRepository:
             "conversation_mode": conversation_mode,
             "reasoning_preference": reasoning_preference,
             "active_leaf_message_id": active_leaf_message_id,
+            "sidebar_visible": sidebar_visible,
         }
         if created_at is not None:
             values["created_at"] = created_at
@@ -272,6 +275,7 @@ class ChatRepository:
                 conversation.pinned_at = utc_now() if pinned else None
             if title is not None:
                 conversation.title = title
+                conversation.sidebar_visible = True
                 if title_source is not None:
                     conversation.title_source = title_source
             if archived is not None:
@@ -335,6 +339,7 @@ class ChatRepository:
                 return conversation
             conversation.title = title
             conversation.title_source = "generated"
+            conversation.sidebar_visible = True
             conversation.version += 1
             conversation.updated_at = utc_now()
             await session.commit()
@@ -600,8 +605,25 @@ class ChatRepository:
                 .where(ChatMessage.generation_id.in_(generation_ids))
                 .values(status="failed", updated_at=utc_now())
             )
+            for generation in await session.scalars(
+                select(ChatGeneration).where(ChatGeneration.id.in_(generation_ids))
+            ):
+                await self._reveal_conversation(session, generation)
             await session.commit()
             return count
+
+    async def _reveal_conversation(self, session: AsyncSession, generation: ChatGeneration) -> None:
+        conversation = await session.get(
+            ChatConversation, generation.conversation_id, with_for_update=True
+        )
+        if conversation is None or conversation.sidebar_visible:
+            return
+        first = await session.get(ChatMessage, generation.input_message_id)
+        if conversation.title_source == "fallback" and first is not None:
+            conversation.title = fallback_title(first.content)
+        conversation.sidebar_visible = True
+        conversation.version += 1
+        conversation.updated_at = utc_now()
 
     async def begin_generation(
         self,
@@ -893,6 +915,7 @@ class ChatRepository:
                 generation.started_at = utc_now()
             if status not in ("running", "queued"):
                 generation.completed_at = utc_now()
+                await self._reveal_conversation(session, generation)
             if status == "cancelled":
                 generation.cancelled_at = utc_now()
             message = await session.get(ChatMessage, generation.assistant_message_id)

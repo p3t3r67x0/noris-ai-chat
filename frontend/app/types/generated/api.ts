@@ -8,6 +8,7 @@ export type Id = string
 export type Lastmessageat = (string | null)
 export type Pinnedat = (string | null)
 export type ReasoningPreference = ("instant" | "medium" | "high" | "very_high" | "pro")
+export type Sidebarvisible = boolean
 export type Title = string
 export type Titlesource = ("fallback" | "generated" | "manual")
 export type Updatedat = string
@@ -123,6 +124,7 @@ export type Seq1 = number
 export type Type1 = "response.completed"
 export type Conversationmode2 = ("normal" | "learning")
 export type Id5 = (string | null)
+export type Prepared = boolean
 export type Title2 = (string | null)
 export type Conversations1 = ConversationResponse[]
 export type Hasmore1 = boolean
@@ -314,6 +316,7 @@ export interface ConversationResponse {
   lastMessageAt: Lastmessageat
   pinnedAt?: Pinnedat
   reasoningPreference?: (ReasoningPreference | null)
+  sidebarVisible?: Sidebarvisible
   title: Title
   titleSource: Titlesource
   updatedAt: Updatedat
@@ -455,6 +458,7 @@ export interface CompletedEvent {
 export interface ConversationCreate {
   conversationMode?: Conversationmode2
   id?: Id5
+  prepared?: Prepared
   reasoningPreference?: (ReasoningPreference | null)
   title?: Title2
 }

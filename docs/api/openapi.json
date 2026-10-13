@@ -525,6 +525,11 @@
             ],
             "title": "Id"
           },
+          "prepared": {
+            "default": false,
+            "title": "Prepared",
+            "type": "boolean"
+          },
           "reasoningPreference": {
             "anyOf": [
               {
@@ -664,6 +669,11 @@
                 "type": "null"
               }
             ]
+          },
+          "sidebarVisible": {
+            "default": true,
+            "title": "Sidebarvisible",
+            "type": "boolean"
           },
           "title": {
             "title": "Title",

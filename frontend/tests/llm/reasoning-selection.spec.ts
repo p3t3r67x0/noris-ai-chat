@@ -25,16 +25,31 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
       const modelMenu = page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true })
       await input.fill('Eine Frage\nmit Kontext')
       await expect(page.locator('.composer-container')).toHaveAttribute('data-layout', 'expanded')
-      const initialComposer = (await composer.boundingBox())!
-      const initialSend = (await send.boundingBox())!
-      async function geometry() {
+      async function fittedDraft(): Promise<void> {
+        // The expanded layout is reactive; its textarea height settles afterwards.
+        await expect.poll(() => input.evaluate((element: HTMLTextAreaElement) => element.clientHeight >= element.scrollHeight)).toBe(true)
+      }
+      await fittedDraft()
+      let initialComposer = (await composer.boundingBox())!
+      let initialSend = (await send.boundingBox())!
+      async function geometry(stablePosition = true) {
+        await fittedDraft()
         const box = (await composer.boundingBox())!
         const button = (await send.boundingBox())!
         expect(box.x).toBeCloseTo(initialComposer.x, 0)
         expect(box.width).toBeCloseTo(initialComposer.width, 0)
-        expect(box.y + box.height).toBeCloseTo(initialComposer.y + initialComposer.height, 0)
         expect(button.x).toBeCloseTo(initialSend.x, 0)
-        expect(button.y).toBeCloseTo(initialSend.y, 0)
+        if (stablePosition) {
+          expect(box.y + box.height).toBeCloseTo(initialComposer.y + initialComposer.height, 0)
+          expect(button.y).toBeCloseTo(initialSend.y, 0)
+        }
+        else {
+          // A growing empty composer remains grouped with the greeting.
+          const heading = (await page.locator('.empty-chat').boundingBox())!
+          expect(heading.y).toBeGreaterThanOrEqual(0)
+          expect(heading.y + heading.height).toBeLessThanOrEqual(box.y)
+          expect(box.y + box.height).toBeLessThanOrEqual(viewport.height)
+        }
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
         expect(await composer.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
       }
@@ -109,12 +124,18 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
       await expect(reasoning).toBeFocused()
       await input.fill('Eine Frage\nmit Kontext\nund weiteren Zeilen\nfür das Modell')
       await expect.poll(async () => (await composer.boundingBox())!.height).toBeGreaterThan(initialComposer.height)
-      await geometry()
+      await geometry(false)
       const glmCall = await submit(glm)
       expect(glmCall.model).toBe(glm)
       expect(glmCall.chat_template_kwargs).toEqual({ reasoning_effort: 'max' })
       expect(glmCall.reasoning_effort).toBeUndefined()
       await input.fill('Eine Frage\nmit Kontext')
+      await expect(page.locator('.empty-chat')).toBeHidden()
+      await expect(page.locator('.composer-container')).toHaveAttribute('data-layout', 'expanded')
+      await fittedDraft()
+      // After the first send, model/reasoning changes retain the bottom composer.
+      initialComposer = (await composer.boundingBox())!
+      initialSend = (await send.boundingBox())!
       await chooseModel('GPT-OSS 120B')
       await expect(page.getByRole('button', { name: 'Denkaufwand: Standard', exact: true })).toBeVisible()
       await geometry()
@@ -122,6 +143,9 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
       await expect(page.getByRole('menuitemcheckbox')).toHaveCount(4)
       await expect(page.getByRole('menuitemcheckbox', { name: /^(Sehr hoch|Pro) / })).toHaveCount(0)
       await page.getByRole('menuitemcheckbox', { name: /^Sofort / }).click()
+      await expect(page.getByRole('button', { name: 'Denkaufwand: Sofort', exact: true })).toBeVisible()
+      await page.keyboard.press('Escape')
+      await expect(page.locator('.reasoning-menu')).toBeHidden()
       const gptCall = await submit(gpt)
       expect(gptCall.reasoning_effort).toBe('low')
       expect(gptCall.chat_template_kwargs).toBeUndefined()

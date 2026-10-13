@@ -104,6 +104,7 @@ export type Id2 = string
 export type Lastmessageat = (string | null)
 export type Pinnedat = (string | null)
 export type ReasoningPreference = ("instant" | "medium" | "high" | "very_high" | "pro")
+export type Sidebarvisible = boolean
 export type Title = string
 export type Titlesource = ("fallback" | "generated" | "manual")
 export type Updatedat1 = string
@@ -280,6 +281,7 @@ export interface ConversationResponse {
   lastMessageAt: Lastmessageat
   pinnedAt?: Pinnedat
   reasoningPreference?: (ReasoningPreference | null)
+  sidebarVisible?: Sidebarvisible
   title: Title
   titleSource: Titlesource
   updatedAt: Updatedat1

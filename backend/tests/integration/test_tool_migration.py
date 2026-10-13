@@ -7,7 +7,17 @@ from uuid import uuid4
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import Connection, create_engine, func, insert, inspect, select, update
+from sqlalchemy import (
+    Connection,
+    MetaData,
+    Table,
+    create_engine,
+    func,
+    insert,
+    inspect,
+    select,
+    update,
+)
 from sqlalchemy.orm import Session
 
 from noris_ai.chat.models import (
@@ -22,27 +32,21 @@ from noris_ai.chat.models import (
 from noris_ai.tools.models import ToolApproval, ToolResult, ToolRun
 
 pytestmark = pytest.mark.integration
-LEGACY_TABLES = (
-    ChatConversation.__table__,
-    ChatMessage.__table__,
-    ChatGeneration.__table__,
-    ChatAttachment.__table__,
-    ChatStreamEvent.__table__,
-    ChatDraft.__table__,
-    ChatUserPreferences.__table__,
+LEGACY_MODELS = (
+    ChatConversation,
+    ChatMessage,
+    ChatGeneration,
+    ChatAttachment,
+    ChatStreamEvent,
+    ChatDraft,
+    ChatUserPreferences,
 )
 
 
-def legacy_rows(connection: Connection) -> list[list[tuple[object, ...]]]:
-    return [
-        [
-            tuple(row)
-            for row in connection.execute(
-                select(*(column for column in table.c if column.name != "pinned_at"))
-            ).all()
-        ]
-        for table in LEGACY_TABLES
-    ]
+def legacy_rows(
+    connection: Connection, tables: tuple[Table, ...]
+) -> list[list[tuple[object, ...]]]:
+    return [[tuple(row) for row in connection.execute(select(table)).all()] for table in tables]
 
 
 def test_tool_upgrade_repeat_drift_and_rollback_preserve_legacy_data(
@@ -52,10 +56,15 @@ def test_tool_upgrade_repeat_drift_and_rollback_preserve_legacy_data(
     engine = create_engine(os.environ["NORIS_TEST_DATABASE_URL"])
     owner, conversation, message, generation = uuid4(), uuid4(), uuid4(), uuid4()
     try:
+        # Freeze the schema being migrated; current ORM models include later columns.
+        metadata = MetaData()
+        legacy_tables = tuple(
+            Table(model.__tablename__, metadata, autoload_with=engine) for model in LEGACY_MODELS
+        )
+        conversation_table = legacy_tables[0]
         with Session(engine) as session, session.begin():
-            # Seed the historical schema without inserting newer ORM columns.
             session.execute(
-                insert(ChatConversation).values(
+                insert(conversation_table).values(
                     id=conversation,
                     owner_id=owner,
                     title="Preserved generated title",
@@ -66,7 +75,6 @@ def test_tool_upgrade_repeat_drift_and_rollback_preserve_legacy_data(
                     version=7,
                 )
             )
-            session.flush()
             session.add(
                 ChatMessage(
                     id=message,
@@ -78,8 +86,8 @@ def test_tool_upgrade_repeat_drift_and_rollback_preserve_legacy_data(
             )
             session.flush()
             session.execute(
-                update(ChatConversation)
-                .where(ChatConversation.id == conversation)
+                update(conversation_table)
+                .where(conversation_table.c.id == conversation)
                 .values(active_leaf_message_id=message)
             )
             session.add(
@@ -124,12 +132,13 @@ def test_tool_upgrade_repeat_drift_and_rollback_preserve_legacy_data(
                 ]
             )
         with engine.connect() as connection:
-            before = legacy_rows(connection)
+            before = legacy_rows(connection, legacy_tables)
         command.upgrade(migration_config, "head")
         command.upgrade(migration_config, "head")
         command.check(migration_config)
         with engine.connect() as connection:
-            assert legacy_rows(connection) == before
+            assert legacy_rows(connection, legacy_tables) == before
+            assert connection.scalar(select(ChatConversation.sidebar_visible)) is True
             for model in (ToolRun, ToolResult, ToolApproval):
                 assert connection.scalar(select(func.count()).select_from(model)) == 0
         assert {"chat_tool_run", "chat_tool_result", "chat_tool_approval"} <= set(
@@ -137,7 +146,7 @@ def test_tool_upgrade_repeat_drift_and_rollback_preserve_legacy_data(
         )
         command.downgrade(migration_config, "0010_conversation_learning")
         with engine.connect() as connection:
-            assert legacy_rows(connection) == before
+            assert legacy_rows(connection, legacy_tables) == before
         assert "chat_tool_run" not in inspect(engine).get_table_names()
         command.upgrade(migration_config, "head")
         command.check(migration_config)

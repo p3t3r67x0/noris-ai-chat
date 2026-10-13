@@ -231,7 +231,7 @@ def test_pin_migration_preserves_existing_rows(migration_config: Config) -> None
 
     import psycopg
 
-    command.upgrade(migration_config, "0011_tool_foundation")
+    command.upgrade(migration_config, "0012_conversation_visibility")
     url = os.environ["NORIS_TEST_DATABASE_URL"].replace("postgresql+psycopg:", "postgresql:")
     with psycopg.connect(url) as connection:
         connection.execute(
@@ -241,9 +241,12 @@ def test_pin_migration_preserves_existing_rows(migration_config: Config) -> None
         )
     command.upgrade(migration_config, "head")
     with psycopg.connect(url) as connection:
-        assert connection.execute("SELECT title, pinned_at FROM chat_conversation").fetchone() == (
+        assert connection.execute(
+            "SELECT title, pinned_at, sidebar_visible FROM chat_conversation"
+        ).fetchone() == (
             "Before migration",
             None,
+            True,
         )
         assert connection.execute(
             "SELECT data_type FROM information_schema.columns "
@@ -252,5 +255,5 @@ def test_pin_migration_preserves_existing_rows(migration_config: Config) -> None
         assert connection.execute(
             "SELECT indexdef FROM pg_indexes WHERE indexname='ix_chat_conversation_pinned_seek'"
         ).fetchone()
-    command.downgrade(migration_config, "0011_tool_foundation")
+    command.downgrade(migration_config, "0012_conversation_visibility")
     command.upgrade(migration_config, "head")
