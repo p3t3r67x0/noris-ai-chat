@@ -60,6 +60,10 @@ test('learning mode uses PostgreSQL, existing attachments, branches and evidence
   await page.getByRole('button', { name: 'Denkaufwand: Hoch', exact: true }).click()
   await expect(page).toHaveScreenshot('learning-provider-reasoning.png', { animations: 'disabled', caret: 'hide' })
   await page.keyboard.press('Escape')
+  // Menu teardown restores focus asynchronously after its closing animation.
+  await expect(page.locator('.reasoning-menu')).toBeHidden()
+  await input.click()
+  await expect(input).toBeFocused()
   await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await input.press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
@@ -83,6 +87,7 @@ test('learning mode uses PostgreSQL, existing attachments, branches and evidence
   await page.getByRole('option', { name: /Fixture Beta/ }).click()
   await expect(page.locator('.composer-reasoning')).toHaveCount(0)
   await input.fill('Wie gehen wir weiter?')
+  // Switching to Beta clears the persisted reasoning preference before sending.
   await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await input.press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()

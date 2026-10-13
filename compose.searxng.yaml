@@ -1,0 +1,49 @@
+# Independent, opt-in search stack. Does not publish a host port or modify chat services.
+name: noris-searxng
+
+services:
+  searxng:
+    profiles: [search]
+    image: ${NORIS_SEARXNG_IMAGE:?Set an explicitly selected SearXNG image tag or digest}
+    restart: unless-stopped
+    user: "977:977"
+    environment:
+      SEARXNG_BASE_URL: http://searxng:8080/
+      SEARXNG_SECRET: ${SEARXNG_SECRET:?Set a generated secret outside the repository}
+      FORCE_OWNERSHIP: "false"
+      GRANIAN_WORKERS: "1"
+    volumes:
+      - type: bind
+        source: ${NORIS_SEARXNG_CONFIG_DIR:?Set an external directory containing settings.yml}
+        target: /etc/searxng
+        read_only: true
+        bind:
+          create_host_path: false
+      - searxng_cache:/var/cache/searxng
+    networks: [search]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    cpus: "1.0"
+    mem_limit: 512m
+    pids_limit: 128
+    healthcheck:
+      test: [CMD, /usr/local/searxng/.venv/bin/python, -c, "import urllib.request; r = urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=3); assert r.status == 200"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+networks:
+  search:
+    name: ${NORIS_SEARXNG_NETWORK:-noris-searxng}
+    driver: bridge
+    # Egress is necessary for upstream search engines. No published ingress port.
+
+volumes:
+  searxng_cache:

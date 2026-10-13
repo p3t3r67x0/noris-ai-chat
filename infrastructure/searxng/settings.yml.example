@@ -1,0 +1,21 @@
+# Copy outside the checkout; the running service mounts only that external copy.
+use_default_settings: true
+
+general:
+  debug: false
+  instance_name: "noris AI Search"
+
+search:
+  safe_search: 1
+  default_lang: de
+  formats: [html, json]
+
+server:
+  limiter: false
+  public_instance: false
+  image_proxy: false
+  # secret_key is supplied by SEARXNG_SECRET, never stored here.
+
+outgoing:
+  request_timeout: 8
+  max_request_timeout: 10
