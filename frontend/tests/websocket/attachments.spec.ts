@@ -41,6 +41,7 @@ test('native multiple selection persists previews, layout and server context thr
   await page.reload()
   await expect(page.locator('[data-upload-status="uploaded"]')).toHaveCount(2)
   await expect(input).toHaveValue('Summarize the synthetic attachments')
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await input.press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   await expect(page.locator('.message-attachments a')).toHaveCount(2)

@@ -30,7 +30,7 @@ Pin-Aktionen werden erst nach bestätigtem Server-Update angezeigt. Doppelte gle
 
 ## Migration und API
 
-`0013_conversation_pinning` ergänzt `chat_conversation.pinned_at TIMESTAMPTZ NULL` sowie einen partiellen Index auf `(owner_id, pinned_at DESC, id DESC)` für nicht gelöschte, nicht archivierte, fixierte Chats. Bestehende Daten werden nicht umgeschrieben. Readiness erwartet die neue Migration.
+`0013_conversation_pinning` ergänzt `chat_conversation.pinned_at TIMESTAMPTZ NULL` sowie einen partiellen Index auf `(owner_id, pinned_at DESC, id DESC)` für nicht gelöschte, nicht archivierte, fixierte Chats. Die Migration folgt auf `0012_conversation_visibility` aus `main`. Bestehende Daten und der Sichtbarkeitsstatus vorbereiteter Chats werden beim Upgrade und beim Rollback erhalten. Readiness erwartet die neue Migration.
 
 Die bestehende PATCH-API akzeptiert genau eine Änderung zusammen mit der vorhandenen Version:
 
@@ -74,8 +74,8 @@ Neue Tests decken direkte Aktionen, Gruppierung, Sortierung, Duplikate, Versions
 | Nuxt / Vue-tsc / Tools-TypeScript / Pyright | Bestanden |
 | API-Drift-Check | Bestanden |
 | Backend Unit / Contract / lokale LLM-Integration | 516 bestanden |
-| PostgreSQL-Integration, vollständige Suite | 111 bestanden, 8 bestehende Proxy-Tests übersprungen |
-| Frontend Unit, vollständige Suite | 458 bestanden, 6 auf `main` reproduzierte Fehler |
+| PostgreSQL-Integration, vollständige Suite | 124 bestanden, einschließlich aller Caddy-/nginx-Proxy-Tests |
+| Frontend Unit, vollständige Suite | 467 bestanden; zusätzlicher Sichtbarkeits-/Pin-Regressionsfall separat bestanden |
 | Gezielte Sidebar-/Import-Unit-Tests | 63 bestanden |
 | Playwright Mock, zwei breitere Regressionstestläufe | 170 beziehungsweise 86 bestanden; teilweise überlappende Fälle |
 | Finale Playwright-Geometrie-/Screenshot-Matrix | 8 bestanden |
@@ -84,6 +84,6 @@ Neue Tests decken direkte Aktionen, Gruppierung, Sortierung, Duplikate, Versions
 | Playwright Löschfehler / Retry / Benachrichtigung | 1 bestanden |
 | Produktionsbuild Nuxt / Python-Paket | Bestanden |
 
-Auf unverändertem `main` (`04241a127f1b5a8f8d3eda643e424af09ad22262`) reproduzieren sich sechs vorhandene Frontend-Unit-Fehler in `conversation-titles.spec.ts` (Fehlertext nach Proxy-Ausfall) und `long-responses.spec.ts` (vier Fehlermeldungen und eine Fortsetzungsanzeige). Ein separater Produktionsbuild dieses `main` reproduziert außerdem sechs WebSocket-Playwright-Fehler: je Desktop/Mobile zwei alte Fehlertext-Erwartungen in `pagination.spec.ts` sowie ein mehrdeutiger Retry-Button-Selektor in `persistent-chat.spec.ts` (Nachricht und Benachrichtigung). Diese liegen außerhalb der Sidebar-Änderung. Acht bestehende Proxy-Integrationstests benötigen Caddy/nginx/openssl und werden ohne diese Voraussetzungen übersprungen.
+Beim Abgleich mit `main` (`06c9301`) wurden die bisherigen Testkorrekturen für das aktuelle Benachrichtigungssystem übernommen. Vorbereitete Chats bleiben auch bei vorhandenem Pin-Metadatum unsichtbar, bis eine aktuelle Serverrevision sie freigibt; veraltete Events überschreiben diesen Zustand nicht. Der Touch-Geometrietest berücksichtigt ausschließlich numerische Chromium-Rundungen mit 0,01 CSS-Pixel Toleranz. Ein Reload-Test wartet vor Enter auf den sendebereiten Composer.
 
 In der lokalen Demo bleibt die vorhandene lokale Speicherung bestehen. Der WebSocket-/Produktionsmodus verwendet ausschließlich PostgreSQL für Fixierungen. Die Migration wurde nur in separat angelegten lokalen Testdatenbanken ausgeführt; es gibt keine Produktivserveränderung und keinen automatischen Merge.

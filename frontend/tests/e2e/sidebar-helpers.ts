@@ -1,7 +1,8 @@
 import type { Page } from '@playwright/test'
 
 export function conversationRow(page: Page, title: string) {
-  return page.locator('.conversation-row:visible').filter({ has: page.getByRole('button', { name: title, exact: true }) })
+  // The fitted caption can shorten on hover; the authoritative title stays stable.
+  return page.locator('.conversation-row:visible').filter({ has: page.getByTitle(title, { exact: true }) })
 }
 export function chatActions(page: Page, title: string) {
   return conversationRow(page, title).getByRole('button', { name: 'Chat-Aktionen', exact: true })

@@ -235,8 +235,9 @@ def test_pin_migration_preserves_existing_rows(migration_config: Config) -> None
     url = os.environ["NORIS_TEST_DATABASE_URL"].replace("postgresql+psycopg:", "postgresql:")
     with psycopg.connect(url) as connection:
         connection.execute(
-            "INSERT INTO chat_conversation (id, owner_id, title, title_source, version) "
-            "VALUES (%s, %s, 'Before migration', 'manual', 1)",
+            "INSERT INTO chat_conversation "
+            "(id, owner_id, title, title_source, version, sidebar_visible) "
+            "VALUES (%s, %s, 'Before migration', 'manual', 1, false)",
             (uuid.UUID(int=1), OWNER),
         )
     command.upgrade(migration_config, "head")
@@ -246,7 +247,7 @@ def test_pin_migration_preserves_existing_rows(migration_config: Config) -> None
         ).fetchone() == (
             "Before migration",
             None,
-            True,
+            False,
         )
         assert connection.execute(
             "SELECT data_type FROM information_schema.columns "
@@ -256,4 +257,15 @@ def test_pin_migration_preserves_existing_rows(migration_config: Config) -> None
             "SELECT indexdef FROM pg_indexes WHERE indexname='ix_chat_conversation_pinned_seek'"
         ).fetchone()
     command.downgrade(migration_config, "0012_conversation_visibility")
+    with psycopg.connect(url) as connection:
+        assert connection.execute(
+            "SELECT title, sidebar_visible FROM chat_conversation"
+        ).fetchone() == ("Before migration", False)
+        assert (
+            connection.execute(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name='chat_conversation' AND column_name='pinned_at'"
+            ).fetchone()
+            is None
+        )
     command.upgrade(migration_config, "head")
