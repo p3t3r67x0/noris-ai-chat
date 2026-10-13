@@ -12,6 +12,7 @@ from noris_ai.chat.attachments import AttachmentService
 from noris_ai.chat.repository import ChatRepository
 from noris_ai.core.config import EnvironmentSettings
 from noris_ai.main import create_app
+from noris_ai.tools.repository import ToolRepository
 
 
 class FixedProbe:
@@ -30,6 +31,9 @@ async def test_attachment_cleanup_exits_when_driver_wraps_shutdown_cancellation(
     async def recovered(self: ChatRepository, owner: UUID) -> None:
         return None
 
+    async def recovered_tools(self: ToolRepository, owner: UUID) -> None:
+        return None
+
     async def clean(self: AttachmentService) -> None:
         started.set()
         try:
@@ -38,6 +42,7 @@ async def test_attachment_cleanup_exits_when_driver_wraps_shutdown_cancellation(
             raise SQLAlchemyError("Synthetic wrapped driver cancellation") from None
 
     monkeypatch.setattr(ChatRepository, "mark_running_generations_interrupted", recovered)
+    monkeypatch.setattr(ToolRepository, "recover", recovered_tools)
     monkeypatch.setattr(AttachmentService, "cleanup", clean)
     application = create_app(EnvironmentSettings(environment="test"), FixedProbe(True))
     async with asyncio.timeout(1):

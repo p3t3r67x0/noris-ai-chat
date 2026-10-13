@@ -1,19 +1,35 @@
 """Short, owner-scoped transactions; no dispatch, network or policy bypass."""
 
+import json
+from datetime import datetime, timedelta
 from typing import cast
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from noris_ai.chat.models import ChatConversation, ChatGeneration
 from noris_ai.chat.repository import ModelDatabase, utc_now
+from noris_ai.tools.api_schemas import ToolApprovalResponse, ToolRunResponse
+from noris_ai.tools.budget import (
+    DIMENSIONS,
+    BudgetAmount,
+    BudgetCoordinator,
+    BudgetReservation,
+    bound_transaction,
+    lock_owner,
+)
 from noris_ai.tools.errors import ToolError, ToolErrorCode
-from noris_ai.tools.models import ToolResult, ToolRun
+from noris_ai.tools.models import ToolApproval, ToolResult, ToolRun
+from noris_ai.tools.policy import ToolPolicy
 from noris_ai.tools.registry import ToolRegistry, canonical_payload, payload_digest
 from noris_ai.tools.schemas import (
     TERMINAL_STATES,
+    ApprovalState,
+    SearchResult,
+    SourceDocument,
     ToolRunCreate,
+    ToolRunSnapshot,
     ToolRunState,
     check_transition,
 )
@@ -32,15 +48,21 @@ class ToolRepository:
         generation_id: UUID,
         *,
         write: bool,
+        finalizing: bool = False,
     ) -> ChatGeneration:
+        if write:
+            await bound_transaction(session)
         # Same lock order as ChatRepository: conversation -> generation -> run.
         query = select(ChatConversation).where(
             ChatConversation.id == conversation_id,
             ChatConversation.owner_id == owner_id,
-            ChatConversation.deleted_at.is_(None),
         )
+        if not finalizing:
+            query = query.where(ChatConversation.deleted_at.is_(None))
         conversation = await session.scalar(query.with_for_update() if write else query)
-        if conversation is None or (write and conversation.archived_at is not None):
+        if conversation is None or (
+            write and not finalizing and conversation.archived_at is not None
+        ):
             raise ToolError("TOOL_NOT_FOUND")
         generation_query = select(ChatGeneration).where(
             ChatGeneration.id == generation_id,
@@ -61,6 +83,7 @@ class ToolRepository:
         run_id: UUID,
         *,
         write: bool,
+        finalizing: bool = False,
     ) -> tuple[ToolRun, ChatGeneration]:
         run = await session.scalar(
             select(ToolRun).where(
@@ -76,6 +99,7 @@ class ToolRepository:
             run.conversation_id,
             run.generation_id,
             write=write,
+            finalizing=finalizing,
         )
         if write:
             # Re-read after acquiring the scope locks: another transaction may have finished it.
@@ -89,11 +113,16 @@ class ToolRepository:
                 raise ToolError("TOOL_NOT_FOUND")
         return run, generation
 
-    async def _live_parent(self, session: AsyncSession, run: ToolRun) -> None:
+    async def _live_parent(self, session: AsyncSession, run: ToolRun) -> datetime | None:
         if run.parent_run_id is not None:
             parent = await session.get(ToolRun, run.parent_run_id)
             if parent is None or parent.state in TERMINAL_STATES or parent.cancel_requested_at:
                 raise ToolError("TOOL_STATE_CONFLICT")
+            deadline = min(parent.deadline_at, parent.execution_deadline_at or parent.deadline_at)
+            if deadline <= utc_now():
+                raise ToolError("TOOL_TIMEOUT")
+            return deadline
+        return None
 
     async def create_run(
         self,
@@ -177,6 +206,19 @@ class ToolRepository:
             run, _ = await self._run(session, owner_id, run_id, write=False)
             return run
 
+    async def check_live(self, owner: UUID, run_id: UUID) -> None:
+        async with self._database() as session:
+            run, generation = await self._run(session, owner, run_id, write=False)
+            conversation = await session.get(ChatConversation, run.conversation_id)
+            if (
+                run.cancel_requested_at
+                or generation.status not in ("queued", "running")
+                or conversation is None
+                or conversation.archived_at is not None
+            ):
+                raise ToolError("TOOL_CANCELLED")
+            await self._live_parent(session, run)
+
     async def get_result(self, owner_id: UUID, run_id: UUID) -> ToolResult | None:
         async with self._database() as session:
             await self._run(session, owner_id, run_id, write=False)
@@ -222,10 +264,25 @@ class ToolRepository:
             await session.flush()
             return run
 
-    async def complete(self, owner_id: UUID, run_id: UUID, payload: bytes) -> ToolResult:
+    async def complete(
+        self,
+        owner_id: UUID,
+        run_id: UUID,
+        payload: bytes,
+        *,
+        execution_id: UUID | None = None,
+        policy: ToolPolicy | None = None,
+    ) -> ToolResult:
         async with self._database() as session, session.begin():
+            await lock_owner(session, owner_id)
             run, generation = await self._run(session, owner_id, run_id, write=True)
+            if run.execution_id != execution_id:
+                raise ToolError("TOOL_STATE_CONFLICT")
             definition = self._registry.get(run.tool_id)
+            if policy is not None:
+                permission = policy.require(definition, run)
+                if run.policy_snapshot != permission.snapshot(definition.permission):
+                    raise ToolError("TOOL_FORBIDDEN")
             value = definition.validate_output(payload)
             digest = payload_digest(canonical_payload(value))
             if run.state == "succeeded":
@@ -237,7 +294,7 @@ class ToolRepository:
             if generation.status not in ("queued", "running") or run.cancel_requested_at:
                 raise ToolError("TOOL_STATE_CONFLICT")
             await self._live_parent(session, run)
-            if run.deadline_at <= utc_now():
+            if min(run.deadline_at, run.execution_deadline_at or run.deadline_at) <= utc_now():
                 raise ToolError("TOOL_TIMEOUT")
             result = ToolResult(
                 run_id=run_id,
@@ -249,5 +306,497 @@ class ToolRepository:
             session.add(result)
             run.state = "succeeded"
             run.finished_at = utc_now()
+            if run.reservation_id is not None:
+                reservation = await session.scalar(
+                    select(BudgetReservation).where(BudgetReservation.id == run.reservation_id)
+                )
+                if reservation is None:
+                    raise ToolError("TOOL_STATE_CONFLICT")
+                await BudgetCoordinator(self._database).settle_in(
+                    session, reservation, unused=False
+                )
             await session.flush()
             return result
+
+    async def claim(self, owner: UUID, run_id: UUID, policy: ToolPolicy) -> ToolRun:
+        async with self._database() as session, session.begin():
+            await lock_owner(session, owner)
+            run, generation = await self._run(session, owner, run_id, write=True)
+            definition = self._registry.get(run.tool_id)
+            permission = policy.require(definition, run)
+            if run.state not in ("queued", "awaiting_approval"):
+                raise ToolError("TOOL_STATE_CONFLICT")
+            if run.cancel_requested_at or generation.status not in ("queued", "running"):
+                raise ToolError("TOOL_CANCELLED")
+            if run.deadline_at <= utc_now():
+                raise ToolError("TOOL_TIMEOUT")
+            parent_deadline = await self._live_parent(session, run)
+            if permission.decision == "approval_required":
+                approval = await session.scalar(
+                    select(ToolApproval).where(ToolApproval.run_id == run.id).with_for_update()
+                )
+                if approval is None or approval.state == "pending":
+                    raise ToolError("APPROVAL_REQUIRED")
+                if approval.expires_at <= utc_now() or approval.state == "expired":
+                    raise ToolError("APPROVAL_EXPIRED")
+                if (
+                    approval.state != "approved"
+                    or approval.owner_id != owner
+                    or approval.input_digest != run.input_digest
+                    or approval.provider_key != permission.provider_key
+                    or approval.config_version != permission.config_version
+                    or approval.permission_scope != definition.permission
+                    or approval.max_calls < 1
+                    or approval.max_cost < permission.per_call.cost
+                    or approval.currency != permission.currency
+                ):
+                    raise ToolError("TOOL_FORBIDDEN")
+                run.approval_id = approval.id
+            prior = list(
+                await session.scalars(
+                    select(BudgetReservation)
+                    .join(ToolRun, ToolRun.id == BudgetReservation.run_id)
+                    .where(
+                        ToolRun.owner_id == owner,
+                        ToolRun.generation_id == run.generation_id,
+                        BudgetReservation.state != "released",
+                    )
+                )
+            )
+            if any(r.currency != permission.currency for r in prior):
+                raise ToolError("BUDGET_LIMIT")
+            total = BudgetAmount(
+                **{
+                    k: sum(getattr(r, k) for r in prior) + getattr(permission.per_call, k)
+                    for k in DIMENSIONS
+                }
+            )
+            if not total.fits(permission.generation_limit):
+                raise ToolError("BUDGET_LIMIT")
+            reservation = await BudgetCoordinator(self._database).reserve_in(
+                session,
+                owner,
+                "tools",
+                str(run.id),
+                1,
+                run.input_digest,
+                permission.per_call,
+                permission.daily_limit,
+                permission.currency,
+                run_id=run.id,
+            )
+            if reservation.state != "reserved":
+                raise ToolError("TOOL_STATE_CONFLICT")
+            run.reservation_id = reservation.id
+            run.execution_id = uuid4()
+            run.execution_deadline_at = min(
+                run.deadline_at,
+                utc_now() + timedelta(seconds=definition.timeout_policy.total_seconds),
+                parent_deadline or run.deadline_at,
+            )
+            run.policy_snapshot = permission.snapshot(definition.permission)
+            run.state, run.started_at = "running", utc_now()
+            await session.flush()
+            return run
+
+    async def dispatch(
+        self,
+        owner: UUID,
+        run_id: UUID,
+        execution_id: UUID,
+        policy: ToolPolicy,
+        *,
+        retry: bool = False,
+    ) -> ToolRun:
+        async with self._database() as session, session.begin():
+            await lock_owner(session, owner)
+            run, generation = await self._run(session, owner, run_id, write=True)
+            definition = self._registry.get(run.tool_id)
+            permission = policy.require(definition, run)
+            if run.state != "running" or run.execution_id != execution_id:
+                raise ToolError("TOOL_STATE_CONFLICT")
+            if run.policy_snapshot != permission.snapshot(definition.permission):
+                raise ToolError("TOOL_FORBIDDEN")
+            if run.cancel_requested_at or generation.status not in ("queued", "running"):
+                raise ToolError("TOOL_CANCELLED")
+            if min(run.deadline_at, run.execution_deadline_at or run.deadline_at) <= utc_now():
+                raise ToolError("TOOL_TIMEOUT")
+            await self._live_parent(session, run)
+            if permission.decision == "approval_required":
+                approval = await session.scalar(
+                    select(ToolApproval).where(ToolApproval.run_id == run.id)
+                )
+                calls = 2 if retry else 1
+                if approval is None or approval.expires_at <= utc_now():
+                    raise ToolError("APPROVAL_EXPIRED")
+                if (
+                    approval.state != "approved"
+                    or approval.owner_id != owner
+                    or approval.input_digest != run.input_digest
+                    or approval.provider_key != permission.provider_key
+                    or approval.config_version != permission.config_version
+                    or approval.permission_scope != definition.permission
+                    or approval.currency != permission.currency
+                    or approval.max_calls < calls
+                    or approval.max_cost < permission.per_call.cost * calls
+                ):
+                    raise ToolError("TOOL_FORBIDDEN")
+            reservation = await session.scalar(
+                select(BudgetReservation).where(BudgetReservation.id == run.reservation_id)
+            )
+            if reservation is None:
+                raise ToolError("TOOL_STATE_CONFLICT")
+            if retry:
+                if (
+                    run.attempt != 1
+                    or definition.retry_policy.max_retries != 1
+                    or not definition.retry_policy.idempotent
+                ):
+                    raise ToolError("TOOL_FORBIDDEN")
+                prior = list(
+                    await session.scalars(
+                        select(BudgetReservation)
+                        .join(ToolRun, ToolRun.id == BudgetReservation.run_id)
+                        .where(
+                            ToolRun.owner_id == owner,
+                            ToolRun.generation_id == run.generation_id,
+                            BudgetReservation.state != "released",
+                        )
+                    )
+                )
+                total = BudgetAmount(
+                    **{
+                        k: sum(getattr(r, k) for r in prior) + getattr(permission.per_call, k)
+                        for k in DIMENSIONS
+                    }
+                )
+                if not total.fits(permission.generation_limit):
+                    raise ToolError("BUDGET_LIMIT")
+                await BudgetCoordinator(self._database).settle_in(
+                    session, reservation, unused=False
+                )
+                reservation = await BudgetCoordinator(self._database).reserve_in(
+                    session,
+                    owner,
+                    "tools",
+                    str(run.id),
+                    2,
+                    run.input_digest,
+                    permission.per_call,
+                    permission.daily_limit,
+                    permission.currency,
+                    run_id=run.id,
+                )
+                run.attempt = 2
+                run.reservation_id = reservation.id
+            elif reservation.state != "reserved":
+                raise ToolError("TOOL_STATE_CONFLICT")
+            # Mark before network: crash here is conservatively a dispatched call.
+            reservation.state = "dispatched"
+            run.dispatched_at = utc_now()
+            await session.flush()
+            return run
+
+    async def approval_required(
+        self, owner: UUID, run_id: UUID, policy: ToolPolicy
+    ) -> ToolApproval:
+        async with self._database() as session, session.begin():
+            run, generation = await self._run(session, owner, run_id, write=True)
+            definition = self._registry.get(run.tool_id)
+            permission = policy.require(definition, run)
+            if (
+                permission.decision != "approval_required"
+                or run.state not in ("queued", "awaiting_approval")
+                or generation.status not in ("queued", "running")
+                or run.cancel_requested_at
+            ):
+                raise ToolError("TOOL_STATE_CONFLICT")
+            if run.deadline_at <= utc_now():
+                raise ToolError("TOOL_TIMEOUT")
+            await self._live_parent(session, run)
+            existing = await session.scalar(
+                select(ToolApproval).where(ToolApproval.run_id == run_id)
+            )
+            if existing is not None:
+                return existing
+            approval = ToolApproval(
+                owner_id=owner,
+                run_id=run_id,
+                input_digest=run.input_digest,
+                provider_key=permission.provider_key,
+                config_version=permission.config_version,
+                permission_scope=definition.permission,
+                max_calls=1 + definition.retry_policy.max_retries,
+                max_cost=permission.per_call.cost * (1 + definition.retry_policy.max_retries),
+                currency=permission.currency,
+                expires_at=min(run.deadline_at, utc_now() + timedelta(minutes=5)),
+            )
+            run.state = "awaiting_approval"
+            session.add(approval)
+            await session.flush()
+            return approval
+
+    async def decide(
+        self,
+        owner: UUID,
+        approval_id: UUID,
+        request_id: UUID,
+        digest: str,
+        decision: str,
+        *,
+        policy: ToolPolicy,
+    ) -> ToolApproval:
+        async with self._database() as session, session.begin():
+            await lock_owner(session, owner)
+            approval = await session.get(ToolApproval, approval_id)
+            if approval is None or approval.owner_id != owner:
+                raise ToolError("TOOL_NOT_FOUND")
+            run, generation = await self._run(session, owner, approval.run_id, write=True)
+            policy.require(self._registry.get(run.tool_id), run)
+            approval = await session.scalar(
+                select(ToolApproval)
+                .where(ToolApproval.id == approval_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+            if approval is None:
+                raise ToolError("TOOL_NOT_FOUND")
+            if approval.input_digest != digest:
+                raise ToolError("TOOL_CONFLICT")
+            target = "approved" if decision == "approve" else "denied"
+            if decision not in ("approve", "deny"):
+                raise ToolError("TOOL_INPUT_INVALID")
+            if approval.state != "pending":
+                if approval.decision_request_id == request_id and approval.state == target:
+                    return approval
+                raise ToolError(
+                    "APPROVAL_EXPIRED" if approval.state == "expired" else "TOOL_CONFLICT"
+                )
+            duplicate = await session.scalar(
+                select(ToolApproval).where(ToolApproval.decision_request_id == request_id)
+            )
+            if duplicate is not None:
+                raise ToolError("TOOL_CONFLICT")
+            if (
+                run.state != "awaiting_approval"
+                or run.cancel_requested_at
+                or generation.status not in ("queued", "running")
+            ):
+                raise ToolError("TOOL_STATE_CONFLICT")
+            if approval.expires_at <= utc_now() or run.deadline_at <= utc_now():
+                raise ToolError("APPROVAL_EXPIRED")
+            approval.state, approval.decided_at, approval.decision_request_id = (
+                target,
+                utc_now(),
+                request_id,
+            )
+            if target == "denied":
+                run.state, run.finished_at, run.error_code = "failed", utc_now(), "TOOL_FORBIDDEN"
+            await session.flush()
+            return approval
+
+    @staticmethod
+    def _approval_response(approval: ToolApproval) -> ToolApprovalResponse:
+        return ToolApprovalResponse(
+            id=approval.id,
+            runId=approval.run_id,
+            inputDigest=approval.input_digest,
+            permissionScope=approval.permission_scope,
+            provider=approval.provider_key,
+            configVersion=approval.config_version,
+            maxCalls=approval.max_calls,
+            maxCost=str(approval.max_cost),
+            currency=approval.currency,
+            state=cast(ApprovalState, approval.state),
+            expiresAt=approval.expires_at,
+            decidedAt=approval.decided_at,
+        )
+
+    async def public_approval(self, owner: UUID, approval_id: UUID) -> ToolApprovalResponse:
+        async with self._database() as session:
+            approval = await session.get(ToolApproval, approval_id)
+            if approval is None or approval.owner_id != owner:
+                raise ToolError("TOOL_NOT_FOUND")
+            await self._run(session, owner, approval.run_id, write=False)
+            return self._approval_response(approval)
+
+    async def public_snapshot(self, owner: UUID, run_id: UUID) -> ToolRunResponse:
+        async with self._database() as session, session.begin():
+            # Scope lock makes run/result/approval a consistent projection.
+            run, _ = await self._run(session, owner, run_id, write=False)
+            await session.execute(
+                select(ChatGeneration.id)
+                .where(ChatGeneration.id == run.generation_id)
+                .with_for_update()
+            )
+            run, _ = await self._run(session, owner, run_id, write=False)
+            await session.refresh(run)
+            result = await session.get(ToolResult, (run_id, 1))
+            output: SearchResult | SourceDocument | None = None
+            if result is not None:
+                value = self._registry.get(run.tool_id).validate_output(
+                    json.dumps(result.output).encode()
+                )
+                if isinstance(value, (SearchResult, SourceDocument)):
+                    output = value
+            approval = await session.scalar(
+                select(ToolApproval).where(ToolApproval.run_id == run.id)
+            )
+            snapshot = ToolRunSnapshot(
+                **{name: getattr(run, name) for name in ToolRunSnapshot.model_fields}
+            )
+            return ToolRunResponse(
+                run=snapshot,
+                latestResult=output,
+                errorCode=cast(ToolErrorCode | None, run.error_code),
+                approval=self._approval_response(approval) if approval is not None else None,
+            )
+
+    async def finalize(
+        self,
+        owner: UUID,
+        run_id: UUID,
+        state: ToolRunState,
+        code: ToolErrorCode,
+        *,
+        execution_id: UUID | None = None,
+        recovery: bool = False,
+    ) -> None:
+        async with self._database() as session, session.begin():
+            await lock_owner(session, owner)
+            run, _ = await self._run(session, owner, run_id, write=True, finalizing=True)
+            if run.state in TERMINAL_STATES or (not recovery and run.execution_id != execution_id):
+                return
+            check_transition(cast(ToolRunState, run.state), state)
+            run.state, run.error_code, run.finished_at = state, code, utc_now()
+            approvals = await session.scalars(
+                select(ToolApproval).where(
+                    ToolApproval.run_id == run.id, ToolApproval.state.in_(("pending", "approved"))
+                )
+            )
+            for approval in approvals:
+                approval.state, approval.decided_at = "expired", utc_now()
+            if run.reservation_id is not None:
+                reservation = await session.scalar(
+                    select(BudgetReservation).where(BudgetReservation.id == run.reservation_id)
+                )
+                if reservation is not None:
+                    await BudgetCoordinator(self._database).settle_in(
+                        session, reservation, unused=True, unknown=state == "outcome_unknown"
+                    )
+
+    async def cancel_runs(
+        self, owner: UUID, generation_id: UUID, *, root_id: UUID | None = None
+    ) -> set[UUID]:
+        async with self._database() as session, session.begin():
+            await lock_owner(session, owner)
+            runs = list(
+                await session.scalars(
+                    select(ToolRun)
+                    .where(ToolRun.owner_id == owner, ToolRun.generation_id == generation_id)
+                    .order_by(ToolRun.created_at)
+                )
+            )
+            selected = {r.id for r in runs} if root_id is None else {root_id}
+            while True:
+                children = {r.id for r in runs if r.parent_run_id in selected}
+                if children <= selected:
+                    break
+                selected |= children
+            active: set[UUID] = set()
+            for candidate in runs:
+                if candidate.id not in selected:
+                    continue
+                run, _ = await self._run(session, owner, candidate.id, write=True, finalizing=True)
+                if run.state in TERMINAL_STATES:
+                    continue
+                active.add(run.id)
+                run.cancel_requested_at = utc_now()
+                # Commit cancellation fence first. The worker closes network then finalizes.
+                if run.state != "running":
+                    run.state, run.finished_at, run.error_code = (
+                        "cancelled",
+                        utc_now(),
+                        "TOOL_CANCELLED",
+                    )
+                approvals = await session.scalars(
+                    select(ToolApproval).where(
+                        ToolApproval.run_id == run.id,
+                        ToolApproval.state.in_(("pending", "approved")),
+                    )
+                )
+                for approval in approvals:
+                    approval.state, approval.decided_at = "expired", utc_now()
+            return active
+
+    async def recover(self, owner: UUID) -> None:
+        async with self._database() as session:
+            rows = list(
+                await session.scalars(
+                    select(ToolRun).where(
+                        ToolRun.owner_id == owner, ToolRun.state.not_in(TERMINAL_STATES)
+                    )
+                )
+            )
+        for run in rows:
+            try:
+                definition = self._registry.get(run.tool_id)
+                unknown = run.dispatched_at is not None and not definition.retry_policy.idempotent
+            except ToolError:
+                unknown = run.dispatched_at is not None
+            await self.finalize(
+                owner,
+                run.id,
+                "outcome_unknown" if unknown else "interrupted",
+                "PROVIDER_OUTCOME_UNKNOWN" if unknown else "TOOL_INTERRUPTED",
+                recovery=True,
+            )
+        async with self._database() as session, session.begin():
+            approvals = await session.scalars(
+                select(ToolApproval).where(
+                    ToolApproval.owner_id == owner, ToolApproval.state.in_(("pending", "approved"))
+                )
+            )
+            for approval in approvals:
+                approval.state, approval.decided_at = "expired", utc_now()
+
+    async def expire_pending(self, owner: UUID) -> None:
+        async with self._database() as session:
+            rows = list(
+                await session.scalars(
+                    select(ToolRun).where(
+                        ToolRun.owner_id == owner,
+                        ToolRun.state.in_(("queued", "awaiting_approval")),
+                        ToolRun.deadline_at <= utc_now(),
+                    )
+                )
+            )
+        for run in rows:
+            await self.finalize(owner, run.id, "timed_out", "TOOL_TIMEOUT")
+        async with self._database() as session:
+            expired = list(
+                await session.scalars(
+                    select(ToolRun)
+                    .join(ToolApproval, ToolApproval.run_id == ToolRun.id)
+                    .where(
+                        ToolRun.owner_id == owner,
+                        ToolRun.state == "awaiting_approval",
+                        ToolApproval.expires_at <= utc_now(),
+                    )
+                )
+            )
+        for run in expired:
+            await self.finalize(owner, run.id, "failed", "APPROVAL_EXPIRED")
+        async with self._database() as session, session.begin():
+            await lock_owner(session, owner)
+            approvals = list(
+                await session.scalars(
+                    select(ToolApproval).where(
+                        ToolApproval.owner_id == owner,
+                        ToolApproval.state.in_(("pending", "approved")),
+                        ToolApproval.expires_at <= utc_now(),
+                    )
+                )
+            )
+            for approval in approvals:
+                approval.state, approval.decided_at = "expired", utc_now()

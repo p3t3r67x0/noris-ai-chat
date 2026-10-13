@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from noris_ai.chat import models as chat_models
 from noris_ai.core.config import Settings
 from noris_ai.db.base import Base
+from noris_ai.tools import budget as tool_budget
 from noris_ai.tools import models as tool_models
 
 # Importing the chat models registers the Etappe 3 tables on the shared
@@ -17,6 +18,8 @@ if TARGET_METADATA is not Base.metadata:  # pragma: no cover - metadata identity
     raise RuntimeError("Chat models must register on the shared declarative base")
 if tool_models.Base.metadata is not Base.metadata:  # pragma: no cover - metadata identity
     raise RuntimeError("Tool models must register on the shared declarative base")
+if tool_budget.Base.metadata is not Base.metadata:  # pragma: no cover
+    raise RuntimeError("Tool budgets must register on the shared declarative base")
 
 config = context.config
 settings = Settings()

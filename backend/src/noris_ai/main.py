@@ -19,6 +19,7 @@ from noris_ai.api.v1.conversations import router as conversations_router
 from noris_ai.api.v1.health import router as health_router
 from noris_ai.api.v1.llm import llm_error
 from noris_ai.api.v1.llm import router as llm_router
+from noris_ai.api.v1.tools import router as tools_router
 from noris_ai.chat.attachments import AttachmentService
 from noris_ai.chat.errors import ChatError
 from noris_ai.chat.generation import GenerationManager
@@ -34,8 +35,12 @@ from noris_ai.llm.gateway import LLMGateway
 from noris_ai.llm.limits import LLMRequestLimitMiddleware
 from noris_ai.llm.openai_compatible import OpenAICompatibleProvider
 from noris_ai.llm.provider import LLMProvider
+from noris_ai.tools.budget import BudgetCoordinator
+from noris_ai.tools.errors import ToolError
+from noris_ai.tools.policy import ToolPolicy
 from noris_ai.tools.registry import create_tool_registry
 from noris_ai.tools.repository import ToolRepository
+from noris_ai.tools.runtime import ToolRuntime
 
 logger = logging.getLogger(__name__)
 
@@ -61,25 +66,30 @@ def create_app(
         llm_provider = provider
         if llm_provider is None and config.llm_provider != "disabled":
             llm_provider = OpenAICompatibleProvider(config)
-        application.state.llm_gateway = LLMGateway(config, llm_provider)
         database = async_sessionmaker(engine, expire_on_commit=False)
+        budget = BudgetCoordinator(database)
+        application.state.llm_gateway = LLMGateway(config, llm_provider, budget)
         repository = ChatRepository(database)
         application.state.chat_settings = config
         application.state.chat_database = database
         application.state.chat_repository = repository
         application.state.tool_registry = tool_registry
         application.state.tool_repository = ToolRepository(database, tool_registry)
+        tool_runtime = ToolRuntime(application.state.tool_repository, tool_registry, ToolPolicy())
+        application.state.tool_runtime = tool_runtime
         attachments = AttachmentService(config, database)
         application.state.chat_attachments = attachments
         application.state.chat_service = ChatService(repository)
         application.state.chat_tickets = WsTicketStore(config.chat_ws_ticket_ttl_seconds)
         application.state.chat_generations = GenerationManager(
-            config, repository, application.state.llm_gateway, attachments
+            config, repository, application.state.llm_gateway, attachments, tool_runtime
         )
         # Startup recovery: generations orphaned by a restart are never
         # reported as completed.
         database_available = True
         try:
+            await tool_runtime.repository.recover(config.chat_owner_id)
+            await budget.recover_text(config.chat_owner_id)
             await repository.mark_running_generations_interrupted(config.chat_owner_id)
         except SQLAlchemyError:
             database_available = False
@@ -102,13 +112,30 @@ def create_app(
                     await asyncio.sleep(3600)
 
         cleanup = asyncio.create_task(clean_attachments())
+
+        async def clean_tools() -> None:
+            while not shutting_down.is_set():
+                if database_available:
+                    try:
+                        async with asyncio.timeout(5):
+                            await tool_runtime.repository.expire_pending(config.chat_owner_id)
+                    except (SQLAlchemyError, TimeoutError):
+                        logger.warning("Could not expire pending tool runs")
+                await asyncio.sleep(1)
+
+        tool_cleanup = asyncio.create_task(clean_tools())
         try:
             yield
         finally:
             shutting_down.set()
             cleanup.cancel()
-            await asyncio.gather(cleanup, return_exceptions=True)
+            tool_cleanup.cancel()
+            await asyncio.gather(cleanup, tool_cleanup, return_exceptions=True)
             await application.state.chat_generations.close()
+            await tool_runtime.close()
+            if database_available:
+                await tool_runtime.repository.recover(config.chat_owner_id)
+                await budget.recover_text(config.chat_owner_id)
             if llm_provider is not None:
                 await llm_provider.aclose()
             await engine.dispose()
@@ -161,16 +188,22 @@ def create_app(
             ).model_dump(mode="json"),
         )
 
+    async def tool_error(request: Request, exc: Exception) -> JSONResponse:
+        error = cast(ToolError, exc)
+        return error_response(request, error.status, error.code, error.message)
+
     application.add_exception_handler(HTTPException, http_error)
     application.add_exception_handler(RequestValidationError, validation_error)
     application.add_exception_handler(Exception, internal_error)
     application.add_exception_handler(LLMError, llm_error)
     application.add_exception_handler(ChatError, chat_error)
+    application.add_exception_handler(ToolError, tool_error)
     application.include_router(health_router, prefix="/api/v1")
     application.include_router(llm_router, prefix="/api/v1")
     application.include_router(conversations_router, prefix="/api/v1")
     application.include_router(chat_ws_router, prefix="/api/v1")
     application.include_router(attachments_router, prefix="/api/v1")
+    application.include_router(tools_router, prefix="/api/v1")
     return application
 
 

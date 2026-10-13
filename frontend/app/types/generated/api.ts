@@ -239,14 +239,77 @@ export type Modelid4 = (string | null)
 export type Activeconversationid2 = (string | null)
 export type Modelid5 = (string | null)
 export type Status5 = "ready"
+export type ConfigVersion = string
+export type FetchedAt1 = string
+export type Partial = boolean
+export type Provider1 = ("searxng" | "brave")
+/**
+ * @maxItems 8
+ */
+export type Sources1 = []|[SearchSource]|[SearchSource, SearchSource]|[SearchSource, SearchSource, SearchSource]|[SearchSource, SearchSource, SearchSource, SearchSource]|[SearchSource, SearchSource, SearchSource, SearchSource, SearchSource]|[SearchSource, SearchSource, SearchSource, SearchSource, SearchSource, SearchSource]|[SearchSource, SearchSource, SearchSource, SearchSource, SearchSource, SearchSource, SearchSource]|[SearchSource, SearchSource, SearchSource, SearchSource, SearchSource, SearchSource, SearchSource, SearchSource]
+export type PublishedAt = (string | null)
+export type Snippet = string
+export type SourceId = string
+export type Title5 = string
+export type Url = string
+/**
+ * @maxItems 10
+ */
+export type Warnings = []|[string]|[string, string]|[string, string, string]|[string, string, string, string]|[string, string, string, string, string]|[string, string, string, string, string, string]|[string, string, string, string, string, string, string]|[string, string, string, string, string, string, string, string]|[string, string, string, string, string, string, string, string, string]|[string, string, string, string, string, string, string, string, string, string]
+export type Digest = string
+export type FetchedAt2 = string
+export type FinalUrl = string
+export type Mime = ("text/plain" | "text/html")
+export type SourceId1 = string
+export type Text1 = string
 export type Seq5 = number
 export type Type5 = "response.started"
 export type Conversationid7 = string
 export type Sourceconversationid1 = string
 export type Sourcemessageid1 = string
-export type Text1 = string
+export type Text2 = string
 export type Expiresinseconds = number
 export type Ticketid = string
+export type Decision = ("approve" | "deny")
+export type Inputdigest = string
+export type Requestid = string
+export type Configversion = string
+export type Currency1 = string
+export type Decidedat = (string | null)
+export type Expiresat = string
+export type Id7 = string
+export type Inputdigest1 = string
+export type Maxcalls = number
+export type Maxcost = string
+export type Permissionscope = string
+export type Provider2 = string
+export type Runid = string
+export type Schemaversion = 1
+export type State = ("pending" | "approved" | "denied" | "expired")
+export type Reasoncode = (("TOOL_UNAVAILABLE" | "TOOL_FORBIDDEN" | "TOOL_INPUT_INVALID" | "TOOL_OUTPUT_INVALID" | "TOOL_NOT_FOUND" | "TOOL_CONFLICT" | "TOOL_STATE_CONFLICT" | "APPROVAL_REQUIRED" | "APPROVAL_EXPIRED" | "BUDGET_LIMIT" | "TOOL_TIMEOUT" | "TOOL_INTERRUPTED" | "TOOL_CANCELLED" | "PROVIDER_RATE_LIMIT" | "PROVIDER_ERROR" | "PROVIDER_OUTCOME_UNKNOWN") | null)
+export type Status6 = ("available" | "unavailable")
+export type Toolid = string
+export type Features = ToolCapability[]
+export type Schemaversion1 = 1
+export type Errorcode2 = (("TOOL_UNAVAILABLE" | "TOOL_FORBIDDEN" | "TOOL_INPUT_INVALID" | "TOOL_OUTPUT_INVALID" | "TOOL_NOT_FOUND" | "TOOL_CONFLICT" | "TOOL_STATE_CONFLICT" | "APPROVAL_REQUIRED" | "APPROVAL_EXPIRED" | "BUDGET_LIMIT" | "TOOL_TIMEOUT" | "TOOL_INTERRUPTED" | "TOOL_CANCELLED" | "PROVIDER_RATE_LIMIT" | "PROVIDER_ERROR" | "PROVIDER_OUTCOME_UNKNOWN") | null)
+export type Latestresult = (SearchResult | SourceDocument | null)
+export type Attempt1 = number
+export type CancelRequestedAt = (string | null)
+export type ConversationId = string
+export type DeadlineAt = string
+export type ExecutionDeadlineAt = (string | null)
+export type FinishedAt = (string | null)
+export type GenerationId = string
+export type Id8 = string
+export type InputDigest = string
+export type InvocationKind = ("web_mode" | "research_step" | "user_action")
+export type ParentRunId = (string | null)
+export type SchemaVersion = number
+export type StartedAt = (string | null)
+export type State1 = ("queued" | "awaiting_approval" | "running" | "succeeded" | "failed" | "cancelled" | "timed_out" | "interrupted" | "outcome_unknown")
+export type StepKey = string
+export type ToolId = string
+export type Schemaversion2 = 1
 
 export interface ApiSchemas {
   ActivePathResponse: ActivePathResponse
@@ -290,11 +353,20 @@ export interface ApiSchemas {
   PreferencesUpdate: PreferencesUpdate
   ReadinessResponse: ReadinessResponse
   ReasoningPreference: ReasoningPreference
+  SearchResult: SearchResult
+  SearchSource: SearchSource
+  SourceDocument: SourceDocument
   StartedEvent: StartedEvent
   TextReference: TextReference
   TextReferenceCreate: TextReferenceCreate
   TicketResponse: TicketResponse
   TimeoutPolicy: TimeoutPolicy
+  ToolApprovalDecision: ToolApprovalDecision
+  ToolApprovalResponse: ToolApprovalResponse
+  ToolCapabilitiesResponse: ToolCapabilitiesResponse
+  ToolCapability: ToolCapability
+  ToolRunResponse: ToolRunResponse
+  ToolRunSnapshot: ToolRunSnapshot
   ValidationError: ValidationError
   VariantSummary: VariantSummary
 }
@@ -648,6 +720,29 @@ export interface PreferencesUpdate {
 export interface ReadinessResponse {
   status?: Status5
 }
+export interface SearchResult {
+  config_version: ConfigVersion
+  fetched_at: FetchedAt1
+  partial?: Partial
+  provider: Provider1
+  sources: Sources1
+  warnings?: Warnings
+}
+export interface SearchSource {
+  published_at?: PublishedAt
+  snippet: Snippet
+  source_id: SourceId
+  title: Title5
+  url: Url
+}
+export interface SourceDocument {
+  digest: Digest
+  fetched_at: FetchedAt2
+  final_url: FinalUrl
+  mime: Mime
+  source_id: SourceId1
+  text: Text1
+}
 export interface StartedEvent {
   seq: Seq5
   type?: Type5
@@ -656,11 +751,65 @@ export interface TextReferenceCreate {
   conversationId: Conversationid7
   sourceConversationId: Sourceconversationid1
   sourceMessageId: Sourcemessageid1
-  text: Text1
+  text: Text2
 }
 export interface TicketResponse {
   expiresInSeconds: Expiresinseconds
   ticketId: Ticketid
+}
+export interface ToolApprovalDecision {
+  decision: Decision
+  inputDigest: Inputdigest
+  requestId: Requestid
+}
+export interface ToolApprovalResponse {
+  configVersion: Configversion
+  currency: Currency1
+  decidedAt: Decidedat
+  expiresAt: Expiresat
+  id: Id7
+  inputDigest: Inputdigest1
+  maxCalls: Maxcalls
+  maxCost: Maxcost
+  permissionScope: Permissionscope
+  provider: Provider2
+  runId: Runid
+  schemaVersion?: Schemaversion
+  state: State
+}
+export interface ToolCapabilitiesResponse {
+  features: Features
+  schemaVersion?: Schemaversion1
+}
+export interface ToolCapability {
+  reasonCode?: Reasoncode
+  status: Status6
+  toolId: Toolid
+}
+export interface ToolRunResponse {
+  approval: (ToolApprovalResponse | null)
+  errorCode: Errorcode2
+  latestResult: Latestresult
+  run: ToolRunSnapshot
+  schemaVersion?: Schemaversion2
+}
+export interface ToolRunSnapshot {
+  attempt: Attempt1
+  cancel_requested_at: CancelRequestedAt
+  conversation_id: ConversationId
+  deadline_at: DeadlineAt
+  execution_deadline_at?: ExecutionDeadlineAt
+  finished_at: FinishedAt
+  generation_id: GenerationId
+  id: Id8
+  input_digest: InputDigest
+  invocation_kind: InvocationKind
+  parent_run_id: ParentRunId
+  schema_version: SchemaVersion
+  started_at: StartedAt
+  state: State1
+  step_key: StepKey
+  tool_id: ToolId
 }
 
 export interface ApiPaths {
@@ -824,6 +973,62 @@ export interface ApiPaths {
       requestBody: ApiSchemas["PreferencesUpdate"]
       responses: {
       200: ApiSchemas["PreferencesResponse"]
+      400: ApiSchemas["ErrorResponse"]
+      401: ApiSchemas["ErrorResponse"]
+      403: ApiSchemas["ErrorResponse"]
+      404: ApiSchemas["ErrorResponse"]
+      409: ApiSchemas["ErrorResponse"]
+      413: ApiSchemas["ErrorResponse"]
+      422: ApiSchemas["ErrorResponse"]
+      500: ApiSchemas["ErrorResponse"]
+      503: ApiSchemas["ErrorResponse"]
+    } }
+  }
+  "/api/v1/chat/tool-approvals/{approval_id}/decision": {
+    post: {
+      parameters: {
+        path: {
+          "approval_id": string
+        }
+      }
+      requestBody: ApiSchemas["ToolApprovalDecision"]
+      responses: {
+      200: ApiSchemas["ToolApprovalResponse"]
+      400: ApiSchemas["ErrorResponse"]
+      401: ApiSchemas["ErrorResponse"]
+      403: ApiSchemas["ErrorResponse"]
+      404: ApiSchemas["ErrorResponse"]
+      409: ApiSchemas["ErrorResponse"]
+      413: ApiSchemas["ErrorResponse"]
+      422: ApiSchemas["ErrorResponse"]
+      500: ApiSchemas["ErrorResponse"]
+      503: ApiSchemas["ErrorResponse"]
+    } }
+  }
+  "/api/v1/chat/tool-runs/{run_id}": {
+    get: {
+      parameters: {
+        path: {
+          "run_id": string
+        }
+      }
+      responses: {
+      200: ApiSchemas["ToolRunResponse"]
+      400: ApiSchemas["ErrorResponse"]
+      401: ApiSchemas["ErrorResponse"]
+      403: ApiSchemas["ErrorResponse"]
+      404: ApiSchemas["ErrorResponse"]
+      409: ApiSchemas["ErrorResponse"]
+      413: ApiSchemas["ErrorResponse"]
+      422: ApiSchemas["ErrorResponse"]
+      500: ApiSchemas["ErrorResponse"]
+      503: ApiSchemas["ErrorResponse"]
+    } }
+  }
+  "/api/v1/chat/tools/capabilities": {
+    get: {
+      responses: {
+      200: ApiSchemas["ToolCapabilitiesResponse"]
       400: ApiSchemas["ErrorResponse"]
       401: ApiSchemas["ErrorResponse"]
       403: ApiSchemas["ErrorResponse"]

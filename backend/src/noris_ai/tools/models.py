@@ -27,6 +27,16 @@ class ToolRun(Base):
     __tablename__ = "chat_tool_run"
     __table_args__ = (
         ForeignKeyConstraint(
+            ["owner_id", "id", "reservation_id"],
+            [
+                "chat_budget_reservation.owner_id",
+                "chat_budget_reservation.run_id",
+                "chat_budget_reservation.id",
+            ],
+            name="tool_reservation",
+            use_alter=True,
+        ),
+        ForeignKeyConstraint(
             ["owner_id", "conversation_id"],
             ["chat_conversation.owner_id", "chat_conversation.id"],
             name="tool_conversation",
@@ -47,6 +57,7 @@ class ToolRun(Base):
             name="tool_parent",
         ),
         UniqueConstraint("generation_id", "step_key", name="uq_chat_tool_run_step"),
+        UniqueConstraint("owner_id", "id", name="uq_chat_tool_run_owner_id"),
         UniqueConstraint(
             "owner_id", "conversation_id", "generation_id", "id", name="uq_chat_tool_run_scope"
         ),
@@ -89,6 +100,15 @@ class ToolRun(Base):
         ),
         CheckConstraint("state <> 'running' OR started_at IS NOT NULL", name="tool_started"),
         CheckConstraint("length(error_code) BETWEEN 1 AND 100", name="tool_error_size"),
+        CheckConstraint(
+            "policy_snapshot IS NULL OR (jsonb_typeof(policy_snapshot) = 'object' "
+            "AND octet_length(policy_snapshot::text) <= 2048)",
+            name="tool_policy_size",
+        ),
+        CheckConstraint(
+            "dispatched_at IS NULL OR (execution_id IS NOT NULL AND reservation_id IS NOT NULL)",
+            name="tool_dispatch",
+        ),
         Index("ix_chat_tool_run_owner_generation", "owner_id", "generation_id"),
         Index("ix_chat_tool_run_state_deadline", "state", "deadline_at"),
     )
@@ -116,6 +136,12 @@ class ToolRun(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+    reservation_id: Mapped[UUID | None] = mapped_column(Uuid)
+    execution_id: Mapped[UUID | None] = mapped_column(Uuid)
+    execution_deadline_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    approval_id: Mapped[UUID | None] = mapped_column(Uuid)
+    dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    policy_snapshot: Mapped[dict[str, object] | None] = mapped_column(JSONB)
 
 
 class ToolResult(Base):
