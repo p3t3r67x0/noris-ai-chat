@@ -14,6 +14,13 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
       test.skip(info.project.name !== 'desktop', 'Each viewport and theme is checked once.')
       await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids } })
       await expect.poll(async () => (await (await request.get('/api/v1/llm/models')).json()).models.map((model: { id: string }) => model.id).sort()).toEqual([...ids].sort())
+      // Keep the verified catalog stable while checking layout and selection.
+      // One-second expiry can disable Send between pointer-down and pointer-up.
+      // Explicit focus refresh below and expiry tests retain their own coverage.
+      await page.route('**/api/v1/llm/models', async (route) => {
+        const response = await route.fetch()
+        await route.fulfill({ response, json: { ...await response.json(), expires_in_seconds: 60 } })
+      })
       await page.setViewportSize(viewport)
       await page.emulateMedia({ reducedMotion: 'reduce' })
       await page.addInitScript(({ theme, model }) => { localStorage.setItem('noris-ai-theme', theme); localStorage.setItem('noris-ai:model', model) }, { theme, model: glm })
@@ -161,7 +168,7 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
         const pendingRefresh = new Promise<void>((resolve) => { resumeRefresh = resolve })
         await page.route('**/api/v1/llm/models', async (route) => {
           await pendingRefresh
-          await route.continue()
+          await route.fallback()
         })
         try {
           await page.evaluate(() => window.dispatchEvent(new Event('focus')))
