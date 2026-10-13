@@ -1,5 +1,10 @@
 # SearXNG-Provider: Vorbereitung parallel zu P1b
 
+Historische Dokumentation von PR #62. Der aktuelle Runtime-, Netzwerk- und
+Konfigurationsvertrag ist in [SEARXNG-TOOL-INTEGRATION.md](SEARXNG-TOOL-INTEGRATION.md)
+beschrieben. P6 benötigt für private Ziele zusätzlich exakt freigegebene IPs;
+Providerimport oder URLkonfiguration aktivieren weiterhin keine Chat-Websuche.
+
 Stand: 2026-10-13. Der Adapter ist unabhängig testbar; die Chat-Websuche bleibt
 deaktiviert. Grundlage ist `main` bei `02aff47` mit der gemergten
 [P1a-Grundlage](TOOL-FOUNDATION.md). Die [Registry](../backend/src/noris_ai/tools/registry.py)

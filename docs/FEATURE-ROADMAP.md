@@ -149,12 +149,19 @@ Unit: DPR/Pointercancel/Undo/resize/emptyexport/limits/retry snapshot. Integrati
 ### P6 — Searchprovider und begrenztes Quellenmodell
 
 Parallelvorbereitung: Der [SearXNG-Adapter und optionale Docker-Stack](SEARXNG-PROVIDER.md)
-sind unabhängig von P1b testbar. Registryhandler und Webmenü bleiben deaktiviert.
-Die folgende P6-Stufe ergänzt weiterhin Runtimeanbindung, Persistenz und Quellenmodell.
+sind unabhängig von P1b testbar. [P6](SEARXNG-TOOL-INTEGRATION.md) ergänzt jetzt
+einen optional gebundenen, serverseitigen Handler über P1b/P2. Policy und Webmenü
+bleiben standardmäßig deaktiviert; automatische Chat-Websuche folgt in P7.
 
-Zweck: SearchProvider, SearXNGadapter, normalisierte snippet-Quellenpersistenz und konfigurierter alternativer Braveadapter. Keine freie Seitenfetchroute und noch kein aktivierter Webmenühandler.
+Umfang P6: bestehender SearXNGProvider, geprüfte Netzwerkverbindung, normalisierte
+SearchResults im bestehenden ToolResult-Speicher, Budget-/Approval-/Cancel- und
+P2-Replayintegration. Kein Bravefallback, Quellenfetch oder aktivierter Webmenühandler.
 
-Unit: Providerinput-/output, Query-/Enginegrenzen, Dedupe, Publish-/Fetchdatum, safe errors. Integration: lokale Search-HTTPsimulatoren für 403/429/timeout/malformed/empty, DBresultat/quotas/reservation/cancel. Playwright: vorhandene Chat-/Modell-/Menu-Regression bei Searchfeature off; interner Simulatorstatus über P2 ohne Featureclaim. API: Capabilityschema/Searchresultsnapshot, OpenAPI/TS falls verändert. Security: konfigurierter Endpointhost/Secretredaction, kein Datei-/Historyexport oder stiller Fallback. Abnahme: zwei Adapter erfüllen denselben dokumentierten Normalisierungsvertrag. Abhängigkeit: P1; P2 für vollständige Streamintegration.
+Validierung: deterministische Providerfälle, echte lokale HTTP-Sockets,
+PostgreSQL-Resultat-/Budget-/Eventtransaktionen, Netzwerk-/Configangriffe,
+Desktop-/Mobile-Replay bei deaktiviertem Produktivfeature. Bestehende öffentliche
+Schemas bleiben unverändert. Abhängigkeit: PR #62, #63, #64. Ein alternativer
+Suchanbieter benötigt eine gesonderte Provider- und Policyfreigabe.
 
 ### P7 — Sicherer Fetcher, Webmodus und Quellen-UX
 

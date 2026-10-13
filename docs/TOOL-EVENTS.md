@@ -2,7 +2,8 @@
 
 Grundlage: aktuelles `main` auf `75f35d839c930c1e57205f0eed1b42e6ee8236a9`,
 Merge von PR #63 (P1b). P2 ergänzt Transport und Synchronisation der vorhandenen
-Runtime. Produktive Handler/Grants bleiben deaktiviert. Keine zweite Registry,
+Runtime. [P6](SEARXNG-TOOL-INTEGRATION.md) bindet optional den SearXNG-Handler
+an diese Lifecyclewriter an; produktive Grants bleiben deaktiviert. Keine zweite Registry,
 Eventdatenbank, Chatarchitektur oder WebSocket-Verbindung.
 
 ## Bestand und Integrationsstellen

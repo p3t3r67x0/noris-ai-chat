@@ -1,5 +1,10 @@
 # Tool-Architektur für das Plus-Menü
 
+Aktueller Implementierungsnachtrag: [P1b](TOOL-RUNTIME.md) und [P2](TOOL-EVENTS.md)
+sind gemergt. [P6](SEARXNG-TOOL-INTEGRATION.md) bindet den bestehenden SearXNGProvider
+an die vorhandene Runtime an. Grants und automatische Chat-Websuche bleiben deaktiviert.
+Die folgenden Planungsabschnitte beschreiben den ursprünglichen Architekturstand.
+
 Status: Architekturplan mit begonnener Implementierung der P1a-Grundlage; keine neue Produktfunktion aktiviert. Stand: 2026-10-12. Bestandsabgleich auf aktuellem `main`, konkrete Registry-/Persistenzverträge, Migration und lokale Tests: [Tool-Grundlage P1a](TOOL-FOUNDATION.md).
 
 ## 1. Grundlage, Umfang und Entscheidungen

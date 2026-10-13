@@ -3,8 +3,10 @@
 Stand: 2026-10-13. Basis ist `main` bei `bb8428e` mit PR #56 und #62.
 Dieser PR implementiert ausschließlich P1b aus der [Roadmap](FEATURE-ROADMAP.md).
 Die [P1a-Registry und Tabellen](TOOL-FOUNDATION.md) bleiben die Grundlage.
-`web.search.v1` und `web.fetch.v1` bleiben ohne Handler/Providerbindung und öffentlich
-`unavailable`. Es gibt weder Webmodus noch neuen Chattransport oder Conversationstore.
+Der historische P1b-Stand ließ beide Tools ohne Handler/Providerbindung.
+[P6](SEARXNG-TOOL-INTEGRATION.md) ergänzt jetzt ausschließlich den optionalen
+SearXNG-Suchhandler. Die produktive Policy bleibt leer und die öffentliche
+Capability ohne explizite Serverpermission `unavailable`. Es gibt keinen Webmodus.
 
 ## Ausführung und Berechtigungen
 
@@ -12,7 +14,9 @@ Die [P1a-Registry und Tabellen](TOOL-FOUNDATION.md) bleiben die Grundlage.
 vertrauenswürdige Serverorchestrierung. Registry und Policy werden beim Appstart
 fest zusammengestellt; in der produktiven Composition-Root ist die Policy leer.
 Kein Modelloutput und keine HTTProute kann einen Toolnamen zur Ausführung bringen.
-Die SearXNG-Implementierung aus PR #62 wird in diesem PR noch nicht dispatcht.
+Die SearXNG-Implementierung aus PR #62 wird über die P6-Registrybindung verwendet.
+Gleichzeitige Handler-/Runtime-Deadlines lösen nur einen Task-Cancel aus, damit
+der bereits laufende HTTP-Streamabschluss nicht erneut unterbrochen wird.
 
 Die bestehende Eingabevalidierung, Normalisierung, Step-ID/Digest-Idempotenz und
 atomare Resultatpersistenz werden wiederverwendet. Handler erhalten einen
