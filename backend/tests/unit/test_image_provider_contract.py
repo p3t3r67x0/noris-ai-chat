@@ -22,7 +22,7 @@ def test_verified_model_requires_price_evidence() -> None:
     assert model.ready_for_admission
 
 
-@pytest.mark.parametrize("prompt", ["", "  ", "\\n\\t"])
+@pytest.mark.parametrize("prompt", ["", "  ", "\n\t"])
 def test_empty_prompt_rejected(prompt: str) -> None:
     with pytest.raises(ValidationError):
         ImageInput(prompt=prompt, model_id="example", size="1024x1024")
