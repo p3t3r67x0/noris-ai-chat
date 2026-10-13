@@ -8,6 +8,8 @@ from uuid import UUID, uuid4
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
+from pydantic_settings import SettingsError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from starlette.exceptions import HTTPException
@@ -38,6 +40,7 @@ from noris_ai.llm.provider import LLMProvider
 from noris_ai.tools.budget import BudgetCoordinator
 from noris_ai.tools.errors import ToolError
 from noris_ai.tools.policy import ToolPolicy
+from noris_ai.tools.providers.searxng import SearXNGProvider, SearXNGSettings
 from noris_ai.tools.registry import create_tool_registry
 from noris_ai.tools.repository import ToolRepository
 from noris_ai.tools.runtime import ToolRuntime
@@ -51,10 +54,16 @@ def create_app(
     provider: LLMProvider | None = None,
 ) -> FastAPI:
     config = settings if settings is not None else Settings()
-    tool_registry = create_tool_registry()
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncGenerator[None]:
+        search_provider = None
+        if config.searxng_enabled:
+            try:
+                search_provider = SearXNGProvider(SearXNGSettings.from_environment())
+            except (ValidationError, SettingsError):
+                logger.warning("SearXNG-Konfiguration ungültig; Suchtool nicht verfügbar")
+        tool_registry = create_tool_registry(search_provider)
         engine = create_async_engine(
             config.database_url.get_secret_value(), pool_pre_ping=True, pool_timeout=3
         )
@@ -133,6 +142,8 @@ def create_app(
             await asyncio.gather(cleanup, tool_cleanup, return_exceptions=True)
             await application.state.chat_generations.close()
             await tool_runtime.close()
+            if search_provider is not None:
+                await search_provider.aclose()
             if database_available:
                 await tool_runtime.repository.recover(config.chat_owner_id)
                 await budget.recover_text(config.chat_owner_id)

@@ -447,3 +447,49 @@ def test_provider_import_has_not_enabled_registry_handlers() -> None:
 async def test_maximum_length_unicode_query_is_supported() -> None:
     result = await search_response({"results": []}, query="🌍" * 1000)
     assert result.sources == []
+
+
+async def test_source_ids_and_normalization_are_reproducible() -> None:
+    payload = {"results": [row("https://EXAMPLE.org:443/page?utm_source=x#one"), row()]}
+    first = await search_response(payload)
+    second = await search_response(payload)
+    assert first.sources == second.sources
+    assert len(first.sources) == 1
+    assert first.sources[0].source_id.version == 5
+
+
+async def test_empty_response_with_engine_failure_is_not_success() -> None:
+    with pytest.raises(SearXNGError, match="PROVIDER_ERROR"):
+        await search_response({"results": [], "unresponsive_engines": [["engine", "timeout"]]})
+
+
+async def test_operator_result_ceiling_can_only_reduce_search_limit() -> None:
+    async with SearXNGProvider(
+        settings(max_results=2),
+        transport=httpx.MockTransport(
+            lambda _: response({"results": [row(f"https://example.org/{i}") for i in range(8)]})
+        ),
+    ) as provider:
+        result = await provider.search(SearchInput(query="x", language="de", limit=8))
+    assert len(result.sources) == 2
+    for limit in (0, 9):
+        with pytest.raises(ValidationError):
+            settings(max_results=limit)
+
+
+@pytest.mark.parametrize(
+    "query,language",
+    [("Ärger über Grüße", "de"), ("Århus, æble og ø", "en"), ("English search 🌍", "en")],
+)
+async def test_unicode_queries_keep_existing_language_contract(query: str, language: str) -> None:
+    assert (await search_response({"results": []}, query=query, language=language)).sources == []
+
+
+async def test_danish_language_and_arbitrary_category_are_rejected_before_http() -> None:
+    definition = create_tool_registry().get("web.search.v1")
+    for payload in (
+        b'{"query":"test","language":"da"}',
+        b'{"query":"test","language":"de","category":"images"}',
+    ):
+        with pytest.raises(ToolError, match="TOOL_INPUT_INVALID"):
+            definition.validate_input(payload, "web_mode")

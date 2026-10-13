@@ -6,6 +6,9 @@ services:
     environment:
       NORIS_SEARXNG_BASE_URL: http://searxng:8080
       NORIS_SEARXNG_ALLOWED_HOSTS: '["searxng"]'
+      # Private DNS targets require exact reviewed service IPs. No subnet grants.
+      NORIS_SEARXNG_ALLOWED_ADDRESSES: ${NORIS_SEARXNG_ALLOWED_ADDRESSES:-[]}
+      NORIS_SEARXNG_ENABLED: ${NORIS_SEARXNG_ENABLED:-false}
       NORIS_SEARXNG_CONFIG_VERSION: ${NORIS_SEARXNG_CONFIG_VERSION:?Set the reviewed configuration version}
 
 networks:

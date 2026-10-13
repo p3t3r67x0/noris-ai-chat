@@ -13,6 +13,8 @@ from noris_ai.tools.errors import ToolError
 
 MAX_INPUT_BYTES = 65_536
 MAX_OUTPUT_BYTES = 262_144
+SEARCH_INPUT_BYTES = 4096
+SEARCH_OUTPUT_BYTES = 65_536
 InvocationKind = Literal["web_mode", "research_step", "user_action"]
 ToolRunState = Literal[
     "queued",
@@ -70,7 +72,9 @@ class SearchInput(ToolSchema):
     @field_validator("query")
     @classmethod
     def valid_query(cls, value: str) -> str:
-        if not value.strip() or any(ord(c) < 32 or ord(c) == 127 for c in value):
+        if not value.strip() or any(
+            ord(c) < 32 or ord(c) == 127 or 0xD800 <= ord(c) <= 0xDFFF for c in value
+        ):
             raise ValueError("Invalid search query")
         return value
 

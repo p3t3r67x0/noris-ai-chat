@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     )
     migration_database_url: SecretStr | None = None
     readiness_timeout_seconds: float = Field(default=3.0, gt=0, le=30)
+    searxng_enabled: bool = False
     llm_provider: Literal["disabled", "openai-compatible"] = "disabled"
     llm_base_url: str | None = None
     llm_allowed_hosts: tuple[str, ...] = ()

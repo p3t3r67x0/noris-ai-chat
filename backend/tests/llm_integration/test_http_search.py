@@ -20,6 +20,7 @@ def config(base: str, **overrides: object) -> SearXNGSettings:
         {
             "base_url": base,
             "allowed_hosts": ("127.0.0.1",),
+            "allowed_addresses": ("127.0.0.1",),
             "config_version": "http-fixture",
             **overrides,
         }

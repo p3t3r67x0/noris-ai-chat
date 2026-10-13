@@ -181,7 +181,10 @@ class ToolRuntime:
                     await asyncio.sleep(delay)
                 finally:
                     cancelled.cancel()
-                    handler_task.cancel()
+                    # A handler deadline may already be closing its HTTP stream.
+                    # A second cancel can interrupt cleanup and leave the socket open.
+                    if not handler_task.cancelling():
+                        handler_task.cancel()
                     await asyncio.gather(cancelled, handler_task, return_exceptions=True)
             raise ToolError("PROVIDER_ERROR")
         except (asyncio.CancelledError, Exception) as cause:

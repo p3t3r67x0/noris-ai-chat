@@ -8,17 +8,23 @@ from datetime import UTC, datetime
 from html.parser import HTMLParser
 from typing import Literal, Self
 from urllib.parse import parse_qsl, urlencode, urlsplit
-from uuid import uuid4
+from uuid import NAMESPACE_URL, uuid5
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, ValidationError, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from noris_ai.tools.errors import ToolError
-from noris_ai.tools.registry import canonical_payload, create_tool_registry, unique_keys
-from noris_ai.tools.schemas import SearchInput, SearchResult, SearchSource
+from noris_ai.tools.providers.network import EndpointTransport, permitted_address
+from noris_ai.tools.registry import canonical_payload, unique_keys
+from noris_ai.tools.schemas import (
+    SEARCH_INPUT_BYTES,
+    SEARCH_OUTPUT_BYTES,
+    SearchInput,
+    SearchResult,
+    SearchSource,
+)
 
-_SEARCH = create_tool_registry().get("web.search.v1")
 FailureReason = Literal[
     "forbidden",
     "rate_limit",
@@ -58,11 +64,13 @@ class SearXNGSettings(BaseSettings):
     )
     base_url: str = Field(min_length=1, max_length=2048)
     allowed_hosts: tuple[str, ...] = Field(min_length=1, max_length=16)
+    allowed_addresses: tuple[str, ...] = Field(default=(), max_length=16)
     config_version: str = Field(min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_.:-]+$")
     connect_timeout_seconds: float = Field(default=3, gt=0, le=15, allow_inf_nan=False)
     read_timeout_seconds: float = Field(default=10, gt=0, le=15, allow_inf_nan=False)
     total_timeout_seconds: float = Field(default=15, gt=0, le=15, allow_inf_nan=False)
     max_response_bytes: int = Field(default=1_048_576, ge=1024, le=2_097_152)
+    max_results: int = Field(default=8, ge=1, le=8)
 
     @classmethod
     def from_environment(cls) -> Self:
@@ -94,6 +102,12 @@ class SearXNGSettings(BaseSettings):
             > self.total_timeout_seconds
         ):
             raise ValueError("Connection and idle timeouts must fit within the total deadline")
+        for address in self.allowed_addresses:
+            try:
+                if permitted_address(address, self.allowed_addresses) != address:
+                    raise ValueError("Noncanonical address")
+            except (ValueError, ToolError):
+                raise ValueError("Invalid configured SearXNG address") from None
         return self
 
 
@@ -187,7 +201,7 @@ def _published_at(value: object) -> datetime | None:
     try:
         date = datetime.fromisoformat(value)
         return date.astimezone(UTC) if date.tzinfo is not None else None
-    except ValueError:
+    except (ValueError, OverflowError):
         return None
 
 
@@ -199,13 +213,16 @@ def _normalize(payload: bytes, search: SearchInput, config_version: str) -> Sear
     try:
         response = _Response.model_validate(
             json.loads(
-                payload,
+                payload.decode("utf-8"),
                 object_pairs_hook=unique_keys,
                 parse_constant=_reject_constant,
             )
         )
     except (ValueError, RecursionError):
         raise SearXNGError("invalid_response") from None
+    if response.unresponsive_engines and not response.results:
+        # A reported engine failure without any result is not a genuine zero-hit search.
+        raise SearXNGError("server_error")
     sources: list[SearchSource] = []
     seen: set[str] = set()
     warnings: set[str] = set()
@@ -232,7 +249,7 @@ def _normalize(payload: bytes, search: SearchInput, config_version: str) -> Sear
             warnings.add("SEARCH_PUBLICATION_DATE_INVALID")
         sources.append(
             SearchSource(
-                source_id=uuid4(),
+                source_id=uuid5(NAMESPACE_URL, f"noris-ai:searxng:{config_version}:{url}"),
                 title=title[:500],
                 url=url,
                 snippet=snippet[:4096],
@@ -250,7 +267,7 @@ def _normalize(payload: bytes, search: SearchInput, config_version: str) -> Sear
         partial=bool(warnings & {"SEARCH_ENGINE_FAILURES", "SEARCH_RESULTS_FILTERED"}),
     )
     # Character ceilings alone do not guarantee the registry's UTF-8/JSON byte ceiling.
-    while len(canonical_payload(result)) > _SEARCH.max_output_bytes:
+    while len(canonical_payload(result)) > SEARCH_OUTPUT_BYTES:
         index = max(range(len(sources)), key=lambda i: len(sources[i].snippet))
         source = sources[index]
         sources[index] = source.model_copy(
@@ -262,7 +279,7 @@ def _normalize(payload: bytes, search: SearchInput, config_version: str) -> Sear
 
 
 class SearXNGProvider:
-    """Owns an isolated HTTP client; P1b will own admission, persistence and cancellation."""
+    """Owns bounded HTTP I/O; ToolRuntime owns admission, commit and cancellation."""
 
     def __init__(
         self,
@@ -274,7 +291,9 @@ class SearXNGProvider:
         settings = self._settings
         self._endpoint = settings.base_url.rstrip("/") + "/search"
         self._client = httpx.AsyncClient(
-            transport=transport,
+            transport=transport
+            if transport is not None
+            else EndpointTransport(self._endpoint, settings.allowed_addresses),
             trust_env=False,
             follow_redirects=False,
             timeout=httpx.Timeout(
@@ -285,6 +304,12 @@ class SearXNGProvider:
             limits=httpx.Limits(max_connections=4, max_keepalive_connections=4),
             headers={"Accept": "application/json", "Accept-Encoding": "identity"},
         )
+        self._slots = asyncio.Semaphore(4)
+        self._closed = False
+
+    @property
+    def config_version(self) -> str:
+        return self._settings.config_version
 
     async def __aenter__(self) -> Self:
         return self
@@ -293,19 +318,23 @@ class SearXNGProvider:
         await self.aclose()
 
     async def aclose(self) -> None:
+        self._closed = True
         await self._client.aclose()
 
     async def search(self, search: SearchInput) -> SearchResult:
+        if self._closed:
+            raise ToolError("TOOL_UNAVAILABLE")
         try:
             search = SearchInput.model_validate(search.model_dump())
         except ValidationError:
             raise ToolError("TOOL_INPUT_INVALID") from None
-        if len(canonical_payload(search)) > _SEARCH.max_input_bytes or any(
+        if len(canonical_payload(search)) > SEARCH_INPUT_BYTES or any(
             part.startswith(("!", ":", "?")) or (part.startswith("<") and part[1:].isdigit())
             for part in search.query.split()
         ):
             # SearXNG recognizes operators at whitespace-delimited token boundaries.
             raise ToolError("TOOL_INPUT_INVALID")
+        search = search.model_copy(update={"limit": min(search.limit, self._settings.max_results)})
         data = {
             "q": search.query.strip(),
             "format": "json",
@@ -317,7 +346,8 @@ class SearXNGProvider:
         if search.time_range is not None:
             data["time_range"] = search.time_range
         try:
-            async with asyncio.timeout(self._settings.total_timeout_seconds):
+            # Admission must be acquired before the HTTP context opens its stream.
+            async with asyncio.timeout(self._settings.total_timeout_seconds), self._slots:  # noqa: SIM117
                 async with self._client.stream("POST", self._endpoint, data=data) as response:
                     status = response.status_code
                     if status == 403:

@@ -14,7 +14,6 @@ from noris_ai.tools.api_schemas import (
     ToolRunResponse,
 )
 from noris_ai.tools.errors import ToolError
-from noris_ai.tools.registry import create_tool_registry
 from noris_ai.tools.runtime import ToolRuntime
 
 router = APIRouter(prefix="/chat", tags=["Tools"])
@@ -34,7 +33,7 @@ async def capabilities(request: Request, access: ChatAccess) -> ToolCapabilities
     del access  # Existing Basic/origin dependency identifies the single server owner.
     service = runtime(request)
     features: list[ToolCapability] = []
-    for definition in create_tool_registry().definitions:
+    for definition in service.registry.definitions:
         try:
             service.policy.require(service.registry.get(definition.name))
             features.append(ToolCapability(toolId=definition.name, status="available"))

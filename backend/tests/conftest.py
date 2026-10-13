@@ -10,6 +10,7 @@ from noris_ai.llm.schemas import LLMMessage, LLMModel
 # Explicit Settings passed by provider tests still override these environment defaults.
 os.environ["NORIS_LLM_PROVIDER"] = "disabled"
 os.environ["NORIS_LLM_MODELS"] = "[]"
+os.environ["NORIS_SEARXNG_ENABLED"] = "false"
 
 
 @pytest.fixture
