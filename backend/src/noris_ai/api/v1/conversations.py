@@ -66,6 +66,7 @@ async def list_conversations(
     access: ChatAccess,
     archived: bool = False,
     archiveOnly: bool = False,
+    preparedOnly: bool = False,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     cursor: Annotated[str | None, Query(max_length=2048)] = None,
     q: Annotated[str, Query(max_length=200)] = "",
@@ -80,6 +81,7 @@ async def list_conversations(
         archive_only=archiveOnly,
         query=q.strip(),
         pinned=pinned,
+        prepared_only=preparedOnly,
     )
 
 

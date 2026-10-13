@@ -1,16 +1,10 @@
+import { clearTestConversations } from './chat-fixtures'
 import type { ApiSchemas } from '../../app/types/generated/api'
 import { expect, test } from '@playwright/test'
 import { selectText } from '../e2e/text-selection-helpers'
 
 test.beforeEach(async ({ request }) => {
-  let cursor: string | null = null
-  do {
-    const response = await request.get('/api/v1/conversations', { params: { archived: true, limit: 100, ...(cursor ? { cursor } : {}) } })
-    expect(response.ok()).toBe(true)
-    const data: ApiSchemas['ConversationListResponse'] = await response.json()
-    for (const c of data.conversations) await request.delete(`/api/v1/conversations/${c.id}`)
-    cursor = data.nextCursor ?? null
-  } while (cursor)
+  await clearTestConversations(request)
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
 })
@@ -20,6 +14,7 @@ test('text selection preserves drafts and references through PostgreSQL reload, 
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   const composer = page.getByRole('textbox', { name: 'Nachricht', exact: true })
   await composer.fill('Eine Quelle mit mehreren Zeilen\nund weiterem Kontext')
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await composer.press('Enter')
   await expect(page.locator('.message-assistant').last()).toHaveAttribute('data-status', 'completed')
   await composer.fill('Kannst du das genauer erklären?')
@@ -43,6 +38,7 @@ test('text selection preserves drafts and references through PostgreSQL reload, 
   await page.reload()
   await expect(composer).toHaveValue('Kannst du das genauer erklären?')
   await expect(page.locator('.attachment-preview .text-reference-full')).toHaveText(text)
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await composer.press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   const user = page.locator('.message-user').last()
@@ -76,6 +72,7 @@ test('persists incremental streaming, drafts and generated title through reload'
   const composer = page.getByRole('textbox', { name: 'Nachricht' })
   await expect(composer).toBeEnabled()
   await composer.fill('Persistenz prüfen')
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await composer.press('Enter')
   await expect(page.locator('[data-generation-status="streaming"]')).toBeAttached()
   await expect(page.locator('.chat-timeline')).toContainText('Echte')
@@ -99,6 +96,7 @@ test('stop and reload retain partial answer; retry creates another immutable var
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   const composer = page.getByRole('textbox', { name: 'Nachricht' })
   await composer.fill('/quiet')
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await composer.press('Enter')
   await expect(page.locator('[data-generation-status="streaming"]')).toBeAttached()
   await page.getByRole('button', { name: 'Antwort stoppen', exact: true }).click()
@@ -110,6 +108,7 @@ test('stop and reload retain partial answer; retry creates another immutable var
   const rows = (await (await request.get(`/api/v1/conversations/${c.id}/messages`)).json()).messages
   expect(rows.at(-1).status).toBe('cancelled')
   await composer.fill(`/retry ws persistence ${info.project.name} ${globalThis.crypto.randomUUID()}`)
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await composer.press('Enter')
   await expect(page.locator('[data-generation-status="failed"]')).toBeAttached()
   await page.locator('.message-assistant').last().getByRole('button', { name: 'Erneut versuchen', exact: true }).click()
@@ -123,6 +122,7 @@ test('reload during generation resumes without duplicated text', async ({ page, 
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   const composer = page.getByRole('textbox', { name: 'Nachricht' })
   await composer.fill('Reload während Streaming')
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await composer.press('Enter')
   await expect(page.locator('[data-generation-status="streaming"]')).toBeAttached()
   await page.reload()
@@ -141,6 +141,7 @@ test('continuation creates an immutable sibling and persists selected variants a
   await page.getByRole('option', { name: 'Fixture Long' }).click()
   const composer = page.getByRole('textbox', { name: 'Nachricht' })
   await composer.fill(`/auto-limit ws ${info.project.name}`)
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await composer.press('Enter')
   await expect(page.locator('.message-assistant')).toHaveAttribute('data-status', 'incomplete')
   const original = await page.locator('.message-assistant').getAttribute('data-message-id')
@@ -215,6 +216,7 @@ test('manual rename survives a version conflict after automatic title generation
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   const composer = page.getByRole('textbox', { name: 'Nachricht' })
   await composer.fill('Titelkonflikt prüfen')
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await composer.press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   const c = (await (await request.get('/api/v1/conversations')).json()).conversations[0]

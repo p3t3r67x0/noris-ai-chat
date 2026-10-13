@@ -648,6 +648,18 @@
             ],
             "title": "Lastmessageat"
           },
+          "lifecycle": {
+            "default": "EMPTY",
+            "enum": [
+              "EMPTY",
+              "STARTED",
+              "GENERATING",
+              "FAILED",
+              "COMPLETED"
+            ],
+            "title": "Lifecycle",
+            "type": "string"
+          },
           "pinnedAt": {
             "anyOf": [
               {
@@ -671,7 +683,7 @@
             ]
           },
           "sidebarVisible": {
-            "default": true,
+            "default": false,
             "title": "Sidebarvisible",
             "type": "boolean"
           },
@@ -3826,6 +3838,16 @@
             "schema": {
               "default": false,
               "title": "Archiveonly",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "preparedOnly",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Preparedonly",
               "type": "boolean"
             }
           },

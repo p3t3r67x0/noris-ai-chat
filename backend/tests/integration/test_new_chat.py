@@ -28,6 +28,7 @@ __all__ = ["client", "simulator"]
         ("Erkläre mir SearXNG.", None, "fixture-alpha"),
         ("/error", None, "fixture-alpha"),
         ("Titelfehler", "TIMEOUT", "fixture-alpha"),
+        ("?", "TIMEOUT", "fixture-alpha"),
         ("Erkläre mir SearXNG.", None, "fixture-missing"),
     ],
 )
@@ -46,7 +47,7 @@ def test_prepared_chat_terminal_visibility(
     assert first.status_code == second.status_code == 201
     assert first.json()["sidebarVisible"] is False
     assert second.json()["id"] == conversation_id
-    assert len(client.get("/api/v1/conversations", auth=AUTH).json()["conversations"]) == 1
+    assert len(client.get("/api/v1/conversations", auth=AUTH).json()["conversations"]) == 0
     payload = {
         "version": 1,
         "type": "chat.generate",
@@ -63,16 +64,30 @@ def test_prepared_chat_terminal_visibility(
     ) as socket:
         socket.receive_json()
         socket.send_json(payload)
+        revealed = False
         while True:
             event = socket.receive_json()
             assert event["type"] != "chat.error", event
+            if (
+                event["type"] == "chat.conversation.updated"
+                and event["conversation"]["lifecycle"] == "GENERATING"
+            ):
+                assert event["conversation"]["sidebarVisible"] is True
+                revealed = True
             if event["type"] in {"chat.generation.completed", "chat.generation.failed"}:
                 break
+        assert revealed
         drain_titles(client)
     path = f"/api/v1/conversations/{conversation_id}"
     saved = client.get(path, auth=AUTH).json()
     assert saved["sidebarVisible"] is True
-    assert saved["title"] != "Neuer Chat"
+    if prompt == "?":
+        assert saved["title"] == "Gespräch fortsetzen"
+    else:
+        assert saved["title"] != "Neuer Chat"
+    assert [
+        c["id"] for c in client.get("/api/v1/conversations", auth=AUTH).json()["conversations"]
+    ] == [conversation_id]
     response_failed = prompt == "/error" or model_id == "fixture-missing"
     assert saved["titleSource"] == ("fallback" if failure or response_failed else "generated")
     messages = client.get(path + "/messages", auth=AUTH).json()["messages"]
@@ -99,6 +114,8 @@ def test_prepared_chat_is_visible_after_startup_recovery(client: TestClient) -> 
     )
     assert client.portal is not None
     client.portal.call(repository.begin_generation, owner, command)
+    started = client.get(f"/api/v1/conversations/{created['id']}", auth=AUTH).json()
+    assert started["sidebarVisible"] is True and started["lifecycle"] == "GENERATING"
     assert client.portal.call(repository.mark_running_generations_interrupted, owner) == 1
     saved = client.get(f"/api/v1/conversations/{created['id']}", auth=AUTH).json()
     assert saved["sidebarVisible"] is True

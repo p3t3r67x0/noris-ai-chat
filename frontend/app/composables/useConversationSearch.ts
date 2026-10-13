@@ -68,7 +68,7 @@ export function useConversationSearch(open: Ref<boolean>, conversations: () => r
     void search()
   }, { flush: 'sync' })
 
-  watch(query, () => {
+  function scheduleSearch(): void {
     if (resetting || !open.value || !pagination()) return
     cancel()
     cursor.value = null
@@ -76,7 +76,12 @@ export function useConversationSearch(open: Ref<boolean>, conversations: () => r
     loading.value = true
     // Only server requests are debounced; old rows remain visible meanwhile.
     timer = setTimeout(() => { void search() }, 200)
-  }, { flush: 'sync' })
+  }
+  watch(query, scheduleSearch, { flush: 'sync' })
+  // Metadata broadcasts are authoritative for first sends, title changes,
+  // archives and deletions, including updates from other browser tabs. Requery
+  // on the server so title matching and cursor boundaries use the same rule.
+  watch(() => pagination()?.revision?.value, scheduleSearch, { flush: 'sync' })
 
   onScopeDispose(cancel)
   return { query, results, loading, error, diagnostics, cursor, search }

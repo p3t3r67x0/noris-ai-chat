@@ -10,11 +10,11 @@ from alembic import command
 from alembic.config import Config
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import insert
+from sqlalchemy import insert, select
 from test_chat_api import AUTH, chat_app, chat_config, client, migrated
 
-from noris_ai.chat.models import ChatConversation
-from noris_ai.chat.repository import ModelDatabase
+from noris_ai.chat.models import ChatConversation, ChatMessage
+from noris_ai.chat.repository import ChatRepository, ModelDatabase
 from noris_ai.core.config import EnvironmentSettings
 from noris_ai.main import create_app
 
@@ -170,6 +170,20 @@ async def test_independent_pinned_seek_is_stable_scoped_and_finds_old_chats(
                 )
             ],
         )
+        ids = (await session.scalars(select(ChatConversation.id))).all()
+        await session.execute(
+            insert(ChatMessage),
+            [
+                dict(
+                    id=uuid.uuid4(),
+                    conversation_id=id,
+                    role="user",
+                    content="Persisted input",
+                    status="completed",
+                )
+                for id in ids
+            ],
+        )
     first = (await client.get("/api/v1/conversations?pinned=true&limit=10", auth=AUTH)).json()
     rows = first["conversations"][:]
     cursor = first["nextCursor"]
@@ -203,8 +217,16 @@ async def test_independent_pinned_seek_is_stable_scoped_and_finds_old_chats(
     ]
 
 
-async def test_pins_hide_archives_and_deleted_rows(client: AsyncClient) -> None:
+async def test_pins_hide_archives_and_deleted_rows(client: AsyncClient, chat_app: FastAPI) -> None:
     row = await create(client)
+    repository = cast(ChatRepository, chat_app.state.chat_repository)
+    await repository.append_user_message(
+        OWNER,
+        uuid.UUID(str(row["id"])),
+        message_id=uuid.uuid4(),
+        parent_message_id=None,
+        content="Persisted input",
+    )
     path = f"/api/v1/conversations/{row['id']}"
     await client.patch(path, json={"pinned": True, "version": 1}, auth=AUTH)
     await client.patch(path, json={"archived": True, "version": 2}, auth=AUTH)

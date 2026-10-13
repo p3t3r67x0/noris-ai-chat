@@ -69,7 +69,9 @@ async def test_conversation_crud_and_versioning(client: AsyncClient) -> None:
 
     listed = await client.get("/api/v1/conversations", auth=AUTH)
     assert listed.status_code == 200
-    assert [item["id"] for item in listed.json()["conversations"]] == [conversation["id"]]
+    assert listed.json()["conversations"] == []
+    assert conversation["lifecycle"] == "EMPTY"
+    assert conversation["sidebarVisible"] is False
 
     renamed = await client.patch(
         f"/api/v1/conversations/{conversation['id']}",
@@ -97,7 +99,7 @@ async def test_conversation_crud_and_versioning(client: AsyncClient) -> None:
     assert archived.json()["archivedAt"] is not None
     assert (await client.get("/api/v1/conversations", auth=AUTH)).json()["conversations"] == []
     archived_list = await client.get("/api/v1/conversations?archived=true", auth=AUTH)
-    assert len(archived_list.json()["conversations"]) == 1
+    assert archived_list.json()["conversations"] == []
 
     deleted = await client.delete(f"/api/v1/conversations/{conversation['id']}", auth=AUTH)
     assert deleted.status_code == 204

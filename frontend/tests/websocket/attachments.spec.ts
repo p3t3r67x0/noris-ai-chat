@@ -1,3 +1,4 @@
+import { clearTestConversations } from './chat-fixtures'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
@@ -5,9 +6,7 @@ const fixtureOrigin = `http://127.0.0.1:${Number(process.env.NORIS_E2E_PROVIDER_
 const fixtureModels = ['fixture-alpha', 'fixture-beta', 'fixture-long']
 test.beforeEach(async ({ request }) => {
   await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: fixtureModels } })
-  const result = await request.get('/api/v1/conversations', { params: { archived: true, limit: 100 } })
-  expect(result.ok()).toBe(true)
-  for (const conversation of (await result.json()).conversations) await request.delete(`/api/v1/conversations/${conversation.id}`)
+  await clearTestConversations(request)
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
 })
@@ -184,6 +183,7 @@ test('vision attachments survive model changes and reload and reach the provider
   await page.reload()
   await expect(page.locator('[data-upload-status="uploaded"]')).toContainText('Für Bildanalyse bereit')
   await expect(input).toHaveValue('Describe this synthetic image')
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await input.press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   await expect(page.locator('.message-attachments a')).toHaveCount(1)

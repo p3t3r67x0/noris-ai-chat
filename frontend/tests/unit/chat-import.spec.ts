@@ -38,12 +38,31 @@ describe('existing browser snapshot import', () => {
     await sync.importLocalChats()
     expect(request).toHaveBeenCalledExactlyOnceWith('/conversations/import', 'POST', expect.objectContaining({
       drafts: { [id]: 'Synthetischer Entwurf' }, activeConversationId: id,
-      conversations: expect.arrayContaining([expect.objectContaining({ id, pinnedAt: time })]),
+      conversations: [{ id, title: 'Synthetischer Import', titleSource: 'manual', createdAt: time, updatedAt: time, archivedAt: null, pinnedAt: time, activeLeafMessageId: reply, conversationMode: 'normal', reasoningPreference: null }],
       messages: expect.arrayContaining([expect.objectContaining({ id: reply, status: 'cancelled' })]),
     }))
     expect(load).toHaveBeenCalledTimes(2)
     expect(sync.storageWarning.value).toContain('1 Chats importiert')
     expect(localStorage.getItem(CHAT_STORAGE_KEY)).toBe(raw)
+  })
+
+  it.each([true, false])('imports only contract fields and retains the backup for a started conversation: %s', async (started) => {
+    const snapshot = JSON.parse(raw)
+    const conversation = snapshot.conversations.conversations[id]
+    conversation.sidebarVisible = started
+    conversation.lifecycle = started ? 'COMPLETED' : 'EMPTY'
+    conversation.lastMessageAt = time
+    conversation.conversationMode = 'learning'
+    conversation.reasoningPreference = 'high'
+    if (!started) { snapshot.messages = {}; conversation.activeLeafMessageId = null; snapshot.preferredLeaves = {} }
+    const backup = JSON.stringify(snapshot)
+    const { sync, request } = await client(backup)
+    await sync.importLocalChats()
+    expect(request).toHaveBeenCalledExactlyOnceWith('/conversations/import', 'POST', expect.objectContaining({
+      conversations: [{ id, title: 'Synthetischer Import', titleSource: 'manual', createdAt: time, updatedAt: time, archivedAt: null, pinnedAt: time, activeLeafMessageId: started ? reply : null, conversationMode: 'learning', reasoningPreference: 'high' }],
+      drafts: { [id]: 'Synthetischer Entwurf' },
+    }))
+    expect(localStorage.getItem(CHAT_STORAGE_KEY)).toBe(backup)
   })
 
   it('rejects an invalid snapshot before any request and retains the original bytes', async () => {

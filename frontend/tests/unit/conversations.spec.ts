@@ -16,6 +16,9 @@ describe('conversation management', () => {
     expect(chats.activeId.value).toBe(b.id)
     chats.select(a.id)
     expect(chats.active.value?.title).toBe('Erste Frage')
+    expect(chats.visible.value).toHaveLength(0)
+    chats.records.value[a.id]!.sidebarVisible = true
+    chats.records.value[b.id]!.sidebarVisible = true
     expect(chats.visible.value).toHaveLength(2)
   })
 
@@ -24,6 +27,7 @@ describe('conversation management', () => {
     const chat = chats.create()
     chats.rename(chat.id, '  Klarer\n Name  ')
     expect(chat.title).toBe('Klarer Name')
+    expect(chats.visible.value).toHaveLength(0)
     expect(chat.createdAt).toBe(chat.updatedAt)
     expect(normalizeTitle(' ')).toBe('Neuer Chat')
     expect(normalizeTitle('a'.repeat(200))).toHaveLength(120)
@@ -32,6 +36,7 @@ describe('conversation management', () => {
   it('archives and restores without removing a conversation', () => {
     const chats = state()
     const chat = chats.create('Aufbewahren')
+    chat.sidebarVisible = true
     chats.archive(chat.id)
     expect(chats.visible.value).toHaveLength(0)
     expect(chats.archived.value).toHaveLength(1)
@@ -45,6 +50,7 @@ describe('conversation management', () => {
   it('deletes only the requested conversation and clears a stale selection', () => {
     const chats = state()
     const keep = chats.create('Behalten')
+    keep.sidebarVisible = true
     const remove = chats.create('Entfernen')
     chats.remove(remove.id)
     expect(chats.visible.value.map(item => item.id)).toEqual([keep.id])

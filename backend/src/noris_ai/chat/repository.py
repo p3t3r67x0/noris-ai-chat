@@ -183,6 +183,7 @@ class ChatRepository:
             .where(
                 ChatConversation.owner_id == owner_id,
                 ChatConversation.deleted_at.is_(None),
+                ChatConversation.has_user_message,
             )
             .order_by(desc(ChatConversation.updated_at))
         )
