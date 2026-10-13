@@ -80,6 +80,13 @@ class ToolRuntime:
             if task is None:
                 task = asyncio.create_task(self._execute(owner, run))
                 self._active[key] = task
+        except asyncio.CancelledError:
+            # create_run may have committed before cancellation reaches its caller.
+            # Fence that run before shutdown or a reconnect can observe it queued.
+            await _drain_cleanup(
+                asyncio.create_task(self.cancel(owner, request.generation_id, root_id=request.id))
+            )
+            raise
         finally:
             admission.set_result(None)
             self._admitting.discard(admission)

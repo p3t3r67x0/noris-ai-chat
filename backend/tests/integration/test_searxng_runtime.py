@@ -24,12 +24,13 @@ from noris_ai.chat.service import ChatService
 from noris_ai.core.config import Settings
 from noris_ai.main import create_app
 from noris_ai.tools.budget import BudgetAmount, BudgetReservation
+from noris_ai.tools.cancellation import GenerationToolContext
 from noris_ai.tools.errors import ToolError
 from noris_ai.tools.events import ToolEventType, ToolSnapshotEvent
 from noris_ai.tools.models import ToolApproval, ToolResult, ToolRun
 from noris_ai.tools.policy import ToolPermission, ToolPolicy
 from noris_ai.tools.providers.searxng import SearXNGProvider
-from noris_ai.tools.registry import canonical_payload, create_tool_registry
+from noris_ai.tools.registry import ToolRegistry, canonical_payload, create_tool_registry
 from noris_ai.tools.repository import ToolRepository
 from noris_ai.tools.runtime import ToolRuntime
 from noris_ai.tools.schemas import SearchInput, SearchResult, ToolRunCreate
@@ -176,13 +177,31 @@ async def test_utf8_limits_survive_dispatch_commit_snapshot_and_replay(
     ],
 )
 async def test_http_terminal_is_replayable_and_closes_io(
-    search: SearchFixture, kind: str, state: str, code: str
+    search: SearchFixture, kind: str, state: str, code: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     request = search.request()
     if kind == "timeout":
-        request = request.model_copy(
-            update={"deadline_at": datetime.now(UTC) + timedelta(seconds=0.5)}
+        definition = search.runtime.registry.get("web.search.v1")
+        original_handler = definition.handler
+        assert original_handler is not None
+
+        async def bounded(context: GenerationToolContext, value: SearchInput) -> SearchResult:
+            # Start the shorter HTTP deadline after DB admission, while preserving
+            # the real handler, transport, runtime finalization and execution fence.
+            return await original_handler(
+                replace(
+                    context,
+                    deadline_at=min(context.deadline_at, datetime.now(UTC) + timedelta(seconds=1)),
+                ),
+                value,
+            )
+
+        registry = ToolRegistry(
+            replace(entry, handler=bounded) if entry.name == definition.name else entry
+            for entry in search.runtime.registry.definitions
         )
+        monkeypatch.setattr(search.runtime, "registry", registry)
+        monkeypatch.setattr(search.runtime.repository, "_registry", registry)
     search.server.wait = kind not in {"error", "timeout"}
     payload = canonical_payload(SearchInput(query=f"/p6-{kind}", language="en"))
     task = asyncio.create_task(search.runtime.execute(search.base.owner, request, payload))
@@ -575,6 +594,69 @@ async def test_shutdown_waits_for_inflight_admission(
         await search.runtime.repository.get_run(search.base.owner, request.id)
     ).state == "interrupted"
     assert search.server.calls == 0
+
+
+async def test_caller_cancel_during_admission_fences_the_persisted_run(
+    search: SearchFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    entered = asyncio.Event()
+    original = search.runtime.repository.create_run
+
+    async def delayed_create(*args: object, **kwargs: object):
+        result = await original(*args, **kwargs)  # type: ignore[arg-type]
+        entered.set()
+        await asyncio.Event().wait()
+        return result
+
+    monkeypatch.setattr(search.runtime.repository, "create_run", delayed_create)
+    request = search.request()
+    task = asyncio.create_task(search.runtime.execute(search.base.owner, request, PAYLOAD))
+    await asyncio.wait_for(entered.wait(), 5)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    monkeypatch.setattr(search.runtime.repository, "create_run", original)
+    assert (await original(search.base.owner, request, PAYLOAD))[0].state == "cancelled"
+    assert (await search.replay()).runs[0].state == "cancelled"
+    assert await search.runtime.repository.get_result(search.base.owner, request.id) is None
+    with pytest.raises(ToolError, match="TOOL_STATE_CONFLICT"):
+        await search.runtime.execute(search.base.owner, request, PAYLOAD)
+    assert (
+        not search.runtime._admitting and not search.runtime._active and not search.runtime._cancels
+    )
+    assert search.server.calls == 0
+
+
+async def test_simultaneous_runtime_handler_provider_timeouts_close_stream(
+    search: SearchFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    timeouts: dict[str, list[asyncio.Timeout]] = {"invoke": [], "ToolRuntime._execute": []}
+    original_timeout = asyncio.timeout
+
+    def capture_timeout(delay: float | None) -> asyncio.Timeout:
+        timeout = original_timeout(delay)
+        current = asyncio.current_task()
+        name = current.get_coro().__qualname__ if current is not None else ""
+        if name in timeouts:
+            timeouts[name].append(timeout)
+        return timeout
+
+    monkeypatch.setattr(asyncio, "timeout", capture_timeout)
+    search.server.wait = True
+    request = search.request()
+    task = asyncio.create_task(search.runtime.execute(search.base.owner, request, PAYLOAD))
+    await asyncio.wait_for(search.server.entered.wait(), 5)
+    assert timeouts["ToolRuntime._execute"] and len(timeouts["invoke"]) >= 2
+    deadline = asyncio.get_running_loop().time()
+    for timeout in [timeouts["ToolRuntime._execute"][-1], *timeouts["invoke"]]:
+        timeout.reschedule(deadline)
+    with pytest.raises(ToolError, match="TOOL_TIMEOUT"):
+        await task
+    await asyncio.wait_for(search.server.closed.wait(), 5)
+    assert (await search.replay()).runs[0].state == "timed_out"
+    assert await search.runtime.repository.get_result(search.base.owner, request.id) is None
+    assert search.server.calls == 1 and search.server.active == 0
+    assert not search.runtime._active and not search.runtime._cancels
 
 
 async def test_changed_execution_fence_cannot_commit_result(

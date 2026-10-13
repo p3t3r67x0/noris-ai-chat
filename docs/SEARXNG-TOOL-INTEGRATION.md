@@ -294,6 +294,8 @@ Exakt freigegebene Loopback-/RFC1918-/ULA-Adressen bleiben die einzigen internen
 Ausnahmen. Der Runtime-Abbruch und Shutdown warten auch bei wiederholtem
 `Task.cancel()` auf Stream-, Worker- und Watcherbereinigung. Shutdown wartet
 zusätzlich auf bereits begonnene Run-Anlage, bevor Datenbank und Provider schließen.
+Caller-Cancel während der Run-Anlage setzt auch für bereits committeden Runs den
+persistierten Cancel-Fence; diese bleiben nach Reconnect nicht erneut ausführbar.
 Persistierte Ein-/Ausgaben verwenden bei erneuter Validierung dieselbe kompakte
 UTF-8-Kodierung wie der ursprüngliche Payload; ASCII-Escapes dürfen gültige
 Unicode-Suchen oder Resultate nicht künstlich über das Bytelimit vergrößern.
