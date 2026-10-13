@@ -227,7 +227,11 @@ async def test_actual_tls_pinning_preserves_certificate_validation(
     trusted = ssl.create_default_context()
     trusted.load_verify_locations(cafile=str(certificate))
     assert trusted.check_hostname and trusted.verify_mode == ssl.CERT_REQUIRED
-    monkeypatch.setattr(ssl, "create_default_context", lambda **_: trusted)
+
+    def client_context(**kwargs: object) -> ssl.SSLContext:
+        return trusted
+
+    monkeypatch.setattr(ssl, "create_default_context", client_context)
     loop = asyncio.get_running_loop()
     original = loop.getaddrinfo
 
