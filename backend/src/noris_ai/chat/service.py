@@ -20,6 +20,7 @@ from noris_ai.chat.schemas import (
     AttachmentResponse,
     ChatImportRequest,
     ChatImportResponse,
+    ConversationLifecycle,
     ConversationListResponse,
     ConversationMode,
     ConversationResponse,
@@ -43,7 +44,8 @@ NEW_CHAT_DRAFT_KEY = "__new__"
 
 def conversation_response(conversation: ChatConversation) -> ConversationResponse:
     return ConversationResponse(
-        sidebarVisible=conversation.sidebar_visible is not False,
+        lifecycle=cast(ConversationLifecycle, conversation.lifecycle),
+        sidebarVisible=bool(conversation.has_user_message),
         id=conversation.id,
         title=conversation.title,
         conversationMode=cast(ConversationMode, conversation.conversation_mode or "normal"),
@@ -156,6 +158,7 @@ class ChatService:
         archive_only: bool = False,
         query: str = "",
         pinned: bool | None = None,
+        prepared_only: bool = False,
     ) -> ConversationListResponse:
         async with self.repository.database() as session:
             rows, next_cursor = await pagination.conversation_page(
@@ -167,6 +170,7 @@ class ChatService:
                 archive_only=archive_only,
                 query=query,
                 pinned=pinned,
+                prepared_only=prepared_only,
             )
         return ConversationListResponse(
             conversations=[conversation_response(c) for c in rows],

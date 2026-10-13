@@ -25,6 +25,9 @@ async function seed(request: APIRequestContext) {
   }))
   messages.push({ ...messages[999]!, id: uuid(20000), content: 'Alternative outside loaded branch', createdAt: '2020-02-01T00:00:00.000Z', updatedAt: '2020-02-01T00:00:00.000Z' })
   const conversations: ApiSchemas['ImportConversation'][] = Array.from({ length: 120 }, (_, index) => ({ id: uuid(index + 1), title: `Sidebar chat ${index + 1}`, titleSource: 'manual', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: new Date(Date.UTC(2026, 0, 1, 0, 0, index)).toISOString(), activeLeafMessageId: null, archivedAt: null }))
+  for (const [index, conversation] of conversations.entries()) {
+    messages.push({ id: uuid(30000 + index), conversationId: conversation.id, parentMessageId: null, role: 'user', content: 'Synthetic persisted input', status: 'completed', modelId: 'fixture-alpha', createdAt: conversation.createdAt, updatedAt: conversation.updatedAt })
+  }
   conversations.push({ ...conversations[0]!, id: conversationId, title: 'Old active long chat', updatedAt: '2020-01-01T00:00:00.000Z', activeLeafMessageId: uuid(11001) })
   const result = await request.post('/api/v1/conversations/import', { data: { conversations, messages, drafts: { [conversationId]: 'Persisted long-chat draft' }, activeConversationId: conversationId } })
   expect(result.ok()).toBe(true)

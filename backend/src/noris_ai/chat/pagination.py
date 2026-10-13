@@ -38,14 +38,18 @@ async def conversation_page(
     archive_only: bool,
     query: str,
     pinned: bool | None = None,
+    prepared_only: bool = False,
 ) -> tuple[Sequence[ChatConversation], str | None]:
     scope = f"conversations:{owner}:{archived}:{archive_only}:{query}"
+    if prepared_only:
+        scope += ":prepared"
     if pinned is not None:
         scope += f":pinned={pinned}"
     sort_time = ChatConversation.pinned_at if pinned else ChatConversation.updated_at
     stmt = select(ChatConversation).where(
         ChatConversation.owner_id == owner,
         ChatConversation.deleted_at.is_(None),
+        ~ChatConversation.has_user_message if prepared_only else ChatConversation.has_user_message,
     )
     if archive_only:
         stmt = stmt.where(ChatConversation.archived_at.is_not(None))

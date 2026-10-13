@@ -64,7 +64,9 @@ export function parseChatSnapshot(raw: string): ChatSnapshot | null {
       }
       for (const id of chain) checked.add(id)
     }
+    const started = new Set(Object.values(messages).filter(message => message.role === 'user').map(message => message.conversationId))
     for (const conversation of Object.values(conversations.conversations)) {
+      conversation.sidebarVisible = started.has(conversation.id)
       if (conversation.activeLeafMessageId !== null && own(messages, conversation.activeLeafMessageId)?.conversationId !== conversation.id) return null
       if (conversation.titleSource !== 'manual' && conversation.title === FALLBACK_TITLE) {
         // Recover known topics from the existing active branch locally, without another LLM call.

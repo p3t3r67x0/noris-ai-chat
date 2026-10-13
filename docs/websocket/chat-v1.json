@@ -448,6 +448,18 @@
               ],
               "title": "Lastmessageat"
             },
+            "lifecycle": {
+              "default": "EMPTY",
+              "enum": [
+                "EMPTY",
+                "STARTED",
+                "GENERATING",
+                "FAILED",
+                "COMPLETED"
+              ],
+              "title": "Lifecycle",
+              "type": "string"
+            },
             "pinnedAt": {
               "anyOf": [
                 {
@@ -473,7 +485,7 @@
               "default": null
             },
             "sidebarVisible": {
-              "default": true,
+              "default": false,
               "title": "Sidebarvisible",
               "type": "boolean"
             },

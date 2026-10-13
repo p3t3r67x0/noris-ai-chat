@@ -52,6 +52,37 @@ async def seed(chat_app: FastAPI, count: int = 123) -> list[uuid.UUID]:
                 version=1,
             )
         )
+        await session.execute(
+            insert(ChatMessage),
+            [
+                dict(
+                    id=uuid.uuid4(),
+                    conversation_id=id,
+                    role="user",
+                    content="Persisted input",
+                    status="completed",
+                )
+                for id in ids
+            ],
+        )
+        # More than a page of historical technical rows must not create holes
+        # or affect hasMore/cursors, including search, pins and archives.
+        await session.execute(
+            insert(ChatConversation),
+            [
+                dict(
+                    id=uuid.uuid4(),
+                    owner_id=OWNER,
+                    title="Synthetic empty",
+                    title_source="manual",
+                    sidebar_visible=True,
+                    version=1,
+                    updated_at=datetime(2027, 1, 1, tzinfo=UTC),
+                    archived_at=datetime.now(UTC) if index % 2 else None,
+                )
+                for index in range(60)
+            ],
+        )
     return ids
 
 
@@ -73,6 +104,13 @@ async def test_stable_conversation_seeks_search_archives_and_scope(
         cursor = page["nextCursor"]
     assert [r["id"] for r in rows] == [str(i) for i in reversed(ids)]
     assert len({r["id"] for r in rows}) == len(ids)
+    assert (
+        await client.get(
+            "/api/v1/conversations",
+            params={"archived": "true", "preparedOnly": "true", "cursor": first["nextCursor"]},
+            auth=AUTH,
+        )
+    ).status_code == 422
     for invalid in ["!!!", first["nextCursor"] + "=", "x" * 2049]:
         assert (
             await client.get("/api/v1/conversations", params={"cursor": invalid}, auth=AUTH)

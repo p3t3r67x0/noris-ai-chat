@@ -70,7 +70,7 @@ export function parseConversationSnapshot(raw: string): ConversationSnapshot | n
       const item = isRecord(stored) ? { ...stored, reasoningPreference: isReasoningPreference(stored.reasoningPreference) ? stored.reasoningPreference : null } : stored
       if (!isConversation(item) || item.id !== id) return null
       // Legacy names may be manual: preserve them and never generate retroactively.
-      const conversation: Conversation = { ...item, conversationMode: item.conversationMode ?? 'normal', reasoningPreference: item.reasoningPreference ?? null, titleSource: item.titleSource ?? 'manual', titleGenerationAttempted: item.titleGenerationAttempted ?? true }
+      const conversation: Conversation = { ...item, sidebarVisible: item.sidebarVisible ?? false, conversationMode: item.conversationMode ?? 'normal', reasoningPreference: item.reasoningPreference ?? null, titleSource: item.titleSource ?? 'manual', titleGenerationAttempted: item.titleGenerationAttempted ?? true }
       if (conversation.titleSource !== 'manual') {
         conversation.title = normalizeAutomaticTitle(conversation.title)
         if (conversation.title === FALLBACK_TITLE) conversation.titleSource = 'fallback'

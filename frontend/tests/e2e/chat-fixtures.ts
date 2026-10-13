@@ -23,6 +23,15 @@ export function savedChat(turns = 1): ChatSnapshot {
   return snapshot
 }
 export async function seedChat(page: Page, snapshot: ChatSnapshot, theme = 'light') {
+  // Listed fixture conversations represent chats that have actually started.
+  // Keep the active empty-chat fixture empty and prune rows removed by a test.
+  snapshot.messages = Object.fromEntries(Object.entries(snapshot.messages).filter(([, message]) => Object.hasOwn(snapshot.conversations.conversations, message.conversationId)))
+  for (const conversation of Object.values(snapshot.conversations.conversations)) {
+    if (conversation.id === 'main' || Object.values(snapshot.messages).some(message => message.conversationId === conversation.id)) continue
+    const id = `fixture-user-${conversation.id}`
+    snapshot.messages[id] = { id, conversationId: conversation.id, parentMessageId: null, role: 'user', content: 'Synthetic persisted question', status: 'completed', createdAt: conversation.createdAt }
+    conversation.activeLeafMessageId = id
+  }
   await page.addInitScript(({ key, value, selectedTheme }) => {
     if (localStorage.getItem(key) === null) localStorage.setItem(key, value)
     if (localStorage.getItem('noris-ai-theme') === null) localStorage.setItem('noris-ai-theme', selectedTheme)

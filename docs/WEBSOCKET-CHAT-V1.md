@@ -215,6 +215,46 @@ ein leeres Delta speichert und überträgt den Zähler eines zugelassenen Folgea
 `chat.title.updated` informiert über den automatischen Titel. `chat.error`
 enthält sichere Codes und gegebenenfalls `requestId`, keine Provider-Details.
 
+## Sichtbarkeit und vorbereitete Chats
+
+Die Sichtbarkeit wird aus persistierten Benutzernachrichten mit Status
+`completed` abgeleitet. `sidebarVisible` im REST-/WebSocket-Vertrag transportiert
+diese Autorität; das historische Datenbankfeld bestimmt die Listen nicht mehr.
+Titel, Entwürfe und Uploads sind kein Nachweis einer gesendeten Nachricht.
+
+| `lifecycle` | Persistierter Zustand | Normale Listen |
+| --- | --- | --- |
+| `EMPTY` | Keine gespeicherte Benutzernachricht | Ausgeblendet |
+| `STARTED` | Benutzernachricht, keine vollständige letzte Antwort; auch Abbruch/Teilausgabe | Sichtbar |
+| `GENERATING` | Letzte Modellantwort `pending` oder `streaming` | Sichtbar |
+| `FAILED` | Letzte Modellantwort `failed`, Benutzernachricht bleibt gespeichert | Sichtbar |
+| `COMPLETED` | Letzte Modellantwort `completed` | Sichtbar |
+
+Die gemeinsame Datenbankabfrage filtert vor Sortierung, Limit und Cursorbildung.
+Das gilt für Sidebar, letzte Chats, Titelsuche, Pins, Archiv und Conversation-Picker.
+Auch ein gestarteter Chat mit dem Titel `Neuer Chat` bleibt sichtbar. Nach dem
+atomaren Speichern der ersten Nachricht sendet der Server bereits
+`chat.conversation.updated`, bevor Modell- und Titelgenerierung starten. Eine
+geöffnete Suche fragt nach Metadatenereignissen erneut serverseitig ab; dadurch
+gelten Suchbegriff und Pagination auch bei Änderungen aus einem anderen Tab.
+
+Alte leere Datensätze werden ohne Migration, Rückdatierung oder Löschung
+ausgeblendet. Ob solche Datensätze auf einer laufenden Installation existieren,
+wird durch diese Änderung nicht geprüft. Entwürfe und Dateien bleiben erhalten;
+der direkte Zugriff auf eine eigene Conversation bleibt möglich.
+`GET /conversations?preparedOnly=true` ist ein ausdrücklich angeforderter,
+separat begrenzter Recovery-Seek auf `EMPTY`-Conversations. Der Bootstrap lädt
+diese Metadaten in denselben Chat-State, damit „Neuer Chat“ eine vorbereitete
+Unterhaltung nach Navigation und Reload wiederverwenden kann. Diese Seite
+speist keine normale Gesprächsliste; ihre Cursor gelten nur für Recovery.
+Dateien und Entwürfe werden beim Auswählen über ihre bestehenden APIs geladen.
+
+Die lokale Playwright-Abnahme verwendet einen simulierten Anbieter und eine
+temporäre PostgreSQL-Datenbank. Visuelle Belege: [Desktop leer](screenshots/conversation-visibility/desktop-empty-search.png),
+[Desktop gestartet](screenshots/conversation-visibility/desktop-started-search.png),
+[Mobile leer](screenshots/conversation-visibility/mobile-empty-search.png),
+[Mobile gestartet](screenshots/conversation-visibility/mobile-started-search.png).
+
 ## Stop und Wiederaufnahme
 
 `chat.cancel {version:1,generationId}` ist ein ausdrücklicher Nutzerabbruch.

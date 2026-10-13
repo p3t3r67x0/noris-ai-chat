@@ -40,6 +40,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   const importBusy = ref(false)
   let disposed = false
   let userNavigated = false
+  const revision = ref(0)
   const sidebarIds = ref<string[]>([])
   const pinnedIds = ref<string[]>([])
   const pinnedCursor = ref<string | null>(null)
@@ -98,6 +99,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     }
   }
   backend.onDeleted = (id) => {
+    revision.value++
     state.conversations.remove(id)
     sidebarIds.value = sidebarIds.value.filter(value => value !== id)
     pinnedIds.value = pinnedIds.value.filter(value => value !== id)
@@ -197,6 +199,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     if (!value.archivedAt && !value.pinnedAt && value.sidebarVisible !== false && (!previous || previous.archivedAt || previous.pinnedAt || previous.sidebarVisible === false || compareConversations(conversationFromServer(value), previous) < 0) && !sidebarIds.value.includes(value.id)) {
       sidebarIds.value = [value.id, ...sidebarIds.value].slice(0, 500)
     }
+    revision.value++
     const changedLeaf = previous?.activeLeafMessageId !== value.activeLeafMessageId
     if (changedLeaf && value.id === state.conversations.activeId.value && value.id !== state.generatingConversationId.value) {
       // Retain the displayed path until its new authoritative window is ready.
@@ -211,6 +214,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   }
   backend.onMetadata = (values, activeId) => {
     if (disposed) return
+    revision.value++
     mergeMetadata(values)
     sidebarIds.value = backend.initialPage?.conversations.map(c => c.id) ?? []
     if (!userNavigated) state.conversations.activeId.value = activeId
@@ -520,6 +524,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   }, { deep: true, flush: 'sync' })
   onUnmounted(() => { disposed = true; viewRequest?.abort.abort(); clearTimeout(timer); clearTimeout(draftTimer); flushCache(); transport.dispose?.() })
   const pagination = {
+    revision,
     conversations: computed(() => [...new Set([...pinnedIds.value, ...sidebarIds.value])].flatMap(id => { const c = state.conversations.records.value[id]; return c && !c.archivedAt && c.sidebarVisible !== false ? [c] : [] })),
     pinnedLoading, pinnedError, hasMorePinned: computed(() => Boolean(pinnedCursor.value)), reloadPinned: () => reloadPinned(), loadMorePinned: () => reloadPinned(true),
     pinnedWindowedList: computed(() => pinnedIds.value.length >= 500),
