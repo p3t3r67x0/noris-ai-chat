@@ -25,6 +25,7 @@ from noris_ai.main import create_app
 from tests.fixtures.attachments import large_pdf, large_pdf_texts, synthetic_pdf
 from tests.integration.test_attachments import upload
 from tests.integration.test_chat_websocket import AUTH, ORIGIN, Simulator, generate, protocols
+from tests.integration.test_conversation_titles import drain_titles
 
 pytestmark = pytest.mark.integration
 
@@ -102,6 +103,9 @@ def test_large_pdf_storage_retrieval_restart_followup_and_cleanup(
     client.portal.call(verify_storage)
     payload["attachmentIds"] = [attachment["id"]]
     complete(client, payload)
+    # The independent title phase can still change the conversation version.
+    # Finish the old worker's tasks before starting the separate restart client.
+    drain_titles(client)
     sent = simulator.calls[-1][0]
     assert sent.role == "user" and "98765" in sent.content
     assert "Anfangsklausel" not in sent.content
@@ -118,6 +122,7 @@ def test_large_pdf_storage_retrieval_restart_followup_and_cleanup(
         conversation = restarted.get(
             f"/api/v1/conversations/{payload['conversationId']}", auth=AUTH
         ).json()
+        assert conversation["titleSource"] == "generated"
         followup = payload | {
             "requestId": str(uuid4()),
             "inputMessageId": str(uuid4()),
