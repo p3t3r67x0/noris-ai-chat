@@ -498,6 +498,17 @@ def test_automatic_continuations_persist_one_answer_and_regenerated_variant(
         # Resending the accepted command never starts another chain.
         assert receive_terminal(socket, payload, "completed")["content"] == events[-1]["content"]
         assert len(simulator.calls) == 3
+        # Title generation is an independent admitted phase and changes the
+        # conversation version. Await its task before choosing the regeneration
+        # version; the test is about continuations, not a stale-version conflict.
+        manager = cast(GenerationManager, cast(FastAPI, client.app).state.chat_generations)
+
+        async def settle_title() -> None:
+            async with asyncio.timeout(3):
+                await asyncio.gather(*list(manager.tasks))
+
+        assert client.portal is not None
+        client.portal.call(settle_title)
         regenerated = payload | {
             "requestId": str(uuid4()),
             "assistantMessageId": str(uuid4()),

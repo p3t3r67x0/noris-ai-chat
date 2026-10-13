@@ -24,11 +24,22 @@ async function newChat(page: Page) {
   await expect(page.locator('[role="dialog"]').filter({ has: page.locator('.sidebar-primary-actions') })).toHaveCount(0)
   await expect(page.getByRole('textbox', { name: 'Nachricht', exact: true })).toBeFocused()
 }
-test.beforeEach(async ({ request }) => {
+test.beforeEach(async ({ page, request }) => {
   await clearTestConversations(request)
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: 'fixture-alpha' } })
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
   await request.post(`${provider}/fixture/catalog`, { data: { ids: ['fixture-alpha', 'fixture-beta', 'fixture-long'], imageIds: ['fixture-alpha'] } })
+  await expect.poll(async () => {
+    const catalog = await (await request.get('/api/v1/llm/models')).json()
+    return catalog.models.find((model: { id: string, vision?: boolean }) => model.id === 'fixture-alpha')?.vision
+  }).toBe(true)
+  // This suite checks conversation visibility and attachment recovery. Keep
+  // the verified catalog stable so its one-second fixture TTL cannot disable
+  // Send between key-down and key-up; refresh has separate regression coverage.
+  await page.route('**/api/v1/llm/models', async (route) => {
+    const response = await route.fetch()
+    await route.fulfill({ response, json: { ...await response.json(), expires_in_seconds: 60 } })
+  })
 })
 test.afterEach(async ({ request }) => {
   await request.post(`${provider}/fixture/catalog`, { data: { ids: ['fixture-alpha', 'fixture-beta', 'fixture-long'] } })

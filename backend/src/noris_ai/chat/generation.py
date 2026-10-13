@@ -41,6 +41,7 @@ from noris_ai.llm.schemas import (
 )
 from noris_ai.llm.titles import log_title_event
 from noris_ai.llm.vision import VisionMessage, supports_images
+from noris_ai.tools.runtime import ToolRuntime
 
 type Payload = dict[str, object]
 logger = logging.getLogger(__name__)
@@ -105,9 +106,11 @@ class GenerationManager:
         repository: ChatRepository,
         gateway: LLMGateway,
         attachments: AttachmentService | None = None,
+        tools: ToolRuntime | None = None,
     ) -> None:
         self.config, self.repository, self.gateway = config, repository, gateway
         self.attachments = attachments
+        self.tools = tools
         self.live: dict[UUID, LiveGeneration] = {}
         self.admission = asyncio.Lock()
         self.peers: set[Peer] = set()
@@ -326,6 +329,8 @@ class GenerationManager:
         await self.repository.get_conversation(
             self.config.chat_owner_id, generation.conversation_id
         )
+        if self.tools is not None:
+            await self.tools.cancel(self.config.chat_owner_id, generation_id)
         live = self.live.get(generation_id)
         if live is not None and live.task is not None:
             # The worker observes this between committed events. Cancelling its
@@ -573,7 +578,7 @@ class GenerationManager:
                 await asyncio.gather(pending, return_exceptions=True)
             if iterator is not None:
                 await iterator.aclose()
-            self.gateway.release(request.generationId)
+            await self.gateway.abandon(request.generationId)
             try:
                 if buffered:
                     await emit("delta", buffered)

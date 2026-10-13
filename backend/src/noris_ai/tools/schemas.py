@@ -31,8 +31,12 @@ TERMINAL_STATES: frozenset[ToolRunState] = frozenset(
 )
 TRANSITIONS: Mapping[ToolRunState, frozenset[ToolRunState]] = MappingProxyType(
     {
-        "queued": frozenset({"awaiting_approval", "running", "failed", "cancelled", "interrupted"}),
-        "awaiting_approval": frozenset({"running", "failed", "cancelled", "interrupted"}),
+        "queued": frozenset(
+            {"awaiting_approval", "running", "failed", "cancelled", "interrupted", "timed_out"}
+        ),
+        "awaiting_approval": frozenset(
+            {"running", "failed", "cancelled", "interrupted", "timed_out"}
+        ),
         "running": frozenset(TERMINAL_STATES),
     }
 )
@@ -133,3 +137,4 @@ class ToolRunSnapshot(ToolSchema):
     cancel_requested_at: datetime | None
     started_at: datetime | None
     finished_at: datetime | None
+    execution_deadline_at: datetime | None = None

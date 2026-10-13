@@ -53,6 +53,8 @@ describe('long responses and explicit continuation', () => {
     expect(chat.visible.value[1]?.id).toBe(id)
     expect(chat.variants(id)).toHaveLength(1)
     expect(requests).toHaveLength(3)
+    expect(new Set(requests.map(request => request.generationId)).size).toBe(3)
+    expect(reply.generationId).toBe(requests[2]!.generationId)
     expect(requests[2]).toMatchObject({ operation: 'continue', assistantMessageId: id, inputMessageId: chat.visible.value[0]!.id, continuationCount: 2, modelId: 'fixture-alpha' })
     expect(requests[2]?.messages.at(-1)?.content).toBe(original + continuation)
   })

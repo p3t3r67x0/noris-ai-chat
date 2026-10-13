@@ -9,6 +9,7 @@ from typing import Any, Literal
 
 from pydantic import TypeAdapter, ValidationError
 
+from noris_ai.tools.cancellation import GenerationToolContext
 from noris_ai.tools.errors import ToolError
 from noris_ai.tools.schemas import (
     MAX_INPUT_BYTES,
@@ -19,7 +20,6 @@ from noris_ai.tools.schemas import (
     SearchResult,
     SourceDocument,
     ToolId,
-    ToolRunCreate,
     ToolSchema,
 )
 
@@ -52,8 +52,7 @@ class ToolDefinition[InputT: ToolSchema, OutputT: ToolSchema]:
     permission: Literal["web_search", "web_fetch", "library_attach", "image_generate"]
     allowed_invocation_kinds: frozenset[InvocationKind]
     provider_key: str | None = None
-    # P1b supplies the full runtime context and dispatcher. No production handler in P1a.
-    handler: Callable[[ToolRunCreate, InputT], Awaitable[OutputT]] | None = None
+    handler: Callable[[GenerationToolContext, InputT], Awaitable[OutputT]] | None = None
     timeout_policy: TimeoutPolicy = TimeoutPolicy()
     retry_policy: RetryPolicy = RetryPolicy()
     cost_policy: Literal["disabled", "bounded"] = "disabled"

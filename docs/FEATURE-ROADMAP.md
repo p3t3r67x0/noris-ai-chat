@@ -104,6 +104,9 @@ Unit: Schemas, Namenskollisionen, verbotene Invocationkind, Zustandstransitionen
 
 ### P1b — Gemeinsame Runtime, Policy, Timeouts und durable Budgets
 
+Implementierung und konkreter Ressourcen-/Migrationsvertrag: [Tool-Runtime P1b](TOOL-RUNTIME.md).
+Providerdispatch für Websuche/Fetch und Menüaktivierung bleiben den Folge-PRs vorbehalten.
+
 Zweck: Dispatcher, Policy/grant-Prüfung, Parent-/Childcancel, Budgetledger und injection hinter bestehender Gatewayadmission. Fakehandler dienen Tests; keine Search-/Imageaktivierung. Approval-/Capability-/Runresource-Routen hier erstmals fertig einführen.
 
 Unit: allow/deny/approval, Digests/Expiry, konservative Kosten, Timeouts, Retrypolicy, safe errors. Integration: konkurrierende Reservation, Tageswechsel/Neustart, Doppelrequest, Providerunknown, cancel vs commit, fremde Approvals, Gatewayphasen/Titel/Fortsetzung ohne Doppelzählung. Playwright: normale Chat-/Stop-/Auto-continuation-/Modelrevocation-Regressionsszenarien; neue sichtbare Fehler falls betroffen. API: neue REST-Schemas/OpenAPI/TS und feste Errorcodes. Security: jede Invocation erneut prüfen; fehlende Preise/Keys fail-closed. Abnahme: Runtime kann Fakeprovider steuern, existing Gatewaylimits bleiben bindend. Abhängigkeit: P1a.

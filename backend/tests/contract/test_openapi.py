@@ -32,6 +32,9 @@ def test_foundation_and_llm_endpoints_are_exposed() -> None:
         "/api/v1/chat/attachments/limits",
         "/api/v1/chat/attachments/{attachment_id}",
         "/api/v1/chat/attachments/{attachment_id}/content",
+        "/api/v1/chat/tools/capabilities",
+        "/api/v1/chat/tool-runs/{run_id}",
+        "/api/v1/chat/tool-approvals/{approval_id}/decision",
     }
     assert schema["paths"]["/api/v1/health/ready"]["get"]["responses"]["503"]["content"][
         "application/json"

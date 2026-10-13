@@ -235,8 +235,8 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
       rememberBranch()
       reply = append(source.conversationId, source.parentMessageId, 'assistant', source.content)
       reply.modelId = modelId
-      reply.generationId = id()
     }
+    reply.generationId = id()
     reply.continuationCount = continuationCount
     delete reply.errorCode
     delete reply.errorMessage

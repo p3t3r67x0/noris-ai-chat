@@ -149,7 +149,7 @@ class SSEStreamingResponse(StreamingResponse):
                 close = getattr(self._iterator, "aclose", None)
                 if close is not None:
                     await close()
-                self._gateway.release(self._generation_id)
+                await self._gateway.abandon(self._generation_id)
 
 
 @router.post(

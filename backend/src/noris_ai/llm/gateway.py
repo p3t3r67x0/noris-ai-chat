@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from collections import deque
 from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable, Sequence
 from datetime import UTC, datetime
@@ -7,6 +8,7 @@ from decimal import Decimal
 from time import monotonic
 
 import anyio
+from sqlalchemy.exc import SQLAlchemyError
 
 from noris_ai.core.config import Settings
 from noris_ai.learning.policy import LearningInstruction
@@ -32,14 +34,26 @@ from noris_ai.llm.schemas import (
 from noris_ai.llm.titles import TitleInstruction, log_title_event, title_source, validate_title
 from noris_ai.llm.tokens import TokenCounter
 from noris_ai.llm.vision import VisionMessage, supports_images
+from noris_ai.tools.budget import BudgetCoordinator
+from noris_ai.tools.errors import ToolError
+from noris_ai.tools.registry import payload_digest
+
+logger = logging.getLogger(__name__)
 
 
 class LLMGateway:
     """Bounded, single-worker admission; never silently truncate or automatically retry."""
 
-    def __init__(self, config: Settings, provider: LLMProvider | None) -> None:
+    def __init__(
+        self,
+        config: Settings,
+        provider: LLMProvider | None,
+        budget: BudgetCoordinator | None = None,
+    ) -> None:
         self.config = config
         self.provider = provider
+        self.budget = budget
+        self._durable_phases: set[str] = set()
         self.catalog = ModelCatalogService(config, provider)
         self._estimated_costs: dict[str, Decimal | None] = {}
         self._admitted: dict[str, LLMModel] = {}
@@ -70,9 +84,75 @@ class LLMGateway:
             if len(self._continuation_ids) >= 10_000:
                 raise LLMError("RATE_LIMIT", 429)
         self._reserve(request.generationId, model, self.provider_messages(request))
+        try:
+            await self._reserve_durable(
+                request.generationId, model, self.provider_messages(request)
+            )
+        except BaseException:
+            self.release(request.generationId)
+            raise
         self._answer_targets[request.generationId] = target
         if request.operation == "continue":
             self._continuation_ids.add(request.generationId)
+
+    async def _reserve_durable(
+        self, phase: str, model: LLMModel, messages: Sequence[ProviderMessage]
+    ) -> None:
+        if self.budget is None:
+            return
+        tokens = (
+            self._counter.estimate(messages, model.id)
+            + model.max_output_tokens
+            + model.reasoning_reserve_tokens
+        )
+        digest = payload_digest(
+            json.dumps(
+                {
+                    "model": model.id,
+                    "messages": [provider_payload(m) for m in messages],
+                    "tokens": tokens,
+                    "reasoning": model.reasoning_effort,
+                },
+                sort_keys=True,
+                ensure_ascii=False,
+            ).encode()
+        )
+        try:
+            await self.budget.reserve_text(
+                self.config.chat_owner_id, phase, digest, tokens, self.config.llm_daily_token_budget
+            )
+            self._durable_phases.add(phase)
+        except ToolError as error:
+            raise LLMError(
+                "BUDGET_LIMIT" if error.code == "BUDGET_LIMIT" else "GENERATION_ACTIVE",
+                error.status,
+            ) from None
+
+    async def _dispatch_durable(self, phase: str) -> None:
+        if self.budget is not None:
+            try:
+                await self.budget.dispatch_text(self.config.chat_owner_id, phase)
+            except ToolError:
+                raise LLMError("GENERATION_ACTIVE", 409) from None
+
+    async def _finish_durable(self, phase: str, *, unknown: bool = False) -> None:
+        if self.budget is not None and phase in self._durable_phases:
+            try:
+                await self.budget.finish_text(self.config.chat_owner_id, phase, unknown=unknown)
+            except SQLAlchemyError:
+                # The committed ceiling remains charged and startup can recover it.
+                # A bookkeeping outage must not discard a received partial answer
+                # or strand GenerationManager.live during its terminal cleanup.
+                logger.warning("Could not finalize text budget reservation")
+            finally:
+                self._durable_phases.discard(phase)
+
+    async def abandon(self, phase: str) -> None:
+        with anyio.CancelScope(shield=True):
+            try:
+                await self._finish_durable(phase, unknown=True)
+            finally:
+                self.release(phase)
 
     def check_input(self, request: ChatRequest, model: LLMModel) -> None:
         """Side-effect-free admission checks, also used to fit PDF excerpts."""
@@ -172,6 +252,8 @@ class LLMGateway:
         phase = "admission"
         iterator: AsyncIterator[str] | None = None
         admitted = False
+        dispatched = False
+        succeeded = False
 
         def diagnostic(outcome: str, code: str | None = None) -> None:
             log_title_event(
@@ -204,6 +286,7 @@ class LLMGateway:
                 self.config.llm_title_max_output_tokens,
             )
             admitted = True
+            await self._reserve_durable(generation_id, model, messages)
             if before_stream is not None:
                 phase = "claim"
                 if not await before_stream():
@@ -212,6 +295,8 @@ class LLMGateway:
                 self._title_attempts.add(generation_id)
             phase = "generation"
             diagnostic("started")
+            await self._dispatch_durable(generation_id)
+            dispatched = True
             iterator = provider.stream(messages, model)
             text = ""
             async with asyncio.timeout(self.config.llm_title_timeout_seconds):
@@ -226,6 +311,7 @@ class LLMGateway:
                 title=validate_title(text),
             )
             diagnostic("success")
+            succeeded = True
             return result
         except TimeoutError:
             diagnostic("failure", "TIMEOUT")
@@ -252,7 +338,13 @@ class LLMGateway:
                     await close()
             finally:
                 if admitted:
-                    self.release(generation_id)
+                    with anyio.CancelScope(shield=True):
+                        try:
+                            await self._finish_durable(
+                                generation_id, unknown=dispatched and not succeeded
+                            )
+                        finally:
+                            self.release(generation_id)
 
     def release(self, generation_id: str) -> None:
         self._active.discard(generation_id)
@@ -273,7 +365,9 @@ class LLMGateway:
             yield FailedEvent(seq=2, code="LLM_DISABLED", message=LLMError("LLM_DISABLED").message)
             return
         model = self._admitted[request.generationId]
-        iterator = provider.stream(self.provider_messages(request), model)
+        iterator: AsyncIterator[str] | None = None
+        dispatched = False
+        succeeded = False
         previous = request.messages[-1].content if request.operation == "continue" else ""
         filter_ = ContinuationFilter(previous)
         text_length = utf16_length(previous)
@@ -314,6 +408,9 @@ class LLMGateway:
                 raise LLMError(code)
 
         try:
+            await self._dispatch_durable(request.generationId)
+            dispatched = True
+            iterator = provider.stream(self.provider_messages(request), model)
             async with asyncio.timeout(
                 min(model.timeout_policy.total_seconds, self.config.llm_total_timeout_seconds)
             ):
@@ -345,6 +442,7 @@ class LLMGateway:
                 check_limits(delta, before)
             if not has_text:
                 raise LLMError("DUPLICATE_CONTINUATION" if previous else "INVALID_RESPONSE")
+            succeeded = True
             yield CompletedEvent(seq=seq + 1)
         except (TimeoutError, LLMError) as cause:
             error = cause if isinstance(cause, LLMError) else LLMError("TIMEOUT", 504)
@@ -380,7 +478,12 @@ class LLMGateway:
                     if close is not None:
                         await close()
                 finally:
-                    self.release(request.generationId)
+                    try:
+                        await self._finish_durable(
+                            request.generationId, unknown=dispatched and not succeeded
+                        )
+                    finally:
+                        self.release(request.generationId)
 
     async def stream(self, request: ChatRequest) -> AsyncGenerator[bytes]:
         iterator = self.events(request)
