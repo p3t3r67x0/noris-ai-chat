@@ -84,6 +84,6 @@ Neue Tests decken direkte Aktionen, Gruppierung, Sortierung, Duplikate, Versions
 | Playwright Löschfehler / Retry / Benachrichtigung | 1 bestanden |
 | Produktionsbuild Nuxt / Python-Paket | Bestanden |
 
-Beim Abgleich mit `main` (`06c9301`) wurden die bisherigen Testkorrekturen für das aktuelle Benachrichtigungssystem übernommen. Vorbereitete Chats bleiben auch bei vorhandenem Pin-Metadatum unsichtbar, bis eine aktuelle Serverrevision sie freigibt; veraltete Events überschreiben diesen Zustand nicht. Der Touch-Geometrietest wartet auf das Ende der Drawer-/Menüanimation und berücksichtigt numerische Chromium-Rundungen mit 0,01 CSS-Pixel Toleranz. Ein Reload-Test wartet vor Enter auf den sendebereiten Composer.
+Beim Abgleich mit `main` (`06c9301`) wurden die bisherigen Testkorrekturen für das aktuelle Benachrichtigungssystem übernommen. Vorbereitete Chats bleiben auch bei vorhandenem Pin-Metadatum unsichtbar, bis eine aktuelle Serverrevision sie freigibt; veraltete Events überschreiben diesen Zustand nicht. Der Touch-Geometrietest wartet auf das Ende der Drawer-/Menüanimation und berücksichtigt numerische Chromium-Rundungen mit 0,01 CSS-Pixel Toleranz. Die Anhang-Reload- und Neuer-Chat-Tests warten vor Enter auf den sendebereiten Composer.
 
 In der lokalen Demo bleibt die vorhandene lokale Speicherung bestehen. Der WebSocket-/Produktionsmodus verwendet ausschließlich PostgreSQL für Fixierungen. Die Migration wurde nur in separat angelegten lokalen Testdatenbanken ausgeführt; es gibt keine Produktivserveränderung und keinen automatischen Merge.

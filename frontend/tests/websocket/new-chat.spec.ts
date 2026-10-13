@@ -89,6 +89,7 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
       await capture('empty')
       await input.fill('Erkläre mir SearXNG.')
       await capture('draft')
+      await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
       await input.press('Enter')
       await expect.poll(() => commandHeld).toBe(true)
       await expect(page.locator('.empty-chat')).toHaveCount(0)
