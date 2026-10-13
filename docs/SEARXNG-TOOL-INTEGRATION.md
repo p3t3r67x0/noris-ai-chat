@@ -354,17 +354,26 @@ bestanden im zugehörigen Lauf. Es handelt sich um synthetische Loopbackmessunge
 ohne echte Engines, keine Suchqualitäts- oder Produktivlastprüfung. Die kleine
 Stichprobe begründet weder Kapazitäts- noch p95-Zusagen.
 
-Lokaler Abschlussstand:
+Aktualisierte Messung nach den Runtime-/Unicode-Nachträgen, erneut unter hoher
+paralleler Testlast: Provider 22,31 ms (12,27–58,10), ToolRun 384,34 ms
+(201,96–582,94), Commit 63,68 ms (38,02–205,41), Replay 58,62 ms (31,28–167,40),
+jeweils zehn Wiederholungen; Cancel 514,66 ms (387,31–1062,33), fünf Wiederholungen.
+Im erweiterten Browserlauf: zwölf Empfangsmessungen, Median 87,46 ms,
+Minimum 12,38 ms, Maximum 179,10 ms. Die Variation zeigt den Einfluss der
+konkurrierenden Hostlast; daraus wird keine Produktivlatenzzusage abgeleitet.
+
+Lokaler und aktualisierter CI-Prüfstand:
 
 | Vorhandenes Gate | Ergebnis |
 | --- | --- |
-| Backend-Units, Verträge, HTTP einschließlich TLS | 715 bestanden |
+| Backend-Units, Verträge, HTTP einschließlich IPv4-/IPv6-TLS | 729 bestanden |
 | Frontend-Units | 504 bestanden |
-| PostgreSQL, Migrationen, echte Caddy-/Nginx-Proxys | 223 bestanden, keine ausgelassen |
+| PostgreSQL, Migrationen, echte Caddy-/Nginx-Proxys | lokaler Basislauf 223 bestanden; aktualisiertes CI-DB-Gate bestanden |
+| Erweiterte P1b-/P6-Runtimeprüfungen | 76 bestanden, beide zusätzlichen Racefälle bestanden; 233 Fälle in der Gesamtsuite gesammelt |
 | UI-Browser, Desktop/Mobile und Themes | 308 bestanden, 33 bestehende Projekt-/Viewport-Skips |
 | HTTP-LLM-Browser | 83 bestanden, 13 bestehende bedingte Skips |
 | WebSocket-Gesamtlauf | 152 bestanden, 22 bedingte Skips, zwei Fixturefehler im Erstlauf |
-| Betroffene P2-/P6-Browser nach Fixturekorrektur | alle 24 bestanden |
+| Erweiterte P2-/P6-Browser, Tastatur und Button | 31 bestanden; ein Artefaktkonflikt, isolierte Fortsetzungswiederholung bestanden |
 | Ruff, Format, striktes Pyright, ESLint, Nuxt/Vue, Generator-Typecheck | bestanden |
 | API-/WebSocket-Vertragsdrift | bestanden, generierte Dateien unverändert |
 | Backend-Sourcepaket/Wheel und Frontend-Produktionsbuild | bestanden |
