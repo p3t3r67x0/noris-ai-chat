@@ -311,13 +311,35 @@ Modelle, Reasoning, Regenerate, Anhänge, Lernmodus und History bei deaktivierte
 Suchfreigabe. API-/WebSocket-Verträge werden mit `pnpm api:check` geprüft;
 öffentliche Schemas und generierte Dateien werden nicht manuell geändert.
 
-Messwerte und vollständige abschließende Gateergebnisse werden nach Abschluss
-der kontrollierten Läufe in dieser Dokumentation und im PR festgehalten.
-Die Performancefixture wiederholt Provider, ToolRun, Commit und sofortigen
-P2-Replayabruf jeweils zehnmal, Cancellation fünfmal. Browser messen den Abstand
-vom abgeschlossenen DBcommit bis zum Empfang von `tool.completed` mit denselben
-Hostuhren. Es handelt sich um synthetische Loopbackmessungen ohne echte Engines,
-keine Suchqualitäts- oder Produktivlastprüfung.
+Lokale Messung am 13.10.2026: CPython 3.13.15, PostgreSQL 18.6, Loopback-HTTP,
+fünf synthetische Quellen, normaler HTTPX-Pool, keine künstliche Antwortwartezeit,
+einzelne Runs in einer Generation. Währenddessen liefen Browserfixtures auf
+demselben Host; CPU und I/O waren nicht isoliert. `test_controlled_latency_measurements`
+schreibt die Rohwerte als `performance.json` in den Pytest-Tempordner und als
+`P6_PERFORMANCE` in die Testausgabe. Die ersten Requests schließen Poolaufbau ein.
+
+| Messung | Wiederholungen | Median ms | Minimum ms | Maximum ms |
+| --- | ---: | ---: | ---: | ---: |
+| Providerrequest einschließlich Normalisierung | 10 | 13,06 | 8,52 | 21,01 |
+| ToolRun von execute bis Rückgabe | 10 | 133,41 | 109,58 | 376,97 |
+| Resultat-/Budget-/Eventcommit einschließlich DBprüfungen | 10 | 36,15 | 27,81 | 131,88 |
+| Sofortiger P2-Replayabruf nach Runtimeabschluss | 10 | 36,29 | 13,40 | 69,07 |
+| Cancelrequest bis terminaler Run und geschlossenem HTTPstream | 5 | 155,26 | 119,10 | 222,86 |
+
+Browser messen separat den Abstand vom abgeschlossenen DBcommit bis zum Empfang
+von `tool.completed` mit derselben Hostuhr und drei unabhängigen Chats je
+Desktop-/Mobile-/Themefall. Unter parallel laufender UI-Suite: zwölf Messungen,
+Median 72,05 ms, Minimum 13,02 ms, Maximum 167,53 ms; alle 24 P2/P6-Browserfälle
+bestanden im zugehörigen Lauf. Es handelt sich um synthetische Loopbackmessungen
+ohne echte Engines, keine Suchqualitäts- oder Produktivlastprüfung. Die kleine
+Stichprobe begründet weder Kapazitäts- noch p95-Zusagen.
+
+Abschließende Gateergebnisse und CI-Laufreferenzen werden nach Abschluss im PR
+festgehalten. Lokale Fehlstarts (Testdatenbankvoraussetzungen, lokale Node-
+Abhängigkeiten und Fixture-Synchronisation) werden dort getrennt von bestandenen
+Prüfungen aufgeführt. Der lokale Standard-Compose-Smoke konnte bisher wegen eines
+Paketdownloadfehlers im Buildcontainer nicht abgeschlossen werden; dessen CI-Gate
+bleibt erforderlich.
 
 Bekannte Grenzen: kein Live-Engine-Qualitätsnachweis, kein Sourcefetch, kein
 autonomer Chat-Webmodus, keine LLMquellenübergabe, keine Zitate oder Quellen-UI.
