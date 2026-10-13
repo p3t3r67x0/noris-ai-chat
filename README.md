@@ -27,6 +27,9 @@ Pydantic AI ist als schlanke Basis ohne Provider-Extras installiert. Das neue `L
 
 ## Vollständiger Start mit Docker
 
+Ein separat vorbereiteter [SearXNG-Provider und optionaler Suchstack](docs/SEARXNG-PROVIDER.md)
+ist unabhängig testbar. Die Websuche bleibt bis zur Toolruntime-/End-to-End-Integration deaktiviert.
+
 ```sh
 cp .env.example .env
 make up

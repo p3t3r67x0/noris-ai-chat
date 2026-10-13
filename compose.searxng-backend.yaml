@@ -1,0 +1,14 @@
+# Explicit future connection overlay; compose.yaml is unchanged.
+# The standalone search stack must have created this external network first.
+services:
+  backend:
+    networks: [default, search]
+    environment:
+      NORIS_SEARXNG_BASE_URL: http://searxng:8080
+      NORIS_SEARXNG_ALLOWED_HOSTS: '["searxng"]'
+      NORIS_SEARXNG_CONFIG_VERSION: ${NORIS_SEARXNG_CONFIG_VERSION:?Set the reviewed configuration version}
+
+networks:
+  search:
+    name: ${NORIS_SEARXNG_NETWORK:-noris-searxng}
+    external: true

@@ -1,6 +1,9 @@
 # Plus-Menü: Bestandszuordnung, UX und PR-Roadmap
 
-Status: technische Planung mit begonnener Implementierung von P1a; keine neue Produktfunktion aktiviert. Stand: 2026-10-12. Aktueller Implementierungsstand und lokale Testergebnisse: [Tool-Grundlage P1a](TOOL-FOUNDATION.md). P1b folgt als separater PR erst nach Merge von P1a auf aktualisiertem `main`.
+Status: technische Planung mit gemergter P1a-Grundlage und separat
+[vorbereitetem SearXNG-Provider](SEARXNG-PROVIDER.md); keine neue Produktfunktion
+aktiviert. Stand: 2026-10-13. Registry und Persistenz: [Tool-Grundlage P1a](TOOL-FOUNDATION.md).
+P1b bleibt ein eigener Entwicklungsstrang auf aktualisiertem `main`.
 
 Quellstände: noris `4024c0eea62965bd161c8fccc36bc81141535d47`; Codexreferenz `a9b0815167c27ab13719dd12d13b63e02b70d221`. Die [Tool-Architektur](TOOL-ARCHITECTURE.md) enthält Audit, Komponenten-/Endpoint-/Testkarte, Codexstudie, gemeinsame Verträge, Security und Betriebsgrenzen.
 
@@ -130,6 +133,10 @@ Zweck: Sketchdialog, begrenzte Zeichendaten/Undo/Pointer, PNGexport → existing
 Unit: DPR/Pointercancel/Undo/resize/emptyexport/limits/retry snapshot. Integration: echtes synthetisches PNG via bestehender API speichern, previewn und mit vorhandener Visionfixture nutzen; Quote-/Parserfehler. Playwright: Mouse/Touchzeichnen Desktop/Mobile, Export/Cancel/Uploadretry, Modellunverträglichkeit, Draft/Fokus erhalten. API: unverändert, Driftcheck genügt. Security: kein externer Import, Byte-/Pixelgrenzen und existing Authprüfung. Abnahme: Sketchbild einmal gespeichert und real versendbar. Abhängigkeit: P0 und bestehende Attachments; P1/P2/P3/P8 nicht zwingend.
 
 ### P6 — Searchprovider und begrenztes Quellenmodell
+
+Parallelvorbereitung: Der [SearXNG-Adapter und optionale Docker-Stack](SEARXNG-PROVIDER.md)
+sind unabhängig von P1b testbar. Registryhandler und Webmenü bleiben deaktiviert.
+Die folgende P6-Stufe ergänzt weiterhin Runtimeanbindung, Persistenz und Quellenmodell.
 
 Zweck: SearchProvider, SearXNGadapter, normalisierte snippet-Quellenpersistenz und konfigurierter alternativer Braveadapter. Keine freie Seitenfetchroute und noch kein aktivierter Webmenühandler.
 
