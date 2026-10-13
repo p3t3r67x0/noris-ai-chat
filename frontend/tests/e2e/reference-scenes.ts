@@ -30,6 +30,10 @@ export async function captureScene(page: Page, testInfo: TestInfo, scene: string
   if (scene === 'drawer') {
     await toggle.click()
     await expect(page.getByRole('navigation', { name: 'Gespräche' })).toBeVisible()
+    // The active fixture has no sent message; the drawer lists the started
+    // historical chats while retaining that empty conversation in the state.
+    await expect(page.locator('.conversation-row[data-conversation-id="main"]')).toHaveCount(0)
+    await expect(page.locator('.conversation-row[data-conversation-id="conversation-1"]').filter({ visible: true })).toBeVisible()
   }
   if (scene === 'code') await expect(page.locator('.syntax-token').first()).toBeVisible()
   if (scene === 'reference') {
