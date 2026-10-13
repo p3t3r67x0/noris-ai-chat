@@ -53,14 +53,16 @@ def test_sidebar_upgrade_and_rollback_preserve_published_schemas(
                     {"id": conversation},
                 )
             before = dict(
-                connection.execute(text("SELECT * FROM chat_conversation")).one()._mapping
+                connection.execute(text("SELECT * FROM chat_conversation")).mappings().one()
             )
 
         command.upgrade(migration_config, "head")
         command.upgrade(migration_config, "head")
         command.check(migration_config)
         with engine.connect() as connection:
-            after = dict(connection.execute(text("SELECT * FROM chat_conversation")).one()._mapping)
+            after = dict(
+                connection.execute(text("SELECT * FROM chat_conversation")).mappings().one()
+            )
             assert {column: after[column] for column in before} == before
             assert after["pinned_at"] == (pinned_at if "pinned_at" in original_columns else None)
             assert after["sidebar_visible"] is ("sidebar_visible" not in original_columns)
@@ -80,7 +82,7 @@ def test_sidebar_upgrade_and_rollback_preserve_published_schemas(
         command.downgrade(migration_config, rollback_targets.get(revision, revision))
         with engine.connect() as connection:
             assert (
-                dict(connection.execute(text("SELECT * FROM chat_conversation")).one()._mapping)
+                dict(connection.execute(text("SELECT * FROM chat_conversation")).mappings().one())
                 == before
             )
         assert {
