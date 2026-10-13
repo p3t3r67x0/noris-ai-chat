@@ -256,7 +256,8 @@ def test_pin_migration_preserves_existing_rows(migration_config: Config) -> None
         assert connection.execute(
             "SELECT indexdef FROM pg_indexes WHERE indexname='ix_chat_conversation_pinned_seek'"
         ).fetchone()
-    command.downgrade(migration_config, "0012_conversation_visibility")
+    # Remove the pinning branch while retaining the visibility branch.
+    command.downgrade(migration_config, "0012_conversation_pinning@0011_tool_foundation")
     with psycopg.connect(url) as connection:
         assert connection.execute(
             "SELECT title, sidebar_visible FROM chat_conversation"
