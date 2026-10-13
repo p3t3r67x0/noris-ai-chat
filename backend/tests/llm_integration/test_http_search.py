@@ -227,6 +227,9 @@ async def test_actual_tls_pinning_preserves_certificate_validation(
     trusted = ssl.create_default_context()
     trusted.load_verify_locations(cafile=str(certificate))
     assert trusted.check_hostname and trusted.verify_mode == ssl.CERT_REQUIRED
+    monkeypatch.setenv("HTTPS_PROXY", "http://127.0.0.1:1")
+    monkeypatch.setenv("ALL_PROXY", "http://127.0.0.1:1")
+    monkeypatch.setenv("NO_PROXY", "")
 
     def client_context(**kwargs: object) -> ssl.SSLContext:
         return trusted

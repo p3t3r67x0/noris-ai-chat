@@ -374,6 +374,9 @@ async def test_transport_errors_are_normalized(
         "test\x00",
         "x" * 1001,
         "\ud800",
+        "query\u0080",
+        "query\u0085",
+        "query\u009f",
     ],
 )
 async def test_invalid_queries_are_rejected_before_io(query: str) -> None:

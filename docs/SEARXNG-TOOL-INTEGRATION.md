@@ -337,9 +337,25 @@ bestanden im zugehörigen Lauf. Es handelt sich um synthetische Loopbackmessunge
 ohne echte Engines, keine Suchqualitäts- oder Produktivlastprüfung. Die kleine
 Stichprobe begründet weder Kapazitäts- noch p95-Zusagen.
 
-Abschließende Gateergebnisse und CI-Laufreferenzen werden nach Abschluss im PR
-festgehalten. Lokale Fehlstarts (Testdatenbankvoraussetzungen, lokale Node-
-Abhängigkeiten und Fixture-Synchronisation) werden dort getrennt von bestandenen
+Lokaler Abschlussstand:
+
+| Vorhandenes Gate | Ergebnis |
+| --- | --- |
+| Backend-Units, Verträge, HTTP einschließlich TLS | 715 bestanden |
+| Frontend-Units | 504 bestanden |
+| PostgreSQL, Migrationen, echte Caddy-/Nginx-Proxys | 223 bestanden, keine ausgelassen |
+| UI-Browser, Desktop/Mobile und Themes | 308 bestanden, 33 bestehende Projekt-/Viewport-Skips |
+| HTTP-LLM-Browser | 83 bestanden, 13 bestehende bedingte Skips |
+| WebSocket-Gesamtlauf | 152 bestanden, 22 bedingte Skips, zwei Fixturefehler im Erstlauf |
+| Betroffene P2-/P6-Browser nach Fixturekorrektur | alle 24 bestanden |
+| Ruff, Format, striktes Pyright, ESLint, Nuxt/Vue, Generator-Typecheck | bestanden |
+| API-/WebSocket-Vertragsdrift | bestanden, generierte Dateien unverändert |
+| Backend-Sourcepaket/Wheel und Frontend-Produktionsbuild | bestanden |
+| Basis-/Dev-/SearXNG-/Backendoverlay-Composekonfiguration | syntaktisch gültig |
+
+CI-Laufreferenzen und endgültiger Reviewstatus stehen im PR. Lokale Fehlstarts
+(Testdatenbankvoraussetzungen, lokale Node-Abhängigkeiten, Hilfsportkollision und
+Fixture-Synchronisation) werden dort getrennt von bestandenen
 Prüfungen aufgeführt. Der lokale Standard-Compose-Smoke konnte bisher wegen eines
 Paketdownloadfehlers im Buildcontainer nicht abgeschlossen werden; dessen CI-Gate
 bleibt erforderlich.
