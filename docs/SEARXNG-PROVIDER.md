@@ -107,7 +107,7 @@ blockieren. Das Netz ist nur für SearXNG und später den Backendservice vorgese
 Keine Anbindung an einen öffentlichen Proxy.
 Bei eigener Forward-/Egress-Firewall müssen DNS und die freigegebenen Engineziele
 für dieses zusätzliche Netz geprüft werden; die vorhandene Regel für `noris-chat0`
-gilt nicht automatisch dafür. Dieser PR ändert keine Firewallregeln.
+gilt nicht automatisch dafür. Compose nimmt selbst keine Firewalländerungen vor.
 
 Das Image muss ausdrücklich gewählt werden. Vor Produktivfreigabe einen geprüften
 Digest pinnen und beim Upgrade UID/Paths/Healthcheck erneut prüfen. Das Profil
@@ -148,6 +148,147 @@ Healthcheck: `/healthz` im Suchcontainer alle 15 s, Timeout 5 s, Startfrist 30 s
 Er prüft die Anwendungserreichbarkeit, **nicht** JSONfreigabe oder Suchqualität.
 `limiter=false` ist für dieses private Backendnetz vorgesehen. Öffentliche
 Bereitstellung braucht ein eigenes Zugriffsschutz-/Limiter-/Egresskonzept.
+
+### Startfehler durch blockiertes DNS/HTTPS auf diesem Linux-Host
+
+Wenn `up --wait` mit `container ... is unhealthy` endet, zuerst die Startlogs und
+den aktuellen Status prüfen. Ein abgestürzter Granianworker kann durch
+`restart: unless-stopped` später wieder starten; `/healthz` kann anschließend
+200 liefern, obwohl Suchmaschinen unerreichbar bleiben.
+
+```sh
+docker logs --tail 100 noris-searxng-searxng-1
+docker inspect --format '{{json .State.Health}}' noris-searxng-searxng-1
+```
+
+Beim untersuchten Start traten DNS-Timeouts beim Laden der ClearURL-Regeln und
+ein `TimeoutError` in `searx.network.network.done()` auf. Später war der Container
+gesund, aber DNS sowie TCP-Verbindungen zu externen DNS- und HTTPS-Zielen
+scheiterten weiterhin. Dieselben Verbindungen funktionierten auf dem Host.
+Die lesbare `/etc/nftables.conf` enthält eine `inet filter forward`-Chain mit
+`policy drop` und DNS-/HTTPS-Freigaben für `noris-chat0`, jedoch keine Freigabe
+für die separate SearXNG-Bridge. Die aktiven Regeln benötigen Root-Rechte zur
+Prüfung. Eine zusätzliche Host-Chain kann von Docker akzeptierten Verkehr
+verwerfen; siehe [Docker und nftables](https://docs.docker.com/engine/network/firewall-nftables/#migrating-accept-rules).
+
+Für diese Host-Konfiguration steht eine gezielte Laufzeitkorrektur bereit:
+
+```sh
+sudo make searxng-network-repair
+# Mit derselben Umgebung bzw. --env-file wie beim ursprünglichen Start:
+docker-compose -f compose.searxng.yaml --profile search restart searxng
+make COMPOSE="docker-compose -f compose.searxng.yaml --profile search" up
+```
+
+Das Skript prüft die aktive Drop-Chain sowie Compose-Projekt, Netzwerkrolle,
+Bridge-Treiber und deaktivierten Internal-Modus. Es ermittelt den vorhandenen
+Bridge-Namen und den IPv4-Uplink über die Route zu `1.1.1.1`. Es erlaubt
+ausschließlich ausgehendes IPv4-DNS (UDP/TCP 53), HTTPS (TCP 443) und zugehörigen
+Antwortverkehr zwischen diesen beiden Interfaces. Alle fehlenden Regeln werden
+vorher mit `nft --check` geprüft und gemeinsam angewendet; wiederholte Aufrufe
+ergänzen nur fehlende markierte Regeln. Die Korrektur braucht keine
+Providerzugangsdaten und keine Neuerstellung des Docker-Netzwerks.
+
+Bei einem eigenen Netzwerknamen oder absichtlich anderem Uplink die Werte
+explizit übergeben, da `sudo` exportierte Variablen entfernen kann:
+
+```sh
+sudo make searxng-network-repair NORIS_SEARXNG_NETWORK=<Netzwerkname> NORIS_SEARXNG_UPLINK=<Interface>
+```
+
+Die Regeln gelten bis zum Neustart oder Firewall-Reload; nach einer
+Netzwerk-Neuerstellung oder einem Uplinkwechsel erneut ausführen. Die markierten
+Regeln sind mit `sudo nft -a list chain inet filter forward` sichtbar und über
+`sudo nft delete rule inet filter forward handle <HANDLE>` einzeln entfernbar.
+Die Host-Konfigurationsdatei enthält `flush ruleset`; ein Reload würde auch die
+dynamischen Docker-Regeln entfernen. Das Reparaturskript bearbeitet keine
+Dateien unter `/etc`.
+
+Danach im laufenden Container DNS und HTTPS prüfen:
+
+```sh
+docker exec -i noris-searxng-searxng-1 /usr/local/searxng/.venv/bin/python - <<'PY'
+import socket
+import urllib.request
+print(socket.getaddrinfo('www.google.com', 443, type=socket.SOCK_STREAM))
+with urllib.request.urlopen('https://example.com/', timeout=5) as response:
+    print('HTTPS:', response.status)
+PY
+```
+
+### Brave Search API als SearXNG-Engine
+
+Das offizielle SearXNG-Image enthält `braveapi` für die Brave Search API.
+Der vorhandene Backendadapter spricht weiterhin nur mit SearXNG; der
+Brave-API-Schlüssel gehört ausschließlich in die externe SearXNG-Konfiguration.
+Die bisherige Engine `brave` greift auf die Brave-Weboberfläche zu.
+[Offizielle Engine-Konfiguration](https://docs.searxng.org/dev/engines/online/brave.html#brave-api-engine).
+
+In der externen `settings.yml` auf oberster Ebene ergänzen bzw. in eine
+vorhandene `engines`-Liste einfügen:
+
+```yaml
+engines:
+  - name: brave
+    inactive: false
+    disabled: true
+  - name: braveapi
+    engine: braveapi
+    inactive: false
+    api_key: ""  # Den echten Schlüssel nur in der externen Datei eintragen.
+    results_per_page: 20
+```
+
+Mit `use_default_settings: true` werden diese Einträge nach Engine-Namen mit
+den Defaults zusammengeführt; andere Engines bleiben verfügbar. Den Schlüssel
+lokal mit einem Editor eintragen. Eine leere `api_key`-Zeile muss vor dem
+Neustart ausgefüllt werden.
+
+Für `brave` wird `disabled: true` verwendet: Im geprüften Image teilen
+`brave.images`, `brave.videos` und `brave.news` das Netzwerk der `brave`-Engine.
+`inactive: true` würde diese Netzwerkreferenz entfernen und beim Start einen
+`KeyError: 'brave'` auslösen. Die deaktivierte `brave`-Engine bleibt für die
+Netzwerkinitialisierung vorhanden und wird in der Standardsuche nicht abgefragt.
+
+Die Datei enthält damit ein Secret. Für das aktuelle Image mit UID 977 kann
+der Eigentümer auf einem Linux-Dateisystem mit ACL-Unterstützung den Zugriff
+auf sich selbst und den Container beschränken:
+
+```sh
+setfacl -m u::rw-,u:977:r--,g::---,m::r--,o::--- "$NORIS_SEARXNG_CONFIG_DIR/settings.yml"
+docker restart noris-searxng-searxng-1
+```
+
+Danach genau diese Engine testen. Dafür `engines=braveapi` verwenden und den
+Parameter `categories` weglassen: Mit zusätzlichem `categories=general` würde
+das geprüfte Image auch die übrigen allgemeinen Suchengines abfragen.
+Die Testabfrage verbraucht API-Kontingent; der Schlüssel wird weder im Kommando
+noch in der Ausgabe übergeben:
+
+```sh
+docker exec -i noris-searxng-searxng-1 /usr/local/searxng/.venv/bin/python - <<'PY'
+import json
+import urllib.parse
+import urllib.request
+
+form = urllib.parse.urlencode({
+    'q': 'Open Data Flensburg', 'format': 'json', 'language': 'de',
+    'engines': 'braveapi', 'pageno': 1,
+}).encode()
+with urllib.request.urlopen('http://127.0.0.1:8080/search', data=form, timeout=15) as response:
+    print('HTTP:', response.status)
+    result = json.load(response)
+print('Treffer:', len(result['results']))
+print('Enginefehler:', result.get('unresponsive_engines', []))
+for item in result['results'][:5]:
+    print(item['title'], item['url'], item.get('engines', [item.get('engine')]), sep='\n')
+PY
+```
+
+HTTP 200, passende Treffer von `braveapi` und keine Enginefehler bestätigen
+die API-Anbindung. HTTP 200 allein reicht nicht, weil SearXNG auch bei einem
+Fehler der Upstream-Engine ein JSONresultat liefern kann. Bei Enginefehlern
+Schlüssel, freigeschalteten Brave-API-Zugang und verbleibendes Kontingent prüfen.
 
 ## Späterer Anschluss und Qualitätsprobe
 
