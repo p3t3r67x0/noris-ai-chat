@@ -77,10 +77,9 @@ for (const [width, height] of sizes) for (const theme of ['light', 'dark']) {
         await expect(page.locator('.chat-rail')).toBeHidden()
         for (const button of [actions, pin]) {
           await expect(button).toBeVisible()
-          const rect = await button.boundingBox()
-          // Chromium can report fractional bounds just below the 44 CSS-pixel size.
-          expect(rect!.width).toBeGreaterThanOrEqual(44 - 0.01)
-          expect(rect!.height).toBeGreaterThanOrEqual(44 - 0.01)
+          // Wait for the drawer's scale animation; keep only a rounding tolerance.
+          await expect.poll(async () => (await button.boundingBox())?.width ?? 0).toBeGreaterThanOrEqual(44 - 0.01)
+          await expect.poll(async () => (await button.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44 - 0.01)
         }
       }
       await page.mouse.move(width - 10, height - 10)
@@ -111,7 +110,7 @@ for (const [width, height] of sizes) for (const theme of ['light', 'dark']) {
       if (width >= 1024) expect(menuRect!.x).toBeGreaterThanOrEqual(rowRect!.x + rowRect!.width)
       if (width < 1024) {
         for (const item of await menu.getByRole('menuitem').all()) {
-          expect((await item.boundingBox())!.height).toBeGreaterThanOrEqual(44 - 0.01)
+          await expect.poll(async () => (await item.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44 - 0.01)
         }
       }
       if (width >= 1024) await centered(page)
