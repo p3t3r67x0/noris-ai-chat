@@ -12,6 +12,34 @@ test.beforeEach(async ({ request }) => {
 })
 
 for (const theme of ['light', 'dark'] as const) {
+  test(`reload retains tool states of an explicitly continued answer (${theme})`, async ({ page, request }) => {
+    const events: ToolWsEvent[] = []
+    page.on('websocket', socket => socket.on('framereceived', frame => {
+      const value: unknown = JSON.parse(String(frame.payload))
+      if (validateToolEvent(value)) events.push(value)
+    }))
+    await page.addInitScript((preference) => { localStorage.setItem('noris-ai-theme', preference) }, theme)
+    await page.goto('/')
+    await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+    const composer = page.getByRole('textbox', { name: 'Nachricht', exact: true })
+    await composer.fill('/auto-limit p2-search')
+    await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
+    await composer.press('Enter')
+    await expect(page.locator('.message-assistant')).toHaveAttribute('data-status', 'incomplete', { timeout: 20_000 })
+    const terminal = events.find(event => event.type === 'tool.completed')
+    if (!terminal || terminal.type === 'tool.snapshot') throw new Error('Expected completed tool')
+    await page.locator('.message-assistant').getByRole('button', { name: 'Weiterschreiben', exact: true }).click()
+    await expect(page.locator('.message-assistant')).toHaveAttribute('data-status', 'completed', { timeout: 20_000 })
+    const path = await (await request.get(`/api/v1/conversations/${terminal.conversationId}/active-path`)).json()
+    expect(path.messages.at(-1).generationId).not.toBe(terminal.generationId)
+    expect(path.toolGenerationIds).toContain(terminal.generationId)
+    events.length = 0
+    await page.reload()
+    await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+    await expect.poll(() => events.some(event => event.type === 'tool.snapshot'
+      && event.generationId === terminal.generationId && event.runs.some(run => run.runId === terminal.runId && run.state === 'succeeded'))).toBe(true)
+    await expect(page.locator('.message-assistant')).toHaveAttribute('data-status', 'completed')
+  })
   test(`parallel tool states, persistent terminal replay and reload (${theme})`, async ({ page, request }) => {
     const events: ToolWsEvent[] = []
     page.on('websocket', socket => socket.on('framereceived', frame => {

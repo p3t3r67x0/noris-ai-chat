@@ -9,6 +9,7 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
+from noris_ai.chat.errors import ChatError
 from noris_ai.chat.generation import Peer
 from noris_ai.core.config import Settings
 from noris_ai.tools.events import ToolEvent, ToolProjection, ToolSnapshotEvent
@@ -122,3 +123,12 @@ def test_detached_peer_cannot_be_resubscribed(llm_config: Settings) -> None:
     manager.subscribe(peer, live.command.requestId, 0, True)
     peer.offer({"version": 1, "type": "chat.heartbeat"})
     assert not peer.subscriptions and peer.queue.empty() and not live.peers
+
+
+async def test_tool_only_resume_requires_explicit_supported_version(llm_config: Settings) -> None:
+    manager, live, _, _ = worker(llm_config, Segments([("Hallo", None)]))
+    peer = next(iter(live.peers))
+    with pytest.raises(ChatError) as rejected:
+        await manager.resume(peer, live.command.requestId, 0, tools_only=True)
+    assert rejected.value.code == "INVALID_INPUT"
+    assert not peer.subscriptions and peer.queue.empty()

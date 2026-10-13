@@ -31,7 +31,10 @@ Frontend: `webSocketTransport.ts` liefert in `useChatStream` und `useChat`;
 `ChatBackend` lädt autoritative History und Metadaten, Browserstorage ist Cache.
 Reconnect erfolgt mit frischem Ticket und dem zuletzt konsumierten Cursor.
 `useChatBackend.applyPath` kann bereits die Generation-IDs geladener Nachrichten
-für eine Toolrekonstruktion verwenden. Fehler bleiben im vorhandenen
+für eine Toolrekonstruktion verwenden. Die bestehende Active-Path-Projektion
+ergänzt `toolGenerationIds` (maximal 50): ownergeprüfte Toolgenerationen aller
+angezeigten Antwortnachrichten, einschließlich früherer expliziter Fortsetzungen.
+Fehler bleiben im vorhandenen
 Transport-/Notificationpfad. Composer und Layout erhalten keine Tool-UI.
 
 ## Vertrag und Versionierung
@@ -40,6 +43,10 @@ Transport-/Notificationpfad. Composer und Layout erhalten keine Tool-UI.
 Nur solche Abonnements erhalten Toolereignisse. Fehlendes Feld bleibt zulässig;
 alte Clients erhalten bei Toolsequenzen einen vorhandenen Chat-Snapshot, dessen
 Cursor die übersprungenen Sequenzen einschließt. Bestehende v1-Felder bleiben gleich.
+Für reine History-/Toolbeobachtung ergänzt `chat.resume` optional
+`toolEventsOnly:true`. Dieser Modus verlangt `toolEventVersion:1`, verwendet
+denselben Scope und dieselbe Outbox und liefert ausschließlich Toolprojektionen
+und Toolereignisse. Er spielt keine bereits geladene Chatantwort erneut ab.
 
 Jedes Lifecycleereignis enthält:
 
@@ -137,7 +144,12 @@ oder widersprüchliche Terminalevents überschrieben werden.
 
 `useChat.toolRuns` ist die wiederverwendbare interne Projektion im vorhandenen
 Chatstate. Geladene History abonniert auch abgeschlossene Generation-IDs über
-denselben Socket. Nach Seitenreload wird die Projektion aus PostgreSQL aufgebaut;
+denselben Socket mit `toolEventsOnly:true`. Da eine explizite Fortsetzung eine
+neue Antwort und Generation erzeugt, liefert die vorhandene Active-Path-API zusätzlich
+die über `ChatGeneration.source_message_id` gefundenen früheren Toolgeneration-IDs.
+Die Quellkette ist auf die bestehenden 20 Fortsetzungen begrenzt. Diese
+Abfrage liegt im bestehenden konsistenten History-Snapshot und prüft Owner und
+Conversation auf Run und Generation. Nach Seitenreload wird die Projektion aus PostgreSQL aufgebaut;
 lokaler Toolstorage ist keine Autorität. Idle-Reconnect fordert diese Projektionen
 erneut an. Conversationlöschung entfernt die entsprechenden Cacheeinträge.
 
@@ -203,8 +215,31 @@ Weder P6 noch P7 werden durch Empfang, Replay oder Approvalentscheidung gestarte
 
 ## Prüfstand
 
-Die exakten finalen Qualitätsgate-Ergebnisse und Einschränkungen werden vor
-PR-Erstellung hier ergänzt. Alle neuen Ausführungsfälle verwenden deterministische
+Die Fehleranalyse zu PR-Head `d238184` umfasst alle 15 gespeicherten
+Playwright-Traces: sieben aus dem PR-Lauf `38406843098` (fünf `checks`, zwei
+`compose-smoke`) und acht aus dem Push-Lauf `38406379645` (sechs `checks`, zwei
+`compose-smoke`). Die vollständigen Trace-/Network-Datensätze zeigen keine
+Consolefehler oder fehlgeschlagenen Generierungs-HTTP-Anfragen. Die in den
+Assertionfehlern enthaltenen Ereignisarrays zeigen zweimal
+`chat.generation.started` mit identischer Sequenz 1 (acht Traces) und die
+Terminalfolge `tool.completed:7, tool.completed:9, tool.completed:7,
+tool.completed:9` (sieben Traces). Die Traces enthalten keine vollständige separate
+WebSocket-Frameaufzeichnung; die wiederholten Payloads sind in den Assertions
+erhalten. Nach Chatabschluss geladene Active Paths lösten im Head einen normalen
+`chat.resume` ab Sequenz 0 aus. Damit wurde die vorhandene Outbox erneut
+abgespielt. Das war ein Fehler der Toolbeobachtung, keine zweite Toolausführung.
+
+`toolEventsOnly` behebt die Ursache im vorhandenen Replaypfad. Die ursprünglichen
+Zähl- und Reihenfolgeassertions in `auto-continuation.spec.ts` und
+`tool-events.spec.ts` bleiben unverändert. Deterministische Regressionen prüfen
+Commit zwischen Snapshot und Subscription, mehrfachen Drain, Toolzustände nach
+Chatterminal, Idle-Reconnect und Reload einer explizit fortgesetzten Antwort.
+
+Alle neuen Ausführungsfälle verwenden deterministische
 Fakehandler. Die Browserfixture ist eine explizite Testapp mit `_test`-DBguard,
 keine Produktroute. Bestehende Compose-Produktbrowsertests verwenden weiterhin
 die normale App und überspringen ausschließlich diese lokalen Fakehandlerfälle.
+Die tatsächlich ausgeführten vollständigen Qualitätsgates, Wiederholungen und
+CI-Ergebnisse werden in der Beschreibung von [PR #64](https://github.com/p3t3r67x0/noris-ai-chat/pull/64)
+mit Laufreferenzen protokolliert. Fehlgeschlagene Erstläufe gelten dort nicht als
+erfolgreiche Prüfungen.

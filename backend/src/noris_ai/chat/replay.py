@@ -4,7 +4,8 @@ import json
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, literal, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from noris_ai.chat.errors import ChatError
 from noris_ai.chat.models import ChatConversation, ChatGeneration, ChatMessage, ChatStreamEvent
@@ -21,6 +22,54 @@ if TYPE_CHECKING:
     from noris_ai.tools.repository import ToolRepository
 
 
+async def tool_generation_ids(
+    session: AsyncSession, owner: UUID, conversation: UUID, message_ids: list[UUID]
+) -> list[UUID]:
+    if not message_ids:
+        return []
+    # Explicit continuation creates a new answer, retaining the source answer
+    # through ChatGeneration.source_message_id. Follow only that trusted chain.
+    chain = (
+        select(
+            ChatGeneration.id.label("generation_id"),
+            ChatGeneration.source_message_id,
+            literal(0).label("depth"),
+        )
+        .where(
+            ChatGeneration.owner_id == owner,
+            ChatGeneration.conversation_id == conversation,
+            ChatGeneration.assistant_message_id.in_(message_ids),
+        )
+        .cte("tool_answer_chain", recursive=True)
+    )
+    chain = chain.union_all(
+        select(
+            ChatGeneration.id,
+            ChatGeneration.source_message_id,
+            chain.c.depth + 1,
+        )
+        .join(chain, ChatGeneration.assistant_message_id == chain.c.source_message_id)
+        .where(
+            ChatGeneration.owner_id == owner,
+            ChatGeneration.conversation_id == conversation,
+            chain.c.depth < 20,
+        )
+    )
+    return list(
+        await session.scalars(
+            select(ToolRun.generation_id)
+            .join(chain, chain.c.generation_id == ToolRun.generation_id)
+            .where(
+                ToolRun.owner_id == owner,
+                ToolRun.conversation_id == conversation,
+            )
+            .group_by(ToolRun.generation_id)
+            .order_by(func.max(ToolRun.created_at).desc(), ToolRun.generation_id)
+            .limit(50)
+        )
+    )
+
+
 async def replay(
     database: ModelDatabase,
     owner: UUID,
@@ -31,6 +80,7 @@ async def replay(
     *,
     include_tools: bool,
     initial: bool,
+    tools_only: bool = False,
 ) -> tuple[list[dict[str, object]], int]:
     async with database() as session, session.begin():
         scope = await session.scalar(
@@ -120,9 +170,11 @@ async def replay(
                         runs=projections[offset : offset + TOOL_SNAPSHOT_PAGE_SIZE],
                     ).model_dump(mode="json")
                 )
+        if tools_only and initial:
+            return events, generation.last_sequence
         if len(events) + len(rows) > capacity:
             snapshot = True
-        if snapshot:
+        if snapshot and not tools_only:
             message = await session.get(ChatMessage, generation.assistant_message_id)
             if message is None:
                 raise ChatError("NOT_FOUND", 404)
@@ -141,7 +193,7 @@ async def replay(
                     "message": message.error_message,
                 }
             )
-        else:
+        elif not snapshot:
             permitted_runs = (
                 set(
                     await session.scalars(
@@ -157,6 +209,8 @@ async def replay(
             )
             for row in rows:
                 payload = row.payload
+                if tools_only and not row.event_type.startswith("tool."):
+                    continue
                 if row.event_type.startswith("tool."):
                     event = ToolEvent.model_validate_json(json.dumps(payload))
                     if (

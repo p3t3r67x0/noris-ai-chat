@@ -13,12 +13,18 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from noris_ai.chat.errors import ChatError
-from noris_ai.chat.models import ChatGeneration, ChatMessage, ChatStreamEvent
+from noris_ai.chat.generation import GenerationManager, Peer
+from noris_ai.chat.models import ChatConversation, ChatGeneration, ChatMessage, ChatStreamEvent
 from noris_ai.chat.replay import replay
-from noris_ai.chat.repository import ChatRepository
+from noris_ai.chat.repository import ChatRepository, ModelDatabase
+from noris_ai.chat.service import ChatService
+from noris_ai.chat.ws_protocol import GenerateIncomingMessage
+from noris_ai.core.config import Settings
+from noris_ai.llm.gateway import LLMGateway
 from noris_ai.tools.errors import ToolError
 from noris_ai.tools.events import ToolEventType, ToolSnapshotEvent
 from noris_ai.tools.models import ToolResult, ToolRun
+from noris_ai.tools.repository import ToolRepository
 from tests.integration import test_tool_runtime as runtime_cases
 from tests.integration.test_tool_foundation import INPUT, OUTPUT
 from tests.integration.test_tool_runtime import RuntimeFixture, configured
@@ -41,6 +47,7 @@ async def events(runtime: RuntimeFixture) -> RuntimeFixture:
             parent_message_id=generation.input_message_id,
             generation_id=base.generation,
             role="assistant",
+            model_id="fixture",
             content="",
             status="streaming",
         )
@@ -320,3 +327,170 @@ async def test_missing_tail_recovers_terminal_projection(events: RuntimeFixture)
     batch, sequence = await resumed(events, initial=False)
     assert sequence == 4 and snapshot(batch).runs[0].state == "succeeded"
     assert batch[-1]["type"] == "chat.resume.snapshot"
+
+
+async def test_path_discovers_tool_generation_after_explicit_continuation(
+    events: RuntimeFixture,
+) -> None:
+    base = events.base
+    await events.runtime.execute(base.owner, events.request(), INPUT)
+    continued = uuid4()
+    async with base.database() as session, session.begin():
+        previous = await session.get(ChatGeneration, base.generation)
+        assert previous is not None and previous.assistant_message_id is not None
+        previous.status, previous.completed_at = "incomplete", datetime.now(UTC)
+        message = await session.get(ChatMessage, previous.assistant_message_id)
+        conversation = await session.get(ChatConversation, base.conversation)
+        assert message is not None and conversation is not None
+        message.status, message.content = "incomplete", "Teil 0."
+        conversation.active_leaf_message_id = message.id
+        invocation = GenerateIncomingMessage(
+            version=1,
+            type="chat.generate",
+            requestId=continued,
+            conversationId=base.conversation,
+            inputMessageId=previous.input_message_id,
+            assistantMessageId=uuid4(),
+            sourceAssistantMessageId=message.id,
+            operation="continue",
+            conversationVersion=conversation.version,
+            modelId="fixture",
+            content="Synthetic question",
+        )
+    repository = ChatRepository(base.database)
+    await repository.begin_generation(base.owner, invocation)
+    service = ChatService(repository)
+    path = await service.path_page(base.owner, base.conversation)
+    assert path.messages[-1].generationId == continued
+    assert path.toolGenerationIds == [base.generation]
+    with pytest.raises(ChatError):
+        await service.path_page(uuid4(), base.conversation)
+
+
+async def test_tool_observation_does_not_replay_chat_text(events: RuntimeFixture) -> None:
+    base = events.base
+    await events.runtime.execute(base.owner, events.request(), INPUT)
+    await ChatRepository(base.database).persist_generation_event(
+        base.generation,
+        {
+            "version": 1,
+            "type": "chat.generation.delta",
+            "seq": 1,
+            "generationId": str(base.generation),
+            "conversationId": str(base.conversation),
+            "delta": "private chat text",
+        },
+        "private chat text",
+    )
+    batch, sequence = await replay(
+        base.database,
+        base.owner,
+        base.generation,
+        0,
+        256,
+        events.runtime.repository,
+        include_tools=True,
+        initial=True,
+        tools_only=True,
+    )
+    assert sequence == 5 and [item["type"] for item in batch] == ["tool.snapshot"]
+    assert "private chat text" not in str(batch)
+    batch, sequence = await replay(
+        base.database,
+        base.owner,
+        base.generation,
+        4,
+        256,
+        events.runtime.repository,
+        include_tools=True,
+        initial=False,
+        tools_only=True,
+    )
+    assert sequence == 5 and not batch
+
+
+async def test_commit_between_snapshot_and_subscription_is_drained_once(
+    events: RuntimeFixture, llm_config: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import noris_ai.chat.generation as generation_module
+
+    base = events.base
+    repository = ChatRepository(base.database)
+    request = events.request()
+    await events.runtime.repository.create_run(base.owner, request, INPUT)
+    run = await events.runtime.repository.claim(base.owner, request.id, events.runtime.policy)
+    manager = GenerationManager(
+        llm_config.model_copy(update={"chat_owner_id": base.owner}),
+        repository,
+        LLMGateway(llm_config, None),
+        tools=events.runtime,
+    )
+    peer = Peer(asyncio.Queue(maxsize=256))
+    snapshot_read, release_snapshot = asyncio.Event(), asyncio.Event()
+
+    async def paused_replay(
+        database: ModelDatabase,
+        owner: UUID,
+        generation_id: UUID,
+        after: int,
+        capacity: int,
+        tools: ToolRepository | None,
+        *,
+        include_tools: bool,
+        initial: bool,
+        tools_only: bool = False,
+    ):
+        # Wrap the exact reader, pausing after its transaction has committed.
+        batch = await replay(
+            database,
+            owner,
+            generation_id,
+            after,
+            capacity,
+            tools,
+            include_tools=include_tools,
+            initial=initial,
+            tools_only=tools_only,
+        )
+        snapshot_read.set()
+        await release_snapshot.wait()
+        return batch
+
+    with monkeypatch.context() as patch:
+        patch.setattr(generation_module, "replay", paused_replay)
+        resumed = asyncio.create_task(manager.resume(peer, base.generation, 0, 1, True))
+        await asyncio.wait_for(snapshot_read.wait(), 5)
+        await events.runtime.repository.complete(
+            base.owner, run.id, OUTPUT, execution_id=run.execution_id, policy=events.runtime.policy
+        )
+        await repository.persist_generation_event(
+            base.generation,
+            {
+                "version": 1,
+                "type": "chat.generation.completed",
+                "generationId": str(base.generation),
+                "conversationId": str(base.conversation),
+                "content": "Fertig",
+            },
+            "Fertig",
+            "completed",
+        )
+        drain = asyncio.create_task(manager.deliver(peer))
+        release_snapshot.set()
+        await asyncio.gather(resumed, drain)
+    await manager.deliver(peer)
+    batch = [peer.queue.get_nowait() for _ in range(peer.queue.qsize())]
+    assert [item["type"] for item in batch] == [
+        "chat.resume.accepted",
+        "tool.snapshot",
+        "tool.result",
+        "tool.completed",
+    ]
+    assert snapshot(batch[1:]).runs[0].state == "running"
+    assert [item["seq"] for item in batch[2:]] == [3, 4]
+    assert peer.subscriptions[base.generation] == (5, True, True)
+    # A repeated history observation reconstructs state, not old lifecycle events.
+    await manager.resume(peer, base.generation, 0, 1, True)
+    batch = [peer.queue.get_nowait() for _ in range(peer.queue.qsize())]
+    assert [item["type"] for item in batch] == ["chat.resume.accepted", "tool.snapshot"]
+    assert snapshot(batch[1:]).runs[0].state == "succeeded"

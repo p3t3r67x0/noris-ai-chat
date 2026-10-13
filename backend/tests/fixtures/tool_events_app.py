@@ -113,7 +113,7 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
             StartedEvent | DeltaEvent | CompletedEvent | IncompleteEvent | FailedEvent | None
         ]:
             prompt = request.messages[-1].content
-            if prompt.startswith("/p2-"):
+            if prompt.startswith(("/p2-", "/auto-limit p2-")):
                 generation = UUID(request.generationId)
 
                 async def execute(index: int) -> None:

@@ -51,6 +51,7 @@ class CancelIncomingMessage(ClientEnvelope):
 class ResumeIncomingMessage(ClientEnvelope):
     type: Literal["chat.resume"]
     toolEventVersion: Literal[1] | None = None
+    toolEventsOnly: bool = Field(default=False, strict=True)
     generationId: UUID
     lastReceivedSeq: int = Field(default=0, ge=0)
 

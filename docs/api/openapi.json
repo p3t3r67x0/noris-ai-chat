@@ -54,6 +54,15 @@
             ],
             "title": "Nextcursor"
           },
+          "toolGenerationIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Toolgenerationids",
+            "type": "array"
+          },
           "variants": {
             "items": {
               "$ref": "#/components/schemas/VariantSummary"

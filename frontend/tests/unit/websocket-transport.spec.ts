@@ -74,7 +74,7 @@ describe('WebSocketTransport', () => {
     transport.backend!.onToolState = update
     await transport.observeTools?.(conversation.id, [generationId])
     const socket = await connected()
-    expect(socket.sent[0]).toMatchObject({ type: 'chat.resume', generationId, lastReceivedSeq: 0, toolEventVersion: 1 })
+    expect(socket.sent[0]).toMatchObject({ type: 'chat.resume', generationId, lastReceivedSeq: 0, toolEventVersion: 1, toolEventsOnly: true })
     const run = { runId: crypto.randomUUID(), toolId: 'web.search.v1', state: 'cancelled', lastSequence: 7, updatedAt: new Date().toISOString(), cancelRequested: true, approval: null, result: null, errorCode: 'TOOL_CANCELLED' }
     const snapshot = { version: 1, eventVersion: 1, type: 'tool.snapshot', conversationId: conversation.id, generationId, lastSequence: 7, timestamp: run.updatedAt, runs: [run] }
     socket.event({ ...snapshot, generationId: crypto.randomUUID() })
@@ -86,7 +86,41 @@ describe('WebSocketTransport', () => {
     expect(update).toHaveBeenCalledOnce()
     await transport.observeTools?.(conversation.id, [generationId])
     expect(socket.sent).toHaveLength(2)
-    expect(socket.sent[1]).toMatchObject({ type: 'chat.resume', generationId, toolEventVersion: 1 })
+    expect(socket.sent[1]).toMatchObject({ type: 'chat.resume', generationId, toolEventVersion: 1, toolEventsOnly: true })
+    transport.dispose?.()
+  })
+  it('keeps terminal tool delivery alive after chat completion and reconnects without replaying chat', async () => {
+    const transport = fixture()
+    const input = request()
+    let records: ToolRunRecords = {}
+    transport.backend!.onToolState = next => { records = applyToolProjection(records, next) }
+    const stream = useChatStream(transport)
+    const running = stream.start(input, { delta: () => {}, status: () => {} })
+    const socket = await connected()
+    const envelope = { version: 1, generationId: input.generationId, conversationId: input.conversationId, messageId: input.assistantMessageId }
+    const runId = crypto.randomUUID()
+    const timestamp = new Date().toISOString()
+    const payload = { runId, toolId: 'web.search.v1', state: 'running', lastSequence: 2, updatedAt: timestamp, cancelRequested: false, approval: null, result: null, errorCode: null }
+    socket.event({ ...envelope, type: 'chat.generation.started', seq: 1 })
+    socket.event({ version: 1, eventVersion: 1, generationId: input.generationId, conversationId: input.conversationId, type: 'tool.started', runId, seq: 2, timestamp, payload })
+    socket.event({ ...envelope, type: 'chat.generation.completed', seq: 3, content: 'Fertig' })
+    await running
+    const terminal = { ...payload, state: 'cancelled', lastSequence: 4, cancelRequested: true, errorCode: 'TOOL_CANCELLED' }
+    socket.event({ version: 1, eventVersion: 1, generationId: input.generationId, conversationId: input.conversationId, type: 'tool.cancelled', runId, seq: 4, timestamp, payload: terminal })
+    expect(records[runId]?.state).toBe('cancelled')
+    expect(stream.status.value).toBe('completed')
+    await transport.observeTools?.(input.conversationId, [input.generationId])
+    expect(socket.sent.at(-1)).toMatchObject({ type: 'chat.resume', toolEventsOnly: true })
+    socket.close()
+    await vi.waitFor(() => expect(Socket.instances).toHaveLength(2))
+    await transport.connect?.()
+    const resumed = Socket.instances.at(-1)!
+    expect(resumed.sent).toHaveLength(1)
+    expect(resumed.sent[0]).toMatchObject({ type: 'chat.resume', generationId: input.generationId, toolEventsOnly: true })
+    resumed.event({ version: 1, eventVersion: 1, type: 'tool.snapshot', conversationId: input.conversationId, generationId: input.generationId, lastSequence: 4, timestamp, runs: [terminal] })
+    resumed.event({ version: 1, eventVersion: 1, generationId: input.generationId, conversationId: input.conversationId, type: 'tool.started', runId, seq: 2, timestamp, payload })
+    expect(records[runId]?.state).toBe('cancelled')
+    expect(stream.status.value).toBe('completed')
     transport.dispose?.()
   })
   it('buys a fresh authenticated ticket for each WSS connection on an HTTPS page', async () => {

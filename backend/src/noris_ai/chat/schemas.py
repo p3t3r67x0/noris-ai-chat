@@ -161,6 +161,8 @@ class ActivePathResponse(JsonApiSchema):
     nextCursor: str | None = None
     hasMore: bool = False
     boundaryParentId: UUID | None = None
+    # Includes source generations of explicitly continued answers.
+    toolGenerationIds: list[UUID] = Field(default_factory=lambda: list[UUID](), max_length=50)
 
 
 class DraftUpdate(JsonApiSchema):

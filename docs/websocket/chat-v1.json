@@ -220,6 +220,11 @@
               "default": null,
               "title": "Tooleventversion"
             },
+            "toolEventsOnly": {
+              "default": false,
+              "title": "Tooleventsonly",
+              "type": "boolean"
+            },
             "type": {
               "const": "chat.resume",
               "title": "Type",

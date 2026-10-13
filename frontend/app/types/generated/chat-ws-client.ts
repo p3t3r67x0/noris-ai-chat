@@ -25,6 +25,7 @@ export type Version1 = 1
 export type Generationid1 = string
 export type Lastreceivedseq = number
 export type Tooleventversion1 = (1 | null)
+export type Tooleventsonly = boolean
 export type Type2 = "chat.resume"
 export type Version2 = 1
 export type Type3 = "chat.ping"
@@ -57,6 +58,7 @@ export interface ResumeIncomingMessage {
   generationId: Generationid1
   lastReceivedSeq?: Lastreceivedseq
   toolEventVersion?: Tooleventversion1
+  toolEventsOnly?: Tooleventsonly
   type: Type2
   version: Version2
 }

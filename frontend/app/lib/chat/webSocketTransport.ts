@@ -99,7 +99,7 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
       catch { socket.close(1002) }
     })
     for (const [generationId] of toolScopes) {
-      if (!streaming.has(generationId)) send(socket, { version: 1, type: 'chat.resume', generationId, lastReceivedSeq: 0, toolEventVersion: 1 })
+      if (!streaming.has(generationId)) send(socket, { version: 1, type: 'chat.resume', generationId, lastReceivedSeq: 0, toolEventVersion: 1, toolEventsOnly: true })
     }
     socket.addEventListener('close', reconnect, { once: true })
     clearInterval(heartbeat)
@@ -121,7 +121,7 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
       if (!fresh.length) return
       const alreadyOpen = current?.readyState === Socket.OPEN
       const socket = await connect()
-      if (alreadyOpen) for (const generationId of fresh) send(socket, { version: 1, type: 'chat.resume', generationId, lastReceivedSeq: 0, toolEventVersion: 1 })
+      if (alreadyOpen) for (const generationId of fresh) send(socket, { version: 1, type: 'chat.resume', generationId, lastReceivedSeq: 0, toolEventVersion: 1, toolEventsOnly: true })
     },
     dispose() { disposed = true; clearInterval(heartbeat); clearTimeout(reconnectTimer); current?.close() },
     async *stream(request, signal) {

@@ -163,6 +163,7 @@ async def websocket_chat(socket: WebSocket) -> None:
                         command.generationId,
                         command.lastReceivedSeq,
                         command.toolEventVersion,
+                        command.toolEventsOnly,
                     )
                 elif command.type == "chat.cancel":
                     await manager.cancel(command.generationId)

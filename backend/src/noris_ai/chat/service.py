@@ -14,6 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from noris_ai.chat import pagination
 from noris_ai.chat.errors import ChatError
 from noris_ai.chat.models import ChatAttachment, ChatConversation, ChatMessage
+from noris_ai.chat.replay import tool_generation_ids
 from noris_ai.chat.repository import ChatRepository
 from noris_ai.chat.schemas import (
     ActivePathResponse,
@@ -276,6 +277,9 @@ class ChatService:
                 nextCursor=next_cursor,
                 hasMore=next_cursor is not None,
                 boundaryParentId=messages[0].parent_message_id if messages else None,
+                toolGenerationIds=await tool_generation_ids(
+                    session, owner_id, conversation_id, [message.id for message in messages]
+                ),
             )
         return result
 

@@ -84,8 +84,8 @@ class Peer:
     overflow: asyncio.Event = field(default_factory=asyncio.Event)
     detached: bool = False
     # Existing socket, bounded generation subscriptions; no in-memory outbox.
-    subscriptions: dict[UUID, tuple[int, bool]] = field(
-        default_factory=lambda: dict[UUID, tuple[int, bool]]()
+    subscriptions: dict[UUID, tuple[int, bool, bool]] = field(
+        default_factory=lambda: dict[UUID, tuple[int, bool, bool]]()
     )
 
     def offer(self, event: Payload) -> None:
@@ -281,10 +281,12 @@ class GenerationManager:
                 if live.task is not None:
                     await asyncio.gather(live.task, return_exceptions=True)
 
-    def subscribe(self, peer: Peer, generation_id: UUID, sequence: int, tools: bool) -> None:
+    def subscribe(
+        self, peer: Peer, generation_id: UUID, sequence: int, tools: bool, tools_only: bool = False
+    ) -> None:
         if peer.detached:
             return
-        peer.subscriptions[generation_id] = (sequence, tools)
+        peer.subscriptions[generation_id] = (sequence, tools, tools_only)
         if len(peer.subscriptions) > 64:
             oldest = next(key for key in peer.subscriptions if key not in self.live)
             peer.subscriptions.pop(oldest)
@@ -318,7 +320,7 @@ class GenerationManager:
                 subscription = peer.subscriptions.get(generation_id)
                 if subscription is None:
                     continue
-                after, include_tools = subscription
+                after, include_tools, tools_only = subscription
                 if after >= sequence:
                     continue
                 events, last = await replay(
@@ -330,12 +332,13 @@ class GenerationManager:
                     self.tools.repository if self.tools else None,
                     include_tools=include_tools,
                     initial=False,
+                    tools_only=tools_only,
                 )
                 if generation_id not in peer.subscriptions:
                     continue
                 for event in events:
                     peer.offer(event)
-                peer.subscriptions[generation_id] = (last, include_tools)
+                peer.subscriptions[generation_id] = (last, include_tools, tools_only)
 
     async def resume(
         self,
@@ -343,7 +346,10 @@ class GenerationManager:
         generation_id: UUID,
         last_sequence: int,
         tool_version: int | None = None,
+        tools_only: bool = False,
     ) -> None:
+        if tools_only and tool_version != 1:
+            raise ChatError("INVALID_INPUT", 422)
         live = self.live.get(generation_id)
         # Writer and subscription share a lock: replay cannot race a live delta.
         async with live.lock if live is not None else asyncio.Lock():
@@ -357,6 +363,7 @@ class GenerationManager:
                     self.tools.repository if self.tools else None,
                     include_tools=tool_version == 1,
                     initial=True,
+                    tools_only=tools_only,
                 )
                 peer.offer(
                     {
@@ -368,7 +375,7 @@ class GenerationManager:
                 )
                 for event in events:
                     peer.offer(event)
-                self.subscribe(peer, generation_id, last, tool_version == 1)
+                self.subscribe(peer, generation_id, last, tool_version == 1, tools_only)
             if live is not None and not peer.detached:
                 live.peers.add(peer)
                 live.detached_at = None
