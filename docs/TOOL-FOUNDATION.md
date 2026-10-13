@@ -43,6 +43,8 @@ den Start; eine öffentliche Registrierungs-/Importfunktion existiert nicht.
 
 Beide Definitionen sind **nicht ausführbar**: `handler=None`, `provider_key=None`,
 `cost_policy=disabled`. Registriert bedeutet weder freigegeben noch UI-verfügbar.
+Der separat [vorbereitete SearXNG-Provider](SEARXNG-PROVIDER.md) verwendet dieselben
+Suchtypen, ohne diese Definitionen oder ihre Ausführbarkeit zu ändern.
 `validate_input(payload: bytes, kind)` prüft den erlaubten Aufrufkontext und
 verwendet Pydantic-JSONvalidierung. Unbekannte Felder, Typkoercion, doppelte
 JSONschlüssel, ungültige Unicode-/JSONdaten und überschrittene Bytegrenzen werden

@@ -1,12 +1,14 @@
 # Websuche: Architektur- und Implementierungsplan
 
-Status: geplant, keine Implementierung oder Provideraktivierung. Stand: 2026-10-12.
+Status: End-to-End-Websuche geplant; der isolierte SearXNG-Adapter ist
+[vorbereitet und testbar](SEARXNG-PROVIDER.md), ohne Provider-/Runtimeaktivierung.
+Stand: 2026-10-13.
 
 Übergreifende Regeln: [Tool-Architektur](TOOL-ARCHITECTURE.md); PRs und Gates: [Roadmap](FEATURE-ROADMAP.md).
 
 ## 1. Bestandsaufnahme
 
-`ChatSearchDialog.vue`/`useConversationSearch.ts` durchsuchen vorhandene Unterhaltungen, keine Webseiten. Im geprüften `main` gibt es keinen SearchProvider, Fetcher, Quellenkatalog oder Webmodus. Der lokal vorliegende Menüentwurf hat die Aktions-ID `web`, aber noch keinen Handler.
+`ChatSearchDialog.vue`/`useConversationSearch.ts` durchsuchen vorhandene Unterhaltungen, keine Webseiten. Der isolierte SearXNG-Provider ergänzt jetzt die P1a-Suchtypen; Fetcher, Quellenkatalog und ausführbarer Webmodus fehlen weiterhin. Der vorhandene Menüeintrag `web` bleibt deaktiviert.
 
 Wiederverwendung: `ChatComposer.vue`/`ChatWorkspace.vue`, `useChatStream`, `webSocketTransport.ts`, `GenerationManager`, `ChatRepository`, `LLMGateway`, Modellkatalog, vorhandene Markdownanzeige und PostgreSQL-Replay. Textreferenzen/PDFs bleiben lokaler Chatkontext und werden nicht an einen Suchprovider übertragen.
 
