@@ -10,10 +10,14 @@ from fastapi import FastAPI
 
 @asynccontextmanager
 async def serve(
-    app: FastAPI, *, key: Path | None = None, certificate: Path | None = None
+    app: FastAPI,
+    *,
+    key: Path | None = None,
+    certificate: Path | None = None,
+    host: str = "127.0.0.1",
 ) -> AsyncGenerator[str]:
-    listener = socket.socket()
-    listener.bind(("127.0.0.1", 0))
+    listener = socket.socket(socket.AF_INET6 if ":" in host else socket.AF_INET)
+    listener.bind((host, 0))
     listener.listen()
     listener.setblocking(False)
     server = uvicorn.Server(
@@ -34,7 +38,8 @@ async def serve(
                     await task
                 await asyncio.sleep(0.01)
         scheme = "https" if certificate else "http"
-        yield f"{scheme}://127.0.0.1:{listener.getsockname()[1]}"
+        authority = f"[{host}]" if ":" in host else host
+        yield f"{scheme}://{authority}:{listener.getsockname()[1]}"
     finally:
         server.should_exit = True
         async with asyncio.timeout(5):

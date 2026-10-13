@@ -1,6 +1,7 @@
 """Controlled SearXNG HTTP fixture, shared by PostgreSQL and browser tests."""
 
 import asyncio
+import json
 from collections.abc import AsyncIterator
 from urllib.parse import parse_qs
 
@@ -16,6 +17,7 @@ class SearchServer:
         self.closed = asyncio.Event()
         self.release = asyncio.Event()
         self.wait = False
+        self.unicode_content = False
         self.active = 0
         self.peak_active = 0
         self.app.add_api_route("/search", self.search, methods=["POST"])
@@ -40,6 +42,20 @@ class SearchServer:
                     await asyncio.Event().wait()
                 if query.endswith("-error"):
                     yield b'{"secret":"upstream-sensitive-body"}'
+                elif self.unicode_content:
+                    yield json.dumps(
+                        {
+                            "results": [
+                                {
+                                    "title": "🌍" * 500,
+                                    "url": f"https://example.org/{i}",
+                                    "content": "🌍" * 4096,
+                                }
+                                for i in range(8)
+                            ]
+                        },
+                        ensure_ascii=False,
+                    ).encode()
                 else:
                     yield (
                         b'{"results":['

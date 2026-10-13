@@ -12,7 +12,7 @@ from time import perf_counter
 from uuid import uuid4
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import ASGITransport, AsyncClient, Response
 from sqlalchemy import select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -113,6 +113,7 @@ async def test_full_search_commit_reservation_events_replay_and_idempotency(
         *(service.execute(base.owner, request, PAYLOAD) for _ in range(6))
     )
     assert search.server.calls == 1
+
     assert len({result.result_digest for result in results}) == 1
     saved = await service.repository.public_snapshot(base.owner, request.id)
     assert saved.run.state == "succeeded" and isinstance(saved.latestResult, SearchResult)
@@ -141,6 +142,25 @@ async def test_full_search_commit_reservation_events_replay_and_idempotency(
             await restarted.execute(base.owner, request, PAYLOAD)
     finally:
         await restarted.close()
+    assert search.server.calls == 1
+
+
+@pytest.mark.parametrize("unicode_output", [False, True])
+async def test_utf8_limits_survive_dispatch_commit_snapshot_and_replay(
+    search: SearchFixture, unicode_output: bool
+) -> None:
+    search.server.unicode_content = unicode_output
+    payload = canonical_payload(
+        SearchInput(query="unicode-result" if unicode_output else "🌍" * 1000, language="de")
+    )
+    request = search.request()
+    await search.runtime.execute(search.base.owner, request, payload)
+    snapshot = await search.runtime.repository.public_snapshot(search.base.owner, request.id)
+    assert snapshot.run.state == "succeeded" and isinstance(snapshot.latestResult, SearchResult)
+    assert len(canonical_payload(snapshot.latestResult)) <= 65_536
+    assert len(snapshot.latestResult.sources) == (8 if unicode_output else 5)
+    assert (await search.replay()).runs[0].state == "succeeded"
+    await search.runtime.execute(search.base.owner, request, payload)
     assert search.server.calls == 1
 
 
@@ -460,6 +480,127 @@ async def test_search_outbox_rollback_is_atomic(
         assert await session.get(ToolResult, (request.id, 1)) is None
     events = await ChatRepository(search.base.database).list_stream_events(search.base.generation)
     assert not any(event.event_type in {"tool.result", "tool.completed"} for event in events)
+
+
+@pytest.mark.parametrize("operation", ["caller", "shutdown"])
+async def test_repeated_task_cancel_during_stream_cleanup_is_drained(
+    search: SearchFixture, operation: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    entered, release, interrupted = asyncio.Event(), asyncio.Event(), asyncio.Event()
+    original = Response.aclose
+
+    async def delayed_close(response: Response) -> None:
+        entered.set()
+        try:
+            await release.wait()
+            await original(response)
+        except asyncio.CancelledError:
+            interrupted.set()
+            raise
+
+    monkeypatch.setattr(Response, "aclose", delayed_close)
+    search.server.wait = True
+    request = search.request()
+    task = asyncio.create_task(search.runtime.execute(search.base.owner, request, PAYLOAD))
+    await asyncio.wait_for(search.server.entered.wait(), 5)
+    closing = None
+    try:
+        if operation == "caller":
+            task.cancel()
+            target = task
+        else:
+            closing = asyncio.create_task(search.runtime.close())
+            target = closing
+        await asyncio.wait_for(entered.wait(), 5)
+        target.cancel()
+        # Let the second cancellation reach the cleanup await before releasing it.
+        for _ in range(10):
+            await asyncio.sleep(0)
+        assert not interrupted.is_set()
+        assert not target.done()
+        target.cancel()
+        for _ in range(10):
+            await asyncio.sleep(0)
+        assert not interrupted.is_set()
+        assert not target.done()
+    finally:
+        release.set()
+        await asyncio.gather(
+            task, *([closing] if closing is not None else []), return_exceptions=True
+        )
+    await asyncio.wait_for(search.server.closed.wait(), 5)
+    assert not search.runtime._active and not search.runtime._cancels
+    assert not any(
+        pending.get_coro().__qualname__ in {"invoke", "ToolRuntime._execute"}
+        or pending.get_coro().__qualname__.startswith("ToolRuntime._execute.<locals>.")
+        for pending in asyncio.all_tasks()
+        if pending is not asyncio.current_task()
+    )
+    assert await search.runtime.repository.get_result(search.base.owner, request.id) is None
+    assert (await search.runtime.repository.get_run(search.base.owner, request.id)).state in {
+        "cancelled",
+        "interrupted",
+    }
+    assert search.server.calls == 1
+
+
+async def test_shutdown_waits_for_inflight_admission(
+    search: SearchFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    entered, release = asyncio.Event(), asyncio.Event()
+    original = search.runtime.repository.create_run
+
+    async def delayed_create(*args: object, **kwargs: object):
+        result = await original(*args, **kwargs)  # type: ignore[arg-type]
+        entered.set()
+        await release.wait()
+        return result
+
+    monkeypatch.setattr(search.runtime.repository, "create_run", delayed_create)
+    request = search.request()
+    task = asyncio.create_task(search.runtime.execute(search.base.owner, request, PAYLOAD))
+    await asyncio.wait_for(entered.wait(), 5)
+    closing = asyncio.create_task(search.runtime.close())
+    try:
+        for _ in range(10):
+            await asyncio.sleep(0)
+        assert not closing.done()
+    finally:
+        release.set()
+        await closing
+    with pytest.raises(ToolError, match="TOOL_INTERRUPTED"):
+        await task
+    assert not search.runtime._active and not search.runtime._cancels
+    assert (
+        await search.runtime.repository.get_run(search.base.owner, request.id)
+    ).state == "interrupted"
+    assert search.server.calls == 0
+
+
+async def test_changed_execution_fence_cannot_commit_result(
+    search: SearchFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    original = search.runtime.repository.complete
+
+    async def fenced_commit(*args: object, **kwargs: object):
+        async with search.base.database() as session, session.begin():
+            await session.execute(
+                update(ToolRun).where(ToolRun.id == args[1]).values(execution_id=uuid4())
+            )
+        return await original(*args, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(search.runtime.repository, "complete", fenced_commit)
+    request = search.request()
+    with pytest.raises(ToolError, match="TOOL_STATE_CONFLICT"):
+        await search.runtime.execute(search.base.owner, request, PAYLOAD)
+    assert await search.runtime.repository.get_result(search.base.owner, request.id) is None
+    assert search.server.calls == 1
+    async with search.base.database() as session:
+        reservation = await session.scalar(
+            select(BudgetReservation).where(BudgetReservation.run_id == request.id)
+        )
+        assert reservation is not None and reservation.state == "dispatched"
+    await search.runtime.repository.recover(search.base.owner)
 
 
 async def test_authorized_existing_api_isolation_archive_and_soft_delete(

@@ -31,7 +31,11 @@ def permitted_address(value: str, allowed_addresses: tuple[str, ...]) -> str:
         or address.is_multicast
         or address.is_link_local
         or address.is_unspecified
-        or (isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped is not None)
+        or (address.is_reserved and not internal)
+        or (
+            isinstance(address, ipaddress.IPv6Address)
+            and (address.is_site_local or address.ipv4_mapped is not None)
+        )
     ):
         raise ToolError("TOOL_FORBIDDEN")
     return canonical

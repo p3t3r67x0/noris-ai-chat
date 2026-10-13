@@ -32,6 +32,11 @@ def test_private_exception_is_only_the_explicit_address(address: str) -> None:
         "::",
         "::ffff:127.0.0.1",
         "192.0.2.1",
+        "fec0::1",
+        "feff:ffff::1",
+        "64:ff9b::7f00:1",
+        "64:ff9b::a9fe:a9fe",
+        "::7f00:1",
     ],
 )
 def test_special_targets_are_forbidden_even_if_allowlisted(address: str) -> None:
@@ -41,11 +46,21 @@ def test_special_targets_are_forbidden_even_if_allowlisted(address: str) -> None
         settings(allowed_addresses=(address,))
 
 
+@pytest.mark.parametrize("address", ["93.184.216.34", "2606:4700:4700::1111"])
 async def test_dns_rebinding_pins_actual_connection_and_preserves_tls_host(
     monkeypatch: pytest.MonkeyPatch,
+    address: str,
 ) -> None:
     resolution = AsyncMock(
-        return_value=[(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))]
+        return_value=[
+            (
+                socket.AF_INET6 if ":" in address else socket.AF_INET,
+                socket.SOCK_STREAM,
+                6,
+                "",
+                (address, 443),
+            )
+        ]
     )
     monkeypatch.setattr(asyncio.get_running_loop(), "getaddrinfo", resolution)
     requests: list[httpx.Request] = []
@@ -59,7 +74,7 @@ async def test_dns_rebinding_pins_actual_connection_and_preserves_tls_host(
         await client.handle_async_request(
             httpx.Request("POST", "https://search.example.org/search")
         )
-        assert requests[0].url.host == "93.184.216.34"
+        assert requests[0].url.host == address
         assert requests[0].headers["host"] == "search.example.org"
         assert requests[0].extensions["sni_hostname"] == "search.example.org"
         assert resolution.await_count == 1
@@ -124,3 +139,26 @@ async def test_dns_fails_closed_and_is_cancellable(
                 await task
             assert "secret" not in str(error.value)
     network.assert_not_called()
+
+
+async def test_connection_failure_never_falls_back_to_another_dns_address(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        asyncio.get_running_loop(),
+        "getaddrinfo",
+        AsyncMock(
+            return_value=[
+                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443)),
+                (socket.AF_INET6, socket.SOCK_STREAM, 6, "", ("2606:4700:4700::1111", 443, 0, 0)),
+            ]
+        ),
+    )
+    network = AsyncMock(side_effect=httpx.ConnectError("controlled failure"))
+    monkeypatch.setattr(httpx.AsyncHTTPTransport, "handle_async_request", network)
+    async with EndpointTransport("https://search.example.org/search", ()) as transport:
+        with pytest.raises(httpx.ConnectError):
+            await transport.handle_async_request(
+                httpx.Request("POST", "https://search.example.org/search")
+            )
+    assert network.await_count == 1

@@ -286,15 +286,30 @@ standardmäßig nicht; private Containeradressen müssen explizit geprüft werde
 
 ## Tests, Messungen und Einschränkungen
 
+Adversarialer Review des P6-Heads `36feecad51335b7c4a6a726ae17cd4a71e8b6cca`
+am 13.10.2026 bestätigte zusätzliche Grenzfälle. Der Transport sperrt jetzt
+IPv6-Site-Local- und reservierte Adressen ausdrücklich, auch wenn Python sie als
+global klassifiziert (etwa `fec0::1` und IPv4-einbettende reservierte IPv6-Adressen).
+Exakt freigegebene Loopback-/RFC1918-/ULA-Adressen bleiben die einzigen internen
+Ausnahmen. Der Runtime-Abbruch und Shutdown warten auch bei wiederholtem
+`Task.cancel()` auf Stream-, Worker- und Watcherbereinigung. Shutdown wartet
+zusätzlich auf bereits begonnene Run-Anlage, bevor Datenbank und Provider schließen.
+Persistierte Ein-/Ausgaben verwenden bei erneuter Validierung dieselbe kompakte
+UTF-8-Kodierung wie der ursprüngliche Payload; ASCII-Escapes dürfen gültige
+Unicode-Suchen oder Resultate nicht künstlich über das Bytelimit vergrößern.
+Die Korrekturen ändern weder Policy, Provideraktivierung, Retries noch P2-Vertrag.
+
 Reguläre CI verwendet ausschließlich kontrollierte Fake-SearXNG-Antworten.
 Providerunits decken Sprachen/Unicode, Operatoren, HTML, URLangriffe, Dubletten,
 Mengen-/Bytegrenzen, Status-/Transportfehler und JSONangriffe ab. Netzwerkunits
 prüfen exakte interne Freigaben, Metadaten, gemischtes DNS, DNS-Rebinding mit
 geprüfter tatsächlicher Verbindung, DNS-Cancel/-Timeout sowie Host-/SNI-Erhalt.
 Echte Loopbacksockets prüfen Streams, langsame Antworten und Abbruch. Zusätzlich
-belegen lokale TLS-Sockets mit einer ausschließlich für den Test erzeugten CA,
+belegen lokale IPv4-/IPv6-TLS-Sockets mit einem ausschließlich für den Test erzeugten Zertifikat,
 dass IP-Pinning die Hostzertifikatsprüfung erhält: passender Host erfolgreich,
-falscher Host `PROVIDER_ERROR` ohne HTTP-Suchdispatch. Zertifikatsprüfung bleibt aktiv.
+falscher Host oder fehlendes Zertifikatsvertrauen `PROVIDER_ERROR` ohne
+HTTP-Suchdispatch. Proxy-Umgebungsvariablen bleiben wirkungslos.
+Zertifikatsprüfung bleibt aktiv.
 
 `test_searxng_runtime.py` verbindet den echten Handler mit lokalen HTTP-Sockets
 und einer disposable PostgreSQL-Datenbank (`*_test`). Es prüft Admission,

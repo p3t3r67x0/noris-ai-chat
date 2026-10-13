@@ -125,8 +125,13 @@ def validate_payload[InputT: ToolSchema](
 
 
 def canonical_payload(value: ToolSchema) -> bytes:
+    return encode_payload(value.model_dump(mode="json"))
+
+
+def encode_payload(value: dict[str, object]) -> bytes:
+    """Use the same bounded UTF-8 representation for schema and persisted JSON."""
     return json.dumps(
-        value.model_dump(mode="json"),
+        value,
         sort_keys=True,
         ensure_ascii=False,
         separators=(",", ":"),
