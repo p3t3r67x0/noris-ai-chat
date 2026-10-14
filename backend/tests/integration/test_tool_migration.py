@@ -90,8 +90,8 @@ def test_tool_upgrade_repeat_drift_and_rollback_preserve_legacy_data(
                 .where(conversation_table.c.id == conversation)
                 .values(active_leaf_message_id=message)
             )
-            session.add(
-                ChatGeneration(
+            session.execute(
+                insert(legacy_tables[2]).values(
                     id=generation,
                     conversation_id=conversation,
                     owner_id=owner,

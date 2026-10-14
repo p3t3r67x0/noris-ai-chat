@@ -180,6 +180,17 @@ Fetch und Search bleiben deny by default; produktive Aktivierung, Auswahl durch
 Modelle und Quellenkontext folgen separat in P7b/P7c. Keine neue Sourcesroute
 oder WebSocketversion ist für P7a erforderlich.
 
+### P7b — Serverseitige Search Orchestration und LLM Grounding
+
+[Research Orchestration](RESEARCH-ORCHESTRATION.md) ergänzt strikt validierte
+deterministische Planung und Quellenauswahl, maximal drei Suchen/drei Fetches,
+Gateway-reservierten Quellenkontext und interne Antwortprovenienz. Die bestehende
+Generation, ToolRuntime, Budgets und P2-Outbox bleiben maßgeblich. Migration 0017
+ergänzt nur eine begrenzte nullable Generationprojektion. Standardflag false,
+keine Produktroute/Composeraktivierung, keine produktiven Grants. Sichtbare
+Aktivierung, Datenschutzhinweis und öffentlicher Zitiervertrag folgen separat in
+P7c; kein automatischer Beginn dieses Arbeitspakets.
+
 ### P8 — Bildprovider und atomarer Attachmentimport
 
 Zweck: ImageProvider, explicit verified ImageCapabilities, Kostenreservation und derselbe AttachmentService für Assistantoutputs. Keine externe Model-/Providerfähigkeit erfinden, UI erst P9.

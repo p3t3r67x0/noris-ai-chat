@@ -43,6 +43,8 @@ from noris_ai.llm.schemas import (
 )
 from noris_ai.llm.titles import log_title_event
 from noris_ai.llm.vision import VisionMessage, supports_images
+from noris_ai.research.orchestrator import ResearchOrchestrator
+from noris_ai.research.schemas import ResearchActivation
 from noris_ai.tools.runtime import ToolRuntime
 
 type Payload = dict[str, object]
@@ -106,6 +108,7 @@ class LiveGeneration:
     task: asyncio.Task[None] | None = None
     interruption: bool = False
     cancellation_requested: bool = False
+    research: ResearchActivation | None = None
 
 
 class GenerationManager:
@@ -120,6 +123,7 @@ class GenerationManager:
         self.config, self.repository, self.gateway = config, repository, gateway
         self.attachments = attachments
         self.tools = tools
+        self.research = ResearchOrchestrator(config, repository, gateway, tools) if tools else None
         self.live: dict[UUID, LiveGeneration] = {}
         self.admission = asyncio.Lock()
         self.peers: set[Peer] = set()
@@ -139,7 +143,13 @@ class GenerationManager:
             if not live.peers and live.detached_at is None:
                 live.detached_at = time.monotonic()
 
-    async def generate(self, peer: Peer, command: GenerateIncomingMessage) -> None:
+    async def generate(
+        self,
+        peer: Peer,
+        command: GenerateIncomingMessage,
+        *,
+        research: ResearchActivation | None = None,
+    ) -> None:
         async with self.admission:
             if (
                 len(self.live) >= self.config.llm_max_concurrent
@@ -177,7 +187,7 @@ class GenerationManager:
                         "conversation": conversation_response(saved).model_dump(mode="json"),
                     }
                 )
-                live = LiveGeneration(command, peers={peer})
+                live = LiveGeneration(command, peers={peer}, research=research)
                 self.live[generation.id] = live
                 input_message = next(m for m in path if m.id == command.inputMessageId)
                 peer.offer(
@@ -385,9 +395,12 @@ class GenerationManager:
         await self.repository.get_conversation(
             self.config.chat_owner_id, generation.conversation_id
         )
+        live = self.live.get(generation_id)
+        if live is not None:
+            live.cancellation_requested = True
+        await self.repository.request_generation_cancel(self.config.chat_owner_id, generation_id)
         if self.tools is not None:
             await self.tools.cancel(self.config.chat_owner_id, generation_id)
-        live = self.live.get(generation_id)
         if live is not None and live.task is not None:
             # The worker observes this between committed events. Cancelling its
             # task could interrupt a commit before the local sequence advances.
@@ -522,6 +535,13 @@ class GenerationManager:
                 live.interruption = True
                 raise asyncio.CancelledError
 
+        async def before_research_stream() -> None:
+            check_cancellation()
+            await self.repository.check_generation_live(
+                self.config.chat_owner_id, command.requestId
+            )
+            check_cancellation()
+
         try:
             check_cancellation()
             request = await self._image_request(request, path)
@@ -535,9 +555,29 @@ class GenerationManager:
                 lambda candidate: self.gateway.check_input(candidate, model),
             )
             check_cancellation()
-            await self.gateway.reserve(request)
+            if live.research is not None:
+                if self.research is None or not isinstance(request, PersistedChatRequest):
+                    raise LLMError("RESEARCH_UNAVAILABLE", 503)
+                preparation = asyncio.create_task(
+                    self.research.prepare(request, live.research, check_cancellation)
+                )
+                try:
+                    while not preparation.done():
+                        await asyncio.wait({preparation}, timeout=0.05)
+                        check_cancellation()
+                    request = preparation.result()
+                finally:
+                    if not preparation.done():
+                        preparation.cancel()
+                    await asyncio.gather(preparation, return_exceptions=True)
+            else:
+                await self.gateway.reserve(request)
             check_cancellation()
-            iterator = self.gateway.events(request)
+            iterator = (
+                self.gateway.events(request, before_stream=before_research_stream)
+                if live.research is not None
+                else self.gateway.events(request)
+            )
             await emit("started")
             conversation = await self.repository.get_conversation(
                 self.config.chat_owner_id, command.conversationId
@@ -607,7 +647,11 @@ class GenerationManager:
                         check_cancellation()
                         segment_start = len(content)
                         terminal, error_code = "completed", None
-                        iterator = self.gateway.events(request)
+                        iterator = (
+                            self.gateway.events(request, before_stream=before_research_stream)
+                            if live.research is not None
+                            else self.gateway.events(request)
+                        )
                         continue
                     pending = None
                     if event is not None:

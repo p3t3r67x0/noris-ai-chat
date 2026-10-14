@@ -1,4 +1,4 @@
-import { clearTestConversations } from './chat-fixtures'
+import { clearTestConversations, stableModelCatalog } from './chat-fixtures'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
@@ -162,6 +162,9 @@ test('a validated image requires explicit selection of a compatible model', asyn
 })
 
 test('vision attachments survive model changes and reload and reach the provider as image parts', async ({ page, request }) => {
+  // This case exercises model capabilities and the preserved image request.
+  // Keep the fixture catalog valid across Enter; expiry has its own regressions.
+  await stableModelCatalog(page)
   await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: fixtureModels, imageIds: ['fixture-beta'] } })
   await page.goto('/')
   const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })

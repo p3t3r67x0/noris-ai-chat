@@ -1,5 +1,6 @@
 """Short, owner-scoped transactions; no dispatch, network or policy bypass."""
 
+import hashlib
 from datetime import datetime, timedelta
 from typing import cast
 from uuid import UUID, uuid4
@@ -253,7 +254,10 @@ class ToolRepository:
             if await session.get(ToolRun, request.id) is not None:
                 # Do not disclose which owner/conversation already holds this ID.
                 raise ToolError("TOOL_CONFLICT")
-            if generation.status not in ("queued", "running"):
+            if (
+                generation.status not in ("queued", "running")
+                or generation.cancelled_at is not None
+            ):
                 raise ToolError("TOOL_STATE_CONFLICT")
             count = await session.scalar(
                 select(func.count())
@@ -306,7 +310,10 @@ class ToolRepository:
             conversation = await session.get(ChatConversation, run.conversation_id)
             if (
                 run.cancel_requested_at
-                or generation.status not in ("queued", "running")
+                or (
+                    generation.status not in ("queued", "running")
+                    or generation.cancelled_at is not None
+                )
                 or conversation is None
                 or conversation.archived_at is not None
             ):
@@ -322,6 +329,65 @@ class ToolRepository:
                 .order_by(ToolResult.result_version.desc())
                 .limit(1)
             )
+
+    async def research_result(
+        self,
+        owner: UUID,
+        conversation: UUID,
+        generation_id: UUID,
+        run_id: UUID,
+        tool_id: str,
+        policy: ToolPolicy,
+    ) -> SearchResult | SourceDocument:
+        """Revalidate persisted provenance; the caller's in-memory output is not authority."""
+        async with self._database() as session, session.begin():
+            run, generation = await self._run(session, owner, run_id, write=True)
+            definition = self._registry.get(tool_id)
+            policy.require(definition, run)
+            if (
+                run.conversation_id != conversation
+                or run.generation_id != generation_id
+                or run.tool_id != tool_id
+                or run.state != "succeeded"
+                or run.parent_run_id is not None
+                or run.cancel_requested_at
+                or generation.cancelled_at
+                or (
+                    generation.status not in ("queued", "running")
+                    or generation.cancelled_at is not None
+                )
+            ):
+                raise ToolError("TOOL_FORBIDDEN")
+            result = await session.get(ToolResult, (run_id, 1))
+            if result is None or result.output_schema != definition.name:
+                raise ToolError("TOOL_OUTPUT_INVALID")
+            output = definition.validate_output(encode_payload(result.output))
+            if payload_digest(canonical_payload(output)) != result.result_digest:
+                raise ToolError("TOOL_OUTPUT_INVALID")
+            if isinstance(output, SearchResult):
+                if (
+                    output.provider != run.provider_key
+                    or output.config_version != run.config_version
+                    or output.provider != "searxng"
+                    or len({s.source_id for s in output.sources}) != len(output.sources)
+                    or any(
+                        s.source_id != search_source_id(output.config_version, str(s.url))
+                        for s in output.sources
+                    )
+                ):
+                    raise ToolError("TOOL_OUTPUT_INVALID")
+                return output
+            if isinstance(output, SourceDocument):
+                source = await self._search_source(session, run, output.source_id)
+                value = definition.validate_input(encode_payload(run.input), "research_step")
+                if (
+                    not isinstance(value, FetchInput)
+                    or value.source_id != source.source_id
+                    or hashlib.sha256(output.text.encode("utf-8")).hexdigest() != output.digest
+                ):
+                    raise ToolError("TOOL_OUTPUT_INVALID")
+                return output
+            raise ToolError("TOOL_OUTPUT_INVALID")
 
     async def _search_source(
         self, session: AsyncSession, fetch: ToolRun, source_id: UUID
@@ -393,7 +459,10 @@ class ToolRepository:
                 or fetch.reservation_id != context.reservation_id
                 or fetch.state != "running"
                 or fetch.cancel_requested_at is not None
-                or generation.status not in ("queued", "running")
+                or (
+                    generation.status not in ("queued", "running")
+                    or generation.cancelled_at is not None
+                )
                 or conversation is None
                 or conversation.archived_at is not None
                 or payload_digest(encode_payload(fetch.input)) != fetch.input_digest
@@ -428,7 +497,10 @@ class ToolRepository:
                 raise ToolError("TOOL_STATE_CONFLICT")
             now = utc_now()
             if target in ("running", "awaiting_approval"):
-                if generation.status not in ("queued", "running") or run.cancel_requested_at:
+                if (
+                    generation.status not in ("queued", "running")
+                    or generation.cancelled_at is not None
+                ) or run.cancel_requested_at:
                     raise ToolError("TOOL_STATE_CONFLICT")
                 if run.deadline_at <= now:
                     raise ToolError("TOOL_TIMEOUT")
@@ -487,7 +559,10 @@ class ToolRepository:
                     return result
                 raise ToolError("TOOL_CONFLICT")
             check_transition(cast(ToolRunState, run.state), "succeeded")
-            if generation.status not in ("queued", "running") or run.cancel_requested_at:
+            if (
+                generation.status not in ("queued", "running")
+                or generation.cancelled_at is not None
+            ) or run.cancel_requested_at:
                 raise ToolError("TOOL_STATE_CONFLICT")
             await self._live_parent(session, run)
             if min(run.deadline_at, run.execution_deadline_at or run.deadline_at) <= utc_now():
@@ -524,7 +599,10 @@ class ToolRepository:
             permission = policy.require(definition, run)
             if run.state not in ("queued", "awaiting_approval"):
                 raise ToolError("TOOL_STATE_CONFLICT")
-            if run.cancel_requested_at or generation.status not in ("queued", "running"):
+            if run.cancel_requested_at or (
+                generation.status not in ("queued", "running")
+                or generation.cancelled_at is not None
+            ):
                 raise ToolError("TOOL_CANCELLED")
             if run.deadline_at <= utc_now():
                 raise ToolError("TOOL_TIMEOUT")
@@ -616,7 +694,10 @@ class ToolRepository:
                 raise ToolError("TOOL_STATE_CONFLICT")
             if run.policy_snapshot != permission.snapshot(definition.permission):
                 raise ToolError("TOOL_FORBIDDEN")
-            if run.cancel_requested_at or generation.status not in ("queued", "running"):
+            if run.cancel_requested_at or (
+                generation.status not in ("queued", "running")
+                or generation.cancelled_at is not None
+            ):
                 raise ToolError("TOOL_CANCELLED")
             if min(run.deadline_at, run.execution_deadline_at or run.deadline_at) <= utc_now():
                 raise ToolError("TOOL_TIMEOUT")
@@ -706,7 +787,10 @@ class ToolRepository:
             if (
                 permission.decision != "approval_required"
                 or run.state not in ("queued", "awaiting_approval")
-                or generation.status not in ("queued", "running")
+                or (
+                    generation.status not in ("queued", "running")
+                    or generation.cancelled_at is not None
+                )
                 or run.cancel_requested_at
             ):
                 raise ToolError("TOOL_STATE_CONFLICT")
@@ -780,7 +864,10 @@ class ToolRepository:
             if (
                 run.state != "awaiting_approval"
                 or run.cancel_requested_at
-                or generation.status not in ("queued", "running")
+                or (
+                    generation.status not in ("queued", "running")
+                    or generation.cancelled_at is not None
+                )
             ):
                 raise ToolError("TOOL_STATE_CONFLICT")
             if approval.expires_at <= utc_now() or run.deadline_at <= utc_now():

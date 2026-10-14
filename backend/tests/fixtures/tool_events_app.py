@@ -5,8 +5,9 @@ No execute route. Only this explicitly selected test app recognizes /p2-*.
 
 import asyncio
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager, suppress
+from contextvars import ContextVar
 from datetime import UTC, datetime, timedelta
 from typing import cast
 from unittest.mock import patch
@@ -16,7 +17,8 @@ import httpx
 from fastapi import FastAPI
 from sqlalchemy.engine import make_url
 
-from noris_ai.chat.generation import GenerationManager
+from noris_ai.chat.generation import GenerationManager, Peer
+from noris_ai.chat.ws_protocol import GenerateIncomingMessage
 from noris_ai.core.config import Settings
 from noris_ai.llm.gateway import LLMGateway
 from noris_ai.llm.schemas import (
@@ -28,6 +30,8 @@ from noris_ai.llm.schemas import (
     StartedEvent,
 )
 from noris_ai.main import create_app
+from noris_ai.research.orchestrator import ResearchOrchestrator
+from noris_ai.research.schemas import ResearchActivation
 from noris_ai.tools.budget import BudgetAmount
 from noris_ai.tools.cancellation import GenerationToolContext
 from noris_ai.tools.errors import ToolError
@@ -63,6 +67,7 @@ original_lifespan = app.router.lifespan_context
 search_server = SearchServer()
 committed_at: dict[str, float] = {}
 fetch_calls = 0
+research_sources: ContextVar[bool] = ContextVar("research_sources", default=False)
 
 
 def source_response(request: httpx.Request) -> httpx.Response:
@@ -71,7 +76,11 @@ def source_response(request: httpx.Request) -> httpx.Response:
     return httpx.Response(
         200,
         headers={"Content-Type": "text/html"},
-        stream=httpx.ByteStream(b"<main>P7a untrusted source text.</main>"),
+        stream=httpx.ByteStream(
+            b"<main>"
+            + b"P7a untrusted source text. " * (8 if research_sources.get() else 1)
+            + b"</main>"
+        ),
     )
 
 
@@ -127,7 +136,7 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
                     decision="allow",
                     per_call=BudgetAmount(calls=1, bytes=65_536),
                     daily_limit=BudgetAmount(calls=1000, bytes=65_536_000),
-                    generation_limit=BudgetAmount(calls=4, bytes=262_144),
+                    generation_limit=BudgetAmount(calls=6, bytes=2_097_152),
                 ),
                 "web.fetch.v1": ToolPermission(
                     provider_key="public_source",
@@ -144,6 +153,28 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         )
         manager = cast(GenerationManager, application.state.chat_generations)
         manager.tools = runtime
+        manager.research = ResearchOrchestrator(
+            config.model_copy(update={"research_enabled": True}),
+            manager.repository,
+            manager.gateway,
+            runtime,
+        )
+        original_generate = manager.generate
+
+        async def generate(peer: Peer, command: GenerateIncomingMessage) -> None:
+            # Only this disposable test composition recognizes the marker. The
+            # product app exposes no activation command or research API.
+            activated = command.content.startswith("/p7b ")
+            token = research_sources.set(activated)
+            try:
+                await original_generate(
+                    peer,
+                    command,
+                    research=ResearchActivation(config.chat_owner_id, "de") if activated else None,
+                )
+            finally:
+                research_sources.reset(token)
+
         application.state.tool_runtime = runtime
         application.state.tool_repository = runtime.repository
         application.state.tool_registry = registry
@@ -152,6 +183,8 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
 
         async def events(
             request: ChatRequest,
+            *,
+            before_stream: Callable[[], Awaitable[None]] | None = None,
         ) -> AsyncIterator[
             StartedEvent | DeltaEvent | CompletedEvent | IncompleteEvent | FailedEvent | None
         ]:
@@ -205,11 +238,14 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
                 await asyncio.gather(
                     *(execute(i) for i in range(2 if prompt == "/p2-parallel" else 1))
                 )
-            async for event in original_events(request):
+            async for event in original_events(request, before_stream=before_stream):
                 yield event
 
         try:
-            with patch.object(gateway, "events", events):
+            with (
+                patch.object(gateway, "events", events),
+                patch.object(manager, "generate", generate),
+            ):
                 yield
         finally:
             await runtime.close()

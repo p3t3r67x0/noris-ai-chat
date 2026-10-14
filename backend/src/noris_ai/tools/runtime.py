@@ -11,6 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from noris_ai.chat.repository import utc_now
 from noris_ai.tools.cancellation import CancelHandle, GenerationToolContext
+from noris_ai.tools.cancellation import drain_cleanup as _drain_cleanup
 from noris_ai.tools.errors import ToolError
 from noris_ai.tools.models import ToolResult, ToolRun
 from noris_ai.tools.policy import ToolPolicy
@@ -31,20 +32,6 @@ async def invoke(
     if definition.handler is None:
         raise ToolError("TOOL_UNAVAILABLE")
     return await definition.handler(context, value)
-
-
-async def _drain_cleanup(task: asyncio.Task[None]) -> None:
-    """Finish cleanup even under repeated Task.cancel(), then propagate cancellation."""
-    interrupted = False
-    with anyio.CancelScope(shield=True):
-        while not task.done():
-            try:
-                await asyncio.shield(task)
-            except asyncio.CancelledError:
-                interrupted = True
-        task.result()
-    if interrupted:
-        raise asyncio.CancelledError
 
 
 class ToolRuntime:
