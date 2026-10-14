@@ -25,6 +25,10 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
     await page.getByRole('textbox', { name: 'Nachricht', exact: true }).fill('/p7b Latest QGIS developments')
     await page.getByRole('button', { name: 'Nachricht senden', exact: true }).click()
+    // The real bounded pipeline completes tools before the existing text stream.
+    // Validate that lifecycle first; the response assertion retains its normal limit.
+    await expect.poll(() => events.filter(event => event.type === 'tool.completed'
+      && event.payload.toolId === 'web.fetch.v1').length, { timeout: 30_000 }).toBe(3)
     await expect(page.locator('.message-assistant').last()).toHaveAttribute('data-status', 'completed')
     expect(events.filter(event => event.type === 'tool.completed' && event.payload.toolId === 'web.search.v1')).toHaveLength(1)
     expect(events.filter(event => event.type === 'tool.completed' && event.payload.toolId === 'web.fetch.v1')).toHaveLength(3)
