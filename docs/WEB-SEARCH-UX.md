@@ -197,6 +197,11 @@ Keine neue Migration: die P7b-Spalte `chat_generation.research` reicht für Inte
 Zustand und Provenienz aus. Quellen bleiben in ToolResult; Events persistieren nur
 Zustand, keine zweite Quellenkopie.
 
+Der Sourcepaketbau verwendet eine ausdrückliche Dateiauswahl. Lokale Uploads,
+Betreiberkonfiguration und Browser-/Audittraces gehören weder in Wheel noch
+Sourcepaket. `make build` prüft die tatsächlichen Archive ohne Extraktion;
+Regressionen sichern den Ausschluss lokaler Daten und vorhandene Migrationen ab.
+
 Neue Tests: `test_web_search_ui.py` (Unit/Integration), `research.spec.ts`,
 WebSockettransportregressionen und `web-search-ui.spec.ts`. Die dynamische Matrix
 läuft über den aktuellen Modellkatalog und einen neu zugelassenen synthetischen
