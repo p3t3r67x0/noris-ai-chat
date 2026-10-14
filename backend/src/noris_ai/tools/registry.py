@@ -1,11 +1,13 @@
 """Immutable startup registry, independent of providers and execution policy."""
 
+from __future__ import annotations
+
 import hashlib
 import json
 from collections.abc import Awaitable, Callable, Iterable, Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import TypeAdapter, ValidationError
 
@@ -14,6 +16,8 @@ from noris_ai.tools.errors import ToolError
 from noris_ai.tools.schemas import (
     MAX_INPUT_BYTES,
     MAX_OUTPUT_BYTES,
+    SEARCH_INPUT_BYTES,
+    SEARCH_OUTPUT_BYTES,
     FetchInput,
     InvocationKind,
     SearchInput,
@@ -22,6 +26,9 @@ from noris_ai.tools.schemas import (
     ToolId,
     ToolSchema,
 )
+
+if TYPE_CHECKING:
+    from noris_ai.tools.providers.searxng import SearXNGProvider
 
 
 @dataclass(frozen=True)
@@ -118,8 +125,13 @@ def validate_payload[InputT: ToolSchema](
 
 
 def canonical_payload(value: ToolSchema) -> bytes:
+    return encode_payload(value.model_dump(mode="json"))
+
+
+def encode_payload(value: dict[str, object]) -> bytes:
+    """Use the same bounded UTF-8 representation for schema and persisted JSON."""
     return json.dumps(
-        value.model_dump(mode="json"),
+        value,
         sort_keys=True,
         ensure_ascii=False,
         separators=(",", ":"),
@@ -155,8 +167,13 @@ class ToolRegistry:
         return definition
 
 
-def create_tool_registry() -> ToolRegistry:
-    """Fixed contracts only. Neither a provider nor an executable handler is enabled."""
+def create_tool_registry(searxng: SearXNGProvider | None = None) -> ToolRegistry:
+    """Bind the existing search definition only to an explicit server-owned provider."""
+    handler = None
+    if searxng is not None:
+        from noris_ai.tools.search import search_handler
+
+        handler = search_handler(searxng, max_output_bytes=SEARCH_OUTPUT_BYTES)
     return ToolRegistry(
         (
             ToolDefinition(
@@ -166,8 +183,12 @@ def create_tool_registry() -> ToolRegistry:
                 output_type=SearchResult,
                 permission="web_search",
                 allowed_invocation_kinds=frozenset({"web_mode", "research_step"}),
-                max_input_bytes=4096,
-                max_output_bytes=65_536,
+                provider_key="searxng" if searxng is not None else None,
+                handler=handler,
+                cost_policy="bounded" if searxng is not None else "disabled",
+                retry_policy=RetryPolicy(max_retries=0, idempotent=searxng is not None),
+                max_input_bytes=SEARCH_INPUT_BYTES,
+                max_output_bytes=SEARCH_OUTPUT_BYTES,
             ),
             ToolDefinition(
                 name="web.fetch.v1",

@@ -1,5 +1,6 @@
 """Bounded, versioned internal contracts. No public execute-by-name API."""
 
+import unicodedata
 from collections.abc import Mapping
 from datetime import datetime
 from types import MappingProxyType
@@ -13,6 +14,8 @@ from noris_ai.tools.errors import ToolError
 
 MAX_INPUT_BYTES = 65_536
 MAX_OUTPUT_BYTES = 262_144
+SEARCH_INPUT_BYTES = 4096
+SEARCH_OUTPUT_BYTES = 65_536
 InvocationKind = Literal["web_mode", "research_step", "user_action"]
 ToolRunState = Literal[
     "queued",
@@ -70,7 +73,7 @@ class SearchInput(ToolSchema):
     @field_validator("query")
     @classmethod
     def valid_query(cls, value: str) -> str:
-        if not value.strip() or any(ord(c) < 32 or ord(c) == 127 for c in value):
+        if not value.strip() or any(unicodedata.category(c) in {"Cc", "Cs"} for c in value):
             raise ValueError("Invalid search query")
         return value
 

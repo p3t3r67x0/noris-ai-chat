@@ -1,7 +1,9 @@
 """Real loopback sockets only; no live SearXNG/search engines or PostgreSQL required."""
 
 import asyncio
+import ssl
 from collections.abc import AsyncIterator
+from pathlib import Path
 from urllib.parse import parse_qs
 
 import httpx
@@ -20,6 +22,7 @@ def config(base: str, **overrides: object) -> SearXNGSettings:
         {
             "base_url": base,
             "allowed_hosts": ("127.0.0.1",),
+            "allowed_addresses": ("127.0.0.1",),
             "config_version": "http-fixture",
             **overrides,
         }
@@ -193,3 +196,108 @@ async def test_connection_refusal_is_safe_over_actual_socket() -> None:
     assert error.value.reason == "connection_error"
     assert error.value.code == "PROVIDER_ERROR"
     assert not isinstance(error.value, httpx.RequestError)
+
+
+@pytest.mark.parametrize("matching_hostname", [True, False])
+@pytest.mark.parametrize("address", ["127.0.0.1", "::1"])
+@pytest.mark.parametrize("trusted_certificate", [True, False])
+async def test_actual_tls_pinning_preserves_certificate_validation(
+    matching_hostname: bool,
+    address: str,
+    trusted_certificate: bool,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    key, certificate = tmp_path / "key.pem", tmp_path / "certificate.pem"
+    process = await asyncio.create_subprocess_exec(
+        "openssl",
+        "req",
+        "-x509",
+        "-newkey",
+        "rsa:2048",
+        "-nodes",
+        "-days",
+        "1",
+        "-subj",
+        "/CN=search.example.org",
+        "-addext",
+        "subjectAltName=DNS:search.example.org",
+        "-keyout",
+        str(key),
+        "-out",
+        str(certificate),
+        stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.DEVNULL,
+    )
+    assert await process.wait() == 0
+    trusted = ssl.create_default_context()
+    if trusted_certificate:
+        trusted.load_verify_locations(cafile=str(certificate))
+    assert trusted.check_hostname and trusted.verify_mode == ssl.CERT_REQUIRED
+    monkeypatch.setenv("HTTPS_PROXY", "http://127.0.0.1:1")
+    monkeypatch.setenv("HTTP_PROXY", "http://127.0.0.1:1")
+    monkeypatch.setenv("ALL_PROXY", "http://127.0.0.1:1")
+    monkeypatch.setenv("NO_PROXY", "")
+
+    def client_context(**kwargs: object) -> ssl.SSLContext:
+        return trusted
+
+    monkeypatch.setattr(ssl, "create_default_context", client_context)
+    loop = asyncio.get_running_loop()
+    original = loop.getaddrinfo
+
+    async def resolve(host: str, port: int, **kwargs: object):
+        return await original(address, port, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(loop, "getaddrinfo", resolve)
+    calls = 0
+    upstream = FastAPI()
+
+    async def search() -> JSONResponse:
+        nonlocal calls
+        calls += 1
+        return JSONResponse({"results": []})
+
+    upstream.add_api_route("/search", search, methods=["POST"])
+    host = "search.example.org" if matching_hostname else "wrong.example.org"
+    async with (
+        serve(upstream, key=key, certificate=certificate, host=address) as base,
+        SearXNGProvider(
+            config(
+                base.replace("[::1]" if address == "::1" else address, host),
+                allowed_hosts=(host,),
+                allowed_addresses=(address,),
+            )
+        ) as provider,
+    ):
+        if matching_hostname and trusted_certificate:
+            result = await provider.search(SearchInput(query="TLS", language="en"))
+            assert result.sources == []
+        else:
+            with pytest.raises(SearXNGError, match="PROVIDER_ERROR"):
+                await provider.search(SearchInput(query="TLS", language="en"))
+    assert calls == int(matching_hostname and trusted_certificate)
+
+
+async def test_actual_ipv6_literal_pinning_keeps_host_and_ignores_proxies(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    upstream = FastAPI()
+    hosts: list[str] = []
+    for variable in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy"):
+        monkeypatch.setenv(variable, "http://127.0.0.1:1")
+    monkeypatch.setenv("NO_PROXY", "")
+
+    async def search(request: Request) -> JSONResponse:
+        hosts.append(request.headers["host"])
+        return JSONResponse({"results": []})
+
+    upstream.add_api_route("/search", search, methods=["POST"])
+    async with (
+        serve(upstream, host="::1") as base,
+        SearXNGProvider(
+            config(base, allowed_hosts=("::1",), allowed_addresses=("::1",))
+        ) as provider,
+    ):
+        assert (await provider.search(SearchInput(query="IPv6", language="en"))).sources == []
+        assert hosts == [base.removeprefix("http://")]

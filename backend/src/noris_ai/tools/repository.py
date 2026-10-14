@@ -1,6 +1,5 @@
 """Short, owner-scoped transactions; no dispatch, network or policy bypass."""
 
-import json
 from datetime import datetime, timedelta
 from typing import cast
 from uuid import UUID, uuid4
@@ -31,7 +30,7 @@ from noris_ai.tools.events import (
 )
 from noris_ai.tools.models import ToolApproval, ToolResult, ToolRun
 from noris_ai.tools.policy import ToolPolicy
-from noris_ai.tools.registry import ToolRegistry, canonical_payload, payload_digest
+from noris_ai.tools.registry import ToolRegistry, canonical_payload, encode_payload, payload_digest
 from noris_ai.tools.schemas import (
     TERMINAL_STATES,
     ApprovalState,
@@ -61,7 +60,7 @@ class ToolRepository:
             result = await session.get(ToolResult, (run.id, 1))
             if result is None:
                 raise ToolError("TOOL_OUTPUT_INVALID")
-            output = definition.validate_output(json.dumps(result.output).encode())
+            output = definition.validate_output(encode_payload(result.output))
             reference = ToolResultReference(
                 sourceCount=len(output.sources) if isinstance(output, SearchResult) else None
             )
@@ -731,7 +730,7 @@ class ToolRepository:
             output: SearchResult | SourceDocument | None = None
             if result is not None:
                 value = self._registry.get(run.tool_id).validate_output(
-                    json.dumps(result.output).encode()
+                    encode_payload(result.output)
                 )
                 if isinstance(value, (SearchResult, SourceDocument)):
                     output = value

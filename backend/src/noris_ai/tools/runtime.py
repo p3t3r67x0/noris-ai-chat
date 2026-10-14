@@ -1,7 +1,6 @@
 """Only trusted server orchestration calls execute; no model or HTTP name dispatch."""
 
 import asyncio
-import json
 import random
 from datetime import timedelta
 from typing import cast
@@ -15,7 +14,7 @@ from noris_ai.tools.cancellation import CancelHandle, GenerationToolContext
 from noris_ai.tools.errors import ToolError
 from noris_ai.tools.models import ToolResult, ToolRun
 from noris_ai.tools.policy import ToolPolicy
-from noris_ai.tools.registry import RegisteredTool, ToolRegistry, canonical_payload
+from noris_ai.tools.registry import RegisteredTool, ToolRegistry, canonical_payload, encode_payload
 from noris_ai.tools.repository import ToolRepository
 from noris_ai.tools.schemas import (
     TERMINAL_STATES,
@@ -34,6 +33,20 @@ async def invoke(
     return await definition.handler(context, value)
 
 
+async def _drain_cleanup(task: asyncio.Task[None]) -> None:
+    """Finish cleanup even under repeated Task.cancel(), then propagate cancellation."""
+    interrupted = False
+    with anyio.CancelScope(shield=True):
+        while not task.done():
+            try:
+                await asyncio.shield(task)
+            except asyncio.CancelledError:
+                interrupted = True
+        task.result()
+    if interrupted:
+        raise asyncio.CancelledError
+
+
 class ToolRuntime:
     def __init__(
         self, repository: ToolRepository, registry: ToolRegistry, policy: ToolPolicy
@@ -41,34 +54,53 @@ class ToolRuntime:
         self.repository, self.registry, self.policy = repository, registry, policy
         self._active: dict[tuple[UUID, UUID], asyncio.Task[ToolResult]] = {}
         self._cancels: dict[UUID, asyncio.Event] = {}
+        self._admitting: set[asyncio.Future[None]] = set()
         self._closing = False
 
     async def execute(self, owner: UUID, request: ToolRunCreate, payload: bytes) -> ToolResult:
         if self._closing:
             raise ToolError("TOOL_INTERRUPTED")
         self.policy.require(self.registry.get(request.tool_id))
+        admission: asyncio.Future[None] = asyncio.get_running_loop().create_future()
+        self._admitting.add(admission)
         try:
-            run, _ = await self.repository.create_run(owner, request, payload)
-        except SQLAlchemyError:
-            raise ToolError("TOOL_UNAVAILABLE") from None
-        if run.state == "succeeded":
-            result = await self.repository.get_result(owner, run.id)
-            if result is None:
+            try:
+                run, _ = await self.repository.create_run(owner, request, payload)
+            except SQLAlchemyError:
+                raise ToolError("TOOL_UNAVAILABLE") from None
+            if run.state == "succeeded":
+                result = await self.repository.get_result(owner, run.id)
+                if result is None:
+                    raise ToolError("TOOL_STATE_CONFLICT")
+                return result
+            if run.state in TERMINAL_STATES:
                 raise ToolError("TOOL_STATE_CONFLICT")
-            return result
-        if run.state in TERMINAL_STATES:
-            raise ToolError("TOOL_STATE_CONFLICT")
-        key = (owner, run.id)
-        task = self._active.get(key)
-        if task is None:
-            task = asyncio.create_task(self._execute(owner, run))
-            self._active[key] = task
+            key = (owner, run.id)
+            task = self._active.get(key)
+            if task is None:
+                task = asyncio.create_task(self._execute(owner, run))
+                self._active[key] = task
+        except asyncio.CancelledError:
+            # create_run may have committed before cancellation reaches its caller.
+            # Fence that run before shutdown or a reconnect can observe it queued.
+            await _drain_cleanup(
+                asyncio.create_task(self.cancel(owner, request.generation_id, root_id=request.id))
+            )
+            raise
+        finally:
+            admission.set_result(None)
+            self._admitting.discard(admission)
         try:
             return await asyncio.shield(task)
         except asyncio.CancelledError:
-            with anyio.CancelScope(shield=True):
-                await self.cancel(owner, run.generation_id, root_id=run.id)
-                await asyncio.gather(task, return_exceptions=True)
+
+            async def stop() -> None:
+                try:
+                    await self.cancel(owner, run.generation_id, root_id=run.id)
+                finally:
+                    await asyncio.gather(task, return_exceptions=True)
+
+            await _drain_cleanup(asyncio.create_task(stop()))
             raise
         finally:
             if task.done() and self._active.get(key) is task:
@@ -97,7 +129,7 @@ class ToolRuntime:
             claimed_execution_id = execution_id
             deadline = run.execution_deadline_at or run.deadline_at
             value = definition.validate_input(
-                json.dumps(run.input).encode(), cast(InvocationKind, run.invocation_kind)
+                encode_payload(run.input), cast(InvocationKind, run.invocation_kind)
             )
 
             async def watch() -> None:
@@ -181,7 +213,10 @@ class ToolRuntime:
                     await asyncio.sleep(delay)
                 finally:
                     cancelled.cancel()
-                    handler_task.cancel()
+                    # A handler deadline may already be closing its HTTP stream.
+                    # A second cancel can interrupt cleanup and leave the socket open.
+                    if not handler_task.cancelling():
+                        handler_task.cancel()
                     await asyncio.gather(cancelled, handler_task, return_exceptions=True)
             raise ToolError("PROVIDER_ERROR")
         except (asyncio.CancelledError, Exception) as cause:
@@ -252,5 +287,12 @@ class ToolRuntime:
         self._closing = True
         for event in self._cancels.values():
             event.set()
-        await asyncio.gather(*self._active.values(), return_exceptions=True)
-        self._active.clear()
+
+        async def drain() -> None:
+            # Admission may be inside create_run when shutdown begins. Its worker
+            # sees _closing and finalizes before the application closes the DB.
+            await asyncio.gather(*self._admitting)
+            await asyncio.gather(*self._active.values(), return_exceptions=True)
+            self._active.clear()
+
+        await _drain_cleanup(asyncio.create_task(drain()))

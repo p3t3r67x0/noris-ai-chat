@@ -2,18 +2,34 @@ import asyncio
 import socket
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
 
 
 @asynccontextmanager
-async def serve(app: FastAPI) -> AsyncGenerator[str]:
-    listener = socket.socket()
-    listener.bind(("127.0.0.1", 0))
+async def serve(
+    app: FastAPI,
+    *,
+    key: Path | None = None,
+    certificate: Path | None = None,
+    host: str = "127.0.0.1",
+) -> AsyncGenerator[str]:
+    listener = socket.socket(socket.AF_INET6 if ":" in host else socket.AF_INET)
+    listener.bind((host, 0))
     listener.listen()
     listener.setblocking(False)
-    server = uvicorn.Server(uvicorn.Config(app, log_level="critical", access_log=False, ws="none"))
+    server = uvicorn.Server(
+        uvicorn.Config(
+            app,
+            log_level="critical",
+            access_log=False,
+            ws="none",
+            ssl_keyfile=str(key) if key else None,
+            ssl_certfile=str(certificate) if certificate else None,
+        )
+    )
     task = asyncio.create_task(server.serve(sockets=[listener]))
     try:
         async with asyncio.timeout(5):
@@ -21,7 +37,9 @@ async def serve(app: FastAPI) -> AsyncGenerator[str]:
                 if task.done():
                     await task
                 await asyncio.sleep(0.01)
-        yield f"http://127.0.0.1:{listener.getsockname()[1]}"
+        scheme = "https" if certificate else "http"
+        authority = f"[{host}]" if ":" in host else host
+        yield f"{scheme}://{authority}:{listener.getsockname()[1]}"
     finally:
         server.should_exit = True
         async with asyncio.timeout(5):

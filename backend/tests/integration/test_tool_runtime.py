@@ -234,15 +234,32 @@ async def test_concurrent_budget_reservations_fail_closed(
 
 @pytest.mark.parametrize("idempotent", [True, False])
 async def test_timeout_and_unknown_keep_conservative_budget(
-    runtime: RuntimeFixture, idempotent: bool
+    runtime: RuntimeFixture, idempotent: bool, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     base = runtime.base
     runtime.simulator.wait = True
-    service = configured(base, runtime.simulator, idempotent=idempotent, timeout=0.15)
+    service = configured(base, runtime.simulator, idempotent=idempotent)
+    timeouts: list[asyncio.Timeout] = []
+    original_timeout = asyncio.timeout
+
+    def capture_timeout(delay: float | None) -> asyncio.Timeout:
+        timeout = original_timeout(delay)
+        current = asyncio.current_task()
+        if current is not None and current.get_coro().__qualname__ == "ToolRuntime._execute":
+            timeouts.append(timeout)
+        return timeout
+
+    monkeypatch.setattr(asyncio, "timeout", capture_timeout)
     request = runtime.request()
+    task = asyncio.create_task(service.execute(base.owner, request, INPUT))
+    await asyncio.wait_for(runtime.simulator.entered.wait(), 5)
+    # Expire the actual asyncio deadline after dispatch, independent of DB/CI load.
+    assert timeouts
+    timeouts[-1].reschedule(asyncio.get_running_loop().time())
     code = "TOOL_TIMEOUT" if idempotent else "PROVIDER_OUTCOME_UNKNOWN"
     with pytest.raises(ToolError, match=code):
-        await service.execute(base.owner, request, INPUT)
+        await task
+    assert timeouts[-1].expired()
     run = await service.repository.get_run(base.owner, request.id)
     assert run.state == ("timed_out" if idempotent else "outcome_unknown")
     assert runtime.simulator.closed
@@ -250,6 +267,36 @@ async def test_timeout_and_unknown_keep_conservative_budget(
     with pytest.raises(ToolError):
         await service.execute(base.owner, request, INPUT)
     assert len(runtime.simulator.calls) == 1
+
+
+@pytest.mark.parametrize("idempotent", [True, False])
+async def test_timeout_before_dispatch_releases_budget_without_provider_outcome(
+    runtime: RuntimeFixture, idempotent: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    base = runtime.base
+    service = configured(base, runtime.simulator, idempotent=idempotent)
+    original = service.repository.dispatch
+
+    async def expired_dispatch(
+        owner: UUID, run_id: UUID, execution_id: UUID, policy: ToolPolicy, *, retry: bool = False
+    ) -> ToolRun:
+        async with base.database() as session, session.begin():
+            await session.execute(
+                update(ToolRun)
+                .where(ToolRun.id == run_id)
+                .values(execution_deadline_at=datetime.now(UTC) - timedelta(seconds=1))
+            )
+        return await original(owner, run_id, execution_id, policy, retry=retry)
+
+    monkeypatch.setattr(service.repository, "dispatch", expired_dispatch)
+    request = runtime.request()
+    with pytest.raises(ToolError, match="TOOL_TIMEOUT"):
+        await service.execute(base.owner, request, INPUT)
+    run = await service.repository.get_run(base.owner, request.id)
+    assert run.state == "timed_out" and run.dispatched_at is None
+    assert not runtime.simulator.calls and not runtime.simulator.closed
+    assert (await reservations(base))[0].state == "released"
+    assert await service.repository.get_result(base.owner, request.id) is None
 
 
 async def test_retry_has_separate_reservation_and_bounded_attempt(runtime: RuntimeFixture) -> None:
