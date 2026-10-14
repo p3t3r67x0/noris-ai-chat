@@ -531,6 +531,19 @@ bleiben bestehen und die gesamte Browsersuite wird wiederholt. Diese fehlgeschla
 Läufe zählen nicht als bestanden. Abschließende Ergebnisse und Links stehen in
 PR #67; Reviewfreigabe erst bei vollständiger grüner Abnahme.
 
+Der erneute Imageabruf funktionierte ohne Änderung von Produktcode oder Gates.
+Auf dem Review-Head scheiterte anschließend ein mobiler Compose-Lernmodusfall.
+Die gespeicherte Trace belegt dieselbe Ursache wie der frühere mobile P6-Fall:
+der einsekündliche Katalogtimer der Testfixture begann genau während Enter/Click,
+und die bestehende Sendesperre verwarf die Eingabe. Die Lern-/Tool-Lifecyclefälle
+verwenden deshalb wie die vorhandenen Reasoning-Layoutfälle eine verifizierte
+Katalogantwort mit 60 Sekunden Fixturegültigkeit. Verfügbarkeit, Stalestatus,
+Fehlerantworten, explizites Focusrefresh und serverseitige Prüfung bleiben erhalten.
+Bestehende Assertions, Timeouts und Workflowgates bleiben unverändert. Ein neuer
+P7a-WebSocketfall hält das explizite Refresh offen: Sendesperre, unveränderter Draft,
+keine Search-/Fetchrequests, anschließend genau ein Fetch werden geprüft.
+Die unabhängigen Katalog-/Ablauf-/Reasoningtests behalten den einsekündlichen Timer.
+
 Verbleibende Grenzen: libc-DNS kann nach Await-Cancel intern bis zum nativen
 Resolvertimeout weiterlaufen; Extraktion ist eine HTML-Heuristik, keine Browser-
 DOMsemantik; sehr große einzelne Markuptokens werden bewusst abgewiesen.

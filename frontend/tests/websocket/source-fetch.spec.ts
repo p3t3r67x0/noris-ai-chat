@@ -1,14 +1,50 @@
 import { expect, test } from '@playwright/test'
-import { clearTestConversations } from './chat-fixtures'
+import { clearTestConversations, stableModelCatalog } from './chat-fixtures'
 import { validateToolEvent } from '../../app/lib/chat/toolEvents'
 import type { ToolWsEvent } from '../../app/lib/chat/toolEvents'
 
 test.skip(Boolean(process.env.NORIS_E2E_COMPOSE_URL), 'P7a uses the explicitly selected local tool fixture')
 
-test.beforeEach(async ({ request }) => {
+test.beforeEach(async ({ page, request }) => {
+  await stableModelCatalog(page)
   await clearTestConversations(request)
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
+})
+
+test('P7a: explicit catalog refresh still blocks dispatch and preserves the draft', async ({ page, request }) => {
+  await page.goto('/')
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+  const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
+  const send = page.getByRole('button', { name: 'Nachricht senden', exact: true })
+  await input.fill('/p7a-fetch')
+  await expect(send).toBeEnabled()
+  const before = await (await request.get('/api/v1/fixture/search-state')).json()
+  let release!: () => void
+  const pending = new Promise<void>((resolve) => { release = resolve })
+  await page.route('**/api/v1/llm/models', async (route) => {
+    await pending
+    await route.fallback()
+  })
+  try {
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await expect(send).toBeDisabled()
+    await input.press('Enter')
+    await expect(input).toHaveValue('/p7a-fetch')
+    await expect(page.locator('.message-user')).toHaveCount(0)
+    const blocked = await (await request.get('/api/v1/fixture/search-state')).json()
+    expect(blocked.calls).toBe(before.calls)
+    expect(blocked.fetchCalls).toBe(before.fetchCalls)
+  }
+  finally {
+    release()
+  }
+  await expect(send).toBeEnabled()
+  await input.press('Enter')
+  await expect(page.locator('.message-assistant').last()).toHaveAttribute('data-status', 'completed')
+  const after = await (await request.get('/api/v1/fixture/search-state')).json()
+  expect(after.calls - before.calls).toBe(1)
+  expect(after.fetchCalls - before.fetchCalls).toBe(1)
 })
 
 for (const theme of ['light', 'dark'] as const) {

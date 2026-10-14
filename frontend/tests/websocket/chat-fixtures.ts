@@ -1,6 +1,20 @@
 import { expect } from '@playwright/test'
-import type { APIRequestContext } from '@playwright/test'
+import type { APIRequestContext, Page } from '@playwright/test'
 import type { ApiSchemas } from '../../app/types/generated/api'
+
+/** Keep verified metadata stable while testing tool/learning lifecycle, not expiry. */
+export async function stableModelCatalog(page: Page): Promise<void> {
+  await page.route('**/api/v1/llm/models', async (route) => {
+    const response = await route.fetch()
+    if (!response.ok()) {
+      await route.fulfill({ response })
+      return
+    }
+    // Preserve the real catalog, including availability and stale status. Only
+    // its fixture timer changes; explicit focus refresh and server checks remain.
+    await route.fulfill({ response, json: { ...await response.json(), expires_in_seconds: 60 } })
+  })
+}
 
 /** Clear only the disposable browser-test database, including hidden preparations. */
 export async function clearTestConversations(request: APIRequestContext): Promise<void> {
