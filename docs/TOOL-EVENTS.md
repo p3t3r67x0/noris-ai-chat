@@ -244,3 +244,13 @@ Die tatsächlich ausgeführten vollständigen Qualitätsgates, Wiederholungen un
 CI-Ergebnisse werden in der Beschreibung von [PR #64](https://github.com/p3t3r67x0/noris-ai-chat/pull/64)
 mit Laufreferenzen protokolliert. Fehlgeschlagene Erstläufe gelten dort nicht als
 erfolgreiche Prüfungen.
+
+## P7a: Secure Source Fetch
+
+[Secure Source Fetch and Content Extraction](SECURE-SOURCE-FETCH.md) bindet den
+bestehenden `web.fetch.v1`-Handler optional an `public_source/p7a-v1`. Der
+Toolinput bleibt ausschließlich `source_id`; eine interne Suchlaufreferenz am
+ToolRun sichert Owner, Conversation, Generation und Parent. Persistenz, Budgets,
+Cancel-Fences, Outbox, begrenzte P2-Projektionen und Replay bleiben im bestehenden
+Runtimepfad. Private SearXNG-Ausnahmen werden nicht übernommen. Beide Permissions
+bleiben separat und deny by default; P7b-Orchestrierung wird nicht aktiviert.

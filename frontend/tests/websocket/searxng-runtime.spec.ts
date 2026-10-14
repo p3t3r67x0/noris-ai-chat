@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test'
-import { clearTestConversations } from './chat-fixtures'
+import { clearTestConversations, stableModelCatalog } from './chat-fixtures'
 import { validateToolEvent } from '../../app/lib/chat/toolEvents'
 import type { ToolWsEvent } from '../../app/lib/chat/toolEvents'
 
 test.skip(Boolean(process.env.NORIS_E2E_COMPOSE_URL), 'Die lokale Testorchestrierung benötigt die explizite Tool-Testfixture')
 
-test.beforeEach(async ({ request }) => {
+test.beforeEach(async ({ page, request }) => {
+  await stableModelCatalog(page)
   await clearTestConversations(request)
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })

@@ -19,6 +19,7 @@ from noris_ai.tools.budget import (
     bound_transaction,
     lock_owner,
 )
+from noris_ai.tools.cancellation import GenerationToolContext
 from noris_ai.tools.errors import ToolError, ToolErrorCode
 from noris_ai.tools.events import (
     MAX_GENERATION_TOOL_RUNS,
@@ -34,12 +35,16 @@ from noris_ai.tools.registry import ToolRegistry, canonical_payload, encode_payl
 from noris_ai.tools.schemas import (
     TERMINAL_STATES,
     ApprovalState,
+    FetchInput,
+    InvocationKind,
     SearchResult,
+    SearchSource,
     SourceDocument,
     ToolRunCreate,
     ToolRunSnapshot,
     ToolRunState,
     check_transition,
+    search_source_id,
 )
 
 
@@ -237,6 +242,7 @@ class ToolRepository:
                         existing.input_digest != digest,
                         existing.invocation_kind != request.invocation_kind,
                         existing.parent_run_id != request.parent_run_id,
+                        existing.source_search_run_id != request.source_search_run_id,
                         existing.provider_key != request.provider_key,
                         existing.config_version != request.config_version,
                         existing.deadline_at != request.deadline_at,
@@ -280,6 +286,10 @@ class ToolRepository:
                 if request.deadline_at > parent.deadline_at:
                     raise ToolError("TOOL_INPUT_INVALID")
                 await self._live_parent(session, run)
+            if isinstance(value, FetchInput):
+                await self._search_source(session, run, value.source_id)
+            elif run.source_search_run_id is not None:
+                raise ToolError("TOOL_FORBIDDEN")
             session.add(run)
             await session.flush()
             await self._event(session, generation, run)
@@ -312,6 +322,92 @@ class ToolRepository:
                 .order_by(ToolResult.result_version.desc())
                 .limit(1)
             )
+
+    async def _search_source(
+        self, session: AsyncSession, fetch: ToolRun, source_id: UUID
+    ) -> SearchSource:
+        # Never look up a UUID globally. The trusted caller explicitly selects a
+        # search run; all four scope dimensions are checked before reading its data.
+        if fetch.tool_id != "web.fetch.v1" or fetch.source_search_run_id is None:
+            raise ToolError("TOOL_FORBIDDEN")
+        search = await session.scalar(
+            select(ToolRun).where(
+                ToolRun.id == fetch.source_search_run_id,
+                ToolRun.owner_id == fetch.owner_id,
+                ToolRun.conversation_id == fetch.conversation_id,
+                ToolRun.generation_id == fetch.generation_id,
+                ToolRun.parent_run_id == fetch.parent_run_id,
+                ToolRun.tool_id == "web.search.v1",
+                ToolRun.state == "succeeded",
+                ToolRun.cancel_requested_at.is_(None),
+            )
+        )
+        if search is None:
+            raise ToolError("TOOL_FORBIDDEN")
+        results = list(
+            await session.scalars(select(ToolResult).where(ToolResult.run_id == search.id).limit(2))
+        )
+        if len(results) != 1:
+            raise ToolError("TOOL_FORBIDDEN")
+        saved = results[0]
+        try:
+            definition = self._registry.get("web.search.v1")
+            value = definition.validate_output(encode_payload(saved.output))
+            if (
+                not isinstance(value, SearchResult)
+                or saved.result_version != 1
+                or saved.output_schema != definition.name
+                or search.schema_version != definition.schema_version
+                or value.provider != search.provider_key
+                or value.provider != "searxng"
+                or value.config_version != search.config_version
+                or payload_digest(canonical_payload(value)) != saved.result_digest
+                or len({s.source_id for s in value.sources}) != len(value.sources)
+                or any(
+                    s.source_id != search_source_id(value.config_version, str(s.url))
+                    for s in value.sources
+                )
+            ):
+                raise ToolError("TOOL_FORBIDDEN")
+        except (ToolError, ValueError, TypeError):
+            raise ToolError("TOOL_FORBIDDEN") from None
+        matches = [s for s in value.sources if s.source_id == source_id]
+        if len(matches) != 1:
+            raise ToolError("TOOL_FORBIDDEN")
+        return matches[0]
+
+    async def resolve_source(self, context: GenerationToolContext, source_id: UUID) -> SearchSource:
+        context.check()
+        async with self._database() as session:
+            fetch, generation = await self._run(
+                session, context.owner_id, context.run_id, write=False
+            )
+            conversation = await session.get(ChatConversation, context.conversation_id)
+            if (
+                fetch.conversation_id != context.conversation_id
+                or fetch.generation_id != context.generation_id
+                or fetch.parent_run_id != context.parent_run_id
+                or fetch.source_search_run_id != context.source_search_run_id
+                or fetch.provider_key != context.provider_key
+                or fetch.config_version != context.config_version
+                or fetch.reservation_id != context.reservation_id
+                or fetch.state != "running"
+                or fetch.cancel_requested_at is not None
+                or generation.status not in ("queued", "running")
+                or conversation is None
+                or conversation.archived_at is not None
+                or payload_digest(encode_payload(fetch.input)) != fetch.input_digest
+            ):
+                raise ToolError("TOOL_FORBIDDEN")
+            value = self._registry.get("web.fetch.v1").validate_input(
+                encode_payload(fetch.input), cast(InvocationKind, fetch.invocation_kind)
+            )
+            if not isinstance(value, FetchInput) or value.source_id != source_id:
+                raise ToolError("TOOL_FORBIDDEN")
+            await self._live_parent(session, fetch)
+            source = await self._search_source(session, fetch, source_id)
+        context.check()
+        return source
 
     async def transition(
         self,
@@ -372,6 +468,18 @@ class ToolRepository:
                 if run.policy_snapshot != permission.snapshot(definition.permission):
                     raise ToolError("TOOL_FORBIDDEN")
             value = definition.validate_output(payload)
+            if isinstance(value, SourceDocument):
+                if value.digest != payload_digest(value.text.encode("utf-8")):
+                    raise ToolError("TOOL_OUTPUT_INVALID")
+                fetch_input = definition.validate_input(
+                    encode_payload(run.input), cast(InvocationKind, run.invocation_kind)
+                )
+                if (
+                    not isinstance(fetch_input, FetchInput)
+                    or value.source_id != fetch_input.source_id
+                ):
+                    raise ToolError("TOOL_OUTPUT_INVALID")
+                await self._search_source(session, run, value.source_id)
             digest = payload_digest(canonical_payload(value))
             if run.state == "succeeded":
                 result = await session.get(ToolResult, (run_id, 1))

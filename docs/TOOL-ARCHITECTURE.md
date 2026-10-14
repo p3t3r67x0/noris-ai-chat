@@ -315,3 +315,13 @@ Retries: begrenzte idempotente Such-/Fetchcalls mit Jitter und Retry-After, höc
 | Bestand | Upload/PDF/Textreferenzen, Katalogrevocation, Varianten, Fortsetzung, Drafts, Scroll, WebSocketproxy, v1/SSE/mock-Regressionen. |
 
 Featureflags sind serverseitig standardmäßig aus; UI aktiviert eine Aktion nur mit echtem Handler und verfügbarer Capability. Migrationen sind additive expand/backfill/validate; bestehende Tabellen/Dateien werden nicht während des Planungs-PRs verändert. Rollback zunächst Flags aus und Altpfade weiterbetreiben; destructive Schema-Downgrades nur in Test-/expliziten Restoreabläufen. Deployment, Datensicherung, Providerkonto und Egressänderungen sind spätere separat überprüfbare Betriebsarbeit.
+
+## P7a: Secure Source Fetch
+
+[Secure Source Fetch and Content Extraction](SECURE-SOURCE-FETCH.md) bindet den
+bestehenden `web.fetch.v1`-Handler optional an `public_source/p7a-v1`. Der
+Toolinput bleibt ausschließlich `source_id`; eine interne Suchlaufreferenz am
+ToolRun sichert Owner, Conversation, Generation und Parent. Persistenz, Budgets,
+Cancel-Fences, Outbox, begrenzte P2-Projektionen und Replay bleiben im bestehenden
+Runtimepfad. Private SearXNG-Ausnahmen werden nicht übernommen. Beide Permissions
+bleiben separat und deny by default; P7b-Orchestrierung wird nicht aktiviert.

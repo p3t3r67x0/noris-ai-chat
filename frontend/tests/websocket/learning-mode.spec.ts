@@ -1,11 +1,12 @@
-import { clearTestConversations } from './chat-fixtures'
+import { clearTestConversations, stableModelCatalog } from './chat-fixtures'
 import type { ApiSchemas } from '../../app/types/generated/api'
 import { expect, test } from '@playwright/test'
 
 const fixtureOrigin = `http://127.0.0.1:${process.env.NORIS_E2E_PROVIDER_PORT ?? 8591}`
 type ProviderCall = { model: string, reasoning_effort?: string, messages: { role: string, content: string }[] }
 
-test.beforeEach(async ({ request }) => {
+test.beforeEach(async ({ page, request }) => {
+  await stableModelCatalog(page)
   await clearTestConversations(request)
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })

@@ -11,6 +11,7 @@ from noris_ai.llm.schemas import LLMMessage, LLMModel
 os.environ["NORIS_LLM_PROVIDER"] = "disabled"
 os.environ["NORIS_LLM_MODELS"] = "[]"
 os.environ["NORIS_SEARXNG_ENABLED"] = "false"
+os.environ["NORIS_SOURCE_FETCH_ENABLED"] = "false"
 
 
 @pytest.fixture

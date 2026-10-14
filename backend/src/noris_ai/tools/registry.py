@@ -28,7 +28,9 @@ from noris_ai.tools.schemas import (
 )
 
 if TYPE_CHECKING:
+    from noris_ai.tools.fetch import SourceResolver
     from noris_ai.tools.providers.searxng import SearXNGProvider
+    from noris_ai.tools.providers.source_fetch import SourceFetchProvider
 
 
 @dataclass(frozen=True)
@@ -167,13 +169,23 @@ class ToolRegistry:
         return definition
 
 
-def create_tool_registry(searxng: SearXNGProvider | None = None) -> ToolRegistry:
+def create_tool_registry(
+    searxng: SearXNGProvider | None = None,
+    *,
+    source_fetch: SourceFetchProvider | None = None,
+    source_resolver: SourceResolver | None = None,
+) -> ToolRegistry:
     """Bind the existing search definition only to an explicit server-owned provider."""
     handler = None
     if searxng is not None:
         from noris_ai.tools.search import search_handler
 
         handler = search_handler(searxng, max_output_bytes=SEARCH_OUTPUT_BYTES)
+    fetch = None
+    if source_fetch is not None and source_resolver is not None:
+        from noris_ai.tools.fetch import fetch_handler
+
+        fetch = fetch_handler(source_fetch, source_resolver, max_output_bytes=MAX_OUTPUT_BYTES)
     return ToolRegistry(
         (
             ToolDefinition(
@@ -196,6 +208,10 @@ def create_tool_registry(searxng: SearXNGProvider | None = None) -> ToolRegistry
                 input_type=FetchInput,
                 output_type=SourceDocument,
                 permission="web_fetch",
+                provider_key="public_source" if fetch is not None else None,
+                handler=fetch,
+                cost_policy="bounded" if fetch is not None else "disabled",
+                retry_policy=RetryPolicy(max_retries=0, idempotent=fetch is not None),
                 allowed_invocation_kinds=frozenset({"web_mode", "research_step"}),
                 timeout_policy=TimeoutPolicy(total_seconds=10),
                 max_input_bytes=256,

@@ -28,6 +28,21 @@ class ToolRun(Base):
     __table_args__ = (
         CheckConstraint("event_sequence >= 0", name="tool_event_sequence"),
         ForeignKeyConstraint(
+            ["owner_id", "conversation_id", "generation_id", "source_search_run_id"],
+            [
+                "chat_tool_run.owner_id",
+                "chat_tool_run.conversation_id",
+                "chat_tool_run.generation_id",
+                "chat_tool_run.id",
+            ],
+            name="tool_source_search",
+        ),
+        CheckConstraint(
+            "source_search_run_id IS NULL OR (tool_id = 'web.fetch.v1' "
+            "AND source_search_run_id <> id)",
+            name="tool_source_search_binding",
+        ),
+        ForeignKeyConstraint(
             ["owner_id", "id", "reservation_id"],
             [
                 "chat_budget_reservation.owner_id",
@@ -119,6 +134,7 @@ class ToolRun(Base):
     conversation_id: Mapped[UUID] = mapped_column(Uuid, nullable=False)
     generation_id: Mapped[UUID] = mapped_column(Uuid, nullable=False)
     parent_run_id: Mapped[UUID | None] = mapped_column(Uuid)
+    source_search_run_id: Mapped[UUID | None] = mapped_column(Uuid)
     step_key: Mapped[str] = mapped_column(Text, nullable=False)
     tool_id: Mapped[str] = mapped_column(Text, nullable=False)
     schema_version: Mapped[int] = mapped_column(Integer, nullable=False)

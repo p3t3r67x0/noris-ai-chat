@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from types import MappingProxyType
 from typing import Annotated, Literal
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from pydantic import AwareDatetime, Field, HttpUrl, field_validator
 
@@ -53,6 +53,11 @@ ToolId = Annotated[
 StepKey = Annotated[str, Field(min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_.:-]+$")]
 WarningText = Annotated[str, Field(min_length=1, max_length=200)]
 SourceUrl = Annotated[HttpUrl, Field(max_length=2048)]
+
+
+def search_source_id(config_version: str, url: str) -> UUID:
+    """Stable identity only; authorization always requires the persisted search scope."""
+    return uuid5(NAMESPACE_URL, f"noris-ai:searxng:{config_version}:{url}")
 
 
 def check_transition(current: ToolRunState, target: ToolRunState) -> None:
@@ -116,6 +121,7 @@ class ToolRunCreate(ToolSchema):
     conversation_id: UUID
     generation_id: UUID
     parent_run_id: UUID | None = None
+    source_search_run_id: UUID | None = None
     step_key: StepKey
     tool_id: ToolId
     invocation_kind: InvocationKind

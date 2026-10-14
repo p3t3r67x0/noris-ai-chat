@@ -169,6 +169,17 @@ Zweck: SSRFkontrollierter Plaintextfetch/context und End-to-end `web` im bestehe
 
 Unit: SSRF-/DNS-/Redirect-/Kompressionsmatrix, Contentbudget, citation IDs, Moduschip. Integration: Search→Fetch→bestehender Gateway, echte DB-/Replay-/Cancel-/Ownership-/PDFkombination, sichere Null-/Partial-/Errorfälle. Playwright: Plus→Web→Quellen→Antwort→Stop/Reload, Mobile/Keyboard/Scroll; normaler Chat löst kein Tool aus. API: Sourcesroute, WS-v2 types/snapshots, Textmodusgrenzen. Security: actual connection IPvalidation, keine Cookies/Secrets, HTML/XSS/Injection. Abnahme: belegte Antwort oder ehrlicher Fehler, Qualitätsprobe dokumentiert. Abhängigkeit: P0/P1/P2/P6.
 
+### P7a — Sicherer Quellenabruf ohne Modellorchestrierung
+
+[Secure Source Fetch](SECURE-SOURCE-FETCH.md) bindet `web.fetch.v1` an persistierte
+SearchSource-IDs und eine explizite Suchlaufreferenz im bestehenden ToolRun.
+Public-Source-Policy, DNS/IP-Pinning, isoliertes TLS-Pooling, begrenzte Redirects,
+HTML-/Textnormalisierung und SHA-256 bleiben hinter bestehenden Policy-/Budget-/
+Cancel-/P2-Grenzen. Die additive Migration 0016 erzeugt keine neue Tabelle.
+Fetch und Search bleiben deny by default; produktive Aktivierung, Auswahl durch
+Modelle und Quellenkontext folgen separat in P7b/P7c. Keine neue Sourcesroute
+oder WebSocketversion ist für P7a erforderlich.
+
 ### P8 — Bildprovider und atomarer Attachmentimport
 
 Zweck: ImageProvider, explicit verified ImageCapabilities, Kostenreservation und derselbe AttachmentService für Assistantoutputs. Keine externe Model-/Providerfähigkeit erfinden, UI erst P9.
