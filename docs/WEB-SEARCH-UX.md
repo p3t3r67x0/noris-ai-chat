@@ -208,7 +208,28 @@ Fokus, Reload während Recherche, Stop, Sprachfehler und alle sechs Breiten.
 Die bestehenden Gates für Ruff/Format, striktes Pyright, Unit/HTTP/PG/Migrationen,
 ESLint/Nuxt/Vue/API/i18n, OpenAPI-/WSdrift, UI/HTTP-LLM/WS-Browser, Wheel/Sourcepaket,
 Frontendproduktion und Actions `checks` / `compose-smoke` bleiben unverändert.
-Konkrete endgültige Laufergebnisse und unabhängiges Review stehen im PR.
+Konkrete endgültige Laufergebnisse stehen im PR.
+
+Ein separat beauftragter Reviewer hat Commit `00fbf67` unabhängig auf Aktivierung,
+Modell-/Kontextprüfung, Permissions/Budget, Cancel/Replay/Idempotenz, Quellenbindung,
+Fortsetzungsancestry, XSS/SSRF, Datenschutz und Zugänglichkeit geprüft. Bestätigte
+Befunde wurden vor Abschluss korrigiert und mit Regressionen versehen:
+
+| Befund | Korrektur / Regression |
+| --- | --- |
+| Abgeleitete Capability störte interne Modellpolicy-Roundtrips. | Read-only-Catalogprojektion; dynamischer Katalog-/Groundingtest einschließlich neuem Modell und `tool_calling=false`. |
+| Optionaler REST-Readerfehler beendete den Chatstream oder ließ Resume-/Fortsetzungszustände hängen. | Getrennter Quellenladefehler, erhaltene autorisierte Views und persistierter Snapshotzustand; WS-503-/Resume-/Continue-Terminaltests. |
+| Entitykodierter Platzhalter konnte ein zusätzliches Quellenzitat erzeugen. | Zufälliger Renderprefix, exakte Unicodepositionen; Entity-/Code-/Link-/Unknownmarkerregression. |
+| Async Admission konnte alten Draft in einen inzwischen ausgewählten Chat senden. | Scope-/Modell-/Draft-/Attachmentguard; verzögerte Capability mit Chatwechsel im Browser. |
+| Erstmaliges Vorbereiten des Chats verlor den aktiven Webmodus. | Synchroner Modustransfer mit bestehender Draftscope-Erstellung; Settingsunit und Uploadbrowserregression. |
+| Programmatisches Modal stellte den Fokus nicht auf den externen Trigger zurück. | Explizite Fokuswiederherstellung; getrennte Source-/Zitat-/Escape-Browserassertions. |
+| Englische Researchfehler erschienen im bestehenden Toast auf Deutsch. | Lokalisierung am vorhandenen Notificationsport; English-Panel-/Toastregression. |
+| Zusätzliche defensive Readerbindungen fehlten. | Assistantrole/Generationbackref sowie Inputdigest neben Resultat-/Dokumentdigest. |
+
+Der Reviewer meldete keine offenen bestätigten Codebefunde und reproduzierte
+49 Backend- sowie 40 Frontendtests erfolgreich. Browser-/CI-Gesamtgates und
+abgeschlossene Animations-Screenshots werden getrennt nachgewiesen; unabhängiges
+Code-Review ersetzt diese Gates nicht.
 
 `NORIS_RESEARCH_ENABLED`, `NORIS_SEARXNG_ENABLED` und
 `NORIS_SOURCE_FETCH_ENABLED` bleiben standardmäßig false. Die bestehenden

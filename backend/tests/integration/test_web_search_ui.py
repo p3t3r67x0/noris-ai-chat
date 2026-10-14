@@ -5,16 +5,20 @@ import json
 from uuid import UUID, uuid4
 
 import pytest
+from httpx import ASGITransport, AsyncClient
 
 from noris_ai.chat.errors import ChatError
 from noris_ai.chat.generation import GenerationManager, Peer
 from noris_ai.chat.models import ChatGeneration, ChatMessage
 from noris_ai.chat.replay import replay
+from noris_ai.chat.service import ChatService
 from noris_ai.chat.ws_protocol import GenerateIncomingMessage
 from noris_ai.llm.errors import LLMError
+from noris_ai.main import create_app
 from noris_ai.research.reader import read_research
 from noris_ai.research.schemas import ResearchIntent, ResearchProjection
 from tests.integration import test_research_runtime as p7b
+from tests.unit.test_llm_api import AUTH
 
 pytestmark = pytest.mark.integration
 tool_schema = p7b.tool_schema
@@ -231,3 +235,47 @@ async def test_public_intent_persists_denial_and_old_clients_resume_compatibly(
     ).last_sequence == before
     with pytest.raises(ChatError):
         await manager.generate(peer, command.model_copy(update={"research": None}))
+
+
+async def test_http_readers_require_auth_scope_and_non_deleted_conversation(
+    research: p7b.ResearchFixture,
+):
+    await finish(research)
+    app = create_app(research.service.config)
+    # Compose real route dependencies with the existing disposable repositories;
+    # no startup recovery or production configuration is needed for read tests.
+    app.state.chat_settings = research.service.config
+    app.state.chat_service = ChatService(research.chat, research.base.runtime.repository)
+    app.state.tool_runtime = research.base.runtime
+    conversation = research.base.base.conversation
+    path = (
+        f"/api/v1/chat/conversations/{conversation}/generations/"
+        f"{research.base.base.generation}/research"
+    )
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        assert (await client.get(path)).status_code == 401
+        response = await client.get(path, auth=AUTH)
+        assert response.status_code == 200
+        assert response.json()["claimSupport"] == "unverified"
+        assert response.json()["citations"][0]["marker"] == "R1"
+        capability = await client.get("/api/v1/chat/research/capability", auth=AUTH)
+        assert capability.status_code == 200 and capability.json()["available"] is True
+        foreign = path.replace(str(conversation), str(uuid4()))
+        assert (await client.get(foreign, auth=AUTH)).status_code == 404
+        app.state.chat_settings = research.service.config.model_copy(
+            update={"research_enabled": False}
+        )
+        assert (await client.get("/api/v1/chat/research/capability", auth=AUTH)).json()[
+            "reasonCode"
+        ] == "RESEARCH_DISABLED"
+        assert (await client.get(path, auth=AUTH)).status_code == 200
+        saved = await research.chat.get_conversation(research.activation.owner_id, conversation)
+        await research.chat.update_conversation(
+            research.activation.owner_id,
+            conversation,
+            expected_version=saved.version,
+            archived=True,
+        )
+        assert (await client.get(path, auth=AUTH)).status_code == 200
+        await research.chat.soft_delete_conversation(research.activation.owner_id, conversation)
+        assert (await client.get(path, auth=AUTH)).status_code == 404
