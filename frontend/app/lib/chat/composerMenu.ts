@@ -22,10 +22,11 @@ export function composerMenuItems(t: (key: MessageKey) => string, actions: Parti
     const disabled = !action || (entry.id === 'upload' && !uploadAvailable) || (entry.id === 'learning' && options.learningAvailable === false) || (entry.id === 'web' && options.webAvailable === false)
     return {
       label: t(entry.label),
-      description: entry.id === 'web' && options.webAvailable === false ? options.webReason || t('researchUnavailable') : entry.id === 'web' && options.webActive ? t('selected') : entry.id === 'upload' && !uploadAvailable ? uploadUnavailableReason || t('uploadPreparing') : entry.id === 'learning' && options.learningActive ? t('selected') : t(entry.description),
+      description: entry.id === 'web' && options.webActive ? t('selected') : entry.id === 'upload' && !uploadAvailable ? uploadUnavailableReason || t('uploadPreparing') : entry.id === 'learning' && options.learningActive ? t('selected') : t(entry.description),
       icon: entry.icon,
       disabled,
       unavailable: !action,
+      ...(entry.id === 'web' && disabled ? { title: options.webReason || t('researchUnavailable'), 'aria-description': options.webReason || t('researchUnavailable') } : {}),
       ...(((entry.id === 'learning' && options.learningActive) || (entry.id === 'web' && options.webActive)) ? { class: 'composer-menu-selected' } : {}),
       ...(!disabled ? { onSelect: action } : {}),
     }

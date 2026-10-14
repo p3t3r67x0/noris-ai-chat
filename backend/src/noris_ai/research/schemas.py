@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Literal, Self
 from uuid import UUID
 
-from pydantic import AwareDatetime, Field, model_validator
+from pydantic import AwareDatetime, Field, field_validator, model_validator
 
 from noris_ai.core.schemas import ApiSchema
 from noris_ai.llm.schemas import PersistedChatRequest
@@ -40,6 +40,13 @@ class ResearchIntent(ApiSchema):
     version: Literal[1]
     mode: Literal["web"]
     language: Literal["de", "en"]
+
+    @field_validator("version", mode="before")
+    @classmethod
+    def integer_version(cls, value: object) -> object:
+        if type(value) is not int or value != 1:
+            raise ValueError("Unsupported research intent version")
+        return value
 
 
 class PublicResearchSchema(ApiSchema):

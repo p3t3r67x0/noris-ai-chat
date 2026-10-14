@@ -133,36 +133,45 @@ test('P7c English research errors are localized in the answer and notification',
 
 test('P7c chat switch during pending admission never sends the old draft to another chat', async ({ page, request }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
-  const other = await (await request.post('/api/v1/conversations', { data: { title: 'Other conversation' } })).json()
+  const commands: Record<string, unknown>[] = []
+  page.on('websocket', socket => socket.on('framesent', frame => commands.push(JSON.parse(String(frame.payload)))))
   await page.goto('/')
+  await input(page).fill('Existing conversation B')
+  await page.getByRole('button', { name: 'Nachricht senden', exact: true }).click()
+  await expect(page.locator('.message-assistant').last()).toHaveAttribute('data-status', 'completed')
+  const list = await (await request.get('/api/v1/conversations')).json()
+  const other = list.conversations[0]
+  expect(other).toBeTruthy()
+  const originalPath = await (await request.get(`/api/v1/conversations/${other.id}/active-path`)).json()
+  await page.getByRole('button', { name: 'Neuer Chat', exact: true }).first().click()
   await enable(page)
   await input(page).fill('Research draft A')
   await page.locator('input[type="file"]').setInputFiles({ name: 'scope.txt', mimeType: 'text/plain', buffer: Buffer.from('Local draft attachment') })
   await expect(page.locator('.attachment-preview')).toHaveAttribute('data-upload-status', 'uploaded')
+  commands.length = 0
   let release: (() => void) | undefined
   const pending = new Promise<void>(resolve => { release = resolve })
   let entered = false
   await page.route('**/api/v1/chat/research/capability', async route => { entered = true; await pending; await route.continue() })
-  const commands: Record<string, unknown>[] = []
-  page.on('websocket', socket => socket.on('framesent', frame => commands.push(JSON.parse(String(frame.payload)))))
   await page.getByRole('button', { name: 'Nachricht senden', exact: true }).click()
   await expect.poll(() => entered).toBe(true)
   await page.locator(`[data-conversation-id="${other.id}"] > button`).click()
   await input(page).fill('Draft B stays')
   release?.()
-  await expect(page.locator('.composer-model')).toBeEnabled()
   await expect(input(page)).toHaveValue('Draft B stays')
-  expect(commands.filter(command => command.type === 'chat.generate')).toHaveLength(0)
+  await expect.poll(async () => (await (await request.get('/api/v1/chat/drafts')).json()).drafts.map((draft: { content: string }) => draft.content)).toContain('Draft B stays')
   const drafts = await (await request.get('/api/v1/chat/drafts')).json()
-  await expect.poll(async () => (await (await request.get('/api/v1/chat/drafts')).json()).drafts.map((draft: { content: string }) => draft.content)).toContain('Research draft A')
   expect(drafts.drafts.map((draft: { content: string }) => draft.content)).toContain('Research draft A')
+  const path = await (await request.get(`/api/v1/conversations/${other.id}/active-path`)).json()
+  expect(path.messages.map((message: { id: string }) => message.id)).toEqual(originalPath.messages.map((message: { id: string }) => message.id))
+  expect(commands.filter(command => command.type === 'chat.generate')).toHaveLength(0)
 })
 
 test('P7c model change during research affects only the next request', async ({ page, request }) => {
-  await page.goto('/')
-  await enable(page)
   const commands: Record<string, unknown>[] = []
   page.on('websocket', socket => socket.on('framesent', frame => commands.push(JSON.parse(String(frame.payload)))))
+  await page.goto('/')
+  await enable(page)
   await input(page).fill('QGIS-slow')
   await input(page).press('Enter')
   await expect(page.locator('[data-research-state="searching"]')).toBeVisible()
@@ -175,6 +184,8 @@ test('P7c model change during research affects only the next request', async ({ 
   expect(path.messages.at(-1).modelId).toBe(original.modelId)
   await input(page).fill('What is QGIS?')
   await input(page).press('Enter')
+  await expect.poll(() => commands.filter(command => command.type === 'chat.generate').length).toBe(2)
+  await expect(page.locator('.message-assistant')).toHaveCount(2)
   await expect(page.locator('.message-assistant').last()).toHaveAttribute('data-status', 'completed', { timeout: 30_000 })
   expect(commands.filter(command => command.type === 'chat.generate').at(-1)).toMatchObject({ modelId: 'fixture-beta', research: { mode: 'web' } })
 })

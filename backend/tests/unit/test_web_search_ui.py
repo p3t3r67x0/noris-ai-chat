@@ -86,6 +86,10 @@ def test_explicit_web_selection_searches_non_current_question_but_keeps_privacy_
         {"url": "https://example.org"},
         {"toolId": "web.search.v1"},
         {"version": 2},
+        {"version": True},
+        {"version": 1.0},
+        {"version": "1"},
+        {"version": None},
         {"mode": "execute"},
     ],
 )

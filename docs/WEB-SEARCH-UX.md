@@ -235,7 +235,12 @@ Code-Review ersetzt diese Gates nicht.
 
 `NORIS_RESEARCH_ENABLED`, `NORIS_SEARXNG_ENABLED` und
 `NORIS_SOURCE_FETCH_ENABLED` bleiben standardmäßig false. Die bestehenden
-Toolpermissions bleiben ohne Produktivgrants. Ein Betreiber muss Dienste,
+Toolpermissions bleiben ohne Produktivgrants. `NORIS_TOOL_PERMISSIONS_JSON` ist
+standardmäßig leer. Nur explizite serverseitige Betreiberkonfiguration kann feste
+Search-/Fetchpermissions mit Entscheidung, Configversion und begrenzten Budgets
+an die bestehende ToolPolicy übergeben. Unbekannte Felder, freie Toolnamen und
+ungültige Budgets werden geschlossen abgelehnt; normale Chats bleiben verfügbar.
+Ein Betreiber muss Dienste,
 Datenschutzentscheidung, begrenzte Budgets und beide Permissions ausdrücklich
 freigeben. P7c nimmt keine Aktivierung oder Produktionsänderung vor.
 Rollback: zuerst neue Starts über Featureflag/Permissions sperren, laufende Arbeit
@@ -248,3 +253,72 @@ Geheimniserkennung. Präfixauszüge und kleine Kontextfenster können relevante
 Informationen auslassen. Die vorhandenen Single-Worker- und Tokenzählungsgrenzen
 bleiben bestehen. Reale Internetqualität, Modellantwortqualität und Betreiberrollout
 werden durch synthetische CI nicht bewiesen.
+
+
+## Manuelle Betreiberkonfiguration für die bestehende UI
+
+Die Funktion benötigt drei unabhängige Voraussetzungen: Researchflag, gebundene
+Search-/Fetchprovider und explizite Toolpermissions. Kein einzelnes Flag ersetzt
+die anderen Prüfungen. P7c verändert keine laufende `.env` oder Dienste.
+
+Bei der bestehenden Docker-SearXNG-Verbindung verwendet das Overlay
+`compose.searxng-backend.yaml` den Host `searxng:8080` im Netzwerk `noris-searxng`.
+Die IPfreigabe muss exakt zur laufenden Instanz passen; keine Subnetzfreigabe.
+In der lokalen `.env` werden folgende Werte ausdrücklich gesetzt:
+
+```dotenv
+NORIS_RESEARCH_ENABLED=true
+NORIS_SEARXNG_ENABLED=true
+NORIS_SOURCE_FETCH_ENABLED=true
+NORIS_SEARXNG_CONFIG_VERSION=p7c-local-v1
+NORIS_SEARXNG_ALLOWED_ADDRESSES=["<exakte-IP-der-SearXNG-Instanz>"]
+```
+
+Dazu kommt `NORIS_TOOL_PERMISSIONS_JSON` als einzeiliges JSON. Das folgende
+Beispiel autorisiert nur die zwei bereits implementierten Tools. Call- und
+Bytebudgets sind konservative Reservations; Toolbucket-Gesamtgrenzen und die
+jeweils strengeren Permissions gelten weiterhin gemeinsam. USDkosten müssen
+den vom Betreiber bestätigten Kosten entsprechen; für selbst betriebenes
+SearXNG/Public-Fetch zeigt das Beispiel eine ausdrücklich gewählte Obergrenze 0.
+
+```json
+{
+  "version": 1,
+  "web_search": {
+    "decision": "allow",
+    "config_version": "p7c-local-v1",
+    "per_call": {"calls": 1, "bytes": 65536, "cost": "0"},
+    "daily_limit": {"calls": 100, "bytes": 26214400, "cost": "0"},
+    "generation_limit": {"calls": 6, "bytes": 2097152, "cost": "0"}
+  },
+  "web_fetch": {
+    "decision": "allow",
+    "config_version": "p7a-v1",
+    "per_call": {"calls": 1, "bytes": 262144, "cost": "0"},
+    "daily_limit": {"calls": 100, "bytes": 26214400, "cost": "0"},
+    "generation_limit": {"calls": 6, "bytes": 2097152, "cost": "0"}
+  }
+}
+```
+
+`web_search.config_version` muss der ausdrücklich gesetzten SearXNGversion
+entsprechen. Fetch verwendet standardmäßig `p7a-v1` / Public-HTTPS. Die vorhandene
+HTTPvariante erfordert getrennt `NORIS_SOURCE_FETCH_ALLOW_HTTP=true` und
+`p7a-v1-http` in der Permission. Fehlende Einträge erteilen keine Rechte;
+`approval_required` erzeugt keinen automatischen Grant.
+
+Für den bestehenden lokalen Devstack wendet der Betreiber anschließend selbst
+nur die Backendkonfiguration an (kein Migratedienst, keine DBmigration):
+
+```sh
+docker compose -f compose.yaml -f compose.dev.yaml -f compose.searxng-backend.yaml \
+  up -d --build --no-deps backend
+```
+
+Ohne Devstack wird `compose.dev.yaml` weggelassen. Der vorhandene Searchstack
+muss bereits verfügbar sein. Die bestehende Browserseite danach neu laden;
+Produktionsfrontends benötigen außerdem den P7c-Frontendbuild. Danach zeigt
+`GET /api/v1/chat/research/capability` bei erfolgreicher Konfiguration
+`available: true`; jeder Chatrequest wird trotzdem erneut autorisiert. Bei
+nativen Starts werden die SearXNGprovideroptionen ausdrücklich in der
+Prozessumgebung gesetzt, da der Provider keine implizite `.env` liest.
