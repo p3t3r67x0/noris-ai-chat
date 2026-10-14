@@ -459,3 +459,16 @@ async def test_processing_deadline_fails_closed(monkeypatch: pytest.MonkeyPatch)
 async def test_binary_signatures_cannot_spoof_supported_content_type(body: bytes):
     with pytest.raises(ToolError, match="TOOL_OUTPUT_INVALID"):
         await fetch_body(body, {"Content-Type": "text/plain"})
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        b'<script src="/app.js"></script>',
+        b'<iframe src="/"></iframe>',
+        b'<img src="/only-content.png">',
+    ],
+)
+async def test_nontext_only_page_is_not_a_successful_empty_page(body: bytes):
+    with pytest.raises(ToolError, match="TOOL_OUTPUT_INVALID"):
+        await fetch_body(body)

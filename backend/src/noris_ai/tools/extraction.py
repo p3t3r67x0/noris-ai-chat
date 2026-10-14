@@ -86,6 +86,7 @@ class ArticleText(HTMLParser):
         self.primary: list[str] = []
         self.nodes = 0
         self.excluded_text = False
+        self.nontext_content = False
 
     def _tick(self) -> None:
         self.nodes += 1
@@ -102,6 +103,15 @@ class ArticleText(HTMLParser):
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         self._tick()
+        self.nontext_content |= tag in {
+            "script",
+            "iframe",
+            "object",
+            "embed",
+            "img",
+            "canvas",
+            "svg",
+        }
         if len(self.stack) >= 128 or len(attrs) > 128:
             raise ToolError("TOOL_OUTPUT_INVALID")
         attributes = dict(attrs)
@@ -185,7 +195,7 @@ async def extract_text(body: bytes, mime: str, charset: str, context: Generation
         text = normalize_text(
             "".join(parser.primary if any(p.strip() for p in parser.primary) else parser.parts)
         )
-        if not text and parser.excluded_text:
+        if not text and (parser.excluded_text or parser.nontext_content):
             raise ToolError("TOOL_OUTPUT_INVALID")
     else:
         text = normalize_text(decoded)
