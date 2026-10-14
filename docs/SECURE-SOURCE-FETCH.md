@@ -162,6 +162,7 @@ unverändert. Ein geschlossener Provider ist `TOOL_UNAVAILABLE`.
 | Verarbeitete Antwortheader | 16.384 Bytes, höchstens 100 Header |
 | Rohbodychunks | 16.384 Bytes |
 | HTML-Feedchunks | 4.096 Unicodezeichen |
+| Unfertiges Markup vor Parserallokation | 16.384 Unicodezeichen |
 | Parsercallbacks | 50.000 |
 | HTML-Tiefe / Attribute pro Element | 128 / 128 |
 | Extraktionsdauer | 2 Sekunden innerhalb der 10-Sekunden-Deadline |
@@ -207,10 +208,10 @@ ist bewusst eine Heuristik und keine Garantie für jede Webseite.
 
 ## 12. Unicode-Normalisierung und Trunkierung
 
-Strikte Dekodierung, optionaler initialer BOM entfernt, Unicode NFC,
-CRLF/CR→LF. NUL, Kontroll-/Format-/Surrogatzeichen werden entfernt;
+Strikte Dekodierung, optionaler initialer BOM entfernt, CRLF/CR→LF. NUL, Kontroll-/Format-/Surrogatzeichen werden entfernt;
 Unicodewhitespace wird reduziert, Absatzgrenzen auf höchstens zwei LF begrenzt,
-Ränder getrimmt. Die Ausgabe ist reiner untrusted Text, kein Chat-HTML.
+Ränder getrimmt; erst danach finale Unicode-NFC-Normalisierung, damit entfernte
+Kontrollzeichen keine unnormalisierten Kombinationszeichen hinterlassen. Die Ausgabe ist reiner untrusted Text, kein Chat-HTML.
 
 Kürzung ist ein deterministisches Präfix nach Unicode-Codepoints, zuerst maximal
 65.536 Zeichen, dann per binärer Suche passend zum tatsächlich kanonischen
@@ -330,7 +331,11 @@ eigenen Step-Key/Run-ID/Reservation. Reconnect, Snapshot und Replay sind readonl
 
 Keine upstream Fehlermeldungen, Bodies, Querysecrets oder Credentials in Errors.
 Tasklokale Loggingfilter unterdrücken HTTPX-URL- und httpcore-Responseheaderlogs
-für Fetchtraffic; andere HTTPclients behalten ihre Logs.
+für Fetchtraffic; andere HTTPclients behalten ihre Logs. Die Loggeränderung lebt
+ausschließlich während aktiver Fetches: prozessweit mit Lock/refcount geschützt,
+beim letzten Exit/Cancel vollständig entfernt. Providerkonstruktion und Shutdown
+hinterlassen keine Filter; parallel aktive Appinstanzen behalten ihre eigenen
+Taskkontexte und den Guard bis zur letzten Streambeendigung.
 
 ## 22. WebSocket-Events
 
@@ -432,9 +437,12 @@ Es gibt keine öffentlichen Lasttests oder Live-Webqualitätsbehauptung.
 | --- | --- |
 | NORIS_SOURCE_FETCH_ENABLED | false; bindet optional Provider/Handler, erteilt keine Permission |
 | NORIS_SOURCE_FETCH_CONFIG_VERSION | p7a-v1; einzige implementierte Version der Policy/Extraktion |
-| NORIS_SOURCE_FETCH_ALLOW_HTTP | false; explizit true erlaubt nur public HTTP:80, niemals TLSdowngrade |
+| NORIS_SOURCE_FETCH_ALLOW_HTTP | false; explizit true erlaubt nur public HTTP:80, niemals TLSdowngrade; effektive Configversion wird p7a-v1-http |
 
 Keine produktiven Env-/Composewerte oder Berechtigungen werden geändert.
+Der HTTPS-Standard verwendet `public_source/p7a-v1`; Public-HTTP benötigt
+ausdrücklich `public_source/p7a-v1-http` in Permission, Run und Approval. Eine
+vorhandene HTTPS-Permission autorisiert die HTTP-Policyvariante nicht.
 Limits sind feste Policykonstanten; Änderungen erfordern eine geprüfte neue
 Konfigurationsversion und passende serverseitige Permissions. Ungültige
 Providerkonfiguration macht das Fetchtool unavailable, normale Chatdienste
@@ -471,7 +479,7 @@ Produktivdowngrade. Dieser Auftrag führt keine Produktivmigration aus.
 Nur vertrauenswürdige spätere Serverorchestrierung darf Search/Fetch auslösen.
 Sie liefert dieselbe aktive Generation/Conversation/Owner-/Parentbindung,
 explizite source_search_run_id, Source-ID, feste Run-ID/Step-Key, passende
-public_source/p7a-v1-Permission und erfolgreiche Budgetreservation. Sie nutzt
+public_source-Permission für die effektive Provider-Configversion und erfolgreiche Budgetreservation. Sie nutzt
 autorisierte ToolResultabfragen für SourceDocument und Herkunft, behandelt Text
 als untrusted data und respektiert mögliche Trunkierung. Neue Suchgenerationen
 oder Freigaben lokaler Dokumente werden hier nicht implizit übernommen.
@@ -483,3 +491,49 @@ keine Aussagen über Webseitenwahrheit und startet diese Folgearbeiten nicht.
 Technische Grundlagen: [HTTPX-Transports](https://www.python-httpx.org/advanced/transports/),
 [Python HTMLParser](https://docs.python.org/3.13/library/html.parser.html),
 [Python IP-Klassifizierung](https://docs.python.org/3.13/library/ipaddress.html).
+
+
+## 31. Abschließendes adversariales Review von PR #67
+
+Ausgangspunkt: PR-Head `603695a47e3b934c0787b27d4ceaf60348ef5792`.
+`tests/unit/test_source_fetch_review.py` enthält reproduzierbare Gegenbeispiele;
+die ersten sieben Fälle scheiterten vor den Korrekturen, die ergänzten drei
+Malformed-/Ressourcenfälle ebenfalls. Bestehende Assertions bleiben unverändert.
+
+| Bestätigter Befund | Minimale Korrektur / Regression |
+| --- | --- |
+| NFC vor Kontrollzeichenentfernung ist nicht idempotent: `A + NUL/ZWJ + Ring` blieb dekomponiert. | NFC zuletzt, nach Sanitizing/Whitespace. Vier Kontrollzeichenfälle prüfen NFC und Idempotenz. |
+| Nicht passende Block-Endtags erfanden Absätze. | Nur tatsächlich passende Endtags erzeugen Grenzen. |
+| Fehlerhaftes Schließen eines äußeren Elements konnte versteckte Nachfahren beenden. | Unsichtbare Regionen müssen ihre eigene Grenze schließen; Ancestor-Escape-Regression. |
+| Permanente globale Loggerfilter überlebten Provider/Appshutdown. | Nur aktive Fetches halten den gemeinsamen Filter, lockgeschützter Refcount plus ContextVar. Konkurrenz, zwei Instanzen, wiederholter Close, Cancel und unveränderte fremde Logs geprüft. |
+| HTTP-Policy konnte dieselbe Permission-/Approval-Configversion wie HTTPS verwenden. | Effektive Version `p7a-v1-http`; vorhandene `p7a-v1`-Permission scheitert vor Source-Resolution. |
+| Attributgrenze wurde erst nach interner Parserallokation geprüft. | Pending-Markup vor feed auf 16.384 Zeichen begrenzt. 80-KB-Adversary hatte vorher 14.184.632 Byte tracemalloc-Peak; Regression erzwingt weniger als 8 MiB. 1-MB-Subprozessprobe zeigte zuvor etwa 283 MB Gesamt-RSS. |
+| Übergroßes unvollständiges Markup konnte als erfolgreiche leere Seite enden. | Derselbe frühe Markup-Fence liefert TOOL_OUTPUT_INVALID. Große sichtbare Textknoten und lange entfernte Scripts bleiben verarbeitet. |
+
+Weitere Reviewevidenz: echte lokale TLS-Handshakes mit INFO-HTTPX-/DEBUG-httpcore-
+Logging prüfen Query-, Cookie- und Headergeheimnisse. Owner-/Conversation-/
+Generation-/Parentisolierung, UUIDv5-Wiederholung mit expliziter Suchlaufbindung,
+Schema-/Digest-/URLmanipulation, mehrere Resultatversionen und Sourceänderung
+zwischen Download und Commit bleiben in den PostgreSQLtests abgedeckt.
+
+Concurrency beruht weiterhin auf vorhandenen Owner-/Conversation-/Generation-
+Locks und Execution-Fences; erfolgreiche ToolResult-Payloads sind für die
+Anwendungsrolle unveränderlich. Privilegierte direkte DBkorruption ist keine
+unterstützte mutierende Laufzeitoperation. Die Migration 0016, zusammengesetzte
+FKs, Readiness, wiederholtes Upgrade und Resultaterhalt beim Downgrade sind geprüft.
+Kein zusätzlicher Resultatspeicher, Trigger oder Permissiongrant wurde eingeführt.
+
+Nach den Korrekturen werden alle vorhandenen Makefilegates und beide GitHub-
+Actions-Jobs erneut ausgeführt. Ein vorangegangener compose-smoke-Fehler war ein
+Docker-Hub-HTTP-500 beim Abruf des unveränderten Python-Basisimages. Ein lokaler
+Browserlauf hatte einen Bootstrap-HTTP-502 ohne Fetchdispatch; seine Assertions
+bleiben bestehen und die gesamte Browsersuite wird wiederholt. Diese fehlgeschlagenen
+Läufe zählen nicht als bestanden. Abschließende Ergebnisse und Links stehen in
+PR #67; Reviewfreigabe erst bei vollständiger grüner Abnahme.
+
+Verbleibende Grenzen: libc-DNS kann nach Await-Cancel intern bis zum nativen
+Resolvertimeout weiterlaufen; Extraktion ist eine HTML-Heuristik, keine Browser-
+DOMsemantik; sehr große einzelne Markuptokens werden bewusst abgewiesen.
+V1 hat weiterhin keinen Trunkierungsmarker. Loggingguard gilt für den gepinnten
+HTTPX/httpcore-HTTP/1-Stack; Änderungen seiner Logger/Transporte erfordern dieselbe
+Leakprüfung. Kein Merge, Deployment, produktiver Start oder P7b-Orchestrierung.

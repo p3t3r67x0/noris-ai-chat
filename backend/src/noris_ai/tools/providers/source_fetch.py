@@ -5,8 +5,11 @@ import hashlib
 import logging
 import re
 import zlib
+from collections.abc import Iterator
+from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import datetime
+from threading import Lock
 from typing import Literal, Self
 from urllib.parse import urlsplit
 from uuid import UUID
@@ -50,6 +53,31 @@ class _FetchLogFilter(logging.Filter):
 
 
 _FETCH_LOG_FILTER = _FetchLogFilter()
+_FETCH_LOG_LOCK = Lock()
+_fetch_log_users = 0
+_FETCH_LOGGERS = tuple(
+    logging.getLogger(name) for name in ("httpx", "httpcore.connection", "httpcore.http11")
+)
+
+
+@contextmanager
+def _fetch_logging() -> Iterator[None]:
+    global _fetch_log_users
+    with _FETCH_LOG_LOCK:
+        if _fetch_log_users == 0:
+            for logger in _FETCH_LOGGERS:
+                logger.addFilter(_FETCH_LOG_FILTER)
+        _fetch_log_users += 1
+    token = _FETCH_LOG_SCOPE.set(True)
+    try:
+        yield
+    finally:
+        _FETCH_LOG_SCOPE.reset(token)
+        with _FETCH_LOG_LOCK:
+            _fetch_log_users -= 1
+            if _fetch_log_users == 0:
+                for logger in _FETCH_LOGGERS:
+                    logger.removeFilter(_FETCH_LOG_FILTER)
 
 
 def redirect_target(response: httpx.Response, *, allow_http: bool) -> httpx.URL:
@@ -167,10 +195,6 @@ class SourceFetchProvider:
         self, settings: SourceFetchSettings, *, transport: httpx.AsyncBaseTransport | None = None
     ) -> None:
         self._settings = SourceFetchSettings.model_validate(settings.model_dump())
-        for name in ("httpx", "httpcore.connection", "httpcore.http11"):
-            logger = logging.getLogger(name)
-            if _FETCH_LOG_FILTER not in logger.filters:
-                logger.addFilter(_FETCH_LOG_FILTER)
 
         async def check_redirect(response: httpx.Response) -> None:
             # HTTPX constructs next_request even with follow_redirects=False.
@@ -192,7 +216,7 @@ class SourceFetchProvider:
 
     @property
     def config_version(self) -> str:
-        return self._settings.config_version
+        return self._settings.config_version + ("-http" if self._settings.allow_http else "")
 
     async def __aenter__(self) -> Self:
         return self
@@ -218,91 +242,95 @@ class SourceFetchProvider:
         url = public_source_url(source_url, allow_http=self._settings.allow_http)
         visited: set[str] = set()
         downloaded = 0
-        log_scope = _FETCH_LOG_SCOPE.set(True)
-        try:
-            async with (
-                asyncio.timeout(min(10, max(0, (context.deadline_at - utc_now()).total_seconds()))),
-                self._slots,
-            ):
-                for hop in range(MAX_REDIRECTS + 1):
-                    context.check()
-                    if self._closed:
-                        raise ToolError("TOOL_UNAVAILABLE")
-                    if str(url) in visited:
-                        raise ToolError("TOOL_FORBIDDEN")
-                    visited.add(str(url))
-                    # Build every request from scratch: no cookie jar, auth, referrer
-                    # or headers carried over from responses or redirect destinations.
-                    request = httpx.Request(
-                        "GET",
-                        url,
-                        headers={
-                            "Accept": "text/html, text/plain",
-                            "Accept-Encoding": "gzip, identity",
-                            "User-Agent": "noris-ai-source-fetch/1",
-                        },
-                    )
-                    response = await self._client.send(request, stream=True)
-                    self._client.cookies.clear()
-                    try:
+        with _fetch_logging():
+            try:
+                async with (
+                    asyncio.timeout(
+                        min(10, max(0, (context.deadline_at - utc_now()).total_seconds()))
+                    ),
+                    self._slots,
+                ):
+                    for hop in range(MAX_REDIRECTS + 1):
                         context.check()
-                        if (
-                            sum(len(k) + len(v) for k, v in response.headers.raw) > MAX_HEADER_BYTES
-                            or len(response.headers.raw) > 100
-                        ):
-                            raise ToolError("TOOL_OUTPUT_INVALID")
-                        if response.status_code in {301, 302, 303, 307, 308}:
-                            if hop == MAX_REDIRECTS:
-                                raise ToolError("TOOL_FORBIDDEN")
-                            url = redirect_target(response, allow_http=self._settings.allow_http)
-                            continue
-                        if response.status_code == 429:
-                            raise ToolError("PROVIDER_RATE_LIMIT")
-                        if response.status_code != 200:
-                            raise ToolError("PROVIDER_ERROR")
-                        mime, charset, encoding = response_metadata(response)
-                        inflater = zlib.decompressobj(31) if encoding == "gzip" else None
-                        body = bytearray()
-                        async for raw in response.aiter_raw(chunk_size=16_384):
+                        if self._closed:
+                            raise ToolError("TOOL_UNAVAILABLE")
+                        if str(url) in visited:
+                            raise ToolError("TOOL_FORBIDDEN")
+                        visited.add(str(url))
+                        # Build every request from scratch: no cookie jar, auth, referrer
+                        # or headers carried over from responses or redirect destinations.
+                        request = httpx.Request(
+                            "GET",
+                            url,
+                            headers={
+                                "Accept": "text/html, text/plain",
+                                "Accept-Encoding": "gzip, identity",
+                                "User-Agent": "noris-ai-source-fetch/1",
+                            },
+                        )
+                        response = await self._client.send(request, stream=True)
+                        self._client.cookies.clear()
+                        try:
                             context.check()
-                            downloaded += len(raw)
-                            if downloaded > MAX_DOWNLOAD_BYTES:
-                                raise ToolError("TOOL_OUTPUT_INVALID")
-                            decoded = (
-                                inflater.decompress(raw, MAX_DECOMPRESSED_BYTES - len(body) + 1)
-                                if inflater is not None
-                                else raw
-                            )
-                            if len(body) + len(decoded) > MAX_DECOMPRESSED_BYTES or (
-                                inflater is not None
-                                and (inflater.unconsumed_tail or inflater.unused_data)
+                            if (
+                                sum(len(k) + len(v) for k, v in response.headers.raw)
+                                > MAX_HEADER_BYTES
+                                or len(response.headers.raw) > 100
                             ):
                                 raise ToolError("TOOL_OUTPUT_INVALID")
-                            body.extend(decoded)
-                            await asyncio.sleep(0)
-                        if inflater is not None and not inflater.eof:
-                            raise ToolError("TOOL_OUTPUT_INVALID")
-                        fetched_at = utc_now()
-                        text = await extract_text(bytes(body), mime, charset, context)
-                        result = bounded_document(
-                            source_id,
-                            fetched_at,
-                            text,
-                            mime,
-                            url,
-                            max_output_bytes=max_output_bytes,
-                        )
-                        context.check()
-                        return result
-                    finally:
-                        await response.aclose()
-        except (TimeoutError, httpx.TimeoutException):
-            raise ToolError("TOOL_TIMEOUT") from None
-        except (httpx.RequestError, httpx.InvalidURL):
-            raise ToolError("PROVIDER_ERROR") from None
-        except zlib.error:
-            raise ToolError("TOOL_OUTPUT_INVALID") from None
-        finally:
-            self._client.cookies.clear()
-            _FETCH_LOG_SCOPE.reset(log_scope)
-        raise ToolError("TOOL_FORBIDDEN")
+                            if response.status_code in {301, 302, 303, 307, 308}:
+                                if hop == MAX_REDIRECTS:
+                                    raise ToolError("TOOL_FORBIDDEN")
+                                url = redirect_target(
+                                    response, allow_http=self._settings.allow_http
+                                )
+                                continue
+                            if response.status_code == 429:
+                                raise ToolError("PROVIDER_RATE_LIMIT")
+                            if response.status_code != 200:
+                                raise ToolError("PROVIDER_ERROR")
+                            mime, charset, encoding = response_metadata(response)
+                            inflater = zlib.decompressobj(31) if encoding == "gzip" else None
+                            body = bytearray()
+                            async for raw in response.aiter_raw(chunk_size=16_384):
+                                context.check()
+                                downloaded += len(raw)
+                                if downloaded > MAX_DOWNLOAD_BYTES:
+                                    raise ToolError("TOOL_OUTPUT_INVALID")
+                                decoded = (
+                                    inflater.decompress(raw, MAX_DECOMPRESSED_BYTES - len(body) + 1)
+                                    if inflater is not None
+                                    else raw
+                                )
+                                if len(body) + len(decoded) > MAX_DECOMPRESSED_BYTES or (
+                                    inflater is not None
+                                    and (inflater.unconsumed_tail or inflater.unused_data)
+                                ):
+                                    raise ToolError("TOOL_OUTPUT_INVALID")
+                                body.extend(decoded)
+                                await asyncio.sleep(0)
+                            if inflater is not None and not inflater.eof:
+                                raise ToolError("TOOL_OUTPUT_INVALID")
+                            fetched_at = utc_now()
+                            text = await extract_text(bytes(body), mime, charset, context)
+                            result = bounded_document(
+                                source_id,
+                                fetched_at,
+                                text,
+                                mime,
+                                url,
+                                max_output_bytes=max_output_bytes,
+                            )
+                            context.check()
+                            return result
+                        finally:
+                            await response.aclose()
+            except (TimeoutError, httpx.TimeoutException):
+                raise ToolError("TOOL_TIMEOUT") from None
+            except (httpx.RequestError, httpx.InvalidURL):
+                raise ToolError("PROVIDER_ERROR") from None
+            except zlib.error:
+                raise ToolError("TOOL_OUTPUT_INVALID") from None
+            finally:
+                self._client.cookies.clear()
+            raise ToolError("TOOL_FORBIDDEN")

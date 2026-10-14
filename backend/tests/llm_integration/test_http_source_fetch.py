@@ -1,6 +1,7 @@
 """Actual local TLS/HTTP over the pinned transport; no external requests."""
 
 import asyncio
+import logging
 import ssl
 from pathlib import Path
 from typing import cast
@@ -30,7 +31,10 @@ async def test_actual_tls_certificates_host_sni_idna_and_origin_pool_isolation(
     hostname: str,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
+    caplog.set_level(logging.DEBUG, logger="httpcore.http11")
+    caplog.set_level(logging.INFO, logger="httpx")
     key, certificate = tmp_path / "key.pem", tmp_path / "certificate.pem"
     process = await asyncio.create_subprocess_exec(
         "openssl",
@@ -77,7 +81,13 @@ async def test_actual_tls_certificates_host_sni_idna_and_origin_pool_isolation(
 
     async def page(request: Request) -> HTMLResponse:
         hosts.append(request.headers["host"])
-        return HTMLResponse("<article>Actual TLS text</article>")
+        return HTMLResponse(
+            "<article>Actual TLS text</article>",
+            headers={
+                "X-Private": "private-source-header",
+                "Set-Cookie": "credential=private-source-cookie",
+            },
+        )
 
     upstream.add_api_route("/", page, methods=["GET"])
     async with serve(upstream, key=key, certificate=certificate, host=address) as base:
@@ -103,7 +113,7 @@ async def test_actual_tls_certificates_host_sni_idna_and_origin_pool_isolation(
                     await provider.fetch(
                         fetch_context(),
                         uuid4(),
-                        "https://source.example.org/",
+                        "https://source.example.org/?token=private-source-query",
                         max_output_bytes=262_144,
                     )
             if trusted_certificate and hostname != "wrong.example.org":
@@ -118,3 +128,7 @@ async def test_actual_tls_certificates_host_sni_idna_and_origin_pool_isolation(
                         fetch_context(), uuid4(), f"https://{hostname}/", max_output_bytes=262_144
                     )
     assert len(hosts) == (4 + int(hostname != "wrong.example.org") if trusted_certificate else 0)
+
+    assert "private-source-header" not in caplog.text
+    assert "private-source-cookie" not in caplog.text
+    assert "private-source-query" not in caplog.text

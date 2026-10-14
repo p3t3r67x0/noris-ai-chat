@@ -9,6 +9,8 @@ from time import monotonic
 from noris_ai.tools.cancellation import GenerationToolContext
 from noris_ai.tools.errors import ToolError
 
+MAX_PENDING_MARKUP_CHARS = 16_384
+
 _DROP = frozenset(
     {
         "head",
@@ -142,11 +144,15 @@ class ArticleText(HTMLParser):
 
     def handle_endtag(self, tag: str) -> None:
         self._tick()
-        if tag in _BLOCK:
-            self._append("\n\n")
         # Bound malformed nesting. Unmatched closing tags never unsuppress content.
         for i in range(len(self.stack) - 1, -1, -1):
             if self.stack[i][0] == tag:
+                if not self.stack[i][1] and any(frame[1] for frame in self.stack[i + 1 :]):
+                    # An invalid ancestor close must not terminate a nested
+                    # hidden/technical region and turn its remaining text visible.
+                    return
+                if tag in _BLOCK:
+                    self._append("\n\n")
                 del self.stack[i:]
                 break
 
@@ -156,7 +162,7 @@ class ArticleText(HTMLParser):
 
 
 def normalize_text(value: str) -> str:
-    value = unicodedata.normalize("NFC", value.replace("\r\n", "\n").replace("\r", "\n"))
+    value = value.replace("\r\n", "\n").replace("\r", "\n")
     value = "".join(
         c
         if c == "\n"
@@ -168,7 +174,7 @@ def normalize_text(value: str) -> str:
         for c in value
     )
     lines = [" ".join(line.split()) for line in value.split("\n")]
-    return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
+    return unicodedata.normalize("NFC", re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip())
 
 
 async def extract_text(body: bytes, mime: str, charset: str, context: GenerationToolContext) -> str:
@@ -189,9 +195,26 @@ async def extract_text(body: bytes, mime: str, charset: str, context: Generation
             context.check()
             if monotonic() - start > 2:
                 raise ToolError("TOOL_TIMEOUT")
-            parser.feed(decoded[offset : offset + 4096])
+            chunk = decoded[offset : offset + 4096]
+            if len(parser.rawdata) + len(chunk) > MAX_PENDING_MARKUP_CHARS:
+                if parser.cdata_elem in {"script", "style"}:
+                    # These bodies are discarded. Retain a bounded suffix so a
+                    # closing tag split across feed boundaries is still recognized.
+                    parser.excluded_text |= bool(parser.rawdata.strip())
+                    parser.rawdata = parser.rawdata[-64:]
+                else:
+                    # HTMLParser builds its attribute list before our callback.
+                    # Bound unfinished markup BEFORE that internal allocation.
+                    raise ToolError("TOOL_OUTPUT_INVALID")
+            try:
+                parser.feed(chunk)
+            except (AssertionError, ValueError):
+                raise ToolError("TOOL_OUTPUT_INVALID") from None
             await asyncio.sleep(0)
-        parser.close()
+        try:
+            parser.close()
+        except (AssertionError, ValueError):
+            raise ToolError("TOOL_OUTPUT_INVALID") from None
         text = normalize_text(
             "".join(parser.primary if any(p.strip() for p in parser.primary) else parser.parts)
         )
