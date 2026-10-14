@@ -172,7 +172,9 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
                 await original_generate(
                     peer,
                     command,
-                    research=ResearchActivation(config.chat_owner_id, "de") if activated else None,
+                    research=ResearchActivation(config.chat_owner_id, "de")
+                    if command.content.startswith("/p7b ") and command.research is None
+                    else None,
                 )
             finally:
                 research_sources.reset(token)
