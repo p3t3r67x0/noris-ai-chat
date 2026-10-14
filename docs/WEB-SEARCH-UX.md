@@ -329,3 +329,19 @@ Produktionsfrontends benötigen außerdem den P7c-Frontendbuild. Danach zeigt
 `available: true`; jeder Chatrequest wird trotzdem erneut autorisiert. Bei
 nativen Starts werden die SearXNGprovideroptionen ausdrücklich in der
 Prozessumgebung gesetzt, da der Provider keine implizite `.env` liest.
+
+`available: true` bestätigt Konfiguration und Permissions; es ist kein aktiver
+Netzwerktest. Ein Timeout schon nach etwa drei Sekunden in `searching` kann vom
+SearXNG-Verbindungszeitlimit stammen, obwohl die gesamte Researchdeadline noch
+nicht erreicht ist. Ein höheres `NORIS_RESEARCH_TIMEOUT_SECONDS` behebt eine
+blockierte TCPverbindung nicht. Den Suchdienst zuerst aus dem Backend auf
+`searxng:8080` prüfen; `/healthz` im Suchcontainer allein beweist diesen Weg nicht.
+
+Bei einer eigenen Host-Forward-Chain mit `policy drop` benötigt die Verbindung
+zwischen Backend und SearXNG eine ausdrücklich vom Betreiber geprüfte Freigabe
+auf der Suchbridge: exakt Backend-IP → SearXNG-IP, TCP 8080, einschließlich
+zugehörigem Antwortverkehr. Die vorhandene `noris-chat0`-Regel gilt für dieses
+separate Netz nicht. Die in [SearXNG Provider](SEARXNG-PROVIDER.md) beschriebene
+DNS-/HTTPS-Korrektur betrifft dagegen den Suchdienst → Internet. Aktive Regeln
+mit `sudo nft -a list chain inet filter forward` prüfen; P7c verändert keine
+Hostfirewall. Bridge/IPs müssen nach einer Netzwerkerneuerung erneut geprüft werden.
