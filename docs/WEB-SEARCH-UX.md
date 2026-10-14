@@ -122,6 +122,16 @@ lesbar, können keine neue Recherche beginnen. Soft Delete sperrt Reads und Star
 Ein optionaler Quellenladefehler lässt den Chatstream weiterlaufen, verlinkt keine
 ungeprüften Quellen und zeigt eine lokalisierte Reloadaktion.
 
+Ein automatischer Titelcommit kann zwischen Request und Generationsaufnahme die
+Conversationversion erhöhen. Der vorhandene Ressourcenclient behält dafür eine
+begrenzte Kopie autorisierter Metadatenrevisionen. Nur bei genau einem
+`fallback`→`generated`-Übergang auf Version `v+1`, unverändertem Branch, Scope,
+Lifecycle, Archiv-/Pinstatus und Einstellungen darf er vor dem ersten angenommenen
+Generationsevent einmal denselben Request mit aktueller CASversion senden.
+Request-/Message-IDs, Inhalt, Attachments, Modell und Researchintent bleiben identisch.
+Cancel, Löschung, Dispose, eine neuere bekannte Revision und jeder weitere Konflikt
+sperren die Wiederholung. Die serverseitige Versionsprüfung bleibt unverändert.
+
 ## Quellen und Zitate
 
 Der Reader autorisiert Owner, Conversation, Generation und den Assistantknoten.
@@ -143,10 +153,34 @@ Der bestehende öffentliche Abruftransport prüft sämtliche DNSantworten, bevor
 eine Adresse auswählt. Bei öffentlichen IPv4- und IPv6-Adressen bevorzugt er IPv4,
 damit Dual-Stack-Seiten auch aus IPv4-only-Containern erreichbar sind. IPv6-only
 bleibt unterstützt; Host-/TLS-SNI-Bindung, Zertifikatsprüfung und genau ein
-Verbindungsversuch bleiben erhalten. Private Antworten einer beliebigen Familie
-sperren weiterhin den gesamten Abruf. HTTP 403 oder browsergebundene Schutzseiten
+Verbindungsversuch je Request bleiben erhalten. Private Antworten einer beliebigen Familie
+sperren weiterhin den gesamten Abruf. Der bestehende Transport handelt HTTP/2 über
+ALPN mit HTTP/1.1-Fallback aus. Auf HTTP 403 folgt höchstens ein Abruf derselben URL
+mit einem festen anonymen Browserprofil (User-Agent, Accept, Sprache und
+Navigationsheader). Dieser Versuch verbraucht einen der bestehenden vier HTTP-Hops;
+Deadline, Größenlimit, DNS-/TLS-Prüfung und Cancellation gelten unverändert. Cookies,
+Browserheader, Zugangsdaten, Referrer und Responseheader werden nicht weitergereicht.
+HTTP/2- und HPACK-Debuglogs sind wie die vorhandenen HTTP/1.1-Logs im Fetchscope
+unterdrückt. Andere HTTPclients behalten ihre normalen Logs.
+
+Der bestehende deterministische Extraktor führt keine Scripts aus und gibt keine
+Hiddenbereiche frei. Wenn kein regulärer Dokumenttext verfügbar ist, kann er die
+vom Seitenbetreiber veröffentlichte HTML-Metabeschreibung als kurzen Auszug verwenden.
+Zugelassen sind nur direkte Head-Metatags für `description`, `og:description` und
+`twitter:description`, höchstens 4096 Zeichen, optional mit dem Seitentitel
+(höchstens 256 Zeichen). Regulärer Seitentext hat Vorrang. Scripts, Templates,
+mehrdeutige Attribute, andere Metadaten und Hiddenbody-Inhalte bleiben ausgeschlossen.
+Das ist ein öffentlich deklarierter Metadatenauszug, keine Auswertung der dynamischen
+Browseransicht. Er durchläuft dieselben Provenienz-, Ausgabelimit-, Kontext- und
+Groundingprüfungen wie andere untrusted HTML-Auszüge.
+
+HTTP 403 oder browsergebundene Schutzseiten
 können einen Serverabruf trotzdem ablehnen. „Vom Server nicht abrufbar“ beschreibt
 diesen konkreten Abruf und behauptet nicht, die Webseite sei allgemein offline.
+CAPTCHAs, Anubis-Proof-of-Work, Benutzer-Cookies und allgemeines Browserrendering
+werden nicht produktiv unterstützt. Ohne die neu deklarierte `httpx[http2]`-
+Abhängigkeit hält ein alter Devcontainer seinen HTTP/1.1-Fallback; für HTTP/2 ist
+ein ausdrücklicher Backend-Image-Neubau erforderlich, keine Datenbankmigration.
 
 Nur gespeicherte, serverseitig bekannte `[[R1]]`–`[[R3]]` an gültigen
 Codepointpositionen werden verlinkt. JavaScript rechnet die Offsets in UTF-16 um.

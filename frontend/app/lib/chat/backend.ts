@@ -36,6 +36,7 @@ export function messageFromServer(value: ServerMessage): ChatMessage {
 /** Resource client only. The existing useChat state owns every rendered record. */
 export class ChatBackend {
   versions = new Map<string, number>()
+  private revisions = new Map<string, ServerConversation>()
   preferredModelId: string | null = null
   onConversation?: (conversation: ServerConversation) => void
   onPinnedPage?: (page: ApiSchemas['ConversationListResponse']) => void
@@ -63,16 +64,38 @@ export class ChatBackend {
     this.pending = result.catch(() => {})
     return result
   }
+  cacheRevision(value: ServerConversation): void {
+    if (this.deleted.has(value.id) || value.version < (this.versions.get(value.id) ?? 0)) return
+    this.versions.set(value.id, value.version)
+    if (value.version > (this.revisions.get(value.id)?.version ?? 0)) this.revisions.set(value.id, { ...value })
+    if (this.revisions.size > 600) this.revisions.delete(this.revisions.keys().next().value!)
+  }
+  admissionRevision(id: string, version: number): ServerConversation | undefined {
+    const value = this.revisions.get(id)
+    return value?.version === version ? { ...value } : undefined
+  }
+  async generatedTitleRevision(previous: ServerConversation | undefined, signal: AbortSignal): Promise<number | null> {
+    if (!previous || previous.titleSource !== 'fallback' || this.isDeleted(previous.id) || signal.aborted) return null
+    const current = await this.request<ServerConversation>(`/conversations/${previous.id}`, 'GET', undefined, signal)
+    if (signal.aborted || this.isDeleted(previous.id) || (this.versions.get(previous.id) ?? 0) > current.version || current.version !== previous.version + 1 || current.titleSource !== 'generated') return null
+    // Only the server's single fallback -> generated title commit may be rebased.
+    // Branch, lifecycle, settings, scope and other metadata changes stay conflicts.
+    const unchanged: Array<keyof ServerConversation> = ['id', 'createdAt', 'archivedAt', 'pinnedAt', 'activeLeafMessageId', 'lastMessageAt', 'sidebarVisible', 'lifecycle', 'conversationMode', 'reasoningPreference']
+    if (unchanged.some(key => current[key] !== previous[key])) return null
+    this.remember(current)
+    return current.version
+  }
   remember(value: ServerConversation): void {
     if (this.deleted.has(value.id)) return
     if (value.version < (this.versions.get(value.id) ?? 0)) return
-    this.versions.set(value.id, value.version)
+    this.cacheRevision(value)
     this.onConversation?.(value)
   }
   forget(id: string, version = this.versions.get(id) ?? 1): void {
     if (version < (this.versions.get(id) ?? 0)) return
     this.deleted.add(id)
     this.versions.delete(id)
+    this.revisions.delete(id)
     this.onDeleted?.(id)
     // Bound tombstones along with the existing metadata cache.
     if (this.deleted.size > 600) this.deleted.delete(this.deleted.values().next().value!)
@@ -97,7 +120,7 @@ export class ChatBackend {
     return this.enqueue(async () => {
       if (!this.versions.has(conversation.id)) {
         const value = await this.request<ServerConversation>('/conversations', 'POST', { id: conversation.id, title: conversation.title, prepared: conversation.sidebarVisible === false, conversationMode: conversation.conversationMode ?? 'normal', reasoningPreference: conversation.reasoningPreference ?? null })
-        this.versions.set(value.id, Math.max(value.version, this.versions.get(value.id) ?? 0))
+        this.cacheRevision(value)
       }
       return this.versions.get(conversation.id)!
     })
@@ -161,7 +184,7 @@ export class ChatBackend {
       catch (error) { if ((error as { code?: string }).code === 'NOT_FOUND') activeId = null; else throw error }
     }
     if (conversations.find(c => c.id === activeId)?.archivedAt) activeId = null
-    for (const conversation of conversations) this.versions.set(conversation.id, Math.max(conversation.version, this.versions.get(conversation.id) ?? 0))
+    for (const conversation of conversations) this.cacheRevision(conversation)
     if (conversations.length !== list.conversations.length) this.onMetadata?.(conversations, activeId)
     const [drafts, path] = await Promise.all([
       this.request<ApiSchemas['DraftListResponse']>(`/chat/drafts?${new URLSearchParams([['keys', '__new__'], ...(activeId ? [['keys', activeId]] : [])])}`),

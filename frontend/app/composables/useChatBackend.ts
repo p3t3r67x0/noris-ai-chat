@@ -83,7 +83,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       if (backend.isDeleted(value.id)) continue
       const existingVersion = backend.versions.get(value.id) ?? 0
       if (value.version < existingVersion) continue
-      backend.versions.set(value.id, value.version)
+      backend.cacheRevision(value)
       // Replace the rendered record so every consumer sees this server revision.
       state.conversations.records.value[value.id] = conversationFromServer(value)
       if (value.archivedAt && state.conversations.activeId.value === value.id) state.conversations.activeId.value = null

@@ -127,7 +127,20 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
     dispose() { disposed = true; clearInterval(heartbeat); clearTimeout(reconnectTimer); current?.close() },
     async *stream(request, signal) {
       if (!request.input || !request.assistantMessageId || !request.conversation) throw new TransportError('INVALID_RESPONSE')
-      const version = request.resume ? 1 : await backend.ensure(request.conversation)
+      let version = request.resume ? 1 : await backend.ensure(request.conversation)
+      const admissionRevision = backend.admissionRevision(request.conversationId, version)
+      let titleRebased = false
+      const attachmentIds = request.input.attachments?.filter(file => !request.input?.editedFromMessageId || file.messageId === request.input.id).map(file => file.id) ?? []
+      const generateCommand: Extract<ChatWsCommand, { type: 'chat.generate' }> = {
+        version: 1, type: 'chat.generate', toolEventVersion: 1, researchEventVersion: 1, ...(request.research ? { research: request.research } : {}), requestId: request.generationId, conversationId: request.conversationId,
+        inputMessageId: request.inputMessageId, assistantMessageId: request.assistantMessageId,
+        conversationVersion: version, modelId: request.modelId, attempt: request.attempt,
+        content: request.input.content, parentMessageId: request.input.parentMessageId,
+        operation: request.operation ?? 'generate',
+        ...(attachmentIds.length ? { attachmentIds } : {}),
+        ...(request.sourceAssistantMessageId ? { sourceAssistantMessageId: request.sourceAssistantMessageId } : {}),
+        ...(request.input.editedFromMessageId ? { editedFromMessageId: request.input.editedFromMessageId } : {}),
+      }
       scope(request.generationId, request.conversationId)
       streaming.add(request.generationId)
       let sent = request.resume === true
@@ -172,17 +185,7 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
             if (sent && (received > 0 || request.resume)) send(socket, { version: 1, type: 'chat.resume', generationId: request.generationId, lastReceivedSeq: received, toolEventVersion: 1, researchEventVersion: 1 })
             else {
               if (signal.aborted) return
-              const attachmentIds = request.input.attachments?.filter(file => !request.input?.editedFromMessageId || file.messageId === request.input.id).map(file => file.id) ?? []
-              send(socket, {
-                version: 1, type: 'chat.generate', toolEventVersion: 1, researchEventVersion: 1, ...(request.research ? { research: request.research } : {}), requestId: request.generationId, conversationId: request.conversationId,
-                inputMessageId: request.inputMessageId, assistantMessageId: request.assistantMessageId,
-                conversationVersion: version, modelId: request.modelId, attempt: request.attempt,
-                content: request.input.content, parentMessageId: request.input.parentMessageId,
-                operation: request.operation ?? 'generate',
-                ...(attachmentIds.length ? { attachmentIds } : {}),
-                ...(request.sourceAssistantMessageId ? { sourceAssistantMessageId: request.sourceAssistantMessageId } : {}),
-                ...(request.input.editedFromMessageId ? { editedFromMessageId: request.input.editedFromMessageId } : {}),
-              })
+              send(socket, { ...generateCommand, conversationVersion: version })
               sent = true
             }
             if (signal.aborted) cancel()
@@ -193,7 +196,21 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
               const event = events.shift()
               if (event === null) break
               if (!event) continue
-              if (event.type === 'chat.error' && (!event.requestId || event.requestId === request.generationId)) throw new TransportError(event.code, undefined, event.requestId ?? null)
+              if (event.type === 'chat.error' && (!event.requestId || event.requestId === request.generationId)) {
+                if (event.code === 'VERSION_CONFLICT' && event.requestId === request.generationId && !request.resume && received === 0 && !titleRebased) {
+                  titleRebased = true
+                  const nextVersion = await backend.generatedTitleRevision(admissionRevision, signal)
+                  if (signal.aborted || disposed) return
+                  if (nextVersion !== null) {
+                    // Reuse the exact admission command and idempotency IDs.
+                    version = nextVersion
+                    if (socket.readyState !== Socket.OPEN) break
+                    send(socket, { ...generateCommand, conversationVersion: version })
+                    continue
+                  }
+                }
+                throw new TransportError(event.code, undefined, event.requestId ?? null)
+              }
               if (!('generationId' in event) || event.generationId !== request.generationId) continue
               if ('conversationId' in event && (event.conversationId !== request.conversationId || ('messageId' in event && event.messageId !== request.assistantMessageId))) throw new TransportError('INVALID_RESPONSE')
               if (event.type === 'chat.resume.snapshot') {

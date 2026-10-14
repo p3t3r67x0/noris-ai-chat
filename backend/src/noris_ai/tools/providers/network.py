@@ -6,6 +6,7 @@ import socket
 import unicodedata
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
+from importlib.util import find_spec
 from urllib.parse import urlsplit
 
 import httpx
@@ -164,7 +165,10 @@ def _source_pool() -> httpx.AsyncHTTPTransport:
         retries=0,
         limits=httpx.Limits(max_connections=1, max_keepalive_connections=1),
         http1=True,
-        http2=False,
+        # ALPN negotiates HTTP/2 with HTTP/1.1 fallback. The compatibility check
+        # keeps a development source hot-reload usable until its image is rebuilt
+        # with the declared httpx[http2] dependency.
+        http2=find_spec("h2") is not None,
     )
 
 

@@ -5,6 +5,7 @@ import { useChatStream } from '../../app/composables/useChatStream'
 import type { ChatRequest } from '../../app/lib/chat/types'
 import { applyToolProjection } from '../../app/lib/chat/toolEvents'
 import type { ToolRunRecords } from '../../app/lib/chat/toolEvents'
+import type { ApiSchemas } from '../../app/types/generated/api'
 
 class Socket extends EventTarget {
   static OPEN = 1
@@ -37,6 +38,128 @@ function fixture() {
   const backend = new ChatBackend((async (path: string) => Response.json(path.endsWith('ws-ticket') ? { ticketId: 'one-time-test-ticket' } : { ...conversation, version: 1 })) as typeof fetch)
   return createWebSocketTransport({ backend, url: 'ws://localhost/api/v1/chat/ws', socket: Socket as unknown as typeof WebSocket })
 }
+
+function titleFixture(change: Partial<ApiSchemas['ConversationResponse']> = {}, read?: () => Promise<Response>) {
+  Socket.instances = []
+  const input = request()
+  const previous: ApiSchemas['ConversationResponse'] = {
+    ...conversation, version: 3, sidebarVisible: true, lifecycle: 'COMPLETED',
+    activeLeafMessageId: crypto.randomUUID(), lastMessageAt: conversation.createdAt,
+    pinnedAt: null, conversationMode: 'normal', reasoningPreference: null,
+  }
+  input.input!.parentMessageId = previous.activeLeafMessageId
+  input.research = { version: 1, mode: 'web', language: 'en' }
+  const current = { ...previous, version: 4, titleSource: 'generated' as const, title: 'Generated title', ...change }
+  const fetcher = vi.fn<typeof fetch>().mockImplementation(async (path) => {
+    if (String(path).endsWith('ws-ticket')) return Response.json({ ticketId: 'title-race-ticket' })
+    if (String(path) === `/api/v1/conversations/${previous.id}`) return read ? read() : Response.json(current)
+    throw new Error('Unexpected request')
+  })
+  const backend = new ChatBackend(fetcher)
+  backend.cacheRevision(previous)
+  const transport = createWebSocketTransport({ backend, url: 'ws://localhost/api/v1/chat/ws', socket: Socket as unknown as typeof WebSocket })
+  return { input, previous, current, fetcher, backend, transport }
+}
+
+const titleConflict = (requestId: string) => ({ version: 1, type: 'chat.error', requestId, code: 'VERSION_CONFLICT' })
+
+describe('generation admission during an automatic title commit', () => {
+  it('rebases only once and preserves IDs, draft, model and research intention', async () => {
+    const { input, transport } = titleFixture()
+    const iterator = transport.stream(input, new AbortController().signal)[Symbol.asyncIterator]()
+    const first = iterator.next()
+    try {
+      const socket = await connected()
+      socket.event(titleConflict(input.generationId))
+      await vi.waitFor(() => expect(socket.sent.filter(command => command.type === 'chat.generate')).toHaveLength(2))
+      expect(socket.sent[1]).toEqual({ ...socket.sent[0], conversationVersion: 4 })
+      expect(socket.sent[1]).toMatchObject({ modelId: 'fixture-alpha', research: { version: 1, mode: 'web', language: 'en' } })
+      const envelope = { version: 1, generationId: input.generationId, conversationId: input.conversationId, messageId: input.assistantMessageId }
+      socket.event({ ...envelope, type: 'chat.generation.started', seq: 1 })
+      expect((await first).value).toMatchObject({ type: 'response.started' })
+      socket.event({ ...envelope, type: 'chat.generation.completed', seq: 2, content: 'One answer' })
+      expect((await iterator.next()).value).toMatchObject({ type: 'response.completed', content: 'One answer' })
+      expect((await iterator.next()).done).toBe(true)
+    }
+    finally { transport.dispose?.() }
+  })
+
+  it.each([
+    { titleSource: 'manual' as const }, { titleSource: 'fallback' as const },
+    { version: 5 }, { id: crypto.randomUUID() }, { activeLeafMessageId: crypto.randomUUID() },
+    { archivedAt: conversation.createdAt }, { pinnedAt: conversation.createdAt },
+    { conversationMode: 'learning' as const }, { reasoningPreference: 'high' as const },
+    { lifecycle: 'GENERATING' as const }, { sidebarVisible: false },
+    { lastMessageAt: null }, { createdAt: '2025-01-01T00:00:00Z' },
+  ])('keeps a real conversation conflict closed: %j', async change => {
+    const { input, transport } = titleFixture(change)
+    const iterator = transport.stream(input, new AbortController().signal)[Symbol.asyncIterator]()
+    const first = iterator.next()
+    try {
+      const socket = await connected()
+      const rejection = expect(first).rejects.toMatchObject({ code: 'VERSION_CONFLICT' })
+      socket.event(titleConflict(input.generationId))
+      await rejection
+      expect(socket.sent.filter(command => command.type === 'chat.generate')).toHaveLength(1)
+    }
+    finally { transport.dispose?.() }
+  })
+
+  it.each(['cancel', 'dispose', 'delete', 'newer-revision'] as const)('does not retry after %s during the authorized read', async action => {
+    let release: ((response: Response) => void) | undefined
+    let readStarted = false
+    const pending = new Promise<Response>(resolve => { release = resolve })
+    const { input, current, backend, transport } = titleFixture({}, async () => { readStarted = true; return pending })
+    const controller = new AbortController()
+    const first = transport.stream(input, controller.signal)[Symbol.asyncIterator]().next()
+    try {
+      const socket = await connected()
+      const result = first.catch(error => error)
+      socket.event(titleConflict(input.generationId))
+      await vi.waitFor(() => expect(readStarted).toBe(true))
+      if (action === 'cancel') controller.abort()
+      if (action === 'dispose') transport.dispose?.()
+      if (action === 'delete') backend.forget(input.conversationId)
+      if (action === 'newer-revision') backend.remember({ ...current, version: 5, reasoningPreference: 'high' })
+      release?.(Response.json(current))
+      await result
+      expect(socket.sent.filter(command => command.type === 'chat.generate')).toHaveLength(1)
+    }
+    finally { release?.(Response.json(current)); transport.dispose?.() }
+  })
+
+  it('rejects a second conflict instead of starting another research attempt', async () => {
+    const { input, transport } = titleFixture()
+    const first = transport.stream(input, new AbortController().signal)[Symbol.asyncIterator]().next()
+    try {
+      const socket = await connected()
+      socket.event(titleConflict(input.generationId))
+      await vi.waitFor(() => expect(socket.sent).toHaveLength(2))
+      const rejection = expect(first).rejects.toMatchObject({ code: 'VERSION_CONFLICT' })
+      socket.event(titleConflict(input.generationId))
+      await rejection
+      expect(socket.sent).toHaveLength(2)
+    }
+    finally { transport.dispose?.() }
+  })
+
+  it('never rebases after a generation event has been accepted', async () => {
+    const { input, fetcher, transport } = titleFixture()
+    const iterator = transport.stream(input, new AbortController().signal)[Symbol.asyncIterator]()
+    const first = iterator.next()
+    try {
+      const socket = await connected()
+      socket.event({ version: 1, type: 'chat.generation.started', generationId: input.generationId, conversationId: input.conversationId, messageId: input.assistantMessageId, seq: 1 })
+      await first
+      const rejection = expect(iterator.next()).rejects.toMatchObject({ code: 'VERSION_CONFLICT' })
+      socket.event(titleConflict(input.generationId))
+      await rejection
+      expect(socket.sent).toHaveLength(1)
+      expect(fetcher).toHaveBeenCalledTimes(1)
+    }
+    finally { transport.dispose?.() }
+  })
+})
 
 describe('WebSocketTransport', () => {
   it('shares chat sequence with tool events and reconstructs an offline terminal snapshot', async () => {
