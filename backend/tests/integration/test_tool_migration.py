@@ -98,6 +98,8 @@ def test_tool_upgrade_repeat_drift_and_rollback_preserve_legacy_data(
                     input_message_id=message,
                     model_id="fixture-gpt-oss",
                     status="running",
+                    attempt=1,
+                    last_sequence=0,
                 )
             )
             session.flush()
