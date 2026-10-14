@@ -49,6 +49,9 @@ test('the modal covers the rail and keeps its close control above the resized wo
   expect(await dialog.evaluate(el => Number(getComputedStyle(el).zIndex))).toBeGreaterThan(overlayLayer)
   await page.setViewportSize({ width: 390, height: 320 })
   const close = dialog.getByRole('button', { name: 'Suche schließen' })
+  // Resize can still be applying layout when the viewport API returns. Verify
+  // stable, reachable geometry before sampling its exact hit target below.
+  await close.click({ trial: true })
   const box = (await close.boundingBox())!
   expect(await page.evaluate(({ x, y }) => Boolean(document.elementFromPoint(x, y)?.closest('.chat-search-close')), { x: box.x + box.width / 2, y: box.y + box.height / 2 })).toBe(true)
   await close.click()
