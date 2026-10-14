@@ -83,23 +83,37 @@ Der Plan hat keine Toolnamen, URLs, Permissionfelder oder Netzwerkkonfiguration.
 Die Restzeit wird aus `deadline_at - utc_now()` abgeleitet, nicht neu vergeben.
 
 Planung erfolgt einmal deterministisch. Semikolongetrennte Themen ermöglichen
-bis zu drei Anfragen. Mehr als drei Themen werden abgelehnt. Füllwörter werden
-aus den Queries entfernt, Reihenfolge und bedeutungstragende Begriffe bleiben.
+bis zu drei unterschiedliche Anfragen. Füllwörter werden aus den Queries entfernt;
+danach werden casefold-identische Queries einmalig zusammengeführt. Mehr als drei
+verbleibende Queries werden abgelehnt. Direkt eingereichte doppelte Planqueries
+bleiben ungültig. Reihenfolge und bedeutungstragende Begriffe bleiben erhalten.
 Es gibt keinen LLMplanner, keine Parserreparatur, Wiederholungen oder Tooldispatch
 aus Modellausgaben. Ungültige angebliche Modellpläne sind ungültige Daten.
 
 ## 5. Suchentscheidung
 
 Nur innerhalb des expliziten Researchmodus werden feste Wortregeln ausgewertet:
-beispielsweise `Neues`, `aktuell`, `Entwicklungen`, `Version`, `verändert`,
-`Förderprogramme`, `Veranstaltungen`, `news`, `latest`, `release`, `funding` oder
+beispielsweise `neu`/`Neues`, `aktuell`, `Entwicklungen`, `Version`, `geändert`/`verändert`,
+`Förderprogramme`, `Veranstaltungen`, `new`, `news`, `latest`, `release`, `funding` oder
 eine ausdrückliche Recherche-/Quellenbitte. Andere Fragen werden als
 `not_required`/`skipped` mit normaler Gatewayantwort fortgesetzt. Allgemeine
-Mathematik oder persönliche Unterhaltung erzeugen dadurch keine Webcalls.
+Mathematik oder persönliche Unterhaltung ohne Recherche-/Aktualitätstrigger
+erzeugen dadurch keine Webcalls.
 
 Das ist eine konservative Wortheuristik, keine vollständige Intentanalyse; falsche
 positive/negative Entscheidungen sind möglich. Unsicherheit erzeugt keine neuen
 Berechtigungen. Außerhalb des Modus wird der Planner überhaupt nicht aufgerufen.
+
+Die deterministische Qualitätsmatrix prüft OpenStreetMap, QGIS, PostgreSQL,
+PostGIS und Open Data auf Deutsch/Englisch, drei Semikolonthemen, fünf Themen
+innerhalb einer gemeinsamen Query und ausdrücklich aktuelle Folgefragen.
+`Was ist neu in PostGIS 3.6?` wird gesucht. `Und bei PostGIS?` oder
+`And what about the other one?` wird übersprungen: Es gibt keine Auflösung von
+Pronomen oder Themen aus der History. Ein Satz mit vielen Themen bleibt eine
+Query; bei Semikolon entscheidet die Intention der Gesamtfrage. Gemischte Teile
+wie „aktuelle QGIS-Version; was ist zwei plus zwei“ können deshalb beide gesucht
+werden. Wortregeln können persönliche „neue“ Inhalte irrtümlich als aktuell
+klassifizieren. P7b behauptet keine semantische Recherchequalitätsgarantie.
 
 ## 6. SearchInput-Vertrag
 
@@ -135,8 +149,10 @@ prozesslokale Tageslimit bleibt konservativ. Toolaccounting folgt unverändert P
 
 Auswahl verwendet ausschließlich autorisierte persistierte erfolgreiche Suchruns.
 Lexikalische Überlappung von Frage und Titel/Snippet ist ein binärer Tie-Breaker,
-kein erfundener Qualitätsscore. Danach bleiben Suchlauf-/Ergebnisreihenfolge
-maßgeblich. Identische URLs/Source-IDs werden dedupliziert; derselbe UUIDv5-Treffer
+kein erfundener Qualitätsscore. Innerhalb jedes Suchlaufs bleibt danach die
+Ergebnisreihenfolge maßgeblich. Die Kandidaten werden begrenzt per Round-Robin
+über die Suchläufe verteilt, bevor verschiedene Hostnamen bevorzugt werden.
+Identische URLs/Source-IDs werden dedupliziert; derselbe UUIDv5-Treffer
 aus mehreren Suchruns behält ausdrücklich den zuerst ausgewählten Suchlauf.
 Zunächst werden verschiedene Hostnamen bevorzugt, danach übrige relevante Treffer
 bis zur Obergrenze. Gleiches Dokumentdigest wird später im Kontext dedupliziert.
@@ -145,6 +161,9 @@ Hostnamevielfalt beweist keine redaktionelle Unabhängigkeit. Subdomains und
 verschiedene Domains können derselben Organisation gehören. Auch mehrere Treffer
 derselben Domain sind keine automatisch unabhängigen Belege. Es findet weder
 Reranking mit einem Modell noch eine Tatsachenprüfung der Snippets statt.
+Round-Robin garantiert keine vollständige Themenabdeckung: Duplikate, dieselbe
+Domain, fehlgeschlagene Fetches und das Kontextbudget können weitere Themen
+unrepräsentiert lassen. Mehr als drei Dokumente werden dafür nicht nachgeladen.
 
 ## 9. Fetch-Ausführung und Resultatprüfung
 
@@ -238,6 +257,17 @@ Providerfehler. Die Fixtures sind keine reale Modellqualitätsabnahme. Ein spät
 Livevergleich von Quellenverständnis/Halluzination und Providerlimits bleibt offen
 und benötigt gesonderte Betreiberfreigabe; reguläre CI startet keine Live-API.
 
+Zusätzlich wurde am 14.10.2026 auf ausdrücklichen Benutzerwunsch einmal die echte
+Pipeline lokal geprüft: vorhandene SearXNG-Instanz, eine QGIS-Query, drei erfolgreich
+abgerufene öffentliche HTTPSdokumente und GPT-OSS über den unveränderten Gateway.
+Die Generation wurde completed, alle drei Auszüge blieben digest-/rungebunden,
+`model_response_observed=true`, Claim Support weiterhin unverified. Der isolierte
+Test benutzte ausschließlich eine separate disposable `_test`-Datenbank und einen
+ownergeschützten Unix-Socket. Sein lokaler Testadapter gehört nicht zur Produktapp
+oder zum öffentlichen API-/WSvertrag; es wurde keine produktive Aktivierung
+vorgenommen. Dieser einzelne Funktionsnachweis ersetzt keine Modellqualitätsabnahme
+und ist kein Live-API-Test der regulären CI.
+
 ## 15. Prompt-Injection-Grenzen
 
 System-/Entwicklerinstruktion, Benutzerfrage, Serverplan und externe Daten sind
@@ -256,10 +286,26 @@ LLMprovider übergeben. P7b behauptet keinen vollständigen semantischen Firewal
 
 ## 16. Claim- und Source-Provenienz
 
-Source Provenance bedeutet: genau dieses autorisierte Dokument wurde abgerufen,
-mit diesem Digest und Auszug dieser Antwortgeneration bereitgestellt. Claim
-Support bedeutet: eine konkrete Aussage wird durch eine relevante Textstelle
-getragen. Das erste beweist das zweite nicht.
+Die drei Ebenen bleiben getrennt:
+
+1. **Source exists:** Erfolgreicher autorisierter FetchRun und gespeichertes,
+   digestvalidiertes SourceDocument.
+2. **Context prepared:** `ResearchProjection.sources` enthält die für den
+   GroundedChatRequest vorbereiteten Auszüge. Deduplizierte, zu kurze oder aus
+   Platzgründen ausgelassene Dokumente erhalten keinen Marker. Vor Providerstart
+   kann Cancel eintreten; vorbereitete Quellen beweisen keine Modellübergabe.
+3. **Claim verified:** Eine konkrete Aussage müsste durch eine relevante
+   Textstelle überprüft werden. Diese semantische Prüfung führt P7b nicht durch.
+
+`model_response_observed` wird erst mit einem nichtleeren Textdelta aus dem
+bestehenden Gatewaypfad atomar mit Antwortsnapshot und Outboxevent gespeichert.
+Started, Toolabschluss, Budgetdispatch, leere Auto-Continuation-Admissiondeltas
+und ein bloßer Completedstatus setzen es nicht. Das Flag belegt eine beobachtete
+Modelltextantwort zur Generation mit vorbereiteten Quellenauszügen; es ist kein
+Netzwerk-Receipt und beweist weder,
+dass das Modell jeden Auszug gelesen hat, noch dessen semantische Verwendung.
+`false` bedeutet fehlende Beobachtung, keine bewiesene Nichtübermittlung. Ältere
+Projektionen ohne Flag werden konservativ als `false` gelesen.
 
 `SourceProvenance` stellt die Dokument-/Auszugbasis bereit.
 `GroundingAssessment` unterscheidet `unverified`, `missing`, `conflicting` und
@@ -268,22 +314,23 @@ P7b bewertet Modellclaims ausschließlich als **unverified** und fehlende Basis 
 `missing`. Es gibt keine automatische semantische Konflikt-/Faktenprüfung und
 keinen von einem Modell selbst erteilten „verified“-Status.
 
-`[[R1]]`–`[[R3]]` werden serverseitig gegen die tatsächlich bereitgestellten Quellen
+`[[R1]]`–`[[R3]]` werden serverseitig gegen die für den Kontext vorbereiteten Quellen
 validiert. Nur bekannte Marker erzeugen `CitationReference` mit Codepointoffsets.
 Unbekannte Marker, einschließlich erfundener UUIDs, erscheinen in
 `unknown_markers`, werden niemals zu Belegen. Quellenreferenzen bleiben
 `claim_support=unverified`. Die Modellprosa wird in P7b gespeichert; beliebige darin
 genannte URLs, Daten oder Behauptungen sind keine validierten Quellenmetadaten.
 Eine spätere UI darf sie nicht als geprüfte Zitate darstellen. Bewertungen haben
-höchstens 256 Referenzen und 32 unbekannte Marker; Überlauf bleibt ausgewiesen.
+höchstens 256 Referenzen und 32 unbekannte Marker; Überlauf bleibt getrennt als
+`citations_truncated` beziehungsweise `unknown_markers_truncated` ausgewiesen.
 
 ## 17. Persistenz
 
 Migration `0017_research_grounding` ergänzt nur nullable JSONB `ChatGeneration.research`
 mit Objekt-/131.072-Byte-Constraint. Es gibt keine neue Tabelle, Ereignisdatenbank
 oder Quelle im Chatmessagebaum. Originaldokumente und vollständige SearchResults
-bleiben unverändert in ToolResult. Nur tatsächlich benutzte Auszüge werden als
-notwendige Antwortprovenienz zusätzlich erhalten.
+bleiben unverändert in ToolResult. Nur für den Antwortkontext vorbereitete Auszüge
+werden zusätzlich erhalten; ihre Existenz behauptet keine tatsächliche Verwendung.
 
 Ein einmaliger Executionclaim an der Generation verhindert zweite Orchestrierung.
 Plan, Phasen, Quellen, Unavailablehinweise, Limitations und finale Markerbewertung
@@ -358,7 +405,17 @@ an die konfigurierte SearXNG-Instanz gesendet. Keine vollständige Konversation,
 Anhänge, Systemprompts, private Audits oder Credentials werden als Query übernommen.
 Offensichtliche Credentialbezeichnungen (einschließlich Kennwort/API-Schlüssel),
 bekannte Schlüsselpräfixe, E-Mail-/URL-/lange Nummernformen werden vor Suche
-abgelehnt. Ein Regexfilter erkennt **nicht zuverlässig alle personenbezogenen
+abgelehnt. Ein separater Detektor prüft den Originalinput auf Singular-/Plural-
+Tokenzuweisungen, Besitzbezeichnungen, JSON-/escaped-JSON-/Markdownlabels,
+übliche begrenzte Credential-Feldnamen wie `clientSecret`/`dbPassword`/
+`AWS_SECRET_ACCESS_KEY` und
+bezeichnete persönliche Daten beziehungsweise formatierte Telefonnummern.
+Nur eng definierte Fachbegriffe wie `Token-Limits`, `API-Token-Budgets` und
+`OAuth Access Tokens` in erkennbarem Themenkontext dürfen für diese Klassifikation
+maskiert werden. Die tatsächliche Query bleibt unverändert; eine Wertzuweisung
+wird vor jeder Topicmaskierung abgefangen. Unklare Formen bleiben fail-closed,
+auch wenn dadurch etwa labelartige technische Zuweisungen abgelehnt werden.
+Ein Regexfilter erkennt **nicht zuverlässig alle personenbezogenen
 Inhalte oder unmarkierte Geheimnisse**. P7c muss explizite Aktivierung,
 Datenflussinformation und eine überprüfbare Sucheingabe bereitstellen.
 
@@ -381,6 +438,9 @@ gefunden. Tatsächliche bestätigte Befunde und minimale Korrekturen:
 | Cancel wartete auf Toolcleanup, bevor lokale Stopanforderung sichtbar wurde. | `test_stop_during_blocked_tool_cleanup_prevents_llm_start`; lokale Anforderung früh und erneuter DBfence vor Provider. |
 | Abgelaufene Deadline konnte vor `asyncio.timeout(0)` noch einen Providerrequest starten. | Deadline vor Dispatch und nach Budgetdispatch; zwei Deadlinegegenproben mit null Providercalls. |
 | Erkennbare deutsche Credentialbezeichnungen/Schlüsselpräfixe gelangten in Queries. | Fail-closed ergänzter Filter, Kennwort/API-Schlüssel-/Credentialregressionen und dokumentierte Restgrenze. |
+| Abschlussreview: technische Token-Limits/-Budgets wurden blockiert, bezeichnete Pluraltokens/formatierte Telefonnummern und Camel-/Snakecase-Credentialfelder konnten passieren. | Originalinput-Disclosureprüfung vor eng begrenzter Topicmaskierung; Plural-/Ownership-/Assignment-/JSON-/escaped-JSON-/Markdown-/Credentialfeld-/PIIgegenproben in `test_research_quality.py`. |
+| Verkürzte identische Queries verwarfen den gesamten Plan; der erste Suchlauf konnte alle Fetchplätze belegen. | Normalisierte Queries deduplizieren; begrenztes Round-Robin der gespeicherten Suchläufe, unveränderte Scope-/Domain-/Fetchgrenzen. |
+| Vorbereitete Quellen wurden als benutzt beschrieben; Überlauf unbekannter Marker blieb unsichtbar. | Vorbereitete Auszüge von atomarer Modellresponse-Beobachtung und unverifizierten Claims getrennt; eigener Unknownüberlaufhinweis, Null-Providercall-Cancel und Outboxrollbacktests. |
 | Erfolgreiche normale Antwort überschreibt `skipped`. | `test_skipped_research_remains_skipped_after_normal_answer`. |
 | Knappes Kontextbudget konnte Partialhinweis mit zusätzlicher Omissionnotiz entfernen. | `test_partial_limitation_survives_context_omission`; bereits gezählte Hinweise erhalten. |
 | Cancel nach Textreservationcommit konnte die mögliche Reservation bis Startup unbereinigt lassen; ein weiterer Taskcancel konnte Cleanup unterbrechen. | Phase vor Await registrieren, bei Admissionfehler über bestehendes Settlement freigeben und den vorhandenen Runtime-Cleanupdrain auch im Gateway verwenden. Zwei Regressionen prüfen einmaliges Settlement nach Commitcancel und bei wiederholtem Cancel während Cleanup. |
@@ -431,6 +491,7 @@ Die Messfixtures werden mit `pytest -s` reproduziert.
 ## 25. Teststrategie und Qualitätsgates
 
 Neue Suiten: `unit/test_research.py`, `unit/test_research_review.py`,
+`unit/test_research_quality.py`,
 `integration/test_research_runtime.py`, `llm_integration/test_http_research.py`,
 `frontend/tests/websocket/research.spec.ts`. Sie prüfen strikte Planung, Limits,
 Sourceauswahl/-IDs, Digest, Unicode, untrusted Inhalte, Markervalidierung,
@@ -442,12 +503,20 @@ Manipulation, Archiv/Soft Delete, Replay und HTTPclosing. Browser-Research wird
 ausschließlich durch eine `environment=test`/`*_test`-geschützte Testcomposition
 aktiviert; die produktive App erhält keinen Testcommand oder Executeendpunkt.
 
-Alle vorhandenen Makefile-/CIgates bleiben unverändert: Ruff/Format, striktes
+Alle vorhandenen Makefile-/CIprüfinhalte bleiben erhalten: Ruff/Format, striktes
 Pyright, Backend-/API-/HTTPtests, disposable PostgreSQL-/Migrations-/Runtime-/
 Proxytests, Frontendunits/ESLint/Nuxt/Vue-/Generator-Typcheck, API-/WSdrift,
 UI-/HTTP-LLM-/WSbrowser Desktop/Mobile/Light/Dark, Wheel/Sourcepaket und
 Produktionsbuild, Actions `checks` und `compose-smoke`. Fehlgeschlagene Erstläufe
 werden nicht als bestanden gezählt. Reviewfreigabe erst nach grünen Gates.
+
+Die Gesamtlaufzeit der Actions-Jobs beträgt jetzt 45 Minuten für `checks` und
+30 Minuten für `compose-smoke`. Begründung: ein erfolgreicher vollständiger
+checkslauf benötigte 29:58 Minuten; ein vollständiger Compose-Lauf bestand in
+18:45 Minuten, während derselbe Commit im langsameren PR-Lauf am vorherigen
+20-Minuten-Limit abbrach. Das erlaubt den vollständigen Prüfumfang mit Laufzeit-
+schwankungen. Einzelne Testtimeouts, Assertions, Researchdeadline und
+Providerlimits werden dadurch nicht verändert. Kein Skip oder Retry wurde ergänzt.
 
 ## 26. Rollback und Migration
 
@@ -480,11 +549,21 @@ Sprache bleibt de/en, Budget/Policy/Owner/Generationadmission bleibt im Server.
 Composer-UX, Suchdatentransferhinweis und etwaige Approvalfortsetzung sind separat.
 
 Für Quellenanzeige stehen Generation-ID, SearchRun-ID, FetchRun-ID, Source-ID,
-Original-/Final-URL, Titel, Fetchzeit, Digest und tatsächlich verwendeter Auszug
+Original-/Final-URL, Titel, Fetchzeit, Digest und für den Kontext vorbereiteter Auszug
 bereit. Ein späterer Reader muss Owner und Conversation über Generation und beide
 Toolruns autorisieren, Schema/Digest erneut validieren und Soft Delete beachten.
 Ein Source-UUID allein erteilt keinen Zugriff. Die neue JSONprojektion ist intern,
 kein fertiger öffentlicher Zitiervertrag.
+
+P7c muss „abgerufen“, „Kontext vorbereitet“ und „Modelltextantwort beobachtet“
+getrennt darstellen. `model_response_observed` beweist keine semantische
+Quellenverwendung oder Faktenprüfung. Eine explizite Chatfortsetzung bleibt der
+bestehende Normalpfad mit `source_message_id`-Ancestry; sie erhält ohne neue interne
+Activation keinen neuen Quellenkontext und keine neue ResearchProjection. Marker
+aus einer früheren Generation dürfen deshalb nicht automatisch auf die
+Fortsetzung übertragen werden. Automatische Fortsetzungen innerhalb derselben
+Researchgeneration behalten Kontext/Deadline und reservieren erneut Textbudget;
+sie starten keine zusätzlichen Tools.
 
 P7c darf nur serverseitig validierte Marker als Quellenreferenz anzeigen und muss
 Codepointoffsets für JavaScript korrekt umrechnen. Claim Support bleibt ausdrücklich

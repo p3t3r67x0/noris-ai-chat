@@ -156,6 +156,7 @@ def assess_answer(text: str, sources: list[SourceProvenance]) -> GroundingAssess
     citations: list[CitationReference] = []
     unknown: list[str] = []
     truncated = False
+    unknown_truncated = False
     # Only this internal marker grammar can ever become a citation. Bare URLs,
     # UUIDs and other model prose never create a source or evidence reference.
     for match in re.finditer(r"\[\[([^\[\]\n]{1,100})\]\]", text):
@@ -167,11 +168,15 @@ def assess_answer(text: str, sources: list[SourceProvenance]) -> GroundingAssess
                 )
             else:
                 truncated = True
-        elif marker not in unknown and len(unknown) < 32:
-            unknown.append(marker)
+        elif marker not in unknown:
+            if len(unknown) < 32:
+                unknown.append(marker)
+            else:
+                unknown_truncated = True
     return GroundingAssessment(
         claim_support="unverified" if sources else "missing",
         citations=citations,
         unknown_markers=unknown,
         citations_truncated=truncated,
+        unknown_markers_truncated=unknown_truncated,
     )

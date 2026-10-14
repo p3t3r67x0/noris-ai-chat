@@ -376,6 +376,76 @@ async def test_cancel_during_grounding_does_not_dispatch_llm(
     assert not research.gateway._active
 
 
+async def test_prepared_sources_survive_cancel_without_model_delivery_claim(
+    research: ResearchFixture,
+):
+    prepared = await research.prepare()
+    before = await research.projection()
+    assert before.sources and not before.model_response_observed
+
+    async def cancel_before_provider() -> None:
+        await research.chat.request_generation_cancel(
+            research.activation.owner_id, research.base.base.generation
+        )
+        raise asyncio.CancelledError
+
+    with pytest.raises(asyncio.CancelledError):
+        async for _ in research.gateway.events(prepared, before_stream=cancel_before_provider):
+            pass
+    await research.chat.persist_generation_event(
+        research.base.base.generation,
+        {"version": 1, "type": "chat.generation.cancelled", "seq": 1},
+        "",
+        "cancelled",
+    )
+    after = await research.projection()
+    provider = research.gateway.provider
+    assert isinstance(provider, FixtureProvider) and provider.calls == []
+    assert after.sources == before.sources and not after.model_response_observed
+    assert after.state == "cancelled" and after.assessment
+    assert after.assessment.claim_support == "unverified"  # Provenance alone proves nothing.
+
+
+async def test_model_response_evidence_commits_with_real_delta_only(
+    research: ResearchFixture, monkeypatch: pytest.MonkeyPatch
+):
+    import noris_ai.chat.repository as repository_module
+
+    prepared = await research.prepare()
+    for event_type in ("chat.generation.started", "chat.generation.delta"):
+        await research.chat.persist_generation_event(
+            research.base.base.generation,
+            {"version": 1, "type": event_type, "seq": 1, "delta": ""},
+            "",
+        )
+        assert not (await research.projection()).model_response_observed
+    response = ""
+    async for event in research.gateway.events(prepared):
+        if event and event.type == "response.output_text.delta":
+            response += event.delta
+    assert response
+    original = repository_module.append_event
+
+    def fail_commit(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("Synthetic outbox failure")
+
+    monkeypatch.setattr(repository_module, "append_event", fail_commit)
+    payload: dict[str, object] = {
+        "version": 1,
+        "type": "chat.generation.delta",
+        "seq": 1,
+        "delta": response,
+    }
+    with pytest.raises(RuntimeError):
+        await research.chat.persist_generation_event(
+            research.base.base.generation, payload, response
+        )
+    assert not (await research.projection()).model_response_observed
+    monkeypatch.setattr(repository_module, "append_event", original)
+    await research.chat.persist_generation_event(research.base.base.generation, payload, response)
+    assert (await research.projection()).model_response_observed
+
+
 async def test_phase_timings_four_parallel_generations_and_same_generation_fence(
     research: ResearchFixture,
     caplog: pytest.LogCaptureFixture,

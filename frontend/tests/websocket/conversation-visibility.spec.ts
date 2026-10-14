@@ -47,8 +47,15 @@ test.afterEach(async ({ request }) => {
 
 test('new chat stays hidden; first persisted input and titles update an open search in both tabs', async ({ page, context, request }, info) => {
   const second = await context.newPage()
+  const connected = new Set<Page>()
+  for (const tab of [page, second]) tab.on('websocket', socket => socket.on('framereceived', frame => {
+    if (JSON.parse(String(frame.payload)).type === 'chat.connected') connected.add(tab)
+  }))
   await Promise.all([page.goto('/'), second.goto('/')])
   for (const tab of [page, second]) await expect(tab.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+  // Mounted UI is earlier than authenticated metadata delivery. Both real
+  // sockets must be ready before testing a live cross-tab broadcast.
+  await expect.poll(() => connected.size).toBe(2)
   await newChat(page)
   const dialog = await openSearch(page)
   await expect(dialog.getByRole('option')).toHaveCount(0)

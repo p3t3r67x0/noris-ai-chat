@@ -92,6 +92,7 @@ class GroundingAssessment(ApiSchema):
         default_factory=lambda: list[CitationReference](), max_length=256
     )
     unknown_markers: list[str] = Field(default_factory=list, max_length=32)
+    unknown_markers_truncated: bool = False
     citations_truncated: bool = False
 
 
@@ -109,6 +110,9 @@ class ResearchProjection(ApiSchema):
     )
     limitations: list[str] = Field(default_factory=list, max_length=8)
     context_tokens: int = Field(default=0, ge=0, le=12000)
+    # Sources are prepared excerpts. A Gateway text response is observable;
+    # provider receipt or semantic use of any excerpt is not provable here.
+    model_response_observed: bool = False
     assessment: GroundingAssessment | None = None
 
 

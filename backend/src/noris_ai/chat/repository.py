@@ -1052,20 +1052,34 @@ class ChatRepository:
                 payload.pop("code", None)
                 payload.pop("message", None)
                 payload.pop("reason", None)
-            if generation.research is not None and status not in ("running", "queued"):
+            response_observed = (
+                generation.research is not None
+                and bool(generation.research.get("sources"))
+                and not generation.research.get("model_response_observed", False)
+                and payload.get("type") == "chat.generation.delta"
+                and isinstance(payload.get("delta"), str)
+                and bool(payload["delta"])
+            )
+            if generation.research is not None and (
+                response_observed or status not in ("running", "queued")
+            ):
                 from noris_ai.research.grounding import assess_answer
 
                 projection = ResearchProjection.model_validate_json(json.dumps(generation.research))
-                generation.research = projection.model_copy(
-                    update={
-                        "state": "skipped"
-                        if projection.state == "skipped"
-                        else "completed"
-                        if status in ("completed", "incomplete")
-                        else status,
-                        "assessment": assess_answer(content, projection.sources),
-                    }
-                ).model_dump(mode="json")
+                if response_observed:
+                    projection = projection.model_copy(update={"model_response_observed": True})
+                if status not in ("running", "queued"):
+                    projection = projection.model_copy(
+                        update={
+                            "state": "skipped"
+                            if projection.state == "skipped"
+                            else "completed"
+                            if status in ("completed", "incomplete")
+                            else status,
+                            "assessment": assess_answer(content, projection.sources),
+                        }
+                    )
+                generation.research = projection.model_dump(mode="json")
             # Tool writes may have advanced the same sequence since the last
             # chat batch. Allocate under the DB lock, never from local memory.
             append_event(session, generation, payload)
