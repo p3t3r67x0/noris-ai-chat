@@ -38,12 +38,15 @@ from noris_ai.llm.limits import LLMRequestLimitMiddleware
 from noris_ai.llm.openai_compatible import OpenAICompatibleProvider
 from noris_ai.llm.provider import LLMProvider
 from noris_ai.tools.budget import BudgetCoordinator
+from noris_ai.tools.cancellation import GenerationToolContext
 from noris_ai.tools.errors import ToolError
 from noris_ai.tools.policy import ToolPolicy
 from noris_ai.tools.providers.searxng import SearXNGProvider, SearXNGSettings
+from noris_ai.tools.providers.source_fetch import SourceFetchProvider, SourceFetchSettings
 from noris_ai.tools.registry import create_tool_registry
 from noris_ai.tools.repository import ToolRepository
 from noris_ai.tools.runtime import ToolRuntime
+from noris_ai.tools.schemas import SearchSource
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +66,19 @@ def create_app(
                 search_provider = SearXNGProvider(SearXNGSettings.from_environment())
             except (ValidationError, SettingsError):
                 logger.warning("SearXNG-Konfiguration ungültig; Suchtool nicht verfügbar")
-        tool_registry = create_tool_registry(search_provider)
+        fetch_provider = None
+        if config.source_fetch_enabled:
+            try:
+                fetch_provider = SourceFetchProvider(SourceFetchSettings())
+            except (ValidationError, SettingsError):
+                logger.warning("Source-Fetch-Konfiguration ungültig; Fetchtool nicht verfügbar")
+
+        async def resolve_source(context: GenerationToolContext, source_id: UUID) -> SearchSource:
+            return await tool_repository.resolve_source(context, source_id)
+
+        tool_registry = create_tool_registry(
+            search_provider, source_fetch=fetch_provider, source_resolver=resolve_source
+        )
         engine = create_async_engine(
             config.database_url.get_secret_value(), pool_pre_ping=True, pool_timeout=3
         )
@@ -83,8 +98,9 @@ def create_app(
         application.state.chat_database = database
         application.state.chat_repository = repository
         application.state.tool_registry = tool_registry
-        application.state.tool_repository = ToolRepository(database, tool_registry)
-        tool_runtime = ToolRuntime(application.state.tool_repository, tool_registry, ToolPolicy())
+        tool_repository = ToolRepository(database, tool_registry)
+        application.state.tool_repository = tool_repository
+        tool_runtime = ToolRuntime(tool_repository, tool_registry, ToolPolicy())
         application.state.tool_runtime = tool_runtime
         attachments = AttachmentService(config, database)
         application.state.chat_attachments = attachments
@@ -144,6 +160,8 @@ def create_app(
             await tool_runtime.close()
             if search_provider is not None:
                 await search_provider.aclose()
+            if fetch_provider is not None:
+                await fetch_provider.aclose()
             if database_available:
                 await tool_runtime.repository.recover(config.chat_owner_id)
                 await budget.recover_text(config.chat_owner_id)

@@ -173,6 +173,7 @@ class ToolRuntime:
                     CancelHandle(cancel),
                     definition.permission,
                     self.policy.require(definition, run).per_call,
+                    run.source_search_run_id,
                 )
                 context.check()
                 handler = definition.handler

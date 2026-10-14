@@ -32,6 +32,7 @@ class GenerationToolContext:
     cancellation: CancelHandle
     permission_scope: str
     budget: BudgetAmount
+    source_search_run_id: UUID | None = None
 
     def check(self) -> None:
         self.cancellation.check()

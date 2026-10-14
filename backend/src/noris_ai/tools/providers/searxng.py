@@ -8,7 +8,6 @@ from datetime import UTC, datetime
 from html.parser import HTMLParser
 from typing import Literal, Self
 from urllib.parse import parse_qsl, urlencode, urlsplit
-from uuid import NAMESPACE_URL, uuid5
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, ValidationError, model_validator
@@ -23,6 +22,7 @@ from noris_ai.tools.schemas import (
     SearchInput,
     SearchResult,
     SearchSource,
+    search_source_id,
 )
 
 FailureReason = Literal[
@@ -161,23 +161,9 @@ def _source_url(value: str) -> HttpUrl | None:
             if "." not in host or host.endswith((".local", ".internal", ".localhost")):
                 return None
         else:
-            if (
-                not address.is_global
-                or address.is_multicast
-                or (
-                    isinstance(address, ipaddress.IPv6Address)
-                    and (
-                        address.is_site_local
-                        or (
-                            address.ipv4_mapped is not None
-                            and (
-                                not address.ipv4_mapped.is_global
-                                or address.ipv4_mapped.is_multicast
-                            )
-                        )
-                    )
-                )
-            ):
+            try:
+                permitted_address(str(address), ())
+            except ToolError:
                 return None
         query = urlencode(
             [
@@ -249,7 +235,7 @@ def _normalize(payload: bytes, search: SearchInput, config_version: str) -> Sear
             warnings.add("SEARCH_PUBLICATION_DATE_INVALID")
         sources.append(
             SearchSource(
-                source_id=uuid5(NAMESPACE_URL, f"noris-ai:searxng:{config_version}:{url}"),
+                source_id=search_source_id(config_version, str(url)),
                 title=title[:500],
                 url=url,
                 snippet=snippet[:4096],
