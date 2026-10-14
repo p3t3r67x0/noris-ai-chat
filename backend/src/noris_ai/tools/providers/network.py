@@ -185,6 +185,10 @@ class PublicSourceTransport(httpx.AsyncBaseTransport):
         ):
             raise ToolError("TOOL_FORBIDDEN")
         checked = await checked_addresses(request, ())
+        # All DNS answers have passed the policy. Prefer IPv4 for dual-stack
+        # sources so IPv4-only container networks can reach them; retain IPv6-only
+        # sources, one pinned connection, and the original Host/TLS SNI binding.
+        address = min(checked, key=lambda value: (ipaddress.ip_address(value).version, value))
         origin = (request.url.scheme, request.url.raw_host, request.url.port)
         slot = await self._available.get()
         try:
@@ -194,9 +198,7 @@ class PublicSourceTransport(httpx.AsyncBaseTransport):
                 await slot.transport.aclose()
                 slot.transport = _source_pool()
                 slot.origin = origin
-            response = await slot.transport.handle_async_request(
-                pinned_request(request, checked[0])
-            )
+            response = await slot.transport.handle_async_request(pinned_request(request, address))
             if not isinstance(response.stream, httpx.AsyncByteStream):
                 raise ToolError("PROVIDER_ERROR")
             response.stream = _OriginStream(response.stream, slot, self._available)

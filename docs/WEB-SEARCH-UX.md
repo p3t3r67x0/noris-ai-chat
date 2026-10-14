@@ -139,6 +139,15 @@ Antwortquellen ausgegeben. Der Reader übernimmt keine Modell-URLs oder globalen
 Source-UUIDs. Das Modal zeigt Titel, Domain, Original-/Final-URL, Abrufzeit,
 vorbereiteten Textauszug und optional technische Provenienz.
 
+Der bestehende öffentliche Abruftransport prüft sämtliche DNSantworten, bevor er
+eine Adresse auswählt. Bei öffentlichen IPv4- und IPv6-Adressen bevorzugt er IPv4,
+damit Dual-Stack-Seiten auch aus IPv4-only-Containern erreichbar sind. IPv6-only
+bleibt unterstützt; Host-/TLS-SNI-Bindung, Zertifikatsprüfung und genau ein
+Verbindungsversuch bleiben erhalten. Private Antworten einer beliebigen Familie
+sperren weiterhin den gesamten Abruf. HTTP 403 oder browsergebundene Schutzseiten
+können einen Serverabruf trotzdem ablehnen. „Vom Server nicht abrufbar“ beschreibt
+diesen konkreten Abruf und behauptet nicht, die Webseite sei allgemein offline.
+
 Nur gespeicherte, serverseitig bekannte `[[R1]]`–`[[R3]]` an gültigen
 Codepointpositionen werden verlinkt. JavaScript rechnet die Offsets in UTF-16 um.
 Ein zufälliger Renderprefix verhindert Spoofing durch entitykodierte Platzhalter.

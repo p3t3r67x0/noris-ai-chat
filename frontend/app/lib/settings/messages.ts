@@ -65,7 +65,7 @@ export const messages = {
   researchSources: ['Quellen aus der Recherche', 'Research sources'],
   researchUnverified: ['Quellenlinks sind keine Faktenprüfung. Der Beleg einzelner Aussagen wurde nicht geprüft.', 'Source links are not a fact check. Support for individual claims has not been checked.'],
   researchPrepared: ['Abgerufen · Kontext vorbereitet', 'Retrieved · Context prepared'],
-  researchSourceUnavailable: ['Webseite nicht abrufbar', 'Page could not be retrieved'],
+  researchSourceUnavailable: ['Vom Server nicht abrufbar', 'Could not be fetched by the server'],
   researchObserved: ['Eine Modelltextantwort wurde nach der Kontextvorbereitung beobachtet. Das bestätigt keine semantische Quellenverwendung.', 'A model text response was observed after context preparation. This does not establish semantic use of a source.'],
   researchNotObserved: ['Der Quellenauszug wurde für den Antwortkontext vorbereitet. Eine Modelltextantwort wurde noch nicht beobachtet.', 'The source excerpt was prepared for the answer context. A model text response has not yet been observed.'],
   researchInherited: ['Quellen der ursprünglichen Antwort. Nur Zitate im übernommenen Text sind zugeordnet; die Fortsetzung wurde ohne neue Recherche erstellt.', 'Sources from the original answer. Only citations in the copied text are attributed; the continuation was created without new research.'],
