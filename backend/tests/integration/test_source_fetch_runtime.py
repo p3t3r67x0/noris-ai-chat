@@ -9,6 +9,7 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from time import perf_counter
+from typing import cast
 from uuid import UUID, uuid4
 
 import httpx
@@ -449,7 +450,7 @@ async def test_cancel_download_timeout_shutdown_never_commit(fetch: FetchFixture
     }
 
 
-@pytest.mark.parametrize("kind", ["cancel", "fence", "outbox", "changed_source"])
+@pytest.mark.parametrize("kind", ["cancel", "fence", "outbox", "changed_source", "wrong_digest"])
 async def test_commit_fences_and_outbox_atomicity(
     fetch: FetchFixture,
     kind: str,
@@ -459,6 +460,10 @@ async def test_commit_fences_and_outbox_atomicity(
     complete = fetch.runtime.repository.complete
 
     async def blocked(*args: object, **kwargs: object):
+        if kind == "wrong_digest":
+            output = json.loads(cast(bytes, args[2]))
+            output["digest"] = "a" * 64
+            args = (*args[:2], encode_payload(output), *args[3:])
         if kind == "cancel":
             await fetch.runtime.cancel(fetch.base.owner, fetch.base.generation)
         elif kind in {"fence", "changed_source"}:

@@ -404,6 +404,19 @@ Eine separate 250.000-Byte-Plaintextnormalisierung hat per tracemalloc
 3.698.339 Bytes Pythonpeak. Tracing verlangsamt Verarbeitung; diese Heapmessung
 ist kein Gesamtprozess-RSS und kein Maximalwert bei vier parallelen 2-MiB-Bodies.
 
+Zehn PostgreSQL-Fetches mit kleinem kontrolliertem HTMLbody: Run 118,4–209,9 ms,
+Resolution 11,6–22,3 ms (elf Messungen einschließlich Cancelrun), Commit
+29,6–60,9 ms, Replay 19,7–64,2 ms; ein während Download akzeptierter Cancel
+190,4 ms bis zur Runtimebeendigung. Diese Werte enthalten lokale DB-/Schedulerlast.
+
+Zehn Abrufe über eine lokale HTTPSfixture mit Test-CA und HTTPcore-Trace:
+Systemresolver für localhost 0,27–3,65 ms, vier TCPconnects 1,79–2,62 ms,
+vier TLShandshakes 4,75–12,05 ms, Bodyempfang 0,12–41,52 ms, gesamter Providerfetch
+4,05–87,61 ms. Vier Verbindungen wurden danach wiederverwendet. Für diese
+kontrollierte Fixture wurde ausschließlich das numeric Ziel auf deren lokalen
+Port gelegt; die Public-IP-Klassifizierung wird getrennt mit unveränderten
+adversarialen Fixtures geprüft. Kein Zugriff auf eine produktive URL/Instanz.
+
 `test_controlled_source_commit_replay_and_cancel_measurements` misst getrennt
 Source-Resolution, Gesamt-Run, Commit, Replay und Cancel gegen PostgreSQL.
 `test_controlled_extraction_and_memory_measurements` druckt reproduzierbare
