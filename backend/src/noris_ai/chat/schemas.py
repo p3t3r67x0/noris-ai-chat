@@ -13,6 +13,7 @@ from pydantic import Field
 
 from noris_ai.core.schemas import ApiSchema
 from noris_ai.llm.schemas import ReasoningPreference
+from noris_ai.research.schemas import ResearchView
 
 ConversationMode = Literal["normal", "learning"]
 TitleSource = Literal["fallback", "generated", "manual"]
@@ -118,6 +119,7 @@ class AttachmentLimitsResponse(JsonApiSchema):
 
 
 class MessageResponse(JsonApiSchema):
+    research: ResearchView | None = None
     id: UUID
     conversationId: UUID
     parentMessageId: UUID | None

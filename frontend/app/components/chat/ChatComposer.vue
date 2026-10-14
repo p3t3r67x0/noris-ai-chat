@@ -15,9 +15,10 @@ import type { UploadEntry } from '../../composables/useChatAttachments'
 import { composerMenuItems } from '../../lib/chat/composerMenu'
 const { t } = useAppLocale()
 
-const props = defineProps<{ busy: boolean, streaming: boolean, cancellationRequested: boolean, modelUnavailable?: boolean, inputError?: string | null, files?: UploadEntry[], uploadAvailable?: boolean, uploadUnavailableReason?: string | null, uploadBlocked?: boolean, uploadError?: string | null, uploadErrorNotified?: boolean, imageSupported?: boolean, conversationMode?: ConversationMode, reasoningPreference?: ReasoningPreference | null, settingsBusy?: boolean, learningAvailable?: boolean }>()
+const props = defineProps<{ researchAvailable?: boolean, researchError?: string | null, busy: boolean, streaming: boolean, cancellationRequested: boolean, modelUnavailable?: boolean, inputError?: string | null, files?: UploadEntry[], uploadAvailable?: boolean, uploadUnavailableReason?: string | null, uploadBlocked?: boolean, uploadError?: string | null, uploadErrorNotified?: boolean, imageSupported?: boolean, conversationMode?: ConversationMode, reasoningPreference?: ReasoningPreference | null, settingsBusy?: boolean, learningAvailable?: boolean }>()
 const notifications = useAppNotifications()
 const text = defineModel<string>({ required: true })
+const webSearch = defineModel<boolean>('research', { default: false })
 const model = defineModel<ChatModelId>('model', { required: true })
 const emit = defineEmits<{ send: [text: string], stop: [], files: [files: File[]], removeFile: [key: string], retryFile: [key: string], refreshFiles: [], mode: [mode: ConversationMode], reasoning: [preference: ReasoningPreference | null] }>()
 const container = ref<HTMLElement | null>(null)
@@ -27,12 +28,12 @@ const showReasoning = computed(() => reasoningChoices(selectedModel.value).lengt
 const prompt = ref<{ textareaRef: HTMLTextAreaElement | undefined } | null>(null)
 const hasAttachments = computed(() => Boolean(props.files?.length))
 const autosize = useComposerAutosize(prompt, text, hasAttachments)
-watch([learning, showReasoning, model], () => nextTick(autosize.resize), { flush: 'post' })
+watch([learning, webSearch, showReasoning, model], () => nextTick(autosize.resize), { flush: 'post' })
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploadMenu = ref(false)
 const attachmentButton = ref<{ $el: HTMLButtonElement } | null>(null)
 const slashRange = ref<{ start: number, end: number } | null>(null)
-const actionItems = computed(() => composerMenuItems(t, { upload: chooseFiles, learning: activateLearning }, Boolean(props.uploadAvailable), props.uploadUnavailableReason, { learningAvailable: props.learningAvailable !== false && !props.settingsBusy, learningActive: learning.value }))
+const actionItems = computed(() => composerMenuItems(t, { upload: chooseFiles, learning: activateLearning, web: toggleSearch }, Boolean(props.uploadAvailable), props.uploadUnavailableReason, { learningAvailable: props.learningAvailable !== false && !props.settingsBusy, learningActive: learning.value, webAvailable: props.researchAvailable, webActive: webSearch.value, webReason: props.researchError }))
 function focus(): void { prompt.value?.textareaRef?.focus({ preventScroll: true }) }
 let returnToComposer = false
 let returnToActionTrigger = false
@@ -52,6 +53,8 @@ function activateLearning(): void {
   emit('mode', 'learning')
   void nextTick(focus)
 }
+function toggleSearch(): void { removeSlash(); returnToComposer = true; uploadMenu.value = false; webSearch.value = !webSearch.value; void nextTick(focus) }
+function deactivateSearch(): void { webSearch.value = false; void nextTick(focus) }
 function deactivateLearning(): void { emit('mode', 'normal'); void nextTick(focus) }
 function inputChanged(): void {
   autosize.resize()
@@ -114,7 +117,7 @@ async function filesSelected(event: Event): Promise<void> {
 function sizeLabel(bytes: number): string { return bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB` }
 const tooLong = computed(() => text.value.length > CHAT_LIMITS.max_message_chars)
 function submit(): void {
-  if (uploadMenu.value || props.settingsBusy || props.busy || props.modelUnavailable || props.inputError || props.uploadBlocked || !text.value.trim() || tooLong.value) return
+  if (uploadMenu.value || props.settingsBusy || props.busy || props.modelUnavailable || (webSearch.value && props.researchError) || props.inputError || props.uploadBlocked || !text.value.trim() || tooLong.value) return
   emit('send', text.value)
 }
 function stop(event?: Event): void {
@@ -136,7 +139,7 @@ defineExpose({ focus })
       @submit="submit"
       @input="inputChanged"
     >
-      <template v-if="hasAttachments || learning" #header>
+      <template v-if="hasAttachments || learning || webSearch" #header>
         <ul v-if="hasAttachments" class="attachment-list" aria-label="Anhänge und Textreferenzen">
           <li v-for="file in files" :key="file.key" class="attachment-preview" :data-upload-status="file.status">
             <UIcon :name="file.mime.startsWith('image/') ? 'i-lucide-image' : 'i-lucide-file-text'" class="size-6 shrink-0" aria-hidden="true" />
@@ -164,6 +167,11 @@ defineExpose({ focus })
             <UButton icon="i-lucide-x" color="neutral" variant="ghost" class="touch-control" :disabled="file.status === 'removing' || (file.status === 'uploading' && !!file.reference)" :aria-label="`${file.filename} entfernen`" @click="removeFile(file.key)" />
           </li>
         </ul>
+        <div v-if="webSearch" class="composer-learning composer-web-search" data-research-selected>
+          <UIcon name="i-lucide-globe" aria-hidden="true" class="size-5 shrink-0" />
+          <span>{{ t('webSearch') }}</span>
+          <UButton icon="i-lucide-x" color="neutral" variant="ghost" class="learning-remove touch-control" :aria-label="t('webSearchOff')" @click="deactivateSearch" />
+        </div>
         <div v-if="learning" class="composer-learning">
           <UIcon name="i-lucide-book-open" aria-hidden="true" class="size-5 shrink-0" />
           <span role="status">{{ t('learning') }}</span>
@@ -179,13 +187,15 @@ defineExpose({ focus })
           <ChatReasoningMenu v-if="showReasoning" :model="selectedModel" :preference="reasoningPreference" :disabled="settingsBusy || busy" :anchor="container" @select="emit('reasoning', $event)" />
         </div>
         <UChatPromptSubmit
-          :status="busy ? (streaming ? 'streaming' : 'submitted') : 'ready'" :disabled="!busy && (settingsBusy || !text.trim() || tooLong || modelUnavailable || !!inputError || uploadBlocked)"
+          :status="busy ? (streaming ? 'streaming' : 'submitted') : 'ready'" :disabled="!busy && (settingsBusy || !text.trim() || tooLong || modelUnavailable || (webSearch && !!researchError) || !!inputError || uploadBlocked)"
           color="neutral" variant="solid" streaming-color="neutral" streaming-variant="solid" submitted-color="neutral" submitted-variant="solid"
           :aria-label="busy ? (cancellationRequested ? t('stopping') : t('stopResponse')) : t('sendMessage')"
           :aria-disabled="cancellationRequested" class="composer-submit touch-control rounded-full" @stop="stop"
         />
       </template>
     </UChatPrompt>
+    <p v-if="webSearch" class="research-privacy text-xs text-muted">{{ t('researchPrivacy') }}</p>
+    <p v-if="webSearch && researchError" role="status" aria-live="polite" class="mt-2 text-sm text-error">{{ researchError }}</p>
     <input ref="fileInput" type="file" hidden multiple accept=".txt,.md,.markdown,.pdf,.png,.jpg,.jpeg" aria-label="Dateien hinzufügen" @change="filesSelected" @cancel="focus">
   </div>
 </template>

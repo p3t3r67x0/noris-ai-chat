@@ -104,7 +104,7 @@ def create_app(
         application.state.tool_runtime = tool_runtime
         attachments = AttachmentService(config, database)
         application.state.chat_attachments = attachments
-        application.state.chat_service = ChatService(repository)
+        application.state.chat_service = ChatService(repository, tool_repository)
         application.state.chat_tickets = WsTicketStore(config.chat_ws_ticket_ttl_seconds)
         application.state.chat_generations = GenerationManager(
             config, repository, application.state.llm_gateway, attachments, tool_runtime

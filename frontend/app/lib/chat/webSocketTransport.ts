@@ -1,5 +1,5 @@
 import type { ChatWsCommand, ChatWsEvent } from '../../types/generated/chat-ws'
-import type { ChatTransport, StreamEvent } from './types'
+import type { ChatTransport, StreamEvent, ResearchView } from './types'
 import { ChatBackend } from './backend'
 import { TransportError } from './realTransport'
 import { validateToolEvent } from './toolEvents'
@@ -29,6 +29,7 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
     if (typeof raw !== 'string' || raw.length > 8_388_608) throw new TransportError('INVALID_RESPONSE')
     const value = JSON.parse(raw) as ChatWsEvent
     if (!value || value.version !== 1 || typeof value.type !== 'string') throw new TransportError('INVALID_RESPONSE')
+    if (value.type === 'research.updated' && (value.eventVersion !== 1 || !['planning', 'searching', 'selecting', 'fetching', 'grounding', 'generating', 'completed', 'failed', 'cancelled', 'interrupted', 'skipped'].includes(value.state))) throw new TransportError('INVALID_RESPONSE')
     if (value.type.startsWith('tool.') && !validateToolEvent(value)) throw new TransportError('INVALID_RESPONSE')
     return value
   }
@@ -130,6 +131,16 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
       scope(request.generationId, request.conversationId)
       streaming.add(request.generationId)
       let sent = request.resume === true
+      let researchObserved = Boolean(request.research || request.inheritedResearch)
+      let researchLoadFailed = false
+      const readResearch = async (): Promise<ResearchView | null> => {
+        try {
+          const view = await backend.request<ResearchView | null>(`/chat/conversations/${request.conversationId}/generations/${request.generationId}/research`)
+          researchLoadFailed = view === null
+          return view
+        }
+        catch { researchLoadFailed = true; return null }
+      }
       let received = 0
       let reconnects = 0
       try {
@@ -158,12 +169,12 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
           socket.addEventListener('close', onClose)
           signal.addEventListener('abort', cancel)
           try {
-            if (sent && (received > 0 || request.resume)) send(socket, { version: 1, type: 'chat.resume', generationId: request.generationId, lastReceivedSeq: received, toolEventVersion: 1 })
+            if (sent && (received > 0 || request.resume)) send(socket, { version: 1, type: 'chat.resume', generationId: request.generationId, lastReceivedSeq: received, toolEventVersion: 1, researchEventVersion: 1 })
             else {
               if (signal.aborted) return
               const attachmentIds = request.input.attachments?.filter(file => !request.input?.editedFromMessageId || file.messageId === request.input.id).map(file => file.id) ?? []
               send(socket, {
-                version: 1, type: 'chat.generate', toolEventVersion: 1, requestId: request.generationId, conversationId: request.conversationId,
+                version: 1, type: 'chat.generate', toolEventVersion: 1, researchEventVersion: 1, ...(request.research ? { research: request.research } : {}), requestId: request.generationId, conversationId: request.conversationId,
                 inputMessageId: request.inputMessageId, assistantMessageId: request.assistantMessageId,
                 conversationVersion: version, modelId: request.modelId, attempt: request.attempt,
                 content: request.input.content, parentMessageId: request.input.parentMessageId,
@@ -189,7 +200,12 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
                 if (!Number.isSafeInteger(event.lastSequence) || event.lastSequence < received || typeof event.content !== 'string') throw new TransportError('INVALID_RESPONSE')
                 received = event.lastSequence
                 const status = event.status === 'queued' ? 'submitting' : event.status === 'running' ? 'streaming' : event.status === 'interrupted' ? 'failed' : event.status
-                yield { type: 'response.snapshot', seq: received, content: event.content, status, continuationCount: event.continuationCount, code: event.code, message: event.message, requestId: request.generationId }
+                let research: ResearchView | null | undefined
+                if (event.researchMode === 'web' || researchObserved) {
+                  researchObserved = true
+                  research = await readResearch()
+                }
+                yield { type: 'response.snapshot', ...(research ? { research } : {}), ...((research?.state ?? event.researchState) ? { researchState: (research?.state ?? event.researchState)! } : {}), researchLoadFailed, seq: received, content: event.content, status, continuationCount: event.continuationCount, code: event.code, message: event.message, requestId: request.generationId }
                 if (status !== 'submitting' && status !== 'streaming') return
                 continue
               }
@@ -200,6 +216,12 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
               received = event.seq
               if (validateToolEvent(event)) {
                 yield { type: 'response.tool', seq: received, requestId: request.generationId }
+                continue
+              }
+              if (event.type === 'research.updated') {
+                researchObserved = true
+                const view = ['generating', 'completed', 'failed', 'cancelled', 'interrupted'].includes(event.state) ? await readResearch() : undefined
+                yield { type: 'response.research', seq: received, state: view?.state ?? event.state, researchLoadFailed, ...(view ? { research: view } : {}) }
                 continue
               }
               let output: StreamEvent
@@ -215,7 +237,11 @@ export function createWebSocketTransport(options: { backend?: ChatBackend, url?:
                 case 'chat.generation.interrupted': output = { type: 'response.failed', seq: received, code: 'INTERRUPTED', message: 'Die Generierung wurde unterbrochen. Der gespeicherte Antwortstand bleibt erhalten.', content: event.content }; break
                 default: throw new TransportError('INVALID_RESPONSE')
               }
-              yield { ...output, continuationCount: event.continuationCount, requestId: request.generationId }
+              if (researchObserved && request.inheritedResearch && 'content' in output) {
+                const view = await readResearch()
+                if (view) output = { ...output, research: view } as StreamEvent
+              }
+              yield { ...output, ...((output.research?.state ?? ('researchState' in event ? event.researchState : null)) ? { researchState: (output.research?.state ?? ('researchState' in event ? event.researchState : null))! } : {}), researchLoadFailed, continuationCount: event.continuationCount, requestId: request.generationId }
               if (output.type === 'response.completed' || output.type === 'response.incomplete' || output.type === 'response.cancelled' || output.type === 'response.failed') return
             }
           }

@@ -1,5 +1,11 @@
 # Chat-WebSocket-Vertrag v1
 
+P7c integriert inzwischen die versionierte Benutzeraktivierung und autorisierte
+Quellenanzeige: [Web Search UX](WEB-SEARCH-UX.md). Die nachfolgenden Angaben zu
+P7b/P2 beschreiben deren ursprünglichen Stand; Researchstatus verwendet jetzt
+additiv dieselbe Outboxsequenz mit `researchEventVersion: 1`. ToolEventVersion 1
+und der bestehende Socket bleiben unverändert.
+
 Die verbindlichen Schemata liegen in [chat-v1.json](websocket/chat-v1.json).
 `pnpm api:generate` exportiert Pydantic-Schemata und generiert die TypeScript-
 Unions. `make check-api` prüft REST und WebSocket auf Drift. Zusätzliche Felder,

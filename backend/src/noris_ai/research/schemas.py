@@ -31,6 +31,67 @@ class ResearchActivation:
 
     owner_id: UUID
     language: Literal["de", "en"]
+    explicit: bool = False
+
+
+class ResearchIntent(ApiSchema):
+    """Public intent, never an execution permission or a tool plan."""
+
+    version: Literal[1]
+    mode: Literal["web"]
+    language: Literal["de", "en"]
+
+
+class PublicResearchSchema(ApiSchema):
+    model_config = ApiSchema.model_config | {"json_schema_serialization_defaults_required": True}
+
+
+class ResearchCapability(PublicResearchSchema):
+    version: Literal[1] = 1
+    available: bool
+    reasonCode: str | None = None
+
+
+class ResearchSource(PublicResearchSchema):
+    marker: str | None = Field(default=None, pattern=r"^R[1-3]$")
+    sourceId: UUID
+    searchRunId: UUID
+    fetchRunId: UUID
+    title: str = Field(min_length=1, max_length=500)
+    originalUrl: SourceUrl
+    finalUrl: SourceUrl | None = None
+    fetchedAt: AwareDatetime | None = None
+    status: Literal["context_prepared", "unavailable"]
+    excerpt: str | None = Field(default=None, max_length=8000)
+    contentDigest: Digest | None = None
+
+
+class ResearchView(PublicResearchSchema):
+    version: Literal[1] = 1
+    mode: Literal["web"] = "web"
+    generationId: UUID
+    sourceGenerationId: UUID
+    state: ResearchState
+    inherited: bool = False
+    modelResponseObserved: bool = False
+    claimSupport: Literal["unverified"] = "unverified"
+    sources: list[ResearchSource] = Field(
+        default_factory=lambda: list[ResearchSource](), max_length=6
+    )
+    citations: list["CitationReference"] = Field(
+        default_factory=lambda: list[CitationReference](), max_length=256
+    )
+
+
+class ResearchStateEvent(PublicResearchSchema):
+    version: Literal[1] = 1
+    eventVersion: Literal[1] = 1
+    type: Literal["research.updated"] = "research.updated"
+    generationId: UUID
+    conversationId: UUID
+    messageId: UUID
+    seq: int = Field(ge=1)
+    state: ResearchState
 
 
 class ResearchPlan(ApiSchema):
@@ -101,6 +162,7 @@ class ResearchProjection(ApiSchema):
     generation_id: UUID
     execution_id: UUID
     state: ResearchState
+    intent: ResearchIntent | None = None
     plan: ResearchPlan | None = None
     sources: list[SourceProvenance] = Field(
         default_factory=lambda: list[SourceProvenance](), max_length=3

@@ -299,3 +299,61 @@ describe('conversation title metadata', () => {
     finally { transport.dispose?.() }
   })
 })
+
+
+describe('P7c research projections on the existing socket', () => {
+  it('restores research terminal status even when the resume reader fails', async () => {
+    Socket.instances = []
+    const backend = new ChatBackend((async (path: string) => path.endsWith('/research') ? new Response('{}', { status: 503 }) : Response.json(path.endsWith('ws-ticket') ? { ticketId: 'ticket' } : { ...conversation, version: 1 })) as typeof fetch)
+    const transport = createWebSocketTransport({ backend, url: 'ws://localhost/api/v1/chat/ws', socket: Socket as unknown as typeof WebSocket })
+    const input = { ...request(), resume: true }
+    const stream = useChatStream(transport), research = vi.fn()
+    const running = stream.start(input, { delta: () => {}, status: () => {}, research })
+    const socket = await connected()
+    socket.event({ version: 1, type: 'chat.resume.snapshot', generationId: input.generationId, conversationId: input.conversationId, messageId: input.assistantMessageId, lastSequence: 17, researchMode: 'web', researchState: 'cancelled', status: 'cancelled', content: 'saved' })
+    await running
+    expect(stream.status.value).toBe('cancelled')
+    expect(research).toHaveBeenCalledWith('cancelled', undefined, true)
+    expect(socket.sent.filter(value => value.type === 'chat.generate')).toHaveLength(0)
+    transport.dispose?.()
+  })
+  it('attaches inherited authorized citations on an explicit continuation terminal event', async () => {
+    Socket.instances = []
+    const input = { ...request(), inheritedResearch: true }
+    const view = { version: 1, mode: 'web', generationId: input.generationId, sourceGenerationId: crypto.randomUUID(), state: 'completed', inherited: true, modelResponseObserved: true, claimSupport: 'unverified', sources: [], citations: [{ marker: 'R1', start: 0, end: 6 }] }
+    const backend = new ChatBackend((async (path: string) => Response.json(path.endsWith('/research') ? view : path.endsWith('ws-ticket') ? { ticketId: 'ticket' } : { ...conversation, version: 1 })) as typeof fetch)
+    const transport = createWebSocketTransport({ backend, url: 'ws://localhost/api/v1/chat/ws', socket: Socket as unknown as typeof WebSocket })
+    const stream = useChatStream(transport), research = vi.fn()
+    const running = stream.start(input, { delta: () => {}, status: () => {}, research })
+    const socket = await connected()
+    const scope = { version: 1, generationId: input.generationId, conversationId: input.conversationId, messageId: input.assistantMessageId }
+    socket.event({ ...scope, type: 'chat.generation.started', seq: 1, modelId: input.modelId })
+    socket.event({ ...scope, type: 'chat.generation.completed', seq: 2, content: '[[R1]] continued' })
+    await running
+    expect(research).toHaveBeenCalledWith('completed', view, false)
+    expect(stream.status.value).toBe('completed')
+    transport.dispose?.()
+  })
+  it('keeps streaming and terminal chat status when the optional source reader returns 503', async () => {
+    Socket.instances = []
+    const backend = new ChatBackend((async (path: string) => path.endsWith('/research') ? new Response('{}', { status: 503 }) : Response.json(path.endsWith('ws-ticket') ? { ticketId: 'ticket' } : { ...conversation, version: 1 })) as typeof fetch)
+    const transport = createWebSocketTransport({ backend, url: 'ws://localhost/api/v1/chat/ws', socket: Socket as unknown as typeof WebSocket })
+    const input = { ...request(), research: { version: 1 as const, mode: 'web' as const, language: 'en' as const } }
+    const stream = useChatStream(transport)
+    const research = vi.fn(), delta = vi.fn()
+    const running = stream.start(input, { delta, status: () => {}, research })
+    const socket = await connected()
+    const scope = { version: 1, generationId: input.generationId, conversationId: input.conversationId, messageId: input.assistantMessageId }
+    socket.event({ ...scope, type: 'chat.generation.started', seq: 1, modelId: input.modelId })
+    socket.event({ ...scope, type: 'research.updated', eventVersion: 1, seq: 2, state: 'generating' })
+    socket.event({ ...scope, type: 'chat.generation.delta', seq: 3, delta: 'Saved answer' })
+    socket.event({ ...scope, type: 'research.updated', eventVersion: 1, seq: 4, state: 'completed' })
+    socket.event({ ...scope, type: 'chat.generation.completed', seq: 5, content: 'Saved answer' })
+    await running
+    expect(stream.status.value).toBe('completed')
+    expect(delta).toHaveBeenCalledWith('Saved answer')
+    expect(research).toHaveBeenLastCalledWith('completed', undefined, true)
+    expect(socket.sent.filter(value => value.type === 'chat.generate')).toHaveLength(1)
+    transport.dispose?.()
+  })
+})

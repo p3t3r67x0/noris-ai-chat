@@ -18,7 +18,8 @@ import { useChatAttachments } from '../../composables/useChatAttachments'
 import type { ApiSchemas } from '../../types/generated/api'
 import { supportsPreference } from '../../lib/chat/reasoning'
 import { useAppNotifications } from '../../composables/useAppNotifications'
-import { normalizeAppError } from '../../lib/notifications/errors'
+import { researchErrorKey } from '../../lib/chat/research'
+import { normalizeAppError, notificationKey } from '../../lib/notifications/errors'
 
 const { transport, mode } = useChatTransport()
 const chat = useChat(transport)
@@ -43,7 +44,8 @@ watch([stream.status, stream.busy], ([status, busy]) => {
   const messageId = context.resourceId
   const code = stream.errorCode.value ?? (status === 'incomplete' ? 'OUTPUT_LIMIT' : 'STREAM_INTERRUPTED')
   const error = normalizeAppError({ code }, context)
-  const retry = messageId ? { label: status === 'incomplete' ? 'Weiterschreiben' : 'Erneut versuchen', onClick: async () => {
+  const researched = Boolean(messageId && chat.messages.value[messageId]?.research)
+  const retry = messageId ? { label: researched ? t('retry') : status === 'incomplete' ? 'Weiterschreiben' : 'Erneut versuchen', onClick: async () => {
     if (stream.busy.value || !context.conversationId) return
     conversations.select(context.conversationId)
     await chat.pagination?.loadConversation(context.conversationId)
@@ -54,10 +56,21 @@ watch([stream.status, stream.busy], ([status, busy]) => {
     else chat.regenerate(messageId, modelId.value)
   } } : undefined
   const canRecover = status === 'failed' ? error.recovery === 'retry' : Boolean(messageId && chat.canContinue(messageId))
+  if (researched) {
+    notifications?.notify({ severity: error.severity, title: t('webSearch'), description: t(researchErrorKey(code)), key: notificationKey(error, context), diagnostics: error.diagnostics, ...(canRecover && retry ? { action: retry } : {}) })
+    return
+  }
   notifications?.reportError({ code }, context, canRecover ? retry : { label: 'Chat öffnen', onClick: () => { if (context.conversationId) conversations.select(context.conversationId) } })
 })
 provide(workspaceKey, { chat, selection, mode, importAvailable: computed(() => Boolean(transport.backend) && chat.importAvailable.value) })
-const { t } = useAppLocale()
+const { t, language } = useAppLocale()
+const researchCapability = ref<ApiSchemas['ResearchCapability'] | null>(null)
+async function refreshResearch(): Promise<void> {
+  if (mode !== 'websocket' || !transport.backend) return
+  try { researchCapability.value = await transport.backend.request('/chat/research/capability') }
+  catch { researchCapability.value = null }
+}
+const researchError = computed(() => !researchCapability.value?.available ? t(researchCapability.value?.reasonCode === 'RESEARCH_DISABLED' ? 'researchDisabled' : researchCapability.value?.reasonCode === 'RESEARCH_APPROVAL_REQUIRED' ? 'researchApproval' : 'researchUnavailable') : !selectedModel.value?.researchEligible ? t('researchModel') : null)
 const uploadUnavailableReason = computed(() => !transport.backend ? t('uploadDemoUnavailable') : attachments.error.value || chat.storageWarning.value || t('uploadPreparing'))
 const route = useRoute()
 const router = useRouter()
@@ -107,13 +120,26 @@ const { viewportStyle } = useChatViewport()
 const ready = ref(false)
 onMounted(() => {
   ready.value = true
+  void refreshResearch()
   if (inSettings.value && window.matchMedia('(max-width: 1023px)').matches) sidebarOpen.value = false
   window.addEventListener('keydown', onShortcut)
 })
 onUnmounted(() => { if (typeof window !== 'undefined') window.removeEventListener('keydown', onShortcut) })
 
-function send(text: string): void {
-  if (canSend.value && !attachments.blocked.value && chat.send(text, modelId.value, attachments.confirmed.value)) {
+async function send(text: string): Promise<void> {
+  const intendedConversation = conversations.activeId.value
+  const intendedModel = modelId.value
+  const intendedResearch = chat.researchMode.value
+  const intendedDraft = draft.value
+  const intendedAttachments = attachments.confirmed.value.map(file => file.id).join(',')
+  if (intendedResearch) {
+    await refreshModels(false)
+    await refreshResearch()
+    if (researchError.value || conversations.activeId.value !== intendedConversation
+      || modelId.value !== intendedModel || chat.researchMode.value !== intendedResearch
+      || draft.value !== intendedDraft || attachments.confirmed.value.map(file => file.id).join(',') !== intendedAttachments) return
+  }
+  if (canSend.value && !attachments.blocked.value && chat.send(text, modelId.value, attachments.confirmed.value, chat.researchMode.value ? { version: 1, mode: 'web', language: language.value } : undefined)) {
     if (conversations.activeId.value) attachments.sent(conversations.activeId.value)
     composer.value?.focus()
   }
@@ -199,7 +225,7 @@ function saveEdit(): void {
             <UButton color="neutral" variant="link" label="Modelle neu laden" :loading="modelsLoading" @click="refreshModels()" />
           </div>
           <p v-show="!empty" class="composer-note">{{ t('disclaimer') }}</p>
-          <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" :conversation-mode="conversations.active.value?.conversationMode ?? 'normal'" :reasoning-preference="reasoningPreference" :settings-busy="chat.settingsBusy.value" :learning-available="mode !== 'real' && chat.backendReady.value" :busy="stream.busy.value" :model-unavailable="!canSend" :input-error="chat.drafts.error.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" :files="attachments.files.value" :upload-available="attachments.available.value" :upload-unavailable-reason="uploadUnavailableReason" :upload-blocked="attachments.blocked.value" :image-supported="attachments.imageCompatible.value" :upload-error="attachments.error.value" :upload-error-notified="attachments.errorNotified.value" @mode="chat.setConversationMode" @reasoning="chat.setReasoningPreference" @files="attachments.add" @remove-file="attachments.remove" @retry-file="attachments.retry" @refresh-files="attachments.refresh" @send="send" @stop="stop" />
+          <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" v-model:research="chat.researchMode.value" :research-available="Boolean(researchCapability?.available) || chat.researchMode.value" :research-error="researchError" :conversation-mode="conversations.active.value?.conversationMode ?? 'normal'" :reasoning-preference="reasoningPreference" :settings-busy="chat.settingsBusy.value" :learning-available="mode !== 'real' && chat.backendReady.value" :busy="stream.busy.value" :model-unavailable="!canSend" :input-error="chat.drafts.error.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" :files="attachments.files.value" :upload-available="attachments.available.value" :upload-unavailable-reason="uploadUnavailableReason" :upload-blocked="attachments.blocked.value" :image-supported="attachments.imageCompatible.value" :upload-error="attachments.error.value" :upload-error-notified="attachments.errorNotified.value" @mode="chat.setConversationMode" @reasoning="chat.setReasoningPreference" @files="attachments.add" @remove-file="attachments.remove" @retry-file="attachments.retry" @refresh-files="attachments.refresh" @send="send" @stop="stop" />
           <div v-if="chat.settingsError.value" class="px-4 pt-2 text-sm text-error"><details><summary>Einstellung nicht gespeichert.</summary><p>{{ chat.settingsError.value }}</p></details> <UButton label="Einstellung erneut speichern" color="neutral" variant="link" @click="chat.retryConversationSettings" /></div>
           <p v-if="chat.drafts.error.value" role="alert" class="mt-2 text-center text-xs text-error">{{ chat.drafts.error.value }}</p>
         </div>

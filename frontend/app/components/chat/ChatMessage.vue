@@ -2,6 +2,9 @@
 import type { ChatMessage } from '../../lib/chat/types'
 import { useCopy } from '../../composables/useCopy'
 import MarkdownContent from './MarkdownContent'
+import ResearchPanel from './ResearchPanel.vue'
+import { useAppLocale } from '../../composables/useAppLocale'
+import { researchErrorKey } from '../../lib/chat/research'
 import type { ApiSchemas } from '../../types/generated/api'
 import MessageVariants from './MessageVariants.vue'
 import { CHAT_LIMITS } from '../../lib/chat/limits'
@@ -15,6 +18,8 @@ const failure = computed(() => {
 })
 const emit = defineEmits<{ edit: [], regenerate: [], continue: [], rendered: [], selectVariant: [id: string] }>()
 const { copy, copied, copyError } = useCopy()
+const { t } = useAppLocale()
+const researchPanel = ref<InstanceType<typeof ResearchPanel> | null>(null)
 const failedImages = ref<Record<string, boolean>>({})
 function imageFailed(id: string): void { failedImages.value[id] = true; emit('rendered') }
 function retryImage(id: string): void { failedImages.value[id] = false }
@@ -44,7 +49,8 @@ function retryImage(id: string): void { failedImages.value[id] = false }
       </li>
     </ul>
     <div v-if="message.role === 'assistant'" class="assistant-content">
-      <div v-if="message.content" data-selectable-message><MarkdownContent :content="message.content" :streaming="message.status === 'streaming'" @rendered="emit('rendered')" /></div>
+      <ResearchPanel v-if="message.research" ref="researchPanel" :research="message.research" :error-code="message.errorCode" :load-failed="message.researchLoadFailed" />
+      <div v-if="message.content" data-selectable-message><MarkdownContent :content="message.content" :streaming="message.status === 'streaming'" :citations="message.research?.citations ?? []" @citation="(marker, event) => researchPanel?.openCitation(marker, event)" @rendered="emit('rendered')" /></div>
       <div v-else-if="message.status === 'submitting' || message.status === 'streaming'" class="thinking-dot" aria-hidden="true" />
       <p v-if="message.status === 'cancelled'" class="mt-3 text-xs text-muted">Antwort gestoppt.</p>
       <p v-else-if="message.status === 'incomplete'" class="mt-3 text-xs text-muted">Antwort unvollständig.</p>
@@ -52,7 +58,7 @@ function retryImage(id: string): void { failedImages.value[id] = false }
         <span>Antwort fehlgeschlagen.</span>
         <UButton color="neutral" variant="link" label="Erneut versuchen" :disabled="busy" @click="emit('regenerate')" />
       </div>
-      <details v-if="message.status === 'failed' || (message.status === 'incomplete' && message.errorCode)" class="message-error-details text-xs text-muted"><summary>Fehlerdetails</summary><p>{{ failure.message }}</p><pre class="notification-diagnostics">{{ formatDiagnostics(failure.diagnostics) }}</pre></details>
+      <details v-if="message.status === 'failed' || (message.status === 'incomplete' && message.errorCode)" class="message-error-details text-xs text-muted"><summary>Fehlerdetails</summary><p>{{ message.research ? t(researchErrorKey(message.errorCode)) : failure.message }}</p><pre class="notification-diagnostics">{{ formatDiagnostics(failure.diagnostics) }}</pre></details>
       <UButton v-if="canContinue" color="neutral" variant="outline" label="Weiterschreiben" class="mt-3 min-h-11" :disabled="busy" @click="emit('continue')" />
       <p v-if="message.status === 'incomplete' && !message.errorMessage && (message.continuationCount ?? 0) >= CHAT_LIMITS.max_continuations" class="mt-3 text-xs text-muted">Fortsetzungslimit erreicht. Der bisherige Text bleibt erhalten.</p>
       <p v-else-if="message.status === 'incomplete' && message.content.length >= CHAT_LIMITS.max_response_chars" class="mt-3 text-xs text-muted">Die Größenbegrenzung dieser Antwort ist erreicht.</p>

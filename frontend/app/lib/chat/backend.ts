@@ -19,6 +19,7 @@ export function conversationFromServer(value: ServerConversation): Conversation 
 }
 export function messageFromServer(value: ServerMessage): ChatMessage {
   return {
+    ...(value.research ? { research: value.research } : {}),
     id: value.id, conversationId: value.conversationId, parentMessageId: value.parentMessageId,
     role: value.role, content: value.content, createdAt: new Date(value.createdAt).toISOString(),
     status: value.status === 'pending' ? 'submitting' : value.status,

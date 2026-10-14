@@ -153,6 +153,8 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         )
         manager = cast(GenerationManager, application.state.chat_generations)
         manager.tools = runtime
+        application.state.chat_settings = config.model_copy(update={"research_enabled": True})
+        application.state.chat_service.tools = runtime.repository
         manager.research = ResearchOrchestrator(
             config.model_copy(update={"research_enabled": True}),
             manager.repository,
@@ -163,8 +165,8 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
 
         async def generate(peer: Peer, command: GenerateIncomingMessage) -> None:
             # Only this disposable test composition recognizes the marker. The
-            # product app exposes no activation command or research API.
-            activated = command.content.startswith("/p7b ")
+            # Public P7c intent uses the real server authorization below.
+            activated = command.content.startswith("/p7b ") or command.research is not None
             token = research_sources.set(activated)
             try:
                 await original_generate(

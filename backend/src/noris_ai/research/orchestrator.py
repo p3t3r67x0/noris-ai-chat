@@ -18,6 +18,7 @@ from noris_ai.research.grounding import FetchedSource, GroundingContextBuilder
 from noris_ai.research.planner import plan_research
 from noris_ai.research.schemas import (
     ResearchActivation,
+    ResearchIntent,
     ResearchProjection,
     ResearchState,
     UnavailableSource,
@@ -51,7 +52,7 @@ class ResearchOrchestrator:
     async def prepare(
         self,
         request: PersistedChatRequest,
-        activation: ResearchActivation,
+        activation: ResearchActivation | ResearchIntent,
         check_cancel: Callable[[], None],
     ) -> PersistedChatRequest:
         """Returns an already admitted request; caller uses the existing gateway stream.
@@ -61,9 +62,13 @@ class ResearchOrchestrator:
         """
         if not self.config.research_enabled:
             raise LLMError("RESEARCH_DISABLED", 403)
-        if activation.owner_id != self.config.chat_owner_id:
+        owner = (
+            activation.owner_id
+            if isinstance(activation, ResearchActivation)
+            else self.config.chat_owner_id
+        )
+        if owner != self.config.chat_owner_id:
             raise LLMError("RESEARCH_INVALID", 403)
-        owner = activation.owner_id
         generation = UUID(request.generationId)
         conversation = UUID(request.conversationId)
         deadline = utc_now() + timedelta(seconds=self.config.research_timeout_seconds)
@@ -104,7 +109,14 @@ class ResearchOrchestrator:
             async with asyncio.timeout(self.config.research_timeout_seconds):
                 await fence()
                 question = await self.chat.research_question(owner, request)
-                plan = plan_research(question, activation.language, deadline)
+                plan = plan_research(
+                    question,
+                    activation.language,
+                    deadline,
+                    explicit=activation.explicit
+                    if isinstance(activation, ResearchActivation)
+                    else True,
+                )
                 model, capacity = await self.gateway.research_capacity(request)
                 if plan.intent == "not_required":
                     projection = await self.chat.claim_research(owner, generation, plan)
@@ -141,7 +153,16 @@ class ResearchOrchestrator:
                 # research. Final content is checked against this ceiling at dispatch.
                 await self.gateway.reserve(request, input_token_reserve=capacity)
                 admitted = True
-                projection = await self.chat.claim_research(owner, generation, plan)
+                await fence()
+                # Only now is public intent converted into trusted activation:
+                # persisted scope, model, context, both permissions, budget and
+                # cancel fences have passed the one existing admission path.
+                trusted = (
+                    activation
+                    if isinstance(activation, ResearchActivation)
+                    else ResearchActivation(owner, activation.language, explicit=True)
+                )
+                projection = await self.chat.claim_research(trusted.owner_id, generation, plan)
                 calls = 0
 
                 async def call(
@@ -160,7 +181,7 @@ class ResearchOrchestrator:
                     run_id = uuid5(generation, step)
                     calls += 1
                     await self.tools.execute(
-                        owner,
+                        trusted.owner_id,
                         ToolRunCreate(
                             id=run_id,
                             conversation_id=conversation,
@@ -194,7 +215,9 @@ class ResearchOrchestrator:
                         raise LLMError("RESEARCH_FAILED")
                     searches.append(SavedSearch(run, result))
                 await stage("selecting")
-                selected = select_sources(question, searches, plan.max_fetches)
+                selected = select_sources(
+                    question, searches, min(plan.max_fetches, max(1, capacity // 4000))
+                )
                 await stage("fetching")
                 documents: list[FetchedSource] = []
                 unavailable: list[UnavailableSource] = []

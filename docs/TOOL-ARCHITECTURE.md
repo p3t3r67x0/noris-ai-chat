@@ -1,5 +1,11 @@
 # Tool-Architektur für das Plus-Menü
 
+P7c integriert inzwischen die versionierte Benutzeraktivierung und autorisierte
+Quellenanzeige: [Web Search UX](WEB-SEARCH-UX.md). Die nachfolgenden Angaben zu
+P7b/P2 beschreiben deren ursprünglichen Stand; Researchstatus verwendet jetzt
+additiv dieselbe Outboxsequenz mit `researchEventVersion: 1`. ToolEventVersion 1
+und der bestehende Socket bleiben unverändert.
+
 Aktueller Implementierungsnachtrag: [P1b](TOOL-RUNTIME.md) und [P2](TOOL-EVENTS.md)
 sind gemergt. [P6](SEARXNG-TOOL-INTEGRATION.md) bindet den bestehenden SearXNGProvider
 an die vorhandene Runtime an. Grants und automatische Chat-Websuche bleiben deaktiviert.

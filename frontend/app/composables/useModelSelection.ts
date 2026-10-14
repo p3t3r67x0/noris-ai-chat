@@ -13,7 +13,7 @@ const MOCK_MODELS = [
   { id: 'fast', label: 'noris Fast', description: 'Für schnelle Ideen' },
 ]
 
-export interface ChatModel { id: string, label: string, description: string, category?: string, virtual?: boolean, disabled?: boolean, providerDescription?: string, contextWindow?: number, effectiveOutputLimit?: number, imageInput?: boolean, reasoningPreferences?: ReasoningPreference[] }
+export interface ChatModel { researchEligible?: boolean, id: string, label: string, description: string, category?: string, virtual?: boolean, disabled?: boolean, providerDescription?: string, contextWindow?: number, effectiveOutputLimit?: number, imageInput?: boolean, reasoningPreferences?: ReasoningPreference[] }
 export const CHAT_MODELS = reactive<ChatModel[]>(MOCK_MODELS.map(model => ({ ...model })))
 export type ChatModelId = string
 export function isChatModelId(value: unknown): value is ChatModelId {
@@ -57,6 +57,7 @@ export function useModelSelection(options: { mode?: 'mock' | 'real' | 'websocket
             'description' in value && typeof value.description === 'string' ? value.description : '',
             modelDetails(value as Record<string, unknown>, isStale),
           ].filter(Boolean).join(' · '),
+          researchEligible: 'research_eligible' in value && value.research_eligible === true,
           category: 'category' in value && typeof value.category === 'string' ? value.category : '',
           reasoningPreferences: !isStale && value.available === true && value.streaming === true && 'reasoning' in value && value.reasoning === true && 'reasoning_preferences' in value && Array.isArray(value.reasoning_preferences) ? value.reasoning_preferences.filter(isReasoningPreference) : [],
           virtual: 'virtual' in value && value.virtual === true, disabled: isStale || value.available !== true || value.streaming !== true,

@@ -16,17 +16,17 @@ export type ComposerMenuItem = DropdownMenuItem & { unavailable: boolean }
 
 // A real handler is required to enable an entry. Future integrations register
 // their existing action here rather than adding a placeholder click action.
-export function composerMenuItems(t: (key: MessageKey) => string, actions: Partial<Record<ComposerAction, () => void>>, uploadAvailable: boolean, uploadUnavailableReason?: string | null, options: { learningAvailable?: boolean, learningActive?: boolean } = {}): ComposerMenuItem[] {
+export function composerMenuItems(t: (key: MessageKey) => string, actions: Partial<Record<ComposerAction, () => void>>, uploadAvailable: boolean, uploadUnavailableReason?: string | null, options: { learningAvailable?: boolean, learningActive?: boolean, webAvailable?: boolean, webActive?: boolean, webReason?: string | null | undefined } = {}): ComposerMenuItem[] {
   return entries.map(entry => {
     const action = actions[entry.id]
-    const disabled = !action || (entry.id === 'upload' && !uploadAvailable) || (entry.id === 'learning' && options.learningAvailable === false)
+    const disabled = !action || (entry.id === 'upload' && !uploadAvailable) || (entry.id === 'learning' && options.learningAvailable === false) || (entry.id === 'web' && options.webAvailable === false)
     return {
       label: t(entry.label),
-      description: entry.id === 'upload' && !uploadAvailable ? uploadUnavailableReason || t('uploadPreparing') : entry.id === 'learning' && options.learningActive ? t('selected') : t(entry.description),
+      description: entry.id === 'web' && options.webAvailable === false ? options.webReason || t('researchUnavailable') : entry.id === 'web' && options.webActive ? t('selected') : entry.id === 'upload' && !uploadAvailable ? uploadUnavailableReason || t('uploadPreparing') : entry.id === 'learning' && options.learningActive ? t('selected') : t(entry.description),
       icon: entry.icon,
       disabled,
       unavailable: !action,
-      ...(entry.id === 'learning' && options.learningActive ? { class: 'composer-menu-selected' } : {}),
+      ...(((entry.id === 'learning' && options.learningActive) || (entry.id === 'web' && options.webActive)) ? { class: 'composer-menu-selected' } : {}),
       ...(!disabled ? { onSelect: action } : {}),
     }
   })

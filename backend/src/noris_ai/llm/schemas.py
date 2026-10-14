@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import Annotated, Literal, Self
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, computed_field, field_validator, model_validator
 
 from noris_ai.core.schemas import ApiSchema
 
@@ -108,6 +108,18 @@ class LLMModel(ApiSchema):
     provider_context_window: int | None = Field(default=None, ge=256, le=2_000_000)
     reasoning_reserve_tokens: int = Field(default=0, ge=0, le=65_536)
 
+    @property
+    def research_eligible(self) -> bool:
+        """The same capability decision used by research admission and UI hints."""
+        return (
+            self.available
+            and self.chat_approved
+            and self.streaming
+            and self.is_ready is not False
+            and (not self.input_modalities or "text" in self.input_modalities)
+            and (not self.output_modalities or "text" in self.output_modalities)
+        )
+
     @model_validator(mode="after")
     def output_fits_context(self) -> Self:
         if (
@@ -165,8 +177,17 @@ class ChatLimits(ApiSchema):
     max_continuations: int = Field(ge=1, le=20)
 
 
+class CatalogLLMModel(LLMModel):
+    """Read-only catalog projection; derived capability never enters policy input."""
+
+    @computed_field
+    @property
+    def research_eligible(self) -> bool:
+        return super().research_eligible
+
+
 class ModelCatalog(ApiSchema):
-    models: list[LLMModel]
+    models: list[CatalogLLMModel]
     default_model: str | None
     limits: ChatLimits
     status: Literal["fresh", "stale"] = "fresh"
