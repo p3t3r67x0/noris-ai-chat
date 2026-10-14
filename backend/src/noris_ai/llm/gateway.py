@@ -34,7 +34,13 @@ from noris_ai.llm.schemas import (
 from noris_ai.llm.titles import TitleInstruction, log_title_event, title_source, validate_title
 from noris_ai.llm.tokens import TokenCounter
 from noris_ai.llm.vision import VisionMessage, supports_images
+from noris_ai.research.schemas import (
+    ExternalSourceContent,
+    GroundedChatRequest,
+    ResearchInstruction,
+)
 from noris_ai.tools.budget import BudgetCoordinator
+from noris_ai.tools.cancellation import drain_cleanup
 from noris_ai.tools.errors import ToolError
 from noris_ai.tools.registry import payload_digest
 
@@ -65,8 +71,11 @@ class LLMGateway:
         self._counter = TokenCounter(config)
         self._answer_targets: dict[str, tuple[str, str]] = {}
         self._continuation_ids: set[str] = set()
+        self._input_ceilings: dict[str, int] = {}
 
-    async def reserve(self, request: ChatRequest) -> None:
+    async def reserve(self, request: ChatRequest, *, input_token_reserve: int = 0) -> None:
+        if not 0 <= input_token_reserve <= 12000:
+            raise LLMError("CONTEXT_LIMIT", 413)
         model = apply_preference(
             await self.catalog.require(request.modelId), request.reasoningPreference
         )
@@ -83,20 +92,35 @@ class LLMGateway:
                 raise LLMError("GENERATION_ACTIVE", 409)
             if len(self._continuation_ids) >= 10_000:
                 raise LLMError("RATE_LIMIT", 429)
-        self._reserve(request.generationId, model, self.provider_messages(request))
+        self._reserve(
+            request.generationId,
+            model,
+            self.provider_messages(request),
+            input_token_reserve=input_token_reserve,
+        )
         try:
             await self._reserve_durable(
-                request.generationId, model, self.provider_messages(request)
+                request.generationId,
+                model,
+                self.provider_messages(request),
+                input_token_reserve=input_token_reserve,
             )
         except BaseException:
-            self.release(request.generationId)
+            # The ledger may have committed before cancellation reaches this
+            # await. Settle that possible reservation, not just the local slot.
+            await self.abandon(request.generationId)
             raise
         self._answer_targets[request.generationId] = target
         if request.operation == "continue":
             self._continuation_ids.add(request.generationId)
 
     async def _reserve_durable(
-        self, phase: str, model: LLMModel, messages: Sequence[ProviderMessage]
+        self,
+        phase: str,
+        model: LLMModel,
+        messages: Sequence[ProviderMessage],
+        *,
+        input_token_reserve: int = 0,
     ) -> None:
         if self.budget is None:
             return
@@ -104,6 +128,7 @@ class LLMGateway:
             self._counter.estimate(messages, model.id)
             + model.max_output_tokens
             + model.reasoning_reserve_tokens
+            + input_token_reserve
         )
         digest = payload_digest(
             json.dumps(
@@ -117,11 +142,11 @@ class LLMGateway:
                 ensure_ascii=False,
             ).encode()
         )
+        self._durable_phases.add(phase)
         try:
             await self.budget.reserve_text(
                 self.config.chat_owner_id, phase, digest, tokens, self.config.llm_daily_token_budget
             )
-            self._durable_phases.add(phase)
         except ToolError as error:
             raise LLMError(
                 "BUDGET_LIMIT" if error.code == "BUDGET_LIMIT" else "GENERATION_ACTIVE",
@@ -148,11 +173,10 @@ class LLMGateway:
                 self._durable_phases.discard(phase)
 
     async def abandon(self, phase: str) -> None:
-        with anyio.CancelScope(shield=True):
-            try:
-                await self._finish_durable(phase, unknown=True)
-            finally:
-                self.release(phase)
+        try:
+            await drain_cleanup(asyncio.create_task(self._finish_durable(phase, unknown=True)))
+        finally:
+            self.release(phase)
 
     def check_input(self, request: ChatRequest, model: LLMModel) -> None:
         """Side-effect-free admission checks, also used to fit PDF excerpts."""
@@ -183,12 +207,37 @@ class LLMGateway:
         if reservation > model.context_window:
             raise LLMError("CONTEXT_LIMIT", 413)
 
+    def input_tokens(self, request: ChatRequest, model: LLMModel) -> int:
+        return self._counter.estimate(self.provider_messages(request), model.id)
+
+    async def research_capacity(self, request: ChatRequest) -> tuple[LLMModel, int]:
+        model = apply_preference(
+            await self.catalog.require(request.modelId), request.reasoningPreference
+        )
+        if (
+            not model.streaming
+            or not model.chat_approved
+            or (model.input_modalities and "text" not in model.input_modalities)
+            or (model.output_modalities and "text" not in model.output_modalities)
+        ):
+            raise LLMError("MODEL_UNAVAILABLE", 400)
+        self.check_input(request, model)
+        return model, min(
+            12000,
+            model.context_window
+            - self.input_tokens(request, model)
+            - model.max_output_tokens
+            - model.reasoning_reserve_tokens,
+        )
+
     def _reserve(
         self,
         generation_id: str,
         model: LLMModel,
         messages: Sequence[ProviderMessage],
         output_limit: int | None = None,
+        *,
+        input_token_reserve: int = 0,
     ) -> LLMModel:
         if self.provider is None:
             raise LLMError("LLM_DISABLED", 503)
@@ -205,7 +254,12 @@ class LLMGateway:
                 update={"max_output_tokens": min(output_limit, model.max_output_tokens)}
             )
         estimate = self._counter.estimate(messages, model.id)
-        reservation = estimate + model.max_output_tokens + model.reasoning_reserve_tokens
+        reservation = (
+            estimate
+            + input_token_reserve
+            + model.max_output_tokens
+            + model.reasoning_reserve_tokens
+        )
         if reservation > model.context_window:
             raise LLMError("CONTEXT_LIMIT", 413)
         if generation_id in self._active:
@@ -224,10 +278,13 @@ class LLMGateway:
         if self._reserved_tokens + reservation > self.config.llm_daily_token_budget:
             raise LLMError("BUDGET_LIMIT", 429)
         self._estimated_costs[generation_id] = estimate_cost(
-            model.cost, estimate, model.max_output_tokens + model.reasoning_reserve_tokens
+            model.cost,
+            estimate + input_token_reserve,
+            model.max_output_tokens + model.reasoning_reserve_tokens,
         )
         self._active.add(generation_id)
         self._admitted[generation_id] = model
+        self._input_ceilings[generation_id] = estimate + input_token_reserve
         self._recent.append(now)
         self._reserved_tokens += reservation
         return model
@@ -237,6 +294,11 @@ class LLMGateway:
         messages: list[ProviderMessage] = list(continuation_messages(request))
         if isinstance(request, PersistedChatRequest) and request.conversationMode == "learning":
             messages.insert(0, LearningInstruction())
+        if isinstance(request, GroundedChatRequest):
+            messages.insert(0, ResearchInstruction())
+            # External content never receives a privileged role and is never
+            # interpolated into the fixed instruction or the user's question.
+            messages.insert(1, ExternalSourceContent(content=request.research_context))
         return messages
 
     async def conversation_title(
@@ -340,8 +402,13 @@ class LLMGateway:
                 if admitted:
                     with anyio.CancelScope(shield=True):
                         try:
-                            await self._finish_durable(
-                                generation_id, unknown=dispatched and not succeeded
+                            await drain_cleanup(
+                                asyncio.create_task(
+                                    self._finish_durable(
+                                        generation_id,
+                                        unknown=dispatched and not succeeded,
+                                    )
+                                )
                             )
                         finally:
                             self.release(generation_id)
@@ -351,9 +418,13 @@ class LLMGateway:
         self._answer_targets.pop(generation_id, None)
         self._admitted.pop(generation_id, None)
         self._estimated_costs.pop(generation_id, None)
+        self._input_ceilings.pop(generation_id, None)
 
     async def events(
-        self, request: ChatRequest
+        self,
+        request: ChatRequest,
+        *,
+        before_stream: Callable[[], Awaitable[None]] | None = None,
     ) -> AsyncGenerator[
         StartedEvent | DeltaEvent | CompletedEvent | IncompleteEvent | FailedEvent | None
     ]:
@@ -408,11 +479,37 @@ class LLMGateway:
                 raise LLMError(code)
 
         try:
+            self.check_input(request, model)
+            if (
+                request.modelId != model.id
+                or self.input_tokens(request, model) > self._input_ceilings[request.generationId]
+            ):
+                raise LLMError("CONTEXT_LIMIT", 413)
+            if (
+                isinstance(request, GroundedChatRequest)
+                and request.research_deadline_at
+                and request.research_deadline_at <= datetime.now(UTC)
+            ):
+                raise LLMError("TIMEOUT", 504)
             await self._dispatch_durable(request.generationId)
             dispatched = True
+            if before_stream is not None:
+                await before_stream()
+            if (
+                isinstance(request, GroundedChatRequest)
+                and request.research_deadline_at
+                and request.research_deadline_at <= datetime.now(UTC)
+            ):
+                raise LLMError("TIMEOUT", 504)
             iterator = provider.stream(self.provider_messages(request), model)
             async with asyncio.timeout(
-                min(model.timeout_policy.total_seconds, self.config.llm_total_timeout_seconds)
+                min(
+                    model.timeout_policy.total_seconds,
+                    self.config.llm_total_timeout_seconds,
+                    max(0, (request.research_deadline_at - datetime.now(UTC)).total_seconds())
+                    if isinstance(request, GroundedChatRequest) and request.research_deadline_at
+                    else self.config.llm_total_timeout_seconds,
+                )
             ):
                 while True:
                     pending = asyncio.ensure_future(anext(iterator))
@@ -479,8 +576,13 @@ class LLMGateway:
                         await close()
                 finally:
                     try:
-                        await self._finish_durable(
-                            request.generationId, unknown=dispatched and not succeeded
+                        await drain_cleanup(
+                            asyncio.create_task(
+                                self._finish_durable(
+                                    request.generationId,
+                                    unknown=dispatched and not succeeded,
+                                )
+                            )
                         )
                     finally:
                         self.release(request.generationId)

@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     readiness_timeout_seconds: float = Field(default=3.0, gt=0, le=30)
     searxng_enabled: bool = False
     source_fetch_enabled: bool = False
+    # Binding alone grants no permission and no browser request can enable research.
+    research_enabled: bool = False
+    research_timeout_seconds: int = Field(default=60, ge=1, le=120)
     llm_provider: Literal["disabled", "openai-compatible"] = "disabled"
     llm_base_url: str | None = None
     llm_allowed_hosts: tuple[str, ...] = ()

@@ -9,6 +9,12 @@ class LLMError(Exception):
 
 
 MESSAGES = {
+    "RESEARCH_DISABLED": "Die Recherche ist nicht freigeschaltet.",
+    "RESEARCH_UNAVAILABLE": "Die Recherche ist derzeit nicht verfügbar.",
+    "RESEARCH_INVALID": "Die Anfrage ist für die Recherche nicht zulässig.",
+    "RESEARCH_NO_SOURCES": "Die Recherche hat keine verwendbaren Quellen geliefert.",
+    "RESEARCH_FAILED": "Die Recherche konnte nicht sicher abgeschlossen werden.",
+    "RESEARCH_APPROVAL_REQUIRED": "Die Recherche benötigt eine ausdrückliche Freigabe.",
     "LLM_DISABLED": "Die Modellanbindung ist nicht freigeschaltet.",
     "ACCESS_DENIED": "Bitte melde dich für den Modellzugriff an.",
     "ORIGIN_DENIED": "Diese Herkunft ist für Modellanfragen nicht zugelassen.",

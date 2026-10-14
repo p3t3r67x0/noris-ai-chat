@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { CHAT_STORAGE_KEY } from '../../app/lib/chat/persistence'
+import { stableModelCatalog } from '../websocket/chat-fixtures'
 
 const fixtureOrigin = `http://127.0.0.1:${Number(process.env.NORIS_E2E_PROVIDER_PORT ?? 8591)}`
 
@@ -67,6 +68,11 @@ test('Retry and model switching keep only the original active path', async ({ pa
 
 for (const finish of ['long', 'length'] as const) {
   test(`${finish}: preserves >8192 simulator tokens, state and reload`, async ({ page }, info) => {
+    // Stream limits are independent of the one-second catalog expiry fixture.
+    // Keep actual model capabilities valid during the model-select/Enter sequence.
+    await stableModelCatalog(page)
+    await page.reload()
+    await expect(page.locator('[data-ready="true"]')).toBeVisible()
     await page.getByRole('button', { name: 'Modell auswählen', exact: true }).click()
     await page.getByRole('option', { name: 'Fixture Long' }).click()
     await page.getByRole('textbox', { name: 'Nachricht', exact: true }).fill(`/${finish === 'long' ? 'tokens-long' : 'length'} ${info.project.name}`)

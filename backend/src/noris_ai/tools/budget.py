@@ -1,5 +1,6 @@
 """Durable conservative accounting. All mutators lock owner before chat resources."""
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
@@ -156,6 +157,52 @@ async def bound_transaction(session: AsyncSession) -> None:
 class BudgetCoordinator:
     def __init__(self, database: ModelDatabase) -> None:
         self.database = database
+
+    async def check_tool_capacity(
+        self,
+        owner: UUID,
+        generation: UUID,
+        requirements: Sequence[tuple[BudgetAmount, BudgetAmount, BudgetAmount, str]],
+    ) -> None:
+        """Read-only admission snapshot; per-call runtime reservation stays mandatory.
+
+        Aggregate all planned calls conservatively against each permission. This
+        does not reserve or guarantee capacity against concurrent generations.
+        """
+        from noris_ai.tools.models import ToolRun
+
+        async with self.database() as session, session.begin():
+            await lock_owner(session, owner)
+            prior = list(
+                await session.scalars(
+                    select(BudgetReservation)
+                    .join(ToolRun, ToolRun.id == BudgetReservation.run_id)
+                    .where(
+                        ToolRun.owner_id == owner,
+                        ToolRun.generation_id == generation,
+                        BudgetReservation.state != "released",
+                    )
+                )
+            )
+            currencies = {currency for _, _, _, currency in requirements}
+            if len(currencies) != 1 or any(r.currency not in currencies for r in prior):
+                raise ToolError("BUDGET_LIMIT")
+            planned = BudgetAmount(
+                calls=sum(amount.calls for amount, _, _, _ in requirements),
+                tokens=sum(amount.tokens for amount, _, _, _ in requirements),
+                bytes=sum(amount.bytes for amount, _, _, _ in requirements),
+                cost=sum((amount.cost for amount, _, _, _ in requirements), Decimal(0)),
+            )
+            total = BudgetAmount(
+                **{k: getattr(planned, k) + sum(getattr(r, k) for r in prior) for k in DIMENSIONS}
+            )
+            for _, daily, generation_limit, currency in requirements:
+                day = await session.get(BudgetDay, (owner, utc_now().date(), "tools", currency))
+                day_total = BudgetAmount(
+                    **{k: getattr(planned, k) + (getattr(day, k) if day else 0) for k in DIMENSIONS}
+                )
+                if not total.fits(generation_limit) or not day_total.fits(daily):
+                    raise ToolError("BUDGET_LIMIT")
 
     async def reserve_in(
         self,

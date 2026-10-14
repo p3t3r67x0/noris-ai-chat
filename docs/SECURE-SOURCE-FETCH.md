@@ -550,3 +550,15 @@ DOMsemantik; sehr große einzelne Markuptokens werden bewusst abgewiesen.
 V1 hat weiterhin keinen Trunkierungsmarker. Loggingguard gilt für den gepinnten
 HTTPX/httpcore-HTTP/1-Stack; Änderungen seiner Logger/Transporte erfordern dieselbe
 Leakprüfung. Kein Merge, Deployment, produktiver Start oder P7b-Orchestrierung.
+
+
+## P7b: interne Research-Orchestrierung
+
+[Research Orchestration](RESEARCH-ORCHESTRATION.md) verwendet die bestehende
+Generation, ToolRuntime, Policy-/Budgetreservation und P2-Outbox für deterministische
+Search-/Fetchsteps und begrenzten Gatewaykontext. Standardflag bleibt false;
+keine Produktroute oder Benutzeraktivierung. Migration 0017 ergänzt ausschließlich
+eine nullable begrenzte Provenienzprojektion an ChatGeneration. Stop persistiert
+den vorhandenen Generation-Cancelfence auch zwischen Toolsteps; Replay und
+Startup-Recovery starten keine neue Recherche. Sichtbare Zitat-UX folgt separat
+in P7c, ohne automatisch neue WebSocket-Events oder Execute-APIs einzuführen.

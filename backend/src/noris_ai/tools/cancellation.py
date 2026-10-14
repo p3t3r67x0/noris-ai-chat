@@ -3,9 +3,25 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
+import anyio
+
 from noris_ai.chat.repository import utc_now
 from noris_ai.tools.budget import BudgetAmount
 from noris_ai.tools.errors import ToolError
+
+
+async def drain_cleanup(task: asyncio.Task[None]) -> None:
+    """Existing cleanup fence shared by runtime and gateway; drain repeated cancels."""
+    interrupted = False
+    with anyio.CancelScope(shield=True):
+        while not task.done():
+            try:
+                await asyncio.shield(task)
+            except asyncio.CancelledError:
+                interrupted = True
+        task.result()
+    if interrupted:
+        raise asyncio.CancelledError
 
 
 @dataclass(frozen=True)

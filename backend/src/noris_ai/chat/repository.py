@@ -5,6 +5,8 @@ override ownership. The message tree is append-only: edits and regenerations
 create siblings instead of overwriting messages.
 """
 
+import asyncio
+import json
 import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
@@ -36,8 +38,9 @@ from noris_ai.chat.schemas import (
 )
 from noris_ai.chat.stream import append_event
 from noris_ai.chat.ws_protocol import GenerateIncomingMessage
-from noris_ai.llm.schemas import ReasoningPreference
+from noris_ai.llm.schemas import PersistedChatRequest, ReasoningPreference
 from noris_ai.llm.titles import fallback_title
+from noris_ai.research.schemas import ResearchPlan, ResearchProjection, ResearchState
 
 ModelDatabase = async_sessionmaker[AsyncSession]
 UNCHANGED = object()
@@ -572,6 +575,120 @@ class ChatRepository:
             raise ChatError("GENERATION_NOT_FOUND", 404)
         return generation
 
+    async def _research_scope(
+        self,
+        session: AsyncSession,
+        owner: uuid.UUID,
+        generation_id: uuid.UUID,
+        *,
+        finalizing: bool = False,
+    ) -> ChatGeneration:
+        from noris_ai.tools.budget import bound_transaction
+
+        await bound_transaction(session)
+        scope = await session.get(ChatGeneration, generation_id)
+        if scope is None or scope.owner_id != owner:
+            raise ChatError("GENERATION_NOT_FOUND", 404)
+        conversation = await session.scalar(
+            select(ChatConversation)
+            .where(
+                ChatConversation.id == scope.conversation_id,
+                ChatConversation.owner_id == owner,
+            )
+            .with_for_update()
+        )
+        generation = await session.scalar(
+            select(ChatGeneration)
+            .where(ChatGeneration.id == generation_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        if (
+            generation is None
+            or conversation is None
+            or conversation.deleted_at is not None
+            or (not finalizing and conversation.archived_at is not None)
+        ):
+            raise ChatError("NOT_FOUND", 404)
+        if not finalizing and (
+            generation.status not in ("queued", "running") or generation.cancelled_at
+        ):
+            raise asyncio.CancelledError
+        return generation
+
+    async def research_question(self, owner: uuid.UUID, request: PersistedChatRequest) -> str:
+        async with self.database() as session, session.begin():
+            generation = await self._research_scope(session, owner, uuid.UUID(request.generationId))
+            if generation.research is not None:
+                raise ChatError("GENERATION_ACTIVE", 409)
+            if (
+                str(generation.conversation_id) != request.conversationId
+                or str(generation.input_message_id) != request.inputMessageId
+                or generation.model_id != request.modelId
+                or generation.operation != "generate"
+                or request.operation != "generate"
+            ):
+                raise ChatError("INVALID_INPUT", 422)
+            message = await session.get(ChatMessage, generation.input_message_id)
+            if message is None or message.conversation_id != generation.conversation_id:
+                raise ChatError("NOT_FOUND", 404)
+            return message.content
+
+    async def claim_research(
+        self,
+        owner: uuid.UUID,
+        generation_id: uuid.UUID,
+        plan: ResearchPlan,
+    ) -> ResearchProjection:
+        async with self.database() as session, session.begin():
+            generation = await self._research_scope(session, owner, generation_id)
+            if generation.research is not None:
+                # A restart/reconnect cannot resume external work, even a completed
+                # search. Runtime results remain available through authorized reads.
+                raise ChatError("GENERATION_ACTIVE", 409)
+            projection = ResearchProjection(
+                generation_id=generation_id,
+                execution_id=uuid.uuid4(),
+                state="planning",
+                plan=plan,
+            )
+            generation.research = projection.model_dump(mode="json")
+            return projection
+
+    async def update_research(
+        self,
+        owner: uuid.UUID,
+        projection: ResearchProjection,
+        expected: ResearchState,
+        *,
+        finalizing: bool = False,
+    ) -> None:
+        async with self.database() as session, session.begin():
+            generation = await self._research_scope(
+                session,
+                owner,
+                projection.generation_id,
+                finalizing=finalizing,
+            )
+            current = ResearchProjection.model_validate_json(json.dumps(generation.research))
+            if (
+                current.execution_id != projection.execution_id
+                or current.state != expected
+                or current.plan != projection.plan
+            ):
+                raise ChatError("GENERATION_ACTIVE", 409)
+            generation.research = projection.model_dump(mode="json")
+
+    async def request_generation_cancel(self, owner: uuid.UUID, generation_id: uuid.UUID) -> None:
+        async with self.database() as session, session.begin():
+            generation = await self._research_scope(session, owner, generation_id, finalizing=True)
+            if generation.status in ("queued", "running") and generation.cancelled_at is None:
+                generation.cancelled_at = utc_now()
+
+    async def check_generation_live(self, owner: uuid.UUID, generation_id: uuid.UUID) -> None:
+        async with self.database() as session, session.begin():
+            await self._research_scope(session, owner, generation_id)
+
     async def list_stream_events(
         self, generation_id: uuid.UUID, *, after_sequence: int = 0
     ) -> Sequence[ChatStreamEvent]:
@@ -610,6 +727,15 @@ class ChatRepository:
             for generation in await session.scalars(
                 select(ChatGeneration).where(ChatGeneration.id.in_(generation_ids))
             ):
+                if generation.research is not None:
+                    projection = ResearchProjection.model_validate_json(
+                        json.dumps(generation.research)
+                    )
+                    generation.research = projection.model_copy(
+                        update={
+                            "state": "cancelled" if generation.cancelled_at else "interrupted",
+                        }
+                    ).model_dump(mode="json")
                 await self._reveal_conversation(session, generation)
             await session.commit()
             return count
@@ -920,6 +1046,40 @@ class ChatRepository:
             )
             if generation is None or generation.status not in ("queued", "running"):
                 raise ChatError("GENERATION_NOT_FOUND", 404)
+            if generation.cancelled_at and status not in ("running", "queued"):
+                status, error_code = "cancelled", None
+                payload["type"] = "chat.generation.cancelled"
+                payload.pop("code", None)
+                payload.pop("message", None)
+                payload.pop("reason", None)
+            response_observed = (
+                generation.research is not None
+                and bool(generation.research.get("sources"))
+                and not generation.research.get("model_response_observed", False)
+                and payload.get("type") == "chat.generation.delta"
+                and isinstance(payload.get("delta"), str)
+                and bool(payload["delta"])
+            )
+            if generation.research is not None and (
+                response_observed or status not in ("running", "queued")
+            ):
+                from noris_ai.research.grounding import assess_answer
+
+                projection = ResearchProjection.model_validate_json(json.dumps(generation.research))
+                if response_observed:
+                    projection = projection.model_copy(update={"model_response_observed": True})
+                if status not in ("running", "queued"):
+                    projection = projection.model_copy(
+                        update={
+                            "state": "skipped"
+                            if projection.state == "skipped"
+                            else "completed"
+                            if status in ("completed", "incomplete")
+                            else status,
+                            "assessment": assess_answer(content, projection.sources),
+                        }
+                    )
+                generation.research = projection.model_dump(mode="json")
             # Tool writes may have advanced the same sequence since the last
             # chat batch. Allocate under the DB lock, never from local memory.
             append_event(session, generation, payload)

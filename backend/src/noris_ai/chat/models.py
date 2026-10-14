@@ -313,6 +313,11 @@ class ChatGeneration(Base):
             " OR output_tokens IS NOT NULL AND input_tokens IS NOT NULL",
             name="usage_complete",
         ),
+        CheckConstraint(
+            "research IS NULL OR (jsonb_typeof(research) = 'object' "
+            "AND octet_length(research::text) <= 131072)",
+            name="research_bound",
+        ),
         Index("ix_chat_generation_conversation", "conversation_id"),
         Index("ix_chat_generation_status", "status"),
     )
@@ -336,6 +341,8 @@ class ChatGeneration(Base):
     output_tokens: Mapped[int | None] = mapped_column(Integer)
     input_tokens: Mapped[int | None] = mapped_column(Integer)
     last_sequence: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # Internal bounded provenance, not a new chat/event/result store.
+    research: Mapped[dict[str, object] | None] = mapped_column(JSONB(none_as_null=True))
 
 
 class ChatStreamEvent(Base):

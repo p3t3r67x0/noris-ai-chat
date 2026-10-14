@@ -1,4 +1,4 @@
-import { clearTestConversations } from './chat-fixtures'
+import { clearTestConversations, stableModelCatalog } from './chat-fixtures'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
@@ -162,7 +162,16 @@ test('a validated image requires explicit selection of a compatible model', asyn
 })
 
 test('vision attachments survive model changes and reload and reach the provider as image parts', async ({ page, request }) => {
+  // This case exercises model capabilities and the preserved image request.
+  // Keep the fixture catalog valid across Enter; expiry has its own regressions.
   await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: fixtureModels, imageIds: ['fixture-beta'] } })
+  // The backend can still cache the preceding text-only fixture for one second.
+  // Verify the updated capability before retaining its metadata in the browser.
+  await expect.poll(async () => {
+    const catalog = await (await request.get('/api/v1/llm/models')).json()
+    return catalog.models.find((model: { id: string, vision?: boolean }) => model.id === 'fixture-beta')?.vision
+  }).toBe(true)
+  await stableModelCatalog(page)
   await page.goto('/')
   const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
   await input.evaluate(element => { element.dataset.instance = 'original-vision-composer' })

@@ -7,8 +7,16 @@ from noris_ai.llm.provider_models import ProviderModel
 from noris_ai.llm.schemas import LLMMessage, LLMModel
 from noris_ai.llm.titles import TitleInstruction
 from noris_ai.llm.vision import VisionMessage
+from noris_ai.research.schemas import ExternalSourceContent, ResearchInstruction
 
-type ProviderMessage = LLMMessage | TitleInstruction | ContinuationInstruction | LearningInstruction
+type ProviderMessage = (
+    LLMMessage
+    | TitleInstruction
+    | ContinuationInstruction
+    | LearningInstruction
+    | ResearchInstruction
+    | ExternalSourceContent
+)
 
 
 def provider_payload(message: ProviderMessage) -> dict[str, object]:
