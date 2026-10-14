@@ -1,4 +1,4 @@
-import { clearTestConversations } from './chat-fixtures'
+import { clearTestConversations, stableModelCatalog } from './chat-fixtures'
 import { expect, test } from '@playwright/test'
 import type { ApiSchemas } from '../../app/types/generated/api'
 import type { APIRequestContext } from '@playwright/test'
@@ -172,6 +172,9 @@ test('search keeps rows while loading, handles failures and ignores an obsolete 
 
 test('keeps loaded ancestors after streaming and restores a saved reader anchor on reload', async ({ page, request }) => {
   test.setTimeout(120000)
+  // This case verifies history and reader anchors. A one-second fixture refresh
+  // must not invalidate the catalog between click actionability and dispatch.
+  await stableModelCatalog(page)
   const conversationId = await seed(request)
   expect((await request.put('/api/v1/chat/preferences', { data: { activeConversationId: conversationId, modelId: 'fixture-long' } })).ok()).toBe(true)
   await page.goto('/')
