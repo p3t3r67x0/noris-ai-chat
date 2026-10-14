@@ -20,6 +20,12 @@ Chip bleibt nach dem Versand aktiv, bis er ausdrücklich entfernt wird. Neue Cha
 übernehmen keinen alten `__new__`-Modus. Die konkrete Nachricht erhält ihre
 serverseitige ResearchProjection unabhängig vom Browserstate.
 
+Beim erstmaligen Upload entstehen Chat und Entwurfscope über die vorhandene
+Persistenz. Ein verspäteter History-/Draftread überschreibt keine lokalen
+Änderungen von vor oder während dieses Reads, auch wenn deren Speicherung
+inzwischen bestätigt wurde. Unveränderte Entwürfe werden weiterhin vom Server
+geladen; Modellwahl und Fokuswechsel löschen keinen Text.
+
 Vor dem Versand werden Katalog und Researchverfügbarkeit aufgefrischt. Modell,
 Conversation, Entwurf, Rechercheauswahl und Anhänge dürfen während dieser
 asynchronen Prüfung nicht unbemerkt wechseln. Andernfalls wird nichts versendet
@@ -272,6 +278,7 @@ Befunde wurden vor Abschluss korrigiert und mit Regressionen versehen:
 | Entitykodierter Platzhalter konnte ein zusätzliches Quellenzitat erzeugen. | Zufälliger Renderprefix, exakte Unicodepositionen; Entity-/Code-/Link-/Unknownmarkerregression. |
 | Async Admission konnte alten Draft in einen inzwischen ausgewählten Chat senden. | Scope-/Modell-/Draft-/Attachmentguard; verzögerte Capability mit Chatwechsel im Browser. |
 | Erstmaliges Vorbereiten des Chats verlor den aktiven Webmodus. | Synchroner Modustransfer mit bestehender Draftscope-Erstellung; Settingsunit und Uploadbrowserregression. |
+| Verspäteter leerer Draftread überschreibt einen inzwischen bestätigten lokalen Save beim ersten Upload. | Zustand beim Readstart sowie unveränderter Draftref/Text prüfen; Regressionen für Edits vor/während Read, A→B→A und unveränderten Serverdraft nach Cacheeviction. Bestehende Upload-/Fokus-/Modellbrowserassertionen bleiben erhalten. |
 | Programmatisches Modal stellte den Fokus nicht auf den externen Trigger zurück. | Explizite Fokuswiederherstellung; getrennte Source-/Zitat-/Escape-Browserassertions. |
 | Englische Researchfehler erschienen im bestehenden Toast auf Deutsch. | Lokalisierung am vorhandenen Notificationsport; English-Panel-/Toastregression. |
 | Zusätzliche defensive Readerbindungen fehlten. | Assistantrole/Generationbackref sowie Inputdigest neben Resultat-/Dokumentdigest. |

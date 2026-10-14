@@ -171,6 +171,9 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       if (conversation && !backend.versions.has(id)) await backend.ensure(conversation)
       if (disposed || controller.signal.aborted || id === state.generatingConversationId.value) return
       await cache.read(id, async () => {
+        const draftRecords = state.drafts.records.value
+        const draftAtRead = draftRecords[id]
+        const pendingAtRead = Object.hasOwn(pendingDrafts, id)
         const [result, drafts] = await Promise.all([
           backend.path(id, {}, controller.signal),
           backend.request<ApiSchemas['DraftListResponse']>(`/chat/drafts?keys=${id}`, 'GET', undefined, controller.signal),
@@ -179,8 +182,12 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
         // A stream may have started while the request was pending.
         if (id === state.generatingConversationId.value) return
         if (result.conversation.version < (backend.versions.get(id) ?? 0) && result.leafMessageId !== state.conversations.records.value[id]?.activeLeafMessageId) throw new TransportError('VERSION_CONFLICT')
+        // A successful save can clear pendingDrafts before this older read returns.
+        // Preserve edits from before/during the read, including replace-and-restore.
+        const applyDraft = !pendingAtRead && !Object.hasOwn(pendingDrafts, id)
+          && state.drafts.records.value === draftRecords && state.drafts.records.value[id] === draftAtRead
         applyPath(result, preserve)
-        if (!Object.hasOwn(pendingDrafts, id)) {
+        if (applyDraft) {
           const content = drafts.drafts.find(draft => draft.key === id)?.content ?? ''
           sentDrafts[id] = content; state.drafts.records.value[id] = content
         }
