@@ -15,11 +15,13 @@ def check_package(path: Path) -> None:
             if any(not (member.isfile() or member.isdir()) for member in members):
                 raise ValueError("Source package contains links or special files")
             names = [member.name for member in members]
+            file_names = [member.name for member in members if member.isfile()]
     elif path.suffix == ".whl":
         with ZipFile(path) as archive:
             if any(stat.S_ISLNK(member.external_attr >> 16) for member in archive.infolist()):
                 raise ValueError("Wheel contains links")
             names = archive.namelist()
+            file_names = [member.filename for member in archive.infolist() if not member.is_dir()]
     else:
         raise ValueError("Unsupported backend package")
     expected = path.name.removesuffix(".tar.gz")
@@ -47,12 +49,23 @@ def check_package(path: Path) -> None:
                 "PKG-INFO",
             }:
                 raise ValueError("Source package contains unexpected inputs")
+            if len(parts) > 2 and parts[1] == "src" and parts[2] != "noris_ai":
+                raise ValueError("Source package contains an unexpected module")
         elif parts[0] not in {"noris_ai", metadata}:
             raise ValueError("Wheel contains unexpected inputs")
-    if not any(name.endswith("noris_ai/main.py") for name in names):
+    files = (
+        {name.removeprefix(expected + "/") for name in file_names} if source else set(file_names)
+    )
+    if ("src/noris_ai/main.py" if source else "noris_ai/main.py") not in files:
         raise ValueError("Backend package is missing application source")
-    if source and not any("/migrations/versions/" in name for name in names):
-        raise ValueError("Source package is missing migrations")
+    if source:
+        if not {"pyproject.toml", "uv.lock", "alembic.ini"}.issubset(files):
+            raise ValueError("Source package is missing build configuration")
+        for directory in ("migrations/versions/", "scripts/", "tests/"):
+            if not any(name.startswith(directory) and name.endswith(".py") for name in files):
+                raise ValueError("Source package is missing required inputs")
+    elif not {f"{metadata}/{name}" for name in ("METADATA", "WHEEL", "RECORD")}.issubset(files):
+        raise ValueError("Wheel is missing build metadata")
 
 
 if __name__ == "__main__":

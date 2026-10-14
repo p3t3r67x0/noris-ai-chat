@@ -232,6 +232,8 @@ Befunde wurden vor Abschluss korrigiert und mit Regressionen versehen:
 | Programmatisches Modal stellte den Fokus nicht auf den externen Trigger zurück. | Explizite Fokuswiederherstellung; getrennte Source-/Zitat-/Escape-Browserassertions. |
 | Englische Researchfehler erschienen im bestehenden Toast auf Deutsch. | Lokalisierung am vorhandenen Notificationsport; English-Panel-/Toastregression. |
 | Zusätzliche defensive Readerbindungen fehlten. | Assistantrole/Generationbackref sowie Inputdigest neben Resultat-/Dokumentdigest. |
+| Der bestehende Sourcepaketbau übernahm lokale Uploads und Testtraces. | Ausdrückliche Sdistdateiauswahl; tatsächliche Wheel-/Sdistprüfung im vorhandenen Buildgate. |
+| Nachgebaute Pflichtdateisuffixe konnten das neue Paketgate täuschen. | Exakte relative Quellen-/Configpfade und echte Datei-/Migrations-/Test-/Scriptprüfung; 20 Paketregressionen. |
 
 Der Reviewer meldete keine offenen bestätigten Codebefunde und reproduzierte
 49 Backend- sowie 40 Frontendtests erfolgreich. Browser-/CI-Gesamtgates und

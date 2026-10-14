@@ -8,9 +8,22 @@ import pytest
 from scripts.check_package import check_package
 
 
-def package(tmp_path: Path, extra: str | None = None) -> Path:
+def package(tmp_path: Path, extra: str | None = None, missing: str | None = None) -> Path:
     path = tmp_path / "noris_ai_backend-0.1.0.tar.gz"
-    names = ["src/noris_ai/main.py", "migrations/versions/initial.py"]
+    names = [
+        "src/noris_ai/main.py",
+        "migrations/versions/initial.py",
+        "scripts/check.py",
+        "tests/test_app.py",
+        "pyproject.toml",
+        "uv.lock",
+        "alembic.ini",
+    ]
+    if missing:
+        names.remove(missing)
+        # Similar suffixes in a nested test fixture cannot replace real inputs.
+        if not missing.startswith("tests/"):
+            names.append(f"tests/{missing}")
     if extra:
         names.append(extra)
     with tarfile.open(path, "w:gz") as archive:
@@ -56,13 +69,34 @@ def test_source_distribution_rejects_links_without_extraction(tmp_path: Path):
 
 
 @pytest.mark.parametrize(
+    "missing",
+    [
+        "src/noris_ai/main.py",
+        "migrations/versions/initial.py",
+        "scripts/check.py",
+        "tests/test_app.py",
+        "pyproject.toml",
+        "uv.lock",
+        "alembic.ini",
+    ],
+)
+def test_nested_fixture_paths_cannot_replace_actual_source_package_inputs(
+    tmp_path: Path, missing: str
+):
+    path = package(tmp_path, missing=missing)
+    with pytest.raises(ValueError):
+        check_package(path)
+
+
+@pytest.mark.parametrize(
     "local", [None, "noris_ai/.env", "noris_ai/../../private", "/private", "operator/credentials"]
 )
 def test_wheel_contains_only_application_and_metadata(tmp_path: Path, local: str | None):
     path = tmp_path / "noris_ai_backend-0.1.0-py3-none-any.whl"
     with ZipFile(path, "w") as archive:
         archive.writestr("noris_ai/main.py", "")
-        archive.writestr("noris_ai_backend-0.1.0.dist-info/METADATA", "")
+        for name in ("METADATA", "WHEEL", "RECORD"):
+            archive.writestr(f"noris_ai_backend-0.1.0.dist-info/{name}", "")
         if local:
             archive.writestr(local, "")
     if local:
