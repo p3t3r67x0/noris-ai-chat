@@ -21,6 +21,7 @@ export function safeMarkdownHref(value: string): string | undefined {
 }
 
 function renderCitationText(value: string, environment: CitationEnvironment, citation: (marker: string, event: MouseEvent) => void, label: string, inLink: boolean): (VNode | string)[] {
+  if (!environment.replacements.size) return [value]
   const nodes: (VNode | string)[] = []
   let previous = 0
   for (const match of value.matchAll(new RegExp(`${environment.prefix}\\d+\uE001`, 'g'))) {

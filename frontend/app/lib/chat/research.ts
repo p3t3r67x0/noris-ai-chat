@@ -41,9 +41,10 @@ export function sourceDomain(value: string): string {
 export function citationPlaceholders(content: string, citations: ResearchView['citations']) {
   let prefix = `\uE000noris${crypto.randomUUID()}_`
   while (content.includes(prefix)) prefix += '_'
+  const replacements = new Map<string, string>()
+  if (!citations.length) return { content, prefix, replacements, restore: (value: string) => value }
   const offsets = [0]
   for (const character of content) offsets.push(offsets.at(-1)! + character.length)
-  const replacements = new Map<string, string>()
   let result = '', previous = 0
   for (const citation of [...citations].sort((a, b) => a.start - b.start).slice(0, 256)) {
     const start = offsets[citation.start], end = offsets[citation.end]

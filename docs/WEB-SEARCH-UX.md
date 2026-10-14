@@ -23,7 +23,9 @@ serverseitige ResearchProjection unabhängig vom Browserstate.
 Vor dem Versand werden Katalog und Researchverfügbarkeit aufgefrischt. Modell,
 Conversation, Entwurf, Rechercheauswahl und Anhänge dürfen während dieser
 asynchronen Prüfung nicht unbemerkt wechseln. Andernfalls wird nichts versendet
-oder gelöscht. Ungeeignete Modelle erhalten einen lokalisierten Hinweis; Auswahl,
+oder gelöscht. Während einer gestarteten Recherche kann ein Modell für den nächsten
+Versand gewählt werden; die laufende Generation behält ihr ursprüngliches Modell.
+Ungeeignete Modelle erhalten einen lokalisierten Hinweis; Auswahl,
 Text und Anhänge bleiben erhalten. Es erfolgt kein Ersatzmodellwechsel.
 
 Uploads, Plusmenü, Lernen, Reasoning, Enter/Shift+Enter, bestehendes Autosizing und

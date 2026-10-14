@@ -15,7 +15,7 @@ import type { UploadEntry } from '../../composables/useChatAttachments'
 import { composerMenuItems } from '../../lib/chat/composerMenu'
 const { t } = useAppLocale()
 
-const props = defineProps<{ researchAvailable?: boolean, researchError?: string | null, busy: boolean, streaming: boolean, cancellationRequested: boolean, modelUnavailable?: boolean, inputError?: string | null, files?: UploadEntry[], uploadAvailable?: boolean, uploadUnavailableReason?: string | null, uploadBlocked?: boolean, uploadError?: string | null, uploadErrorNotified?: boolean, imageSupported?: boolean, conversationMode?: ConversationMode, reasoningPreference?: ReasoningPreference | null, settingsBusy?: boolean, learningAvailable?: boolean }>()
+const props = defineProps<{ modelSelectionBusy?: boolean, researchAvailable?: boolean, researchError?: string | null, busy: boolean, streaming: boolean, cancellationRequested: boolean, modelUnavailable?: boolean, inputError?: string | null, files?: UploadEntry[], uploadAvailable?: boolean, uploadUnavailableReason?: string | null, uploadBlocked?: boolean, uploadError?: string | null, uploadErrorNotified?: boolean, imageSupported?: boolean, conversationMode?: ConversationMode, reasoningPreference?: ReasoningPreference | null, settingsBusy?: boolean, learningAvailable?: boolean }>()
 const notifications = useAppNotifications()
 const text = defineModel<string>({ required: true })
 const webSearch = defineModel<boolean>('research', { default: false })
@@ -183,7 +183,7 @@ defineExpose({ focus })
           <UButton ref="attachmentButton" icon="i-lucide-plus" color="neutral" variant="ghost" class="composer-attachment touch-control" :aria-label="t('composerActions')" :title="t('composerActions')" @click="slashRange = null" />
         </UDropdownMenu>
         <div class="composer-model-controls">
-          <ChatModelMenu v-model="model" :busy="busy || settingsBusy" compact :label="t('composerModel')" />
+          <ChatModelMenu v-model="model" :busy="modelSelectionBusy ?? (busy || settingsBusy)" compact :label="t('composerModel')" />
           <ChatReasoningMenu v-if="showReasoning" :model="selectedModel" :preference="reasoningPreference" :disabled="settingsBusy || busy" :anchor="container" @select="emit('reasoning', $event)" />
         </div>
         <UChatPromptSubmit

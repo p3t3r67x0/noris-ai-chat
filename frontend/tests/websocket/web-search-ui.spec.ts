@@ -157,3 +157,24 @@ test('P7c chat switch during pending admission never sends the old draft to anot
   await expect.poll(async () => (await (await request.get('/api/v1/chat/drafts')).json()).drafts.map((draft: { content: string }) => draft.content)).toContain('Research draft A')
   expect(drafts.drafts.map((draft: { content: string }) => draft.content)).toContain('Research draft A')
 })
+
+test('P7c model change during research affects only the next request', async ({ page, request }) => {
+  await page.goto('/')
+  await enable(page)
+  const commands: Record<string, unknown>[] = []
+  page.on('websocket', socket => socket.on('framesent', frame => commands.push(JSON.parse(String(frame.payload)))))
+  await input(page).fill('QGIS-slow')
+  await input(page).press('Enter')
+  await expect(page.locator('[data-research-state="searching"]')).toBeVisible()
+  const original = commands.find(command => command.type === 'chat.generate')!
+  await page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true }).click()
+  await page.getByRole('option', { name: /Fixture Beta/ }).click()
+  await expect(page.locator('[data-research-selected]')).toBeVisible()
+  await expect(page.locator('.message-assistant').last()).toHaveAttribute('data-status', 'completed', { timeout: 30_000 })
+  const path = await (await request.get(`/api/v1/conversations/${original.conversationId}/active-path`)).json()
+  expect(path.messages.at(-1).modelId).toBe(original.modelId)
+  await input(page).fill('What is QGIS?')
+  await input(page).press('Enter')
+  await expect(page.locator('.message-assistant').last()).toHaveAttribute('data-status', 'completed', { timeout: 30_000 })
+  expect(commands.filter(command => command.type === 'chat.generate').at(-1)).toMatchObject({ modelId: 'fixture-beta', research: { mode: 'web' } })
+})

@@ -63,6 +63,7 @@ watch([stream.status, stream.busy], ([status, busy]) => {
   notifications?.reportError({ code }, context, canRecover ? retry : { label: 'Chat öffnen', onClick: () => { if (context.conversationId) conversations.select(context.conversationId) } })
 })
 provide(workspaceKey, { chat, selection, mode, importAvailable: computed(() => Boolean(transport.backend) && chat.importAvailable.value) })
+const modelSelectionBusy = computed(() => stream.busy.value && !chat.messages.value[stream.context.value.resourceId ?? '']?.research)
 const { t, language } = useAppLocale()
 const researchCapability = ref<ApiSchemas['ResearchCapability'] | null>(null)
 async function refreshResearch(): Promise<void> {
@@ -209,7 +210,7 @@ function saveEdit(): void {
       />
     </div>
     <main v-show="!inSettings" id="chat-main" class="chat-main" aria-label="Chat" tabindex="-1" :inert="inSettings">
-      <ChatHeader v-model:model="modelId" :sidebar-open="sidebarOpen" :busy="stream.busy.value" :demo="mode === 'mock'" @toggle-sidebar="sidebarOpen = !sidebarOpen" @new-chat="newChat" />
+      <ChatHeader v-model:model="modelId" :sidebar-open="sidebarOpen" :busy="modelSelectionBusy" :demo="mode === 'mock'" @toggle-sidebar="sidebarOpen = !sidebarOpen" @new-chat="newChat" />
       <div class="chat-content" :data-empty="empty">
         <p v-if="chat.pagination?.historyLoading.value" role="status" class="p-4 text-sm text-muted">Chat wird geladen …</p>
         <div v-if="chat.pagination?.historyError.value" class="p-4 text-sm text-warning">
@@ -225,7 +226,7 @@ function saveEdit(): void {
             <UButton color="neutral" variant="link" label="Modelle neu laden" :loading="modelsLoading" @click="refreshModels()" />
           </div>
           <p v-show="!empty" class="composer-note">{{ t('disclaimer') }}</p>
-          <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" v-model:research="chat.researchMode.value" :research-available="Boolean(researchCapability?.available) || chat.researchMode.value" :research-error="researchError" :conversation-mode="conversations.active.value?.conversationMode ?? 'normal'" :reasoning-preference="reasoningPreference" :settings-busy="chat.settingsBusy.value" :learning-available="mode !== 'real' && chat.backendReady.value" :busy="stream.busy.value" :model-unavailable="!canSend" :input-error="chat.drafts.error.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" :files="attachments.files.value" :upload-available="attachments.available.value" :upload-unavailable-reason="uploadUnavailableReason" :upload-blocked="attachments.blocked.value" :image-supported="attachments.imageCompatible.value" :upload-error="attachments.error.value" :upload-error-notified="attachments.errorNotified.value" @mode="chat.setConversationMode" @reasoning="chat.setReasoningPreference" @files="attachments.add" @remove-file="attachments.remove" @retry-file="attachments.retry" @refresh-files="attachments.refresh" @send="send" @stop="stop" />
+          <ChatComposer ref="composer" v-model="draft" v-model:model="modelId" v-model:research="chat.researchMode.value" :model-selection-busy="modelSelectionBusy || chat.settingsBusy.value" :research-available="Boolean(researchCapability?.available) || chat.researchMode.value" :research-error="researchError" :conversation-mode="conversations.active.value?.conversationMode ?? 'normal'" :reasoning-preference="reasoningPreference" :settings-busy="chat.settingsBusy.value" :learning-available="mode !== 'real' && chat.backendReady.value" :busy="stream.busy.value" :model-unavailable="!canSend" :input-error="chat.drafts.error.value" :streaming="stream.status.value === 'streaming'" :cancellation-requested="stream.cancellationRequested.value" :files="attachments.files.value" :upload-available="attachments.available.value" :upload-unavailable-reason="uploadUnavailableReason" :upload-blocked="attachments.blocked.value" :image-supported="attachments.imageCompatible.value" :upload-error="attachments.error.value" :upload-error-notified="attachments.errorNotified.value" @mode="chat.setConversationMode" @reasoning="chat.setReasoningPreference" @files="attachments.add" @remove-file="attachments.remove" @retry-file="attachments.retry" @refresh-files="attachments.refresh" @send="send" @stop="stop" />
           <div v-if="chat.settingsError.value" class="px-4 pt-2 text-sm text-error"><details><summary>Einstellung nicht gespeichert.</summary><p>{{ chat.settingsError.value }}</p></details> <UButton label="Einstellung erneut speichern" color="neutral" variant="link" @click="chat.retryConversationSettings" /></div>
           <p v-if="chat.drafts.error.value" role="alert" class="mt-2 text-center text-xs text-error">{{ chat.drafts.error.value }}</p>
         </div>
