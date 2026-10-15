@@ -2,7 +2,7 @@
 import { useAppNotifications } from '../../composables/useAppNotifications'
 import { useAppLocale } from '../../composables/useAppLocale'
 import { CHAT_LIMITS } from '../../lib/chat/limits'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, useId, watch } from 'vue'
 import ChatModelMenu from './ChatModelMenu.vue'
 import ChatReasoningMenu from './ChatReasoningMenu.vue'
 import { CHAT_MODELS } from '../../composables/useModelSelection'
@@ -10,12 +10,14 @@ import type { ReasoningPreference } from '../../lib/chat/reasoning'
 import { reasoningChoices } from '../../lib/chat/reasoning'
 import type { ConversationMode } from '../../lib/chat/conversations'
 import type { ChatModelId } from '../../composables/useModelSelection'
+import { useComposerDictation } from '../../composables/useComposerDictation'
 import { useComposerAutosize } from '../../composables/useComposerAutosize'
 import type { UploadEntry } from '../../composables/useChatAttachments'
 import { composerMenuItems } from '../../lib/chat/composerMenu'
-const { t } = useAppLocale()
+const { t, language } = useAppLocale()
+const privacyId = useId()
 
-const props = defineProps<{ modelSelectionBusy?: boolean, researchAvailable?: boolean, researchError?: string | null, busy: boolean, streaming: boolean, cancellationRequested: boolean, modelUnavailable?: boolean, inputError?: string | null, files?: UploadEntry[], uploadAvailable?: boolean, uploadUnavailableReason?: string | null, uploadBlocked?: boolean, uploadError?: string | null, uploadErrorNotified?: boolean, imageSupported?: boolean, conversationMode?: ConversationMode, reasoningPreference?: ReasoningPreference | null, settingsBusy?: boolean, learningAvailable?: boolean }>()
+const props = defineProps<{ conversationId?: string | null, modelSelectionBusy?: boolean, researchAvailable?: boolean, researchError?: string | null, busy: boolean, streaming: boolean, cancellationRequested: boolean, modelUnavailable?: boolean, inputError?: string | null, files?: UploadEntry[], uploadAvailable?: boolean, uploadUnavailableReason?: string | null, uploadBlocked?: boolean, uploadError?: string | null, uploadErrorNotified?: boolean, imageSupported?: boolean, conversationMode?: ConversationMode, reasoningPreference?: ReasoningPreference | null, settingsBusy?: boolean, learningAvailable?: boolean }>()
 const notifications = useAppNotifications()
 const text = defineModel<string>({ required: true })
 const webSearch = defineModel<boolean>('research', { default: false })
@@ -27,7 +29,14 @@ const selectedModel = computed(() => CHAT_MODELS.find(item => item.id === model.
 const showReasoning = computed(() => reasoningChoices(selectedModel.value).length > 0)
 const prompt = ref<{ textareaRef: HTMLTextAreaElement | undefined } | null>(null)
 const hasAttachments = computed(() => Boolean(props.files?.length))
-const autosize = useComposerAutosize(prompt, text, hasAttachments)
+const hasHeader = computed(() => hasAttachments.value || learning.value)
+const autosize = useComposerAutosize(prompt, text, hasHeader)
+const dictation = useComposerDictation(text, language, focus)
+watch(() => props.busy, busy => { if (busy) dictation.stop() })
+watch(() => props.conversationId, dictation.stop)
+function focusLeft(event: FocusEvent): void {
+  if (!(event.relatedTarget instanceof Node) || !container.value?.contains(event.relatedTarget)) dictation.stop()
+}
 watch([learning, webSearch, showReasoning, model], () => nextTick(autosize.resize), { flush: 'post' })
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploadMenu = ref(false)
@@ -118,6 +127,7 @@ function sizeLabel(bytes: number): string { return bytes < 1024 * 1024 ? `${Math
 const tooLong = computed(() => text.value.length > CHAT_LIMITS.max_message_chars)
 function submit(): void {
   if (uploadMenu.value || props.settingsBusy || props.busy || props.modelUnavailable || (webSearch.value && props.researchError) || props.inputError || props.uploadBlocked || !text.value.trim() || tooLong.value) return
+  dictation.stop()
   emit('send', text.value)
 }
 function stop(event?: Event): void {
@@ -128,18 +138,18 @@ defineExpose({ focus })
 </script>
 
 <template>
-  <div ref="container" class="composer-container" :data-mode="conversationMode ?? 'normal'" :data-layout="autosize.maximized.value ? 'maximized' : autosize.expanded.value ? 'expanded' : 'compact'" @keydown.capture="menuKeydown">
+  <div ref="container" class="composer-container" :data-mode="conversationMode ?? 'normal'" :data-layout="autosize.maximized.value ? 'maximized' : autosize.expanded.value ? 'expanded' : 'compact'" @keydown.capture="menuKeydown" @focusout="focusLeft">
     <details v-if="uploadError && uploadErrorNotified" class="mb-2 text-xs text-muted"><summary>Anhangaktion fehlgeschlagen.</summary><p>{{ uploadError }}</p><UButton color="neutral" variant="link" label="Anhänge neu laden" @click="emit('refreshFiles')" /></details>
     <p v-else-if="uploadError" role="alert" class="mb-2 text-center text-xs text-error">{{ uploadError }}</p>
     <p v-if="tooLong" role="status" class="mb-2 text-center text-xs text-error">Die Nachricht darf höchstens {{ CHAT_LIMITS.max_message_chars.toLocaleString('de-DE') }} Zeichen enthalten.</p>
     <UChatPrompt
-      ref="prompt" v-model="text" :aria-label="t('message')" :placeholder="t('prompt')" :autofocus="false" :rows="1"
-      variant="naked" color="neutral" :autoresize="false" class="chat-composer" :class="{ 'composer-expanded': autosize.expanded.value }"
+      ref="prompt" v-model="text" :aria-label="t('message')" :placeholder="t('prompt')" :autofocus="false" :rows="1" :aria-describedby="webSearch ? privacyId : undefined"
+      variant="naked" color="neutral" :autoresize="false" class="chat-composer" :class="{ 'composer-expanded': autosize.expanded.value || autosize.stacked.value }"
       :ui="{ root: 'gap-0 p-0', header: 'composer-files', body: 'composer-body', base: 'composer-input overflow-y-auto', footer: 'composer-toolbar' }"
       @submit="submit"
       @input="inputChanged"
     >
-      <template v-if="hasAttachments || learning || webSearch" #header>
+      <template v-if="hasHeader" #header>
         <ul v-if="hasAttachments" class="attachment-list" aria-label="Anhänge und Textreferenzen">
           <li v-for="file in files" :key="file.key" class="attachment-preview" :data-upload-status="file.status">
             <UIcon :name="file.mime.startsWith('image/') ? 'i-lucide-image' : 'i-lucide-file-text'" class="size-6 shrink-0" aria-hidden="true" />
@@ -167,16 +177,18 @@ defineExpose({ focus })
             <UButton icon="i-lucide-x" color="neutral" variant="ghost" class="touch-control" :disabled="file.status === 'removing' || (file.status === 'uploading' && !!file.reference)" :aria-label="`${file.filename} entfernen`" @click="removeFile(file.key)" />
           </li>
         </ul>
-        <div v-if="webSearch" class="composer-learning composer-web-search" data-research-selected>
-          <UIcon name="i-lucide-globe" aria-hidden="true" class="size-5 shrink-0" />
-          <span>{{ t('webSearch') }}</span>
-          <UButton icon="i-lucide-x" color="neutral" variant="ghost" class="learning-remove touch-control" :aria-label="t('webSearchOff')" @click="deactivateSearch" />
-        </div>
         <div v-if="learning" class="composer-learning">
           <UIcon name="i-lucide-book-open" aria-hidden="true" class="size-5 shrink-0" />
           <span role="status">{{ t('learning') }}</span>
           <UButton icon="i-lucide-x" color="neutral" variant="ghost" class="learning-remove touch-control" :disabled="settingsBusy" :aria-label="t('stopLearning')" @click="deactivateLearning" />
         </div>
+      </template>
+      <template v-if="webSearch" #default>
+        <span class="composer-web-search" data-research-selected :title="t('researchPrivacy')">
+          <UIcon name="i-lucide-globe" aria-hidden="true" class="size-6 shrink-0" />
+          <span>{{ t('webSearch') }}</span>
+          <UButton type="button" icon="i-lucide-x" color="neutral" variant="ghost" class="web-search-remove" :aria-label="t('webSearchOff')" @click="deactivateSearch" />
+        </span>
       </template>
       <template #footer>
         <UDropdownMenu v-model:open="uploadMenu" :items="actionItems" :modal="false" :content="{ side: 'top', align: 'start', ...(container ? { reference: container } : {}), sideOffset: 10, collisionPadding: 12, loop: true, updatePositionStrategy: 'always', onEscapeKeyDown: menuEscape, onCloseAutoFocus: menuClosed, onFocusOutside: menuFocusOutside }" :ui="{ content: 'composer-plus-menu composer-floating-menu composer-action-menu ring-0', viewport: 'p-0', item: 'composer-plus-menu-item composer-menu-item before:hidden', itemLeadingIcon: 'size-5 text-inherit', itemWrapper: 'composer-menu-copy', itemLabel: 'composer-menu-title', itemDescription: 'composer-menu-description' }">
@@ -186,6 +198,7 @@ defineExpose({ focus })
           <ChatModelMenu v-model="model" :busy="modelSelectionBusy ?? (busy || settingsBusy)" compact :label="t('composerModel')" />
           <ChatReasoningMenu v-if="showReasoning" :model="selectedModel" :preference="reasoningPreference" :disabled="settingsBusy || busy" :anchor="container" @select="emit('reasoning', $event)" />
         </div>
+        <UButton type="button" :icon="dictation.listening.value ? 'i-lucide-mic-off' : 'i-lucide-mic'" color="neutral" variant="ghost" class="composer-microphone touch-control" :class="{ 'is-listening': dictation.listening.value }" :disabled="!dictation.supported.value || busy" :aria-pressed="dictation.listening.value" :aria-label="t(dictation.listening.value ? 'stopDictation' : 'startDictation')" :title="t(dictation.supported.value ? 'startDictation' : 'dictationUnavailable')" @click="dictation.toggle" />
         <UChatPromptSubmit
           :status="busy ? (streaming ? 'streaming' : 'submitted') : 'ready'" :disabled="!busy && (settingsBusy || !text.trim() || tooLong || modelUnavailable || (webSearch && !!researchError) || !!inputError || uploadBlocked)"
           color="neutral" variant="solid" streaming-color="neutral" streaming-variant="solid" submitted-color="neutral" submitted-variant="solid"
@@ -194,7 +207,8 @@ defineExpose({ focus })
         />
       </template>
     </UChatPrompt>
-    <p v-if="webSearch" class="research-privacy text-xs text-muted">{{ t('researchPrivacy') }}</p>
+    <p v-if="webSearch" :id="privacyId" class="research-privacy sr-only">{{ t('researchPrivacy') }}</p>
+    <p v-if="dictation.error.value" role="status" class="mt-2 text-sm text-error">{{ t('dictationFailed') }}</p>
     <p v-if="webSearch && researchError" role="status" aria-live="polite" class="mt-2 text-sm text-error">{{ researchError }}</p>
     <input ref="fileInput" type="file" hidden multiple accept=".txt,.md,.markdown,.pdf,.png,.jpg,.jpeg" aria-label="Dateien hinzufügen" @change="filesSelected" @cancel="focus">
   </div>

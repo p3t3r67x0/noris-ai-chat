@@ -1,13 +1,15 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { defineComponent, h } from 'vue'
 import ChatComposer from '../../app/components/chat/ChatComposer.vue'
 
 // Application boundaries are tested here; actual Nuxt UI keyboard/IME behavior is exercised in Playwright.
-const Prompt = defineComponent({ emits: ['submit'], setup: (_, { emit, slots }) => () => h('form', { onSubmit: (event: Event) => { event.preventDefault(); emit('submit', event) } }, [slots.header?.(), slots.footer?.()]) })
+const Prompt = defineComponent({ emits: ['submit'], setup: (_, { emit, slots }) => () => h('form', { onSubmit: (event: Event) => { event.preventDefault(); emit('submit', event) } }, [slots.header?.(), slots.default?.(), slots.footer?.()]) })
 function composer(modelValue: string, busy = false) {
   return mount(ChatComposer, { props: { modelValue, model: 'balanced', busy, streaming: busy, cancellationRequested: false }, global: { stubs: { UChatPrompt: Prompt, UButton: true, USelectMenu: true, UChatPromptSubmit: true } } })
 }
+
+afterEach(() => vi.unstubAllGlobals())
 
 describe('composer application behavior', () => {
   it('emits the draft only for valid input and preserves the original whitespace', async () => {
@@ -27,6 +29,42 @@ describe('composer application behavior', () => {
     await wrapper.get('form').trigger('submit')
     expect(wrapper.emitted('send')).toBeUndefined()
     expect(wrapper.findComponent({ name: 'UChatPromptSubmit' }).attributes('aria-label')).toBe('Antwort stoppen')
+    wrapper.unmount()
+  })
+  it('keeps web search inside the input slot and removes it without editing the draft', async () => {
+    const wrapper = composer('Mein Entwurf')
+    await wrapper.setProps({ research: true, researchAvailable: true })
+    expect(wrapper.get('[data-research-selected]').text()).toContain('Websuche')
+    expect(wrapper.find('.composer-files').exists()).toBe(false)
+    await wrapper.get('[aria-label="Websuche deaktivieren"]').trigger('click')
+    expect(wrapper.emitted('update:research')).toEqual([[false]])
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    wrapper.unmount()
+  })
+  it('retains the research guard and the same send boundary', async () => {
+    const wrapper = composer('Meine Recherche')
+    await wrapper.setProps({ research: true, researchAvailable: true, researchError: 'Nicht verfügbar' })
+    await wrapper.get('form').trigger('submit')
+    expect(wrapper.emitted('send')).toBeUndefined()
+    await wrapper.setProps({ researchError: null })
+    await wrapper.get('form').trigger('submit')
+    expect(wrapper.emitted('send')).toEqual([['Meine Recherche']])
+    wrapper.unmount()
+  })
+  it('stops dictation when switching conversations or leaving the composer', async () => {
+    const abort = vi.fn()
+    vi.stubGlobal('SpeechRecognition', class {
+      start = vi.fn()
+      abort = abort
+    })
+    const wrapper = composer('Mein Entwurf')
+    await wrapper.get('[aria-label="Diktieren"]').trigger('click')
+    expect(wrapper.get('[aria-label="Diktat beenden"]').attributes('aria-pressed')).toBe('true')
+    await wrapper.setProps({ conversationId: 'another-conversation' })
+    expect(abort).toHaveBeenCalledTimes(1)
+    await wrapper.get('[aria-label="Diktieren"]').trigger('click')
+    await wrapper.get('.composer-container').trigger('focusout', { relatedTarget: document.createElement('button') })
+    expect(abort).toHaveBeenCalledTimes(2)
     wrapper.unmount()
   })
   it('passes multiple native files to the existing attachment boundary without editing the draft', async () => {

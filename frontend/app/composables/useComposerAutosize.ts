@@ -3,20 +3,30 @@ import type { Ref } from 'vue'
 
 // Keep Nuxt UI's textarea and IME handling; measure fractional line heights in
 // pixels instead of rounding wrapped text to integer textarea rows.
-export function useComposerAutosize(prompt: Ref<{ textareaRef: HTMLTextAreaElement | undefined } | null>, text: Ref<string>, hasAttachments: Ref<boolean> = ref(false)) {
+export function useComposerAutosize(prompt: Ref<{ textareaRef: HTMLTextAreaElement | undefined } | null>, text: Ref<string>, hasHeader: Ref<boolean> = ref(false)) {
   const expanded = ref(false)
+  const stacked = ref(false)
   const maximized = ref(false)
   let observer: ResizeObserver | undefined
   const widths = new WeakMap<Element, number>()
   let mirror: HTMLTextAreaElement | undefined
+  function measuredHeight(style: CSSStyleDeclaration, width: number, value: string): number {
+    if (!mirror) return 0
+    for (const property of ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'wordSpacing', 'textTransform', 'paddingTop', 'paddingBottom', 'paddingLeft', 'paddingRight', 'tabSize'] as const) mirror.style[property] = style[property]
+    mirror.style.width = `${Math.max(1, width)}px`
+    mirror.value = value
+    return mirror.scrollHeight
+  }
   function fit(): void {
     const input = prompt.value?.textareaRef
-    if (!input) return
+    if (!input || !mirror) return
     const style = getComputedStyle(input)
     const minimum = Number.parseFloat(style.lineHeight) + Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom)
     const top = input.scrollTop
-    input.style.height = '0px'
-    input.style.height = `${Math.max(minimum, input.scrollHeight)}px`
+    // Never collapse the live textarea for measurement. That briefly enlarges
+    // the timeline, clamps its scroll offset, and looks like manual scrolling.
+    const height = measuredHeight(style, Number.parseFloat(style.width) || input.clientWidth, input.value)
+    input.style.height = `${Math.max(minimum, height)}px`
     input.scrollTop = top
     maximized.value = input.scrollHeight > input.clientHeight + 1
   }
@@ -26,28 +36,30 @@ export function useComposerAutosize(prompt: Ref<{ textareaRef: HTMLTextAreaEleme
     if (!input || !root || !mirror) return
     const style = getComputedStyle(input)
     const layout = getComputedStyle(root)
-    const controls = [...root.querySelectorAll<HTMLElement>('.composer-attachment, .composer-model-controls, .composer-submit')]
-    // Measure at the hypothetical compact width even while expanded. Measuring
-    // only the expanded textarea would repeatedly toggle long wrapped sentences.
-    const compactWidth = root.clientWidth - Number.parseFloat(layout.paddingLeft) - Number.parseFloat(layout.paddingRight)
-      - controls.reduce((width, control) => width + Number.parseFloat(getComputedStyle(control).width), 0)
-      - Number.parseFloat(layout.columnGap) * controls.length
-    for (const property of ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'wordSpacing', 'textTransform'] as const) mirror.style[property] = style[property]
-    mirror.style.width = `${Math.max(1, compactWidth - (expanded.value ? 8 : 0))}px`
-    mirror.value = input.value
-    const wrapped = mirror.scrollHeight > Math.ceil(Number.parseFloat(style.lineHeight)) + 1
-    // Reserve a readable empty input when reasoning adds another control.
-    // Use a stable width threshold while the hint is being repainted.
-    const hintNeedsRow = !input.value && root.querySelector('.composer-reasoning') !== null
-      && compactWidth < Number.parseFloat(style.fontSize) * 8
-    const next = hasAttachments.value || wrapped || hintNeedsRow
-    if (expanded.value !== next) {
+    const controls = [...root.querySelectorAll<HTMLElement>('.composer-attachment, .composer-model-controls, .composer-microphone, .composer-submit')]
+    // The same textarea stays mounted. On narrow composers the controls always
+    // occupy the bottom row, so adding/removing the inline search chip cannot
+    // push the model selector over the input or move the actions down a row.
+    const narrow = root.clientWidth < 560
+    const changed = stacked.value !== narrow
+    stacked.value = narrow
+    const padding = Number.parseFloat(layout.paddingLeft) + Number.parseFloat(layout.paddingRight)
+    const prefix = root.querySelector<HTMLElement>('.composer-web-search')
+    const prefixWidth = prefix ? Number.parseFloat(getComputedStyle(prefix).width) + 8 : 0
+    // Measure the hypothetical single-line layout even while expanded to avoid
+    // alternating between two widths when a sentence wraps.
+    const compactWidth = root.clientWidth - padding - prefixWidth - (narrow ? 16
+      : controls.reduce((width, control) => width + Number.parseFloat(getComputedStyle(control).width), 0)
+        + Number.parseFloat(layout.columnGap) * controls.length)
+    const wrapped = measuredHeight(style, compactWidth, input.value) > Math.ceil(Number.parseFloat(style.lineHeight)) + 1
+    const next = hasHeader.value || wrapped
+    if (expanded.value !== next || changed) {
       expanded.value = next
       void nextTick(fit)
     }
     else fit()
   }
-  watch([text, hasAttachments], resize, { flush: 'post' })
+  watch([text, hasHeader], resize, { flush: 'post' })
   onMounted(async () => {
     await nextTick()
     const input = prompt.value?.textareaRef
@@ -82,5 +94,5 @@ export function useComposerAutosize(prompt: Ref<{ textareaRef: HTMLTextAreaEleme
     window.removeEventListener('resize', resize)
     window.visualViewport?.removeEventListener('resize', resize)
   })
-  return { resize, expanded, maximized }
+  return { resize, expanded, stacked, maximized }
 }
