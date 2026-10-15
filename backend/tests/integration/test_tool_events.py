@@ -439,6 +439,7 @@ async def test_commit_between_snapshot_and_subscription_is_drained_once(
         include_tools: bool,
         initial: bool,
         tools_only: bool = False,
+        include_research: bool = False,
     ):
         # Wrap the exact reader, pausing after its transaction has committed.
         batch = await replay(
@@ -451,6 +452,7 @@ async def test_commit_between_snapshot_and_subscription_is_drained_once(
             include_tools=include_tools,
             initial=initial,
             tools_only=tools_only,
+            include_research=include_research,
         )
         snapshot_read.set()
         await release_snapshot.wait()

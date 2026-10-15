@@ -114,6 +114,9 @@ jobs:
   compose-smoke:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    env:
+      # The tool fixture rejects databases without this disposable suffix.
+      POSTGRES_DB: noris_compose_test
     steps:
       - uses: actions/checkout@v7
         with:

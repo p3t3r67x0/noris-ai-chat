@@ -94,9 +94,9 @@ test('keyboard opening and arrow navigation skip unavailable actions; Enter and 
     await trigger.press(key)
     await expect(menu).toBeVisible()
     await expect(uploadFor(page)).toBeFocused()
-    for (const [arrow, learning] of [['ArrowDown', true], ['ArrowUp', false], ['Home', false], ['End', true]] as const) {
+    for (const [arrow, action] of [['ArrowDown', 'learning'], ['ArrowUp', 'upload'], ['Home', 'upload'], ['End', 'web']] as const) {
       await page.keyboard.press(arrow)
-      await expect(learning ? page.getByRole('menuitem', { name: /^Lernen/ }) : uploadFor(page)).toBeFocused()
+      await expect(action === 'learning' ? page.getByRole('menuitem', { name: /^Lernen/ }) : action === 'web' ? page.getByRole('menuitem', { name: /^Websuche/ }) : uploadFor(page)).toBeFocused()
     }
     await page.keyboard.press('Escape')
     await expect(trigger).toBeFocused()
@@ -119,7 +119,8 @@ test('unimplemented tools are visibly disabled and cannot select or send the dra
   await triggerFor(page).click()
   const menu = page.locator('.composer-plus-menu')
   await expect(menu.getByRole('menuitem')).toHaveCount(7)
-  for (const label of ['Aus Bibliothek hinzufügen', 'Bild erstellen', 'Websuche', 'Deep Research', 'Skizzieren']) {
+  await expect(menu.getByRole('menuitem', { name: /^Websuche/ })).not.toHaveAttribute('aria-disabled', 'true')
+  for (const label of ['Aus Bibliothek hinzufügen', 'Bild erstellen', 'Deep Research', 'Skizzieren']) {
     const item = menu.getByRole('menuitem', { name: new RegExp(`^${label}`) })
     await expect(item).toHaveAttribute('aria-disabled', 'true')
     await expect(item).not.toContainText('Noch nicht verfügbar')

@@ -1,5 +1,11 @@
 # P2: versionierte Toolereignisse und persistentes Replay
 
+P7c integriert inzwischen die versionierte Benutzeraktivierung und autorisierte
+Quellenanzeige: [Web Search UX](WEB-SEARCH-UX.md). Die nachfolgenden Angaben zu
+P7b/P2 beschreiben deren ursprünglichen Stand; Researchstatus verwendet jetzt
+additiv dieselbe Outboxsequenz mit `researchEventVersion: 1`. ToolEventVersion 1
+und der bestehende Socket bleiben unverändert.
+
 Grundlage: aktuelles `main` auf `75f35d839c930c1e57205f0eed1b42e6ee8236a9`,
 Merge von PR #63 (P1b). P2 ergänzt Transport und Synchronisation der vorhandenen
 Runtime. [P6](SEARXNG-TOOL-INTEGRATION.md) bindet optional den SearXNG-Handler

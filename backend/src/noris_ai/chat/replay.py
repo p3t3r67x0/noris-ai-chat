@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from noris_ai.chat.errors import ChatError
 from noris_ai.chat.models import ChatConversation, ChatGeneration, ChatMessage, ChatStreamEvent
 from noris_ai.chat.repository import ModelDatabase, utc_now
+from noris_ai.research.schemas import ResearchProjection, ResearchStateEvent
 from noris_ai.tools.events import (
     MAX_GENERATION_TOOL_RUNS,
     TOOL_SNAPSHOT_PAGE_SIZE,
@@ -81,6 +82,7 @@ async def replay(
     include_tools: bool,
     initial: bool,
     tools_only: bool = False,
+    include_research: bool = False,
 ) -> tuple[list[dict[str, object]], int]:
     async with database() as session, session.begin():
         scope = await session.scalar(
@@ -140,6 +142,9 @@ async def replay(
             or len(rows) > capacity
             or (initial and generation.operation == "continue")
             or (not include_tools and any(row.event_type.startswith("tool.") for row in rows))
+            or (
+                not include_research and any(row.event_type.startswith("research.") for row in rows)
+            )
         )
         events: list[dict[str, object]] = []
         # Send tool snapshots BEFORE a replayed terminal chat event: the stream
@@ -182,6 +187,12 @@ async def replay(
                 {
                     "version": 1,
                     "type": "chat.resume.snapshot",
+                    "researchMode": "web" if generation.research is not None else None,
+                    "researchState": ResearchProjection.model_validate_json(
+                        json.dumps(generation.research)
+                    ).state
+                    if generation.research is not None
+                    else None,
                     "generationId": str(generation_id),
                     "conversationId": str(generation.conversation_id),
                     "messageId": str(message.id),
@@ -211,6 +222,16 @@ async def replay(
                 payload = row.payload
                 if tools_only and not row.event_type.startswith("tool."):
                     continue
+                if row.event_type == "research.updated":
+                    research_event = ResearchStateEvent.model_validate_json(json.dumps(payload))
+                    if (
+                        research_event.generationId != generation_id
+                        or research_event.conversationId != generation.conversation_id
+                        or research_event.messageId != generation.assistant_message_id
+                        or research_event.seq != row.sequence
+                    ):
+                        raise ChatError("INVALID_INPUT", 422)
+                    payload = research_event.model_dump(mode="json")
                 if row.event_type.startswith("tool."):
                     event = ToolEvent.model_validate_json(json.dumps(payload))
                     if (

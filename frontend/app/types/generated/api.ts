@@ -42,8 +42,39 @@ export type Generationid = (string | null)
 export type Id2 = string
 export type Modelid = (string | null)
 export type Parentmessageid = (string | null)
+export type ClaimSupport = "unverified"
+export type End = number
+export type Marker = string
+export type Start = number
+/**
+ * @maxItems 256
+ */
+export type Citations = CitationReference[]
+export type Claimsupport = "unverified"
+export type Generationid1 = string
+export type Inherited = boolean
+export type Mode = "web"
+export type Modelresponseobserved = boolean
+export type Sourcegenerationid = string
+export type Contentdigest = (string | null)
+export type Excerpt = (string | null)
+export type Fetchrunid = string
+export type Fetchedat = (string | null)
+export type Finalurl = (string | null)
+export type Marker1 = (string | null)
+export type Originalurl = string
+export type Searchrunid = string
+export type Sourceid = string
+export type Status1 = ("context_prepared" | "unavailable")
+export type Title1 = string
+/**
+ * @maxItems 6
+ */
+export type Sources = ResearchSource[]
+export type State = ("planning" | "searching" | "selecting" | "fetching" | "grounding" | "generating" | "completed" | "failed" | "cancelled" | "interrupted" | "skipped")
+export type Version1 = 1
 export type Role = ("user" | "assistant")
-export type Status1 = ("pending" | "streaming" | "completed" | "incomplete" | "cancelled" | "failed")
+export type Status2 = ("pending" | "streaming" | "completed" | "incomplete" | "cancelled" | "failed")
 export type Updatedat1 = string
 export type Messages = MessageResponse[]
 export type Nextcursor = (string | null)
@@ -66,113 +97,6 @@ export type Visionsupported = boolean
 export type Attachments1 = AttachmentResponse[]
 export type Seq = number
 export type Type = "response.cancelled"
-export type Activeconversationid = (string | null)
-export type Activeleafmessageid1 = (string | null)
-export type Archivedat1 = (string | null)
-export type Conversationmode1 = ("normal" | "learning")
-export type Createdat3 = string
-export type Id3 = string
-export type Pinnedat1 = (string | null)
-export type Title1 = string
-export type Titlesource1 = ("fallback" | "generated" | "manual")
-export type Updatedat2 = string
-export type Version1 = number
-/**
- * @maxItems 500
- */
-export type Conversations = ImportConversation[]
-export type Content1 = string
-export type Continuationcount1 = number
-export type Conversationid2 = string
-export type Createdat4 = string
-export type Editedfrommessageid1 = (string | null)
-export type Errorcode1 = (string | null)
-export type Errormessage1 = (string | null)
-export type Id4 = string
-export type Modelid1 = (string | null)
-export type Parentmessageid1 = (string | null)
-export type Role1 = ("user" | "assistant")
-export type Status2 = ("pending" | "streaming" | "completed" | "incomplete" | "cancelled" | "failed")
-export type Updatedat3 = string
-/**
- * @maxItems 10000
- */
-export type Messages1 = ImportMessage[]
-export type Conversationid3 = string
-export type Reason = ("exists_with_different_data" | "invalid_parent" | "invalid_leaf" | "duplicate_message")
-export type Conflicts = ImportConflict[]
-export type Draftsimported = number
-export type Imported = string[]
-export type Skipped = string[]
-export type MaxContinuations = number
-export type MaxMessageChars = number
-export type MaxResponseChars = number
-export type MaxStreamBytes = number
-export type StreamIdleTimeoutMs = number
-export type StreamTimeoutMs = number
-export type Assistantmessageid = (string | null)
-export type Attempt = number
-export type Continuationcount2 = number
-export type Conversationid4 = string
-export type Generationid1 = string
-export type Inputmessageid = string
-/**
- * @minItems 1
- * @maxItems 100
- */
-export type Messages2 = [LLMMessage, ...(LLMMessage)[]]
-export type Content2 = string
-export type Role2 = ("user" | "assistant")
-export type Modelid2 = string
-export type Operation = ("generate" | "continue")
-export type Seq1 = number
-export type Type1 = "response.completed"
-export type Conversationmode2 = ("normal" | "learning")
-export type Id5 = (string | null)
-export type Prepared = boolean
-export type Title2 = (string | null)
-export type Conversations1 = ConversationResponse[]
-export type Hasmore1 = boolean
-export type Nextcursor1 = (string | null)
-export type Conversationid5 = string
-export type Firstmessage = string
-export type Inputmessageid1 = string
-export type Modelid3 = string
-export type Conversationid6 = string
-export type Inputmessageid2 = string
-export type Title3 = string
-export type Activeleafmessageid2 = (string | null)
-export type Archived = (boolean | null)
-export type Conversationmode3 = (("normal" | "learning") | null)
-export type Pinned = (boolean | null)
-export type Title4 = (string | null)
-export type Version2 = number
-export type Delta = string
-export type Seq2 = number
-export type Type2 = "response.output_text.delta"
-export type Content3 = string
-export type Key = string
-export type Updatedat4 = string
-export type Drafts1 = DraftResponse[]
-export type Content4 = string
-export type Code = string
-export type Message = string
-export type RequestId = string
-export type Evidence = ("DOCUMENTED" | "VERIFIED" | "UNKNOWN")
-export type Code1 = string
-export type Message1 = string
-export type Seq3 = number
-export type Type3 = "response.failed"
-export type Location = (string | number)[]
-export type Message2 = string
-export type ErrorType = string
-export type Detail = ValidationError[]
-export type Service = "noris-ai"
-export type Status3 = "ok"
-export type Version3 = string
-export type Reason1 = "output_limit"
-export type Seq4 = number
-export type Type4 = "response.incomplete"
 export type Available = boolean
 export type ChatApproved = boolean
 export type ContextWindow = number
@@ -193,8 +117,9 @@ export type DocumentedContextWindow = (number | null)
 export type EffectiveContextWindow = (number | null)
 export type EffectiveMaxOutputTokens = (number | null)
 export type EstimatedMaxCostUsd = (string | null)
+export type Evidence1 = ("DOCUMENTED" | "VERIFIED" | "UNKNOWN")
 export type HuggingFaceId = (string | null)
-export type Id6 = string
+export type Id3 = string
 export type InputModalities = string[]
 export type IsReady = (boolean | null)
 export type Lifecycle1 = ("LTS" | "PRODUCTIVE" | "EXPERIMENTAL" | "DEPRECATED" | "UNKNOWN")
@@ -216,7 +141,8 @@ export type ReasoningParameter = (("reasoning_effort" | "chat_template_kwargs") 
 export type ReasoningPreferences = ReasoningPreference[]
 export type ReasoningReserveTokens = number
 export type ReleasedAt = (string | null)
-export type Sources = string[]
+export type ResearchEligible = boolean
+export type Sources1 = string[]
 export type Streaming = boolean
 export type SupportedOutputTokens = (number | null)
 export type ReadSeconds = number
@@ -227,6 +153,112 @@ export type VerifiedMaxOutputTokens = (number | null)
 export type VerifiedOutputEvidence = (string | null)
 export type Virtual = boolean
 export type Vision = (boolean | null)
+export type Activeconversationid = (string | null)
+export type Activeleafmessageid1 = (string | null)
+export type Archivedat1 = (string | null)
+export type Conversationmode1 = ("normal" | "learning")
+export type Createdat3 = string
+export type Id4 = string
+export type Pinnedat1 = (string | null)
+export type Title2 = string
+export type Titlesource1 = ("fallback" | "generated" | "manual")
+export type Updatedat2 = string
+export type Version2 = number
+/**
+ * @maxItems 500
+ */
+export type Conversations = ImportConversation[]
+export type Content1 = string
+export type Continuationcount1 = number
+export type Conversationid2 = string
+export type Createdat4 = string
+export type Editedfrommessageid1 = (string | null)
+export type Errorcode1 = (string | null)
+export type Errormessage1 = (string | null)
+export type Id5 = string
+export type Modelid1 = (string | null)
+export type Parentmessageid1 = (string | null)
+export type Role1 = ("user" | "assistant")
+export type Status3 = ("pending" | "streaming" | "completed" | "incomplete" | "cancelled" | "failed")
+export type Updatedat3 = string
+/**
+ * @maxItems 10000
+ */
+export type Messages1 = ImportMessage[]
+export type Conversationid3 = string
+export type Reason = ("exists_with_different_data" | "invalid_parent" | "invalid_leaf" | "duplicate_message")
+export type Conflicts = ImportConflict[]
+export type Draftsimported = number
+export type Imported = string[]
+export type Skipped = string[]
+export type MaxContinuations = number
+export type MaxMessageChars = number
+export type MaxResponseChars = number
+export type MaxStreamBytes = number
+export type StreamIdleTimeoutMs = number
+export type StreamTimeoutMs = number
+export type Assistantmessageid = (string | null)
+export type Attempt = number
+export type Continuationcount2 = number
+export type Conversationid4 = string
+export type Generationid2 = string
+export type Inputmessageid = string
+export type Content2 = string
+export type Role2 = ("user" | "assistant")
+/**
+ * @minItems 1
+ * @maxItems 100
+ */
+export type Messages2 = LLMMessage[]
+export type Modelid2 = string
+export type Operation = ("generate" | "continue")
+export type Seq1 = number
+export type Type1 = "response.completed"
+export type Conversationmode2 = ("normal" | "learning")
+export type Id6 = (string | null)
+export type Prepared = boolean
+export type Title3 = (string | null)
+export type Conversations1 = ConversationResponse[]
+export type Hasmore1 = boolean
+export type Nextcursor1 = (string | null)
+export type Conversationid5 = string
+export type Firstmessage = string
+export type Inputmessageid1 = string
+export type Modelid3 = string
+export type Conversationid6 = string
+export type Inputmessageid2 = string
+export type Title4 = string
+export type Activeleafmessageid2 = (string | null)
+export type Archived = (boolean | null)
+export type Conversationmode3 = (("normal" | "learning") | null)
+export type Pinned = (boolean | null)
+export type Title5 = (string | null)
+export type Version3 = number
+export type Delta = string
+export type Seq2 = number
+export type Type2 = "response.output_text.delta"
+export type Content3 = string
+export type Key = string
+export type Updatedat4 = string
+export type Drafts1 = DraftResponse[]
+export type Content4 = string
+export type Code = string
+export type Message = string
+export type RequestId = string
+export type Code1 = string
+export type Message1 = string
+export type Seq3 = number
+export type Type3 = "response.failed"
+export type Location = (string | number)[]
+export type Message2 = string
+export type ErrorType = string
+export type Detail = ValidationError[]
+export type Service = "noris-ai"
+export type Status4 = "ok"
+export type Version4 = string
+export type Reason1 = "output_limit"
+export type Seq4 = number
+export type Type4 = "response.incomplete"
 export type Completetree = boolean
 export type Hasmore2 = boolean
 export type Messages3 = MessageResponse[]
@@ -235,32 +267,35 @@ export type DefaultModel = (string | null)
 export type ErrorCode = (string | null)
 export type ExpiresInSeconds = number
 export type FetchedAt = (string | null)
-export type Models = LLMModel[]
+export type Models = CatalogLLMModel[]
 export type RegistryVersion = string
-export type Status4 = ("fresh" | "stale")
+export type Status5 = ("fresh" | "stale")
 export type ModelCategory = ("CHAT" | "REASONING" | "VISION" | "EMBEDDING" | "RERANKING" | "UNKNOWN")
 export type Activeconversationid1 = (string | null)
 export type Modelid4 = (string | null)
 export type Activeconversationid2 = (string | null)
 export type Modelid5 = (string | null)
-export type Status5 = "ready"
+export type Status6 = "ready"
+export type Available1 = boolean
+export type Reasoncode = (string | null)
+export type Version5 = 1
 export type ConfigVersion = string
 export type FetchedAt1 = string
 export type Partial = boolean
 export type Provider1 = ("searxng" | "brave")
-/**
- * @maxItems 8
- */
-export type Sources1 = []|[SearchSource]|[SearchSource, SearchSource]|[SearchSource, SearchSource, SearchSource]|[SearchSource, SearchSource, SearchSource, SearchSource]|[SearchSource, SearchSource, SearchSource, SearchSource, SearchSource]|[SearchSource, SearchSource, SearchSource, SearchSource, SearchSource, SearchSource]|[SearchSource, SearchSource, SearchSource, SearchSource, SearchSource, SearchSource, SearchSource]|[SearchSource, SearchSource, SearchSource, SearchSource, SearchSource, SearchSource, SearchSource, SearchSource]
 export type PublishedAt = (string | null)
 export type Snippet = string
 export type SourceId = string
-export type Title5 = string
+export type Title6 = string
 export type Url = string
+/**
+ * @maxItems 8
+ */
+export type Sources2 = SearchSource[]
 /**
  * @maxItems 10
  */
-export type Warnings = []|[string]|[string, string]|[string, string, string]|[string, string, string, string]|[string, string, string, string, string]|[string, string, string, string, string, string]|[string, string, string, string, string, string, string]|[string, string, string, string, string, string, string, string]|[string, string, string, string, string, string, string, string, string]|[string, string, string, string, string, string, string, string, string, string]
+export type Warnings = string[]
 export type Digest = string
 export type FetchedAt2 = string
 export type FinalUrl = string
@@ -290,9 +325,9 @@ export type Permissionscope = string
 export type Provider2 = string
 export type Runid = string
 export type Schemaversion = 1
-export type State = ("pending" | "approved" | "denied" | "expired")
-export type Reasoncode = (("TOOL_UNAVAILABLE" | "TOOL_FORBIDDEN" | "TOOL_INPUT_INVALID" | "TOOL_OUTPUT_INVALID" | "TOOL_NOT_FOUND" | "TOOL_CONFLICT" | "TOOL_STATE_CONFLICT" | "APPROVAL_REQUIRED" | "APPROVAL_EXPIRED" | "BUDGET_LIMIT" | "TOOL_TIMEOUT" | "TOOL_INTERRUPTED" | "TOOL_CANCELLED" | "PROVIDER_RATE_LIMIT" | "PROVIDER_ERROR" | "PROVIDER_OUTCOME_UNKNOWN") | null)
-export type Status6 = ("available" | "unavailable")
+export type State1 = ("pending" | "approved" | "denied" | "expired")
+export type Reasoncode1 = (("TOOL_UNAVAILABLE" | "TOOL_FORBIDDEN" | "TOOL_INPUT_INVALID" | "TOOL_OUTPUT_INVALID" | "TOOL_NOT_FOUND" | "TOOL_CONFLICT" | "TOOL_STATE_CONFLICT" | "APPROVAL_REQUIRED" | "APPROVAL_EXPIRED" | "BUDGET_LIMIT" | "TOOL_TIMEOUT" | "TOOL_INTERRUPTED" | "TOOL_CANCELLED" | "PROVIDER_RATE_LIMIT" | "PROVIDER_ERROR" | "PROVIDER_OUTCOME_UNKNOWN") | null)
+export type Status7 = ("available" | "unavailable")
 export type Toolid = string
 export type Features = ToolCapability[]
 export type Schemaversion1 = 1
@@ -311,7 +346,7 @@ export type InvocationKind = ("web_mode" | "research_step" | "user_action")
 export type ParentRunId = (string | null)
 export type SchemaVersion = number
 export type StartedAt = (string | null)
-export type State1 = ("queued" | "awaiting_approval" | "running" | "succeeded" | "failed" | "cancelled" | "timed_out" | "interrupted" | "outcome_unknown")
+export type State2 = ("queued" | "awaiting_approval" | "running" | "succeeded" | "failed" | "cancelled" | "timed_out" | "interrupted" | "outcome_unknown")
 export type StepKey = string
 export type ToolId = string
 export type Schemaversion2 = 1
@@ -322,10 +357,12 @@ export interface ApiSchemas {
   AttachmentListResponse: AttachmentListResponse
   AttachmentResponse: AttachmentResponse
   CancelledEvent: CancelledEvent
+  CatalogLLMModel: CatalogLLMModel
   ChatImportRequest: ChatImportRequest
   ChatImportResponse: ChatImportResponse
   ChatLimits: ChatLimits
   ChatRequest: ChatRequest
+  CitationReference: CitationReference
   CompletedEvent: CompletedEvent
   ConversationCreate: ConversationCreate
   ConversationListResponse: ConversationListResponse
@@ -339,7 +376,7 @@ export interface ApiSchemas {
   DraftUpdate: DraftUpdate
   ErrorDetail: ErrorDetail
   ErrorResponse: ErrorResponse
-  Evidence: Evidence
+  Evidence: Evidence1
   FailedEvent: FailedEvent
   HTTPValidationError: HTTPValidationError
   HealthResponse: HealthResponse
@@ -348,7 +385,6 @@ export interface ApiSchemas {
   ImportMessage: ImportMessage
   IncompleteEvent: IncompleteEvent
   LLMMessage: LLMMessage
-  LLMModel: LLMModel
   MessageListResponse: MessageListResponse
   MessageResponse: MessageResponse
   ModelCatalog: ModelCatalog
@@ -358,6 +394,9 @@ export interface ApiSchemas {
   PreferencesUpdate: PreferencesUpdate
   ReadinessResponse: ReadinessResponse
   ReasoningPreference: ReasoningPreference
+  ResearchCapability: ResearchCapability
+  ResearchSource: ResearchSource
+  ResearchView: ResearchView
   SearchResult: SearchResult
   SearchSource: SearchSource
   SourceDocument: SourceDocument
@@ -414,8 +453,9 @@ export interface MessageResponse {
   id: Id2
   modelId: Modelid
   parentMessageId: Parentmessageid
+  research?: (ResearchView | null)
   role: Role
-  status: Status1
+  status: Status2
   updatedAt: Updatedat1
 }
 export interface AttachmentResponse {
@@ -436,6 +476,37 @@ export interface TextReference {
   sourceConversationId: Sourceconversationid
   sourceMessageId: Sourcemessageid
   text: Text
+}
+export interface ResearchView {
+  citations: Citations
+  claimSupport: Claimsupport
+  generationId: Generationid1
+  inherited: Inherited
+  mode: Mode
+  modelResponseObserved: Modelresponseobserved
+  sourceGenerationId: Sourcegenerationid
+  sources: Sources
+  state: State
+  version: Version1
+}
+export interface CitationReference {
+  claim_support?: ClaimSupport
+  end: End
+  marker: Marker
+  start: Start
+}
+export interface ResearchSource {
+  contentDigest: Contentdigest
+  excerpt: Excerpt
+  fetchRunId: Fetchrunid
+  fetchedAt: Fetchedat
+  finalUrl: Finalurl
+  marker: Marker1
+  originalUrl: Originalurl
+  searchRunId: Searchrunid
+  sourceId: Sourceid
+  status: Status1
+  title: Title1
 }
 export interface VariantSummary {
   index: Index
@@ -459,6 +530,86 @@ export interface CancelledEvent {
   seq: Seq
   type?: Type
 }
+/**
+ * Read-only catalog projection; derived capability never enters policy input.
+ */
+export interface CatalogLLMModel {
+  available?: Available
+  category?: ("CHAT" | "REASONING" | "VISION" | "EMBEDDING" | "RERANKING" | "UNKNOWN")
+  chat_approved?: ChatApproved
+  context_window?: ContextWindow
+  cost?: ModelCost
+  description?: Description
+  documented_context_window?: DocumentedContextWindow
+  effective_context_window?: EffectiveContextWindow
+  effective_max_output_tokens?: EffectiveMaxOutputTokens
+  estimated_max_cost_usd?: EstimatedMaxCostUsd
+  evidence?: Evidence
+  hugging_face_id?: HuggingFaceId
+  id: Id3
+  input_modalities?: InputModalities
+  is_ready?: IsReady
+  lifecycle?: Lifecycle1
+  max_output_tokens?: MaxOutputTokens
+  name: Name
+  output_modalities?: OutputModalities
+  provenance?: Provenance
+  provider?: Provider
+  provider_compliance?: ProviderCompliance
+  provider_context_window?: ProviderContextWindow
+  provider_created_at?: ProviderCreatedAt
+  provider_datacenters?: ProviderDatacenters
+  provider_limit_evidence?: ProviderLimitEvidence
+  provider_max_output_tokens?: ProviderMaxOutputTokens
+  provider_name?: ProviderName
+  provider_schema_version?: ProviderSchemaVersion
+  reasoning?: Reasoning
+  reasoning_effort?: ReasoningEffort
+  reasoning_efforts?: ReasoningEfforts
+  reasoning_parameter?: ReasoningParameter
+  reasoning_preferences?: ReasoningPreferences
+  reasoning_reserve_tokens?: ReasoningReserveTokens
+  released_at?: ReleasedAt
+  research_eligible: ResearchEligible
+  sources?: Sources1
+  streaming?: Streaming
+  supported_output_tokens?: SupportedOutputTokens
+  timeout_policy?: TimeoutPolicy
+  token_limit_parameter?: TokenLimitParameter
+  tool_calling?: ToolCalling
+  verified_max_output_tokens?: VerifiedMaxOutputTokens
+  verified_output_evidence?: VerifiedOutputEvidence
+  virtual?: Virtual
+  vision?: Vision
+}
+export interface ModelCost {
+  as_of?: AsOf
+  cached_input_points_per_million?: CachedInputPointsPerMillion
+  cached_input_usd_per_million?: CachedInputUsdPerMillion
+  currency?: Currency
+  discount_applied?: DiscountApplied
+  discount_to_user?: DiscountToUser
+  evidence?: ("DOCUMENTED" | "VERIFIED" | "UNKNOWN")
+  input_points_per_million?: InputPointsPerMillion
+  input_usd_per_million?: InputUsdPerMillion
+  is_free?: IsFree
+  output_points_per_million?: OutputPointsPerMillion
+  output_usd_per_million?: OutputUsdPerMillion
+  source?: Source
+}
+export interface Evidence {
+  [k: string]: Evidence1
+}
+export interface Provenance {
+  [k: string]: ("PROVIDER" | "LOCAL_POLICY" | "DOCUMENTATION" | "LIVE_TEST" | "UNKNOWN")
+}
+export interface ProviderCompliance {
+  [k: string]: (boolean | null)
+}
+export interface TimeoutPolicy {
+  read_seconds?: ReadSeconds
+  total_seconds?: TotalSeconds
+}
 export interface ChatImportRequest {
   activeConversationId?: Activeconversationid
   conversations: Conversations
@@ -470,13 +621,13 @@ export interface ImportConversation {
   archivedAt?: Archivedat1
   conversationMode?: Conversationmode1
   createdAt: Createdat3
-  id: Id3
+  id: Id4
   pinnedAt?: Pinnedat1
   reasoningPreference?: (ReasoningPreference | null)
-  title: Title1
+  title: Title2
   titleSource: Titlesource1
   updatedAt: Updatedat2
-  version?: Version1
+  version?: Version2
 }
 export interface Drafts {
   [k: string]: string
@@ -489,11 +640,11 @@ export interface ImportMessage {
   editedFromMessageId?: Editedfrommessageid1
   errorCode?: Errorcode1
   errorMessage?: Errormessage1
-  id: Id4
+  id: Id5
   modelId?: Modelid1
   parentMessageId?: Parentmessageid1
   role: Role1
-  status: Status2
+  status: Status3
   updatedAt: Updatedat3
 }
 export interface ChatImportResponse {
@@ -519,7 +670,7 @@ export interface ChatRequest {
   attempt: Attempt
   continuationCount?: Continuationcount2
   conversationId: Conversationid4
-  generationId: Generationid1
+  generationId: Generationid2
   inputMessageId: Inputmessageid
   messages: Messages2
   modelId: Modelid2
@@ -536,10 +687,10 @@ export interface CompletedEvent {
 }
 export interface ConversationCreate {
   conversationMode?: Conversationmode2
-  id?: Id5
+  id?: Id6
   prepared?: Prepared
   reasoningPreference?: (ReasoningPreference | null)
-  title?: Title2
+  title?: Title3
 }
 export interface ConversationListResponse {
   conversations: Conversations1
@@ -555,7 +706,7 @@ export interface ConversationTitleRequest {
 export interface ConversationTitleResponse {
   conversationId: Conversationid6
   inputMessageId: Inputmessageid2
-  title: Title3
+  title: Title4
 }
 export interface ConversationUpdate {
   activeLeafMessageId?: Activeleafmessageid2
@@ -563,8 +714,8 @@ export interface ConversationUpdate {
   conversationMode?: Conversationmode3
   pinned?: Pinned
   reasoningPreference?: (ReasoningPreference | null)
-  title?: Title4
-  version: Version2
+  title?: Title5
+  version: Version3
 }
 export interface DeltaEvent {
   delta: Delta
@@ -616,89 +767,13 @@ export interface Input {
 }
 export interface HealthResponse {
   service?: Service
-  status?: Status3
-  version: Version3
+  status?: Status4
+  version: Version4
 }
 export interface IncompleteEvent {
   reason?: Reason1
   seq: Seq4
   type?: Type4
-}
-export interface LLMModel {
-  available?: Available
-  category?: ("CHAT" | "REASONING" | "VISION" | "EMBEDDING" | "RERANKING" | "UNKNOWN")
-  chat_approved?: ChatApproved
-  context_window?: ContextWindow
-  cost?: ModelCost
-  description?: Description
-  documented_context_window?: DocumentedContextWindow
-  effective_context_window?: EffectiveContextWindow
-  effective_max_output_tokens?: EffectiveMaxOutputTokens
-  estimated_max_cost_usd?: EstimatedMaxCostUsd
-  evidence?: Evidence1
-  hugging_face_id?: HuggingFaceId
-  id: Id6
-  input_modalities?: InputModalities
-  is_ready?: IsReady
-  lifecycle?: Lifecycle1
-  max_output_tokens?: MaxOutputTokens
-  name: Name
-  output_modalities?: OutputModalities
-  provenance?: Provenance
-  provider?: Provider
-  provider_compliance?: ProviderCompliance
-  provider_context_window?: ProviderContextWindow
-  provider_created_at?: ProviderCreatedAt
-  provider_datacenters?: ProviderDatacenters
-  provider_limit_evidence?: ProviderLimitEvidence
-  provider_max_output_tokens?: ProviderMaxOutputTokens
-  provider_name?: ProviderName
-  provider_schema_version?: ProviderSchemaVersion
-  reasoning?: Reasoning
-  reasoning_effort?: ReasoningEffort
-  reasoning_efforts?: ReasoningEfforts
-  reasoning_parameter?: ReasoningParameter
-  reasoning_preferences?: ReasoningPreferences
-  reasoning_reserve_tokens?: ReasoningReserveTokens
-  released_at?: ReleasedAt
-  sources?: Sources
-  streaming?: Streaming
-  supported_output_tokens?: SupportedOutputTokens
-  timeout_policy?: TimeoutPolicy
-  token_limit_parameter?: TokenLimitParameter
-  tool_calling?: ToolCalling
-  verified_max_output_tokens?: VerifiedMaxOutputTokens
-  verified_output_evidence?: VerifiedOutputEvidence
-  virtual?: Virtual
-  vision?: Vision
-}
-export interface ModelCost {
-  as_of?: AsOf
-  cached_input_points_per_million?: CachedInputPointsPerMillion
-  cached_input_usd_per_million?: CachedInputUsdPerMillion
-  currency?: Currency
-  discount_applied?: DiscountApplied
-  discount_to_user?: DiscountToUser
-  evidence?: ("DOCUMENTED" | "VERIFIED" | "UNKNOWN")
-  input_points_per_million?: InputPointsPerMillion
-  input_usd_per_million?: InputUsdPerMillion
-  is_free?: IsFree
-  output_points_per_million?: OutputPointsPerMillion
-  output_usd_per_million?: OutputUsdPerMillion
-  source?: Source
-}
-export interface Evidence1 {
-  [k: string]: Evidence
-}
-export interface Provenance {
-  [k: string]: ("PROVIDER" | "LOCAL_POLICY" | "DOCUMENTATION" | "LIVE_TEST" | "UNKNOWN")
-}
-export interface ProviderCompliance {
-  [k: string]: (boolean | null)
-}
-export interface TimeoutPolicy {
-  read_seconds?: ReadSeconds
-  total_seconds?: TotalSeconds
 }
 export interface MessageListResponse {
   completeTree?: Completetree
@@ -714,7 +789,7 @@ export interface ModelCatalog {
   limits: ChatLimits
   models: Models
   registry_version?: RegistryVersion
-  status?: Status4
+  status?: Status5
 }
 export interface PreferencesResponse {
   activeConversationId: Activeconversationid1
@@ -725,21 +800,26 @@ export interface PreferencesUpdate {
   modelId?: Modelid5
 }
 export interface ReadinessResponse {
-  status?: Status5
+  status?: Status6
+}
+export interface ResearchCapability {
+  available: Available1
+  reasonCode: Reasoncode
+  version: Version5
 }
 export interface SearchResult {
   config_version: ConfigVersion
   fetched_at: FetchedAt1
   partial?: Partial
   provider: Provider1
-  sources: Sources1
+  sources: Sources2
   warnings?: Warnings
 }
 export interface SearchSource {
   published_at?: PublishedAt
   snippet: Snippet
   source_id: SourceId
-  title: Title5
+  title: Title6
   url: Url
 }
 export interface SourceDocument {
@@ -782,15 +862,15 @@ export interface ToolApprovalResponse {
   provider: Provider2
   runId: Runid
   schemaVersion?: Schemaversion
-  state: State
+  state: State1
 }
 export interface ToolCapabilitiesResponse {
   features: Features
   schemaVersion?: Schemaversion1
 }
 export interface ToolCapability {
-  reasonCode?: Reasoncode
-  status: Status6
+  reasonCode?: Reasoncode1
+  status: Status7
   toolId: Toolid
 }
 export interface ToolRunResponse {
@@ -814,7 +894,7 @@ export interface ToolRunSnapshot {
   parent_run_id: ParentRunId
   schema_version: SchemaVersion
   started_at: StartedAt
-  state: State1
+  state: State2
   step_key: StepKey
   tool_id: ToolId
 }
@@ -934,6 +1014,27 @@ export interface ApiPaths {
       503: ApiSchemas["ErrorResponse"]
     } }
   }
+  "/api/v1/chat/conversations/{conversation_id}/generations/{generation_id}/research": {
+    get: {
+      parameters: {
+        path: {
+          "conversation_id": string
+          "generation_id": string
+        }
+      }
+      responses: {
+      200: ApiSchemas["ResearchView"] | null
+      400: ApiSchemas["ErrorResponse"]
+      401: ApiSchemas["ErrorResponse"]
+      403: ApiSchemas["ErrorResponse"]
+      404: ApiSchemas["ErrorResponse"]
+      409: ApiSchemas["ErrorResponse"]
+      413: ApiSchemas["ErrorResponse"]
+      422: ApiSchemas["ErrorResponse"]
+      500: ApiSchemas["ErrorResponse"]
+      503: ApiSchemas["ErrorResponse"]
+    } }
+  }
   "/api/v1/chat/drafts": {
     get: {
       parameters: {
@@ -980,6 +1081,21 @@ export interface ApiPaths {
       requestBody: ApiSchemas["PreferencesUpdate"]
       responses: {
       200: ApiSchemas["PreferencesResponse"]
+      400: ApiSchemas["ErrorResponse"]
+      401: ApiSchemas["ErrorResponse"]
+      403: ApiSchemas["ErrorResponse"]
+      404: ApiSchemas["ErrorResponse"]
+      409: ApiSchemas["ErrorResponse"]
+      413: ApiSchemas["ErrorResponse"]
+      422: ApiSchemas["ErrorResponse"]
+      500: ApiSchemas["ErrorResponse"]
+      503: ApiSchemas["ErrorResponse"]
+    } }
+  }
+  "/api/v1/chat/research/capability": {
+    get: {
+      responses: {
+      200: ApiSchemas["ResearchCapability"]
       400: ApiSchemas["ErrorResponse"]
       401: ApiSchemas["ErrorResponse"]
       403: ApiSchemas["ErrorResponse"]

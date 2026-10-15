@@ -255,6 +255,462 @@
         "title": "CancelledEvent",
         "type": "object"
       },
+      "CatalogLLMModel": {
+        "additionalProperties": false,
+        "description": "Read-only catalog projection; derived capability never enters policy input.",
+        "properties": {
+          "available": {
+            "default": true,
+            "title": "Available",
+            "type": "boolean"
+          },
+          "category": {
+            "$ref": "#/components/schemas/ModelCategory",
+            "default": "UNKNOWN"
+          },
+          "chat_approved": {
+            "default": false,
+            "title": "Chat Approved",
+            "type": "boolean"
+          },
+          "context_window": {
+            "default": 8192,
+            "maximum": 2000000.0,
+            "minimum": 256.0,
+            "title": "Context Window",
+            "type": "integer"
+          },
+          "cost": {
+            "$ref": "#/components/schemas/ModelCost"
+          },
+          "description": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Description",
+            "type": "string"
+          },
+          "documented_context_window": {
+            "anyOf": [
+              {
+                "maximum": 2000000.0,
+                "minimum": 256.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Documented Context Window"
+          },
+          "effective_context_window": {
+            "anyOf": [
+              {
+                "maximum": 2000000.0,
+                "minimum": 256.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Context Window"
+          },
+          "effective_max_output_tokens": {
+            "anyOf": [
+              {
+                "maximum": 131072.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Max Output Tokens"
+          },
+          "estimated_max_cost_usd": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Max Cost Usd"
+          },
+          "evidence": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Evidence"
+            },
+            "title": "Evidence",
+            "type": "object"
+          },
+          "hugging_face_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hugging Face Id"
+          },
+          "id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._/:-]*$",
+            "title": "Id",
+            "type": "string"
+          },
+          "input_modalities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Input Modalities",
+            "type": "array"
+          },
+          "is_ready": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Ready"
+          },
+          "lifecycle": {
+            "default": "UNKNOWN",
+            "enum": [
+              "LTS",
+              "PRODUCTIVE",
+              "EXPERIMENTAL",
+              "DEPRECATED",
+              "UNKNOWN"
+            ],
+            "title": "Lifecycle",
+            "type": "string"
+          },
+          "max_output_tokens": {
+            "default": 1024,
+            "maximum": 131072.0,
+            "minimum": 1.0,
+            "title": "Max Output Tokens",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "output_modalities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Output Modalities",
+            "type": "array"
+          },
+          "provenance": {
+            "additionalProperties": {
+              "enum": [
+                "PROVIDER",
+                "LOCAL_POLICY",
+                "DOCUMENTATION",
+                "LIVE_TEST",
+                "UNKNOWN"
+              ],
+              "type": "string"
+            },
+            "title": "Provenance",
+            "type": "object"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "provider_compliance": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Provider Compliance",
+            "type": "object"
+          },
+          "provider_context_window": {
+            "anyOf": [
+              {
+                "maximum": 2000000.0,
+                "minimum": 256.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Context Window"
+          },
+          "provider_created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Created At"
+          },
+          "provider_datacenters": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Provider Datacenters",
+            "type": "array"
+          },
+          "provider_limit_evidence": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Limit Evidence"
+          },
+          "provider_max_output_tokens": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Max Output Tokens"
+          },
+          "provider_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Name"
+          },
+          "provider_schema_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Schema Version"
+          },
+          "reasoning": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning"
+          },
+          "reasoning_effort": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Effort"
+          },
+          "reasoning_efforts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasoning Efforts",
+            "type": "array"
+          },
+          "reasoning_parameter": {
+            "anyOf": [
+              {
+                "enum": [
+                  "reasoning_effort",
+                  "chat_template_kwargs"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Parameter"
+          },
+          "reasoning_preferences": {
+            "items": {
+              "$ref": "#/components/schemas/ReasoningPreference"
+            },
+            "title": "Reasoning Preferences",
+            "type": "array"
+          },
+          "reasoning_reserve_tokens": {
+            "default": 0,
+            "maximum": 65536.0,
+            "minimum": 0.0,
+            "title": "Reasoning Reserve Tokens",
+            "type": "integer"
+          },
+          "released_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Released At"
+          },
+          "research_eligible": {
+            "readOnly": true,
+            "title": "Research Eligible",
+            "type": "boolean"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "streaming": {
+            "default": true,
+            "title": "Streaming",
+            "type": "boolean"
+          },
+          "supported_output_tokens": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supported Output Tokens"
+          },
+          "timeout_policy": {
+            "$ref": "#/components/schemas/TimeoutPolicy"
+          },
+          "token_limit_parameter": {
+            "anyOf": [
+              {
+                "enum": [
+                  "max_tokens",
+                  "max_completion_tokens"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Token Limit Parameter"
+          },
+          "tool_calling": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool Calling"
+          },
+          "verified_max_output_tokens": {
+            "anyOf": [
+              {
+                "maximum": 131072.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified Max Output Tokens"
+          },
+          "verified_output_evidence": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified Output Evidence"
+          },
+          "virtual": {
+            "default": false,
+            "title": "Virtual",
+            "type": "boolean"
+          },
+          "vision": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vision"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "research_eligible"
+        ],
+        "title": "CatalogLLMModel",
+        "type": "object"
+      },
       "ChatImportRequest": {
         "additionalProperties": false,
         "properties": {
@@ -487,6 +943,39 @@
           "attempt"
         ],
         "title": "ChatRequest",
+        "type": "object"
+      },
+      "CitationReference": {
+        "additionalProperties": false,
+        "properties": {
+          "claim_support": {
+            "const": "unverified",
+            "default": "unverified",
+            "title": "Claim Support",
+            "type": "string"
+          },
+          "end": {
+            "minimum": 1.0,
+            "title": "End",
+            "type": "integer"
+          },
+          "marker": {
+            "pattern": "^R[1-3]$",
+            "title": "Marker",
+            "type": "string"
+          },
+          "start": {
+            "minimum": 0.0,
+            "title": "Start",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "marker",
+          "start",
+          "end"
+        ],
+        "title": "CitationReference",
         "type": "object"
       },
       "CompletedEvent": {
@@ -1394,455 +1883,6 @@
         "title": "LLMMessage",
         "type": "object"
       },
-      "LLMModel": {
-        "additionalProperties": false,
-        "properties": {
-          "available": {
-            "default": true,
-            "title": "Available",
-            "type": "boolean"
-          },
-          "category": {
-            "$ref": "#/components/schemas/ModelCategory",
-            "default": "UNKNOWN"
-          },
-          "chat_approved": {
-            "default": false,
-            "title": "Chat Approved",
-            "type": "boolean"
-          },
-          "context_window": {
-            "default": 8192,
-            "maximum": 2000000.0,
-            "minimum": 256.0,
-            "title": "Context Window",
-            "type": "integer"
-          },
-          "cost": {
-            "$ref": "#/components/schemas/ModelCost"
-          },
-          "description": {
-            "default": "",
-            "maxLength": 500,
-            "title": "Description",
-            "type": "string"
-          },
-          "documented_context_window": {
-            "anyOf": [
-              {
-                "maximum": 2000000.0,
-                "minimum": 256.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Documented Context Window"
-          },
-          "effective_context_window": {
-            "anyOf": [
-              {
-                "maximum": 2000000.0,
-                "minimum": 256.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Effective Context Window"
-          },
-          "effective_max_output_tokens": {
-            "anyOf": [
-              {
-                "maximum": 131072.0,
-                "minimum": 1.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Effective Max Output Tokens"
-          },
-          "estimated_max_cost_usd": {
-            "anyOf": [
-              {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Estimated Max Cost Usd"
-          },
-          "evidence": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/Evidence"
-            },
-            "title": "Evidence",
-            "type": "object"
-          },
-          "hugging_face_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Hugging Face Id"
-          },
-          "id": {
-            "maxLength": 200,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._/:-]*$",
-            "title": "Id",
-            "type": "string"
-          },
-          "input_modalities": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Input Modalities",
-            "type": "array"
-          },
-          "is_ready": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Is Ready"
-          },
-          "lifecycle": {
-            "default": "UNKNOWN",
-            "enum": [
-              "LTS",
-              "PRODUCTIVE",
-              "EXPERIMENTAL",
-              "DEPRECATED",
-              "UNKNOWN"
-            ],
-            "title": "Lifecycle",
-            "type": "string"
-          },
-          "max_output_tokens": {
-            "default": 1024,
-            "maximum": 131072.0,
-            "minimum": 1.0,
-            "title": "Max Output Tokens",
-            "type": "integer"
-          },
-          "name": {
-            "maxLength": 120,
-            "minLength": 1,
-            "title": "Name",
-            "type": "string"
-          },
-          "output_modalities": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Output Modalities",
-            "type": "array"
-          },
-          "provenance": {
-            "additionalProperties": {
-              "enum": [
-                "PROVIDER",
-                "LOCAL_POLICY",
-                "DOCUMENTATION",
-                "LIVE_TEST",
-                "UNKNOWN"
-              ],
-              "type": "string"
-            },
-            "title": "Provenance",
-            "type": "object"
-          },
-          "provider": {
-            "anyOf": [
-              {
-                "maxLength": 120,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider"
-          },
-          "provider_compliance": {
-            "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "boolean"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "title": "Provider Compliance",
-            "type": "object"
-          },
-          "provider_context_window": {
-            "anyOf": [
-              {
-                "maximum": 2000000.0,
-                "minimum": 256.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider Context Window"
-          },
-          "provider_created_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider Created At"
-          },
-          "provider_datacenters": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Provider Datacenters",
-            "type": "array"
-          },
-          "provider_limit_evidence": {
-            "anyOf": [
-              {
-                "maxLength": 500,
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider Limit Evidence"
-          },
-          "provider_max_output_tokens": {
-            "anyOf": [
-              {
-                "minimum": 1.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider Max Output Tokens"
-          },
-          "provider_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider Name"
-          },
-          "provider_schema_version": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider Schema Version"
-          },
-          "reasoning": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reasoning"
-          },
-          "reasoning_effort": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reasoning Effort"
-          },
-          "reasoning_efforts": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Reasoning Efforts",
-            "type": "array"
-          },
-          "reasoning_parameter": {
-            "anyOf": [
-              {
-                "enum": [
-                  "reasoning_effort",
-                  "chat_template_kwargs"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reasoning Parameter"
-          },
-          "reasoning_preferences": {
-            "items": {
-              "$ref": "#/components/schemas/ReasoningPreference"
-            },
-            "title": "Reasoning Preferences",
-            "type": "array"
-          },
-          "reasoning_reserve_tokens": {
-            "default": 0,
-            "maximum": 65536.0,
-            "minimum": 0.0,
-            "title": "Reasoning Reserve Tokens",
-            "type": "integer"
-          },
-          "released_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Released At"
-          },
-          "sources": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Sources",
-            "type": "array"
-          },
-          "streaming": {
-            "default": true,
-            "title": "Streaming",
-            "type": "boolean"
-          },
-          "supported_output_tokens": {
-            "anyOf": [
-              {
-                "minimum": 1.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Supported Output Tokens"
-          },
-          "timeout_policy": {
-            "$ref": "#/components/schemas/TimeoutPolicy"
-          },
-          "token_limit_parameter": {
-            "anyOf": [
-              {
-                "enum": [
-                  "max_tokens",
-                  "max_completion_tokens"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Token Limit Parameter"
-          },
-          "tool_calling": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tool Calling"
-          },
-          "verified_max_output_tokens": {
-            "anyOf": [
-              {
-                "maximum": 131072.0,
-                "minimum": 1.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Verified Max Output Tokens"
-          },
-          "verified_output_evidence": {
-            "anyOf": [
-              {
-                "maxLength": 500,
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Verified Output Evidence"
-          },
-          "virtual": {
-            "default": false,
-            "title": "Virtual",
-            "type": "boolean"
-          },
-          "vision": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Vision"
-          }
-        },
-        "required": [
-          "id",
-          "name"
-        ],
-        "title": "LLMModel",
-        "type": "object"
-      },
       "MessageListResponse": {
         "additionalProperties": false,
         "properties": {
@@ -1984,6 +2024,16 @@
             ],
             "title": "Parentmessageid"
           },
+          "research": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResearchView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "role": {
             "enum": [
               "user",
@@ -2072,7 +2122,7 @@
           },
           "models": {
             "items": {
-              "$ref": "#/components/schemas/LLMModel"
+              "$ref": "#/components/schemas/CatalogLLMModel"
             },
             "title": "Models",
             "type": "array"
@@ -2337,6 +2387,247 @@
           "pro"
         ],
         "type": "string"
+      },
+      "ResearchCapability": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoncode"
+          },
+          "version": {
+            "const": 1,
+            "default": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "available",
+          "reasonCode"
+        ],
+        "title": "ResearchCapability",
+        "type": "object"
+      },
+      "ResearchSource": {
+        "additionalProperties": false,
+        "properties": {
+          "contentDigest": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contentdigest"
+          },
+          "excerpt": {
+            "anyOf": [
+              {
+                "maxLength": 8000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Excerpt"
+          },
+          "fetchRunId": {
+            "format": "uuid",
+            "title": "Fetchrunid",
+            "type": "string"
+          },
+          "fetchedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fetchedat"
+          },
+          "finalUrl": {
+            "anyOf": [
+              {
+                "format": "uri",
+                "maxLength": 2048,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalurl"
+          },
+          "marker": {
+            "anyOf": [
+              {
+                "pattern": "^R[1-3]$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marker"
+          },
+          "originalUrl": {
+            "format": "uri",
+            "maxLength": 2048,
+            "minLength": 1,
+            "title": "Originalurl",
+            "type": "string"
+          },
+          "searchRunId": {
+            "format": "uuid",
+            "title": "Searchrunid",
+            "type": "string"
+          },
+          "sourceId": {
+            "format": "uuid",
+            "title": "Sourceid",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "context_prepared",
+              "unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "marker",
+          "sourceId",
+          "searchRunId",
+          "fetchRunId",
+          "title",
+          "originalUrl",
+          "finalUrl",
+          "fetchedAt",
+          "status",
+          "excerpt",
+          "contentDigest"
+        ],
+        "title": "ResearchSource",
+        "type": "object"
+      },
+      "ResearchView": {
+        "additionalProperties": false,
+        "properties": {
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/CitationReference"
+            },
+            "maxItems": 256,
+            "title": "Citations",
+            "type": "array"
+          },
+          "claimSupport": {
+            "const": "unverified",
+            "default": "unverified",
+            "title": "Claimsupport",
+            "type": "string"
+          },
+          "generationId": {
+            "format": "uuid",
+            "title": "Generationid",
+            "type": "string"
+          },
+          "inherited": {
+            "default": false,
+            "title": "Inherited",
+            "type": "boolean"
+          },
+          "mode": {
+            "const": "web",
+            "default": "web",
+            "title": "Mode",
+            "type": "string"
+          },
+          "modelResponseObserved": {
+            "default": false,
+            "title": "Modelresponseobserved",
+            "type": "boolean"
+          },
+          "sourceGenerationId": {
+            "format": "uuid",
+            "title": "Sourcegenerationid",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/ResearchSource"
+            },
+            "maxItems": 6,
+            "title": "Sources",
+            "type": "array"
+          },
+          "state": {
+            "enum": [
+              "planning",
+              "searching",
+              "selecting",
+              "fetching",
+              "grounding",
+              "generating",
+              "completed",
+              "failed",
+              "cancelled",
+              "interrupted",
+              "skipped"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "version": {
+            "const": 1,
+            "default": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "mode",
+          "generationId",
+          "sourceGenerationId",
+          "state",
+          "inherited",
+          "modelResponseObserved",
+          "claimSupport",
+          "sources",
+          "citations"
+        ],
+        "title": "ResearchView",
+        "type": "object"
       },
       "SearchResult": {
         "additionalProperties": false,
@@ -3960,6 +4251,152 @@
         ]
       }
     },
+    "/api/v1/chat/conversations/{conversation_id}/generations/{generation_id}/research": {
+      "get": {
+        "operationId": "getGenerationResearch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "generation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Generation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ResearchView"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Getgenerationresearch"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBasic": []
+          }
+        ],
+        "summary": "Generation Research",
+        "tags": [
+          "Tools"
+        ]
+      }
+    },
     "/api/v1/chat/drafts": {
       "get": {
         "operationId": "listChatDrafts",
@@ -4381,6 +4818,122 @@
         "summary": "Update Preferences",
         "tags": [
           "Chat"
+        ]
+      }
+    },
+    "/api/v1/chat/research/capability": {
+      "get": {
+        "operationId": "getResearchCapability",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchCapability"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "HTTPBasic": []
+          }
+        ],
+        "summary": "Research Capability",
+        "tags": [
+          "Tools"
         ]
       }
     },

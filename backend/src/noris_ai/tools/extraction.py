@@ -89,6 +89,14 @@ class ArticleText(HTMLParser):
         self.nodes = 0
         self.excluded_text = False
         self.nontext_content = False
+        self.descriptions: dict[str, str] = {}
+        self.titles: dict[str, str] = {}
+        self.title_parts: list[str] = []
+        self.title_chars = 0
+        self.metadata_head = False
+        self.head_count = 0
+        self.html_count = 0
+        self.body_seen = False
 
     def _tick(self) -> None:
         self.nodes += 1
@@ -117,6 +125,43 @@ class ArticleText(HTMLParser):
         if len(self.stack) >= 128 or len(attrs) > 128:
             raise ToolError("TOOL_OUTPUT_INVALID")
         attributes = dict(attrs)
+        if tag == "html":
+            self.html_count += 1
+        elif tag == "body":
+            self.body_seen = True
+        elif tag == "head":
+            self.head_count += 1
+            # Publisher metadata belongs to the single real document head,
+            # never to head-like markup inside inert or hidden body regions.
+            path = [frame[0] for frame in self.stack]
+            style = re.sub(r"\s+", "", attributes.get("style") or "").lower()
+            self.metadata_head = (
+                path in ([], ["html"])
+                and self.head_count == 1
+                and self.html_count <= 1
+                and not self.body_seen
+                and not (self.stack and self.stack[-1][1])
+                and "hidden" not in attributes
+                and (attributes.get("aria-hidden") or "").lower() != "true"
+                and "display:none" not in style
+                and "visibility:hidden" not in style
+                and len(attrs) == len(attributes)
+            )
+        if (
+            tag == "meta"
+            and self.metadata_head
+            and self.stack
+            and self.stack[-1][0] == "head"
+            and len(attrs) == len(attributes)
+        ):
+            names = [attributes.get(key) for key in ("name", "property") if attributes.get(key)]
+            if len(names) == 1:
+                name = (names[0] or "").lower()
+                content = attributes.get("content") or ""
+                if name in {"description", "og:description", "twitter:description"}:
+                    self.descriptions.setdefault(name, content[:4096])
+                elif name in {"og:title", "twitter:title"}:
+                    self.titles.setdefault(name, content[:256])
         style = re.sub(r"\s+", "", attributes.get("style") or "").lower()
         hidden = (
             tag in _DROP
@@ -158,7 +203,43 @@ class ArticleText(HTMLParser):
 
     def handle_data(self, data: str) -> None:
         self._tick()
+        if (
+            len(self.stack) >= 2
+            and self.metadata_head
+            and self.stack[-1][0] == "title"
+            and self.stack[-2][0] == "head"
+            and self.title_chars < 256
+        ):
+            title = data[: 256 - self.title_chars]
+            self.title_parts.append(title)
+            self.title_chars += len(title)
         self._append(data)
+
+    def metadata_text(self) -> str:
+        # A publisher's public HTML description can describe a client-rendered
+        # page. Use it only when no regular document text could be extracted.
+        # Scripts, hidden body content and arbitrary metadata stay excluded.
+        if self.head_count != 1 or self.html_count > 1:
+            return ""
+        description = next(
+            (
+                self.descriptions[key]
+                for key in ("description", "og:description", "twitter:description")
+                if self.descriptions.get(key, "").strip()
+            ),
+            "",
+        )
+        if not description:
+            return ""
+        title = "".join(self.title_parts).strip() or next(
+            (
+                self.titles[key]
+                for key in ("og:title", "twitter:title")
+                if self.titles.get(key, "").strip()
+            ),
+            "",
+        )
+        return normalize_text(title + "\n\n" + description)
 
 
 def normalize_text(value: str) -> str:
@@ -218,6 +299,8 @@ async def extract_text(body: bytes, mime: str, charset: str, context: Generation
         text = normalize_text(
             "".join(parser.primary if any(p.strip() for p in parser.primary) else parser.parts)
         )
+        if not text:
+            text = parser.metadata_text()
         if not text and (parser.excluded_text or parser.nontext_content):
             raise ToolError("TOOL_OUTPUT_INVALID")
     else:

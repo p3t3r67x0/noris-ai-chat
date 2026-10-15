@@ -40,7 +40,12 @@ from noris_ai.chat.stream import append_event
 from noris_ai.chat.ws_protocol import GenerateIncomingMessage
 from noris_ai.llm.schemas import PersistedChatRequest, ReasoningPreference
 from noris_ai.llm.titles import fallback_title
-from noris_ai.research.schemas import ResearchPlan, ResearchProjection, ResearchState
+from noris_ai.research.schemas import (
+    ResearchPlan,
+    ResearchProjection,
+    ResearchState,
+    ResearchStateEvent,
+)
 
 ModelDatabase = async_sessionmaker[AsyncSession]
 UNCHANGED = object()
@@ -619,7 +624,7 @@ class ChatRepository:
     async def research_question(self, owner: uuid.UUID, request: PersistedChatRequest) -> str:
         async with self.database() as session, session.begin():
             generation = await self._research_scope(session, owner, uuid.UUID(request.generationId))
-            if generation.research is not None:
+            if generation.research is not None and generation.research.get("plan") is not None:
                 raise ChatError("GENERATION_ACTIVE", 409)
             if (
                 str(generation.conversation_id) != request.conversationId
@@ -642,7 +647,7 @@ class ChatRepository:
     ) -> ResearchProjection:
         async with self.database() as session, session.begin():
             generation = await self._research_scope(session, owner, generation_id)
-            if generation.research is not None:
+            if generation.research is not None and generation.research.get("plan") is not None:
                 # A restart/reconnect cannot resume external work, even a completed
                 # search. Runtime results remain available through authorized reads.
                 raise ChatError("GENERATION_ACTIVE", 409)
@@ -650,9 +655,15 @@ class ChatRepository:
                 generation_id=generation_id,
                 execution_id=uuid.uuid4(),
                 state="planning",
+                intent=(
+                    ResearchProjection.model_validate_json(json.dumps(generation.research)).intent
+                    if generation.research is not None
+                    else None
+                ),
                 plan=plan,
             )
             generation.research = projection.model_dump(mode="json")
+            self._research_event(session, generation, projection)
             return projection
 
     async def update_research(
@@ -678,6 +689,21 @@ class ChatRepository:
             ):
                 raise ChatError("GENERATION_ACTIVE", 409)
             generation.research = projection.model_dump(mode="json")
+            self._research_event(session, generation, projection)
+
+    @staticmethod
+    def _research_event(
+        session: AsyncSession, generation: ChatGeneration, projection: ResearchProjection
+    ) -> None:
+        if projection.intent is not None and generation.assistant_message_id is not None:
+            payload = ResearchStateEvent(
+                generationId=generation.id,
+                conversationId=generation.conversation_id,
+                messageId=generation.assistant_message_id,
+                seq=1,
+                state=projection.state,
+            ).model_dump(mode="json")
+            append_event(session, generation, payload)
 
     async def request_generation_cancel(self, owner: uuid.UUID, generation_id: uuid.UUID) -> None:
         async with self.database() as session, session.begin():
@@ -789,6 +815,8 @@ class ChatRepository:
                     or existing.model_id != command.modelId
                     or existing.operation != command.operation
                     or existing.source_message_id != command.sourceAssistantMessageId
+                    or (existing.research.get("intent") if existing.research else None)
+                    != (command.research.model_dump(mode="json") if command.research else None)
                 ):
                     raise ChatError("MESSAGE_EXISTS", 409)
                 message = await session.get(ChatMessage, command.inputMessageId)
@@ -1009,6 +1037,13 @@ class ChatRepository:
             )
             await session.flush()
             generation.assistant_message_id = command.assistantMessageId
+            if command.research is not None:
+                generation.research = ResearchProjection(
+                    generation_id=generation.id,
+                    execution_id=uuid.uuid4(),
+                    state="planning",
+                    intent=command.research,
+                ).model_dump(mode="json")
             conversation.active_leaf_message_id = command.assistantMessageId
             conversation.version += 1
             conversation.updated_at = conversation.last_message_at = utc_now()
@@ -1080,6 +1115,10 @@ class ChatRepository:
                         }
                     )
                 generation.research = projection.model_dump(mode="json")
+                if status not in ("running", "queued"):
+                    payload["researchState"] = projection.state
+                if response_observed or status not in ("running", "queued"):
+                    self._research_event(session, generation, projection)
             # Tool writes may have advanced the same sequence since the last
             # chat batch. Allocate under the DB lock, never from local memory.
             append_event(session, generation, payload)

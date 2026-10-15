@@ -207,6 +207,68 @@ describe('lazy chat resources', () => {
     expect(state.drafts.records.value[id(80)]).toBe('Offline inactive draft')
     expect(JSON.parse(localStorage.getItem('noris-ai:offline-drafts:v1')!)).toMatchObject({ [id(1)]: 'Typed while loading', [id(80)]: 'Offline inactive draft' })
   })
+  it.each(['before', 'during', 'restored'] as const)('preserves %s local edits acknowledged before an older history read finishes', async (editTiming) => {
+    const { backend } = client(1)
+    const transport = { backend, stream: async function* () {} }
+    const state = createChatState(transport)
+    let sync!: ReturnType<typeof useChatBackend>
+    wrappers.push(mount(defineComponent({ setup() { sync = useChatBackend(state, transport); return () => h('div') } })))
+    await vi.waitFor(() => expect(sync.backendReady.value).toBe(true))
+    let complete!: (value: ApiSchemas['ActivePathResponse']) => void
+    const read = vi.spyOn(backend, 'path').mockImplementation(() => new Promise(resolve => { complete = resolve }))
+    const save = vi.spyOn(backend, 'draft').mockResolvedValue(undefined)
+    const draft = 'Erste Zeile\nMein Entwurf bleibt erhalten'
+    if (editTiming !== 'during') state.drafts.records.value[id(2)] = draft
+    if (editTiming === 'restored') {
+      await vi.waitFor(() => expect(save).toHaveBeenCalledWith(id(2), draft))
+      await vi.waitFor(() => expect(JSON.parse(localStorage.getItem('noris-ai:offline-drafts:v1')!)).not.toHaveProperty(id(2)))
+    }
+    state.conversations.select(id(2))
+    await nextTick()
+    await vi.waitFor(() => expect(read).toHaveBeenCalledWith(id(2), {}, expect.any(AbortSignal)))
+    if (editTiming === 'during') state.drafts.draft.value = draft
+    if (editTiming === 'restored') {
+      for (const content of ['Zwischenzeitlich bearbeitet', draft]) {
+        state.drafts.draft.value = content
+        await vi.waitFor(() => expect(save).toHaveBeenLastCalledWith(id(2), content))
+        await vi.waitFor(() => expect(JSON.parse(localStorage.getItem('noris-ai:offline-drafts:v1')!)).not.toHaveProperty(id(2)))
+      }
+    }
+    await vi.waitFor(() => expect(save).toHaveBeenCalledWith(id(2), draft))
+    // The save is acknowledged and no pending key remains when the older read returns.
+    await vi.waitFor(() => expect(JSON.parse(localStorage.getItem('noris-ai:offline-drafts:v1')!)).not.toHaveProperty(id(2)))
+    complete(path(2))
+    await vi.waitFor(() => expect(state.visible.value[0]?.content).toBe('Answer 2'))
+    expect(state.drafts.draft.value).toBe(draft)
+    const expected = editTiming === 'restored' ? [draft, 'Zwischenzeitlich bearbeitet', draft] : [draft]
+    expect(save.mock.calls.filter(([key]) => key === id(2))).toEqual(expected.map(content => [id(2), content]))
+  })
+  it('hydrates an unedited server draft when loading a window evicts older cached drafts', async () => {
+    const { backend, fetcher } = client(1)
+    const fetch = fetcher.getMockImplementation()!
+    fetcher.mockImplementation(async input => {
+      const url = new URL(String(input), 'http://localhost')
+      if (url.pathname === '/api/v1/chat/drafts' && url.searchParams.get('keys') === id(13)) {
+        return Response.json({ drafts: [{ key: id(13), content: 'Aktueller Serverentwurf', updatedAt: conversation(13).updatedAt }] })
+      }
+      return fetch(input)
+    })
+    const transport = { backend, stream: async function* () {} }
+    const state = createChatState(transport)
+    let sync!: ReturnType<typeof useChatBackend>
+    wrappers.push(mount(defineComponent({ setup() { sync = useChatBackend(state, transport); return () => h('div') } })))
+    await vi.waitFor(() => expect(sync.backendReady.value).toBe(true))
+    const save = vi.spyOn(backend, 'draft')
+    for (let number = 2; number <= 13; number++) {
+      state.conversations.select(id(number))
+      await nextTick()
+      await vi.waitFor(() => expect(state.visible.value[0]?.content).toBe(`Answer ${number}`))
+    }
+    expect(Object.keys(state.messages.value)).toHaveLength(10)
+    expect(state.drafts.records.value[id(2)]).toBeUndefined()
+    expect(state.drafts.draft.value).toBe('Aktueller Serverentwurf')
+    expect(save).not.toHaveBeenCalled()
+  })
   it('reloads sidebar metadata during streaming without fetching or replacing its message window', async () => {
     const { backend } = client(1)
     const transport = { backend, stream: async function* () {} }

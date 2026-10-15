@@ -256,7 +256,9 @@ def classify(model_id: str, overrides: tuple[LLMModel, ...]) -> LLMModel:
     # Preserve documented classification of non-chat models even with operator overrides.
     if known.category in ("EMBEDDING", "RERANKING"):
         return known
-    values = known.model_dump() | override.model_dump(exclude_unset=True)
+    values = known.model_dump(exclude_computed_fields=True) | override.model_dump(
+        exclude_unset=True, exclude_computed_fields=True
+    )
     try:
         return LLMModel.model_validate(values)
     except ValidationError:
@@ -387,7 +389,7 @@ def resolve_model(facts: "ProviderModel", config: "Settings") -> LLMModel:
         and effective_output >= 1
     )
     cost = model_cost(facts, datetime.now(UTC).isoformat())
-    values = policy.model_dump() | {
+    values = policy.model_dump(exclude_computed_fields=True) | {
         "name": policy.name if approved else (facts.name or "Unbekanntes Modell"),
         "provider_name": facts.name,
         "category": category,

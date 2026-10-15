@@ -8,7 +8,7 @@ from noris_ai.llm.errors import LLMError
 from noris_ai.llm.provider import LLMProvider
 from noris_ai.llm.reasoning import preference_mapping
 from noris_ai.llm.registry import REGISTRY_VERSION, chat_compatible, resolve_model
-from noris_ai.llm.schemas import ChatLimits, LLMModel, ModelCatalog
+from noris_ai.llm.schemas import CatalogLLMModel, ChatLimits, LLMModel, ModelCatalog
 
 
 class ModelCatalogService:
@@ -72,7 +72,12 @@ class ModelCatalogService:
                     if not any(model.id == default for model in models):
                         default = models[0].id if models else None
                     self._last = ModelCatalog(
-                        models=models,
+                        models=[
+                            CatalogLLMModel.model_validate(
+                                model.model_dump(exclude_computed_fields=True)
+                            )
+                            for model in models
+                        ],
                         default_model=default,
                         limits=ChatLimits(
                             max_continuations=self.config.llm_max_continuations,

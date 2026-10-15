@@ -6,10 +6,11 @@ generation.py and reuses this service.
 """
 
 import uuid
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from noris_ai.chat import pagination
 from noris_ai.chat.errors import ChatError
@@ -41,6 +42,9 @@ from noris_ai.llm.schemas import ReasoningPreference
 
 FALLBACK_TITLE = "Neuer Chat"
 NEW_CHAT_DRAFT_KEY = "__new__"
+
+if TYPE_CHECKING:
+    from noris_ai.tools.repository import ToolRepository
 
 
 def conversation_response(conversation: ChatConversation) -> ConversationResponse:
@@ -119,8 +123,22 @@ def message_response(message: ChatMessage) -> MessageResponse:
 
 
 class ChatService:
-    def __init__(self, repository: ChatRepository) -> None:
+    def __init__(self, repository: ChatRepository, tools: "ToolRepository | None" = None) -> None:
         self.repository = repository
+        self.tools = tools
+
+    async def _message_response(
+        self, session: AsyncSession, owner: uuid.UUID, message: ChatMessage
+    ) -> MessageResponse:
+        response = message_response(message)
+        if self.tools is not None and message.generation_id is not None:
+            from noris_ai.research.reader import read_research
+
+            view = await read_research(
+                session, self.tools, owner, message.conversation_id, message.generation_id
+            )
+            response = response.model_copy(update={"research": view})
+        return response
 
     async def create_conversation(
         self,
@@ -235,15 +253,16 @@ class ChatService:
         limit: int = 50,
         cursor: str | None = None,
     ) -> MessageListResponse:
-        async with self.repository.database() as session:
+        async with self.repository.database() as session, session.begin():
+            await session.execute(text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"))
             rows, next_cursor = await pagination.message_page(
                 session, owner_id, conversation_id, limit=limit, cursor=cursor
             )
-        return MessageListResponse(
-            messages=[message_response(m) for m in rows],
-            nextCursor=next_cursor,
-            hasMore=next_cursor is not None,
-        )
+            return MessageListResponse(
+                messages=[await self._message_response(session, owner_id, m) for m in rows],
+                nextCursor=next_cursor,
+                hasMore=next_cursor is not None,
+            )
 
     async def path_page(
         self,
@@ -272,7 +291,7 @@ class ChatService:
             result = ActivePathResponse(
                 conversation=conversation_response(row),
                 leafMessageId=leaf,
-                messages=[message_response(m) for m in messages],
+                messages=[await self._message_response(session, owner_id, m) for m in messages],
                 variants=variants,
                 nextCursor=next_cursor,
                 hasMore=next_cursor is not None,

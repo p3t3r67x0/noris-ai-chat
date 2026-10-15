@@ -74,16 +74,49 @@ test('loads only metadata and active window, pages history, resolves unseen vari
 test('a failed older page preserves messages and offers retry', async ({ page, request }) => {
   test.setTimeout(120000)
   await seed(request)
-  await page.goto('/')
-  await expect(page.locator('[data-message-id]')).toHaveCount(50)
-  await page.route('**/active-path?*beforeMessageId=*', route => route.fulfill({ status: 503, json: { error: { code: 'UNAVAILABLE', message: 'Vorübergehend offline', request_id: uuid(888) } } }))
-  await page.locator('.chat-scroll').evaluate(element => { element.scrollTop = 0 })
-  await page.getByRole('button', { name: 'Ältere Nachrichten laden', exact: true }).click()
-  await expect(page.locator('.app-notification')).toContainText('Ältere Nachrichten konnten nicht geladen werden.')
-  await expect(page.locator('[data-message-id]')).toHaveCount(50)
-  await page.unroute('**/active-path?*beforeMessageId=*')
-  await page.getByRole('button', { name: 'Ältere Nachrichten laden', exact: true }).click()
-  await expect(page.locator('[data-message-id]')).toHaveCount(100)
+  // Reading history must remain recoverable alongside an unrelated catalog error.
+  let catalogFailures = 0
+  await page.route('**/api/v1/llm/models', route => route.fulfill({ status: 503, json: { error: { code: 'PROVIDER_UNREACHABLE', message: 'Synthetic catalog outage', request_id: uuid(880 + ++catalogFailures) } } }))
+  let releaseOlder!: () => void
+  const olderGate = new Promise<void>(resolve => { releaseOlder = resolve })
+  try {
+    await page.goto('/')
+    await expect(page.locator('[data-message-id]')).toHaveCount(50)
+    const modelWarning = page.locator('.app-notification').filter({ hasText: 'Modelle nicht verfügbar.' })
+    await expect(modelWarning).toHaveCount(1)
+    await expect(modelWarning).toBeVisible()
+    // Use the actual close control before loading history: the mobile card
+    // can cover the older-page button until its normal expiry.
+    await modelWarning.getByRole('button', { name: 'Benachrichtigung schließen', exact: true }).click()
+    await expect(modelWarning).toHaveCount(0)
+    await page.route('**/active-path?*beforeMessageId=*', async route => {
+      await olderGate
+      await route.fulfill({ status: 503, json: { error: { code: 'UNAVAILABLE', message: 'Vorübergehend offline', request_id: uuid(888) } } })
+    })
+    await page.locator('.chat-scroll').evaluate(element => { element.scrollTop = 0 })
+    await page.getByRole('button', { name: 'Ältere Nachrichten laden', exact: true }).click()
+    // The existing model recovery action creates a fresh warning while the
+    // older read is pending. Preserve native expiry and notification deduplication.
+    await page.getByRole('button', { name: 'Modelle neu laden', exact: true }).click()
+    await expect(modelWarning).toHaveCount(1)
+    await expect(modelWarning).toBeVisible()
+    releaseOlder()
+    const historyWarning = page.locator('.app-notification').filter({ hasText: 'Ältere Nachrichten konnten nicht geladen werden.' })
+    await expect(historyWarning).toHaveCount(1)
+    await expect(historyWarning).toBeVisible()
+    await expect(historyWarning).toContainText('Ältere Nachrichten konnten nicht geladen werden.')
+    await expect(historyWarning.getByRole('button', { name: 'Erneut laden', exact: true })).toHaveCount(1)
+    await expect(modelWarning).toHaveCount(1)
+    await expect(page.locator('[data-message-id]')).toHaveCount(50)
+    await historyWarning.getByRole('button', { name: 'Benachrichtigung schließen', exact: true }).click()
+    await expect(historyWarning).toHaveCount(0)
+    await modelWarning.getByRole('button', { name: 'Benachrichtigung schließen', exact: true }).click()
+    await expect(modelWarning).toHaveCount(0)
+    await page.unroute('**/active-path?*beforeMessageId=*')
+    await page.getByRole('button', { name: 'Ältere Nachrichten laden', exact: true }).click()
+    await expect(page.locator('[data-message-id]')).toHaveCount(100)
+  }
+  finally { releaseOlder() }
 })
 
 test('search pages all PostgreSQL chats and switching preserves the active path, variants and drafts', async ({ page, request }) => {
