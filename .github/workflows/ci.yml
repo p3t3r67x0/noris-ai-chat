@@ -50,7 +50,7 @@ jobs:
           python-version: '3.13'
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
       - name: Install pinned package manager and dependencies
@@ -137,7 +137,7 @@ jobs:
               row = connection.execute('SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user').fetchone()
               assert row == (False, False), row
           PY
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
       - name: Install production browser test dependencies
