@@ -33,7 +33,7 @@ try {
     required: Object.keys(schemas),
     additionalProperties: false,
     definitions: schemas,
-  }, 'ApiSchemas')
+  }, 'ApiSchemas', { ignoreMinAndMaxItems: true })
   const lines = ['export interface ApiPaths {']
   /** @param {ContractSchema} schema @returns {string} */
   function schemaType(schema) {

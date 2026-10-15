@@ -20,6 +20,9 @@ const child = spawn(process.execPath, ['.output/server/index.mjs'], {
 })
 const server = http.createServer((request, response) => {
   const upstream = http.request({
+    // Uvicorn can close its idle socket while Node's default agent selects it
+    // for a parallel bootstrap read. Use a fresh loopback connection per request.
+    agent: false,
     host: '127.0.0.1', port: request.url?.startsWith('/api/') ? backendPort : nodePort,
     path: request.url, method: request.method, headers: request.headers,
   }, result => {
@@ -27,7 +30,10 @@ const server = http.createServer((request, response) => {
     result.on('error', () => response.destroy())
     result.pipe(response)
   })
-  upstream.on('error', () => {
+  upstream.on('error', error => {
+    // Never include request paths, headers or bodies in fixture diagnostics.
+    const code = 'code' in error && typeof error.code === 'string' && /^[A-Z_]{1,32}$/.test(error.code) ? error.code : 'UNKNOWN'
+    console.error('fixture upstream error', { code, reusedSocket: upstream.reusedSocket })
     if (response.headersSent) response.destroy()
     else { response.writeHead(502); response.end() }
   })

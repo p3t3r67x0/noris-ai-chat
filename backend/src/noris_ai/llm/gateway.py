@@ -214,12 +214,7 @@ class LLMGateway:
         model = apply_preference(
             await self.catalog.require(request.modelId), request.reasoningPreference
         )
-        if (
-            not model.streaming
-            or not model.chat_approved
-            or (model.input_modalities and "text" not in model.input_modalities)
-            or (model.output_modalities and "text" not in model.output_modalities)
-        ):
+        if not model.research_eligible:
             raise LLMError("MODEL_UNAVAILABLE", 400)
         self.check_input(request, model)
         return model, min(

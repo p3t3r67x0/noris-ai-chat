@@ -1,3 +1,4 @@
+import json
 from dataclasses import replace
 from decimal import Decimal
 from typing import cast
@@ -66,6 +67,115 @@ def test_policy_defaults_and_explicit_decisions(decision: str, code: str | None)
 def test_unknown_negative_or_imprecise_costs_rejected(value: Decimal) -> None:
     with pytest.raises(ValueError):
         BudgetAmount(cost=value)
+
+
+def operator_permission() -> dict[str, object]:
+    return {
+        "decision": "allow",
+        "config_version": "review-v1",
+        "per_call": {"calls": 1, "bytes": 65_536},
+        "daily_limit": {"calls": 100, "bytes": 26_214_400},
+        "generation_limit": {"calls": 6, "bytes": 2_097_152},
+    }
+
+
+def test_explicit_operator_config_uses_existing_policy_without_implicit_grants():
+    assert not ToolPolicy.from_operator_json(None).permissions
+    assert not ToolPolicy.from_operator_json("").permissions
+    payload = {"version": 1, "web_search": operator_permission()}
+    policy = ToolPolicy.from_operator_json(json.dumps(payload))
+    assert set(policy.permissions) == {"web.search.v1"}
+    definition = replace(
+        create_tool_registry().get("web.search.v1"),
+        handler=handler,
+        provider_key="searxng",
+        cost_policy="bounded",
+    )
+    assert policy.require(definition).per_call == BudgetAmount(calls=1, bytes=65_536)
+    # A permission does not create a provider or activate research.
+    with pytest.raises(ToolError):
+        policy.require(create_tool_registry().get("web.search.v1"))
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"version": 2},
+        {"version": True},
+        {"version": 1.0},
+        {"version": "1"},
+        {"version": None},
+        {"execute": "web.search.v1"},
+        {"owner_id": "forged"},
+        {"web_search": {**operator_permission(), "url": "https://example.org"}},
+        {"web_search": {**operator_permission(), "decision": "automatic"}},
+        {"web_search": {**operator_permission(), "per_call": {"calls": True, "bytes": 1}}},
+        {"web_search": {**operator_permission(), "daily_limit": {"calls": 0, "bytes": 0}}},
+    ],
+)
+def test_operator_config_rejects_unknown_fields_permissions_and_unbounded_budgets(
+    update: dict[str, object],
+):
+    with pytest.raises(ValueError):
+        ToolPolicy.from_operator_json(json.dumps({"version": 1, **update}))
+
+
+@pytest.mark.parametrize("payload", ['{"secret":"synthetic-private-config"}', "x" * 16_385])
+async def test_invalid_operator_config_fails_closed_without_breaking_normal_chat(
+    payload: str,
+    llm_config: Settings,
+    caplog: pytest.LogCaptureFixture,
+):
+    config = llm_config.model_copy(update={"tool_permissions_json": payload})
+    app = create_app(config, provider=FixtureProvider())
+    async with (
+        app.router.lifespan_context(app),
+        AsyncClient(transport=ASGITransport(app=app), base_url="http://test", auth=AUTH) as client,
+    ):
+        assert not cast(ToolPolicy, app.state.tool_runtime.policy).permissions
+        assert (await client.post("/api/v1/llm/chat", json=PAYLOAD)).status_code == 200
+    assert "synthetic-private-config" not in caplog.text
+
+
+@pytest.mark.parametrize(
+    "enabled,decision,expected",
+    [(True, "allow", True), (False, "allow", False), (True, "approval_required", False)],
+)
+async def test_operator_configuration_reaches_existing_authorized_research_capability(
+    llm_config: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+    enabled: bool,
+    decision: str,
+    expected: bool,
+):
+    monkeypatch.setenv("NORIS_SEARXNG_BASE_URL", "https://search.example.org")
+    monkeypatch.setenv("NORIS_SEARXNG_ALLOWED_HOSTS", '["search.example.org"]')
+    monkeypatch.setenv("NORIS_SEARXNG_ALLOWED_ADDRESSES", "[]")
+    monkeypatch.setenv("NORIS_SEARXNG_CONFIG_VERSION", "review-v1")
+    monkeypatch.setenv("NORIS_SOURCE_FETCH_CONFIG_VERSION", "p7a-v1")
+    monkeypatch.setenv("NORIS_SOURCE_FETCH_ALLOW_HTTP", "false")
+    payload = {
+        "version": 1,
+        "web_search": {**operator_permission(), "decision": decision},
+        "web_fetch": {**operator_permission(), "config_version": "p7a-v1"},
+    }
+    config = llm_config.model_copy(
+        update={
+            "research_enabled": enabled,
+            "searxng_enabled": True,
+            "source_fetch_enabled": True,
+            "tool_permissions_json": json.dumps(payload),
+        }
+    )
+    app = create_app(config, provider=FixtureProvider())
+    async with (
+        app.router.lifespan_context(app),
+        AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client,
+    ):
+        assert (await client.get("/api/v1/chat/research/capability")).status_code == 401
+        response = await client.get("/api/v1/chat/research/capability", auth=AUTH)
+        assert response.status_code == 200
+        assert response.json()["available"] is expected
 
 
 async def test_capabilities_authenticated_and_no_execution_api(llm_config: Settings) -> None:

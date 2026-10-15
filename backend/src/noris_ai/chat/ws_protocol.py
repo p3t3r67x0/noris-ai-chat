@@ -15,6 +15,7 @@ from noris_ai.chat.schemas import (
     JsonApiSchema,
     MessageResponse,
 )
+from noris_ai.research.schemas import ResearchIntent, ResearchState, ResearchStateEvent
 from noris_ai.tools.events import ToolEvent, ToolSnapshotEvent
 
 PROTOCOL_VERSION = 1
@@ -28,6 +29,8 @@ class ClientEnvelope(JsonApiSchema):
 class GenerateIncomingMessage(ClientEnvelope):
     type: Literal["chat.generate"]
     toolEventVersion: Literal[1] | None = None
+    researchEventVersion: Literal[1] | None = None
+    research: ResearchIntent | None = None
     requestId: UUID  # generation id, idempotent
     conversationId: UUID
     inputMessageId: UUID
@@ -51,6 +54,7 @@ class CancelIncomingMessage(ClientEnvelope):
 class ResumeIncomingMessage(ClientEnvelope):
     type: Literal["chat.resume"]
     toolEventVersion: Literal[1] | None = None
+    researchEventVersion: Literal[1] | None = None
     toolEventsOnly: bool = Field(default=False, strict=True)
     generationId: UUID
     lastReceivedSeq: int = Field(default=0, ge=0)
@@ -104,6 +108,7 @@ class GenerationDeltaEvent(ServerEnvelope):
 
 
 class GenerationTerminalEvent(ServerEnvelope):
+    researchState: ResearchState | None = None
     """Shared terminal fields; the type discriminates completion states."""
 
     generationId: UUID
@@ -164,6 +169,8 @@ class ResumeAcceptedEvent(ServerEnvelope):
 
 
 class ResumeSnapshotEvent(ServerEnvelope):
+    researchMode: Literal["web"] | None = None
+    researchState: ResearchState | None = None
     type: Literal["chat.resume.snapshot"] = "chat.resume.snapshot"
     generationId: UUID
     conversationId: UUID
@@ -211,4 +218,5 @@ ServerEvent = (
     | PongEvent
     | ToolEvent
     | ToolSnapshotEvent
+    | ResearchStateEvent
 )

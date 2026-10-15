@@ -2,7 +2,7 @@
 
 Status: technische Planung mit gemergter P1a-Grundlage und separat
 [vorbereitetem SearXNG-Provider](SEARXNG-PROVIDER.md); keine neue Produktfunktion
-aktiviert. Stand: 2026-10-13. Registry und Persistenz: [Tool-Grundlage P1a](TOOL-FOUNDATION.md).
+aktiviert. Stand: 2026-10-14. Registry und Persistenz: [Tool-Grundlage P1a](TOOL-FOUNDATION.md).
 P1b ist mit PR #63 gemergt. P2 ergänzt die technische Ereignis-/Replayebene
 auf diesem aktuellen `main`: [Toolereignisse](TOOL-EVENTS.md). Produktive
 Suchhandler und die P6-/P7-UI bleiben separate Phasen.
@@ -45,7 +45,7 @@ Noch nicht implementierte oder nicht konfigurierte Funktionen sind ausgeblendet.
 | --- | --- | --- |
 | Upload | vorhandener nativer Filedialog | bestehender Uploadstatus und normaler Send/Stop |
 | Bibliothek | Auswahl vorhandener Dateien | bestätigte IDs in denselben Attachmentstate; Abbruch erzeugt keinen Chat |
-| Websuche | entfernbarer Webchip | nächster Versand verwendet Webvorstufe, danach normaler Modus |
+| Websuche | entfernbarer Webchip | expliziter Versand nutzt Research; Chip bleibt bis zur Deaktivierung aktiv (P7c) |
 | Bild erstellen | Bildchip und belegte Bildoptionen | nächster Versand erzeugt Bildjob; keine stille Übertragung vorhandener Dateien |
 | Deep Research | Scope-/Umfangsdialog, Researchchip | Versand startet konkreten Run; Hintergrundscope ausdrücklich sichtbar |
 | Skizzieren | lokale Zeichenfläche im Dialog | bestätigter PNGexport wird normaler Bildanhang |
@@ -190,6 +190,19 @@ ergänzt nur eine begrenzte nullable Generationprojektion. Standardflag false,
 keine Produktroute/Composeraktivierung, keine produktiven Grants. Sichtbare
 Aktivierung, Datenschutzhinweis und öffentlicher Zitiervertrag folgen separat in
 P7c; kein automatischer Beginn dieses Arbeitspakets.
+
+### P7c — Modellunabhängige Websuche-UI und Zitate
+
+[Web Search UX](WEB-SEARCH-UX.md) integriert die bestehende Plusaktion, sichtbaren
+Datenschutzhinweis, serverautorisierte versionierte Intent, persistierten Fortschritt,
+Owner-/Conversation-/Generationgebundenen Quellenreader und sichere Zitatbuttons.
+Die Eignung kommt aus derselben serverseitigen Modellprüfung wie Researchadmission;
+keine Modellnamen-Allowlist oder Tool-Calling-Voraussetzung. Kontextfit, Policy,
+Budget, Cancellation und automatische Fortsetzung bleiben beim vorhandenen Stack.
+Reload/Replay verwenden denselben Socket und dieselbe Outboxsequenz. Explizite
+Fortsetzungen verlinken nur autorisierte Zitate des unveränderten übernommenen Texts.
+Keine Migration, produktive Aktivierung oder Produktivgrants. Reviewfreigabe erst
+nach vollständigen lokalen Gates, unabhängigem Review und grünen Actions.
 
 ### P8 — Bildprovider und atomarer Attachmentimport
 

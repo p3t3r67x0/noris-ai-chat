@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     # Binding alone grants no permission and no browser request can enable research.
     research_enabled: bool = False
     research_timeout_seconds: int = Field(default=60, ge=1, le=120)
+    tool_permissions_json: str | None = None
     llm_provider: Literal["disabled", "openai-compatible"] = "disabled"
     llm_base_url: str | None = None
     llm_allowed_hosts: tuple[str, ...] = ()

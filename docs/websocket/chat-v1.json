@@ -121,6 +121,30 @@
               "title": "Requestid",
               "type": "string"
             },
+            "research": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ResearchIntent"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "researchEventVersion": {
+              "anyOf": [
+                {
+                  "const": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Researcheventversion"
+            },
             "sourceAssistantMessageId": {
               "anyOf": [
                 {
@@ -193,6 +217,37 @@
           "title": "PingIncomingMessage",
           "type": "object"
         },
+        "ResearchIntent": {
+          "additionalProperties": false,
+          "description": "Public intent, never an execution permission or a tool plan.",
+          "properties": {
+            "language": {
+              "enum": [
+                "de",
+                "en"
+              ],
+              "title": "Language",
+              "type": "string"
+            },
+            "mode": {
+              "const": "web",
+              "title": "Mode",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "mode",
+            "language"
+          ],
+          "title": "ResearchIntent",
+          "type": "object"
+        },
         "ResumeIncomingMessage": {
           "additionalProperties": false,
           "properties": {
@@ -206,6 +261,19 @@
               "minimum": 0,
               "title": "Lastreceivedseq",
               "type": "integer"
+            },
+            "researchEventVersion": {
+              "anyOf": [
+                {
+                  "const": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Researcheventversion"
             },
             "toolEventVersion": {
               "anyOf": [
@@ -356,6 +424,39 @@
             "createdAt"
           ],
           "title": "AttachmentResponse",
+          "type": "object"
+        },
+        "CitationReference": {
+          "additionalProperties": false,
+          "properties": {
+            "claim_support": {
+              "const": "unverified",
+              "default": "unverified",
+              "title": "Claim Support",
+              "type": "string"
+            },
+            "end": {
+              "minimum": 1,
+              "title": "End",
+              "type": "integer"
+            },
+            "marker": {
+              "pattern": "^R[1-3]$",
+              "title": "Marker",
+              "type": "string"
+            },
+            "start": {
+              "minimum": 0,
+              "title": "Start",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "marker",
+            "start",
+            "end"
+          ],
+          "title": "CitationReference",
           "type": "object"
         },
         "ConnectedEvent": {
@@ -660,6 +761,31 @@
               "title": "Messageid",
               "type": "string"
             },
+            "researchState": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "planning",
+                    "searching",
+                    "selecting",
+                    "fetching",
+                    "grounding",
+                    "generating",
+                    "completed",
+                    "failed",
+                    "cancelled",
+                    "interrupted",
+                    "skipped"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Researchstate"
+            },
             "seq": {
               "minimum": 1,
               "title": "Seq",
@@ -680,6 +806,7 @@
           },
           "required": [
             "version",
+            "researchState",
             "generationId",
             "conversationId",
             "messageId",
@@ -720,6 +847,31 @@
               "title": "Messageid",
               "type": "string"
             },
+            "researchState": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "planning",
+                    "searching",
+                    "selecting",
+                    "fetching",
+                    "grounding",
+                    "generating",
+                    "completed",
+                    "failed",
+                    "cancelled",
+                    "interrupted",
+                    "skipped"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Researchstate"
+            },
             "seq": {
               "minimum": 1,
               "title": "Seq",
@@ -740,6 +892,7 @@
           },
           "required": [
             "version",
+            "researchState",
             "generationId",
             "conversationId",
             "messageId",
@@ -848,6 +1001,31 @@
               "title": "Messageid",
               "type": "string"
             },
+            "researchState": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "planning",
+                    "searching",
+                    "selecting",
+                    "fetching",
+                    "grounding",
+                    "generating",
+                    "completed",
+                    "failed",
+                    "cancelled",
+                    "interrupted",
+                    "skipped"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Researchstate"
+            },
             "seq": {
               "minimum": 1,
               "title": "Seq",
@@ -868,6 +1046,7 @@
           },
           "required": [
             "version",
+            "researchState",
             "generationId",
             "conversationId",
             "messageId",
@@ -940,6 +1119,31 @@
               "title": "Reason",
               "type": "string"
             },
+            "researchState": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "planning",
+                    "searching",
+                    "selecting",
+                    "fetching",
+                    "grounding",
+                    "generating",
+                    "completed",
+                    "failed",
+                    "cancelled",
+                    "interrupted",
+                    "skipped"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Researchstate"
+            },
             "seq": {
               "minimum": 1,
               "title": "Seq",
@@ -960,6 +1164,7 @@
           },
           "required": [
             "version",
+            "researchState",
             "generationId",
             "conversationId",
             "messageId",
@@ -1003,6 +1208,31 @@
               "title": "Messageid",
               "type": "string"
             },
+            "researchState": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "planning",
+                    "searching",
+                    "selecting",
+                    "fetching",
+                    "grounding",
+                    "generating",
+                    "completed",
+                    "failed",
+                    "cancelled",
+                    "interrupted",
+                    "skipped"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Researchstate"
+            },
             "seq": {
               "minimum": 1,
               "title": "Seq",
@@ -1023,6 +1253,7 @@
           },
           "required": [
             "version",
+            "researchState",
             "generationId",
             "conversationId",
             "messageId",
@@ -1254,6 +1485,17 @@
               ],
               "title": "Parentmessageid"
             },
+            "research": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ResearchView"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
             "role": {
               "enum": [
                 "user",
@@ -1328,6 +1570,291 @@
             "pro"
           ],
           "type": "string"
+        },
+        "ResearchSource": {
+          "additionalProperties": false,
+          "properties": {
+            "contentDigest": {
+              "anyOf": [
+                {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Contentdigest"
+            },
+            "excerpt": {
+              "anyOf": [
+                {
+                  "maxLength": 8000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Excerpt"
+            },
+            "fetchRunId": {
+              "format": "uuid",
+              "title": "Fetchrunid",
+              "type": "string"
+            },
+            "fetchedAt": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Fetchedat"
+            },
+            "finalUrl": {
+              "anyOf": [
+                {
+                  "format": "uri",
+                  "maxLength": 2048,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Finalurl"
+            },
+            "marker": {
+              "anyOf": [
+                {
+                  "pattern": "^R[1-3]$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Marker"
+            },
+            "originalUrl": {
+              "format": "uri",
+              "maxLength": 2048,
+              "minLength": 1,
+              "title": "Originalurl",
+              "type": "string"
+            },
+            "searchRunId": {
+              "format": "uuid",
+              "title": "Searchrunid",
+              "type": "string"
+            },
+            "sourceId": {
+              "format": "uuid",
+              "title": "Sourceid",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "context_prepared",
+                "unavailable"
+              ],
+              "title": "Status",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            }
+          },
+          "required": [
+            "marker",
+            "sourceId",
+            "searchRunId",
+            "fetchRunId",
+            "title",
+            "originalUrl",
+            "finalUrl",
+            "fetchedAt",
+            "status",
+            "excerpt",
+            "contentDigest"
+          ],
+          "title": "ResearchSource",
+          "type": "object"
+        },
+        "ResearchStateEvent": {
+          "additionalProperties": false,
+          "properties": {
+            "conversationId": {
+              "format": "uuid",
+              "title": "Conversationid",
+              "type": "string"
+            },
+            "eventVersion": {
+              "const": 1,
+              "default": 1,
+              "title": "Eventversion",
+              "type": "integer"
+            },
+            "generationId": {
+              "format": "uuid",
+              "title": "Generationid",
+              "type": "string"
+            },
+            "messageId": {
+              "format": "uuid",
+              "title": "Messageid",
+              "type": "string"
+            },
+            "seq": {
+              "minimum": 1,
+              "title": "Seq",
+              "type": "integer"
+            },
+            "state": {
+              "enum": [
+                "planning",
+                "searching",
+                "selecting",
+                "fetching",
+                "grounding",
+                "generating",
+                "completed",
+                "failed",
+                "cancelled",
+                "interrupted",
+                "skipped"
+              ],
+              "title": "State",
+              "type": "string"
+            },
+            "type": {
+              "const": "research.updated",
+              "default": "research.updated",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "eventVersion",
+            "type",
+            "generationId",
+            "conversationId",
+            "messageId",
+            "seq",
+            "state"
+          ],
+          "title": "ResearchStateEvent",
+          "type": "object"
+        },
+        "ResearchView": {
+          "additionalProperties": false,
+          "properties": {
+            "citations": {
+              "items": {
+                "$ref": "#/$defs/CitationReference"
+              },
+              "maxItems": 256,
+              "title": "Citations",
+              "type": "array"
+            },
+            "claimSupport": {
+              "const": "unverified",
+              "default": "unverified",
+              "title": "Claimsupport",
+              "type": "string"
+            },
+            "generationId": {
+              "format": "uuid",
+              "title": "Generationid",
+              "type": "string"
+            },
+            "inherited": {
+              "default": false,
+              "title": "Inherited",
+              "type": "boolean"
+            },
+            "mode": {
+              "const": "web",
+              "default": "web",
+              "title": "Mode",
+              "type": "string"
+            },
+            "modelResponseObserved": {
+              "default": false,
+              "title": "Modelresponseobserved",
+              "type": "boolean"
+            },
+            "sourceGenerationId": {
+              "format": "uuid",
+              "title": "Sourcegenerationid",
+              "type": "string"
+            },
+            "sources": {
+              "items": {
+                "$ref": "#/$defs/ResearchSource"
+              },
+              "maxItems": 6,
+              "title": "Sources",
+              "type": "array"
+            },
+            "state": {
+              "enum": [
+                "planning",
+                "searching",
+                "selecting",
+                "fetching",
+                "grounding",
+                "generating",
+                "completed",
+                "failed",
+                "cancelled",
+                "interrupted",
+                "skipped"
+              ],
+              "title": "State",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "version",
+            "mode",
+            "generationId",
+            "sourceGenerationId",
+            "state",
+            "inherited",
+            "modelResponseObserved",
+            "claimSupport",
+            "sources",
+            "citations"
+          ],
+          "title": "ResearchView",
+          "type": "object"
         },
         "ResumeAcceptedEvent": {
           "additionalProperties": false,
@@ -1420,6 +1947,44 @@
               "title": "Messageid",
               "type": "string"
             },
+            "researchMode": {
+              "anyOf": [
+                {
+                  "const": "web",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Researchmode"
+            },
+            "researchState": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "planning",
+                    "searching",
+                    "selecting",
+                    "fetching",
+                    "grounding",
+                    "generating",
+                    "completed",
+                    "failed",
+                    "cancelled",
+                    "interrupted",
+                    "skipped"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Researchstate"
+            },
             "status": {
               "enum": [
                 "queued",
@@ -1448,6 +2013,8 @@
           },
           "required": [
             "version",
+            "researchMode",
+            "researchState",
             "type",
             "generationId",
             "conversationId",
@@ -1903,6 +2470,9 @@
         },
         {
           "$ref": "#/$defs/ToolSnapshotEvent"
+        },
+        {
+          "$ref": "#/$defs/ResearchStateEvent"
         }
       ]
     }

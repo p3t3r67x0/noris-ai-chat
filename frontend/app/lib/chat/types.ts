@@ -10,7 +10,10 @@ export type ConversationTitleResponse = ApiPaths['/api/v1/llm/conversation-title
 
 export type GenerationStatus = 'idle' | 'submitting' | 'streaming' | 'completed' | 'incomplete' | 'cancelled' | 'failed'
 export type MessageStatus = Exclude<GenerationStatus, 'idle'>
+export type ResearchView = ApiSchemas['ResearchView']
 export interface ChatMessage {
+  research?: ResearchView | null
+  researchLoadFailed?: boolean
   id: string
   conversationId: string
   parentMessageId: string | null
@@ -29,6 +32,8 @@ export interface ChatMessage {
 }
 export type MessageRecords = Record<string, ChatMessage>
 export interface ChatRequest {
+  research?: NonNullable<Extract<import('../../types/generated/chat-ws').ChatWsCommand, { type: 'chat.generate' }>['research']>
+  inheritedResearch?: boolean
   reasoningPreference?: ReasoningPreference | null
   generationId: string
   conversationId: string
@@ -44,15 +49,16 @@ export interface ChatRequest {
   resume?: boolean
   sourceAssistantMessageId?: string
 }
-export type StreamEvent = { seq: number, continuationCount?: number, requestId?: string | null } & (
+export type StreamEvent = { researchState?: ResearchView['state'], researchLoadFailed?: boolean, research?: ResearchView | null, seq: number, continuationCount?: number, requestId?: string | null } & (
   | { type: 'response.started' }
   | { type: 'response.tool' }
+  | { type: 'response.research', state: ResearchView['state'], research?: ResearchView | null }
   | { type: 'response.output_text.delta', delta: string }
   | { type: 'response.completed', content?: string }
   | { type: 'response.incomplete', reason: 'output_limit', content?: string, code?: string | null, message?: string | null }
   | { type: 'response.cancelled', content?: string }
   | { type: 'response.failed', code: string, message: string, content?: string }
-  | { type: 'response.snapshot', content: string, status: Exclude<GenerationStatus, 'idle'>, code?: string | null, message?: string | null }
+  | { type: 'response.snapshot', research?: ResearchView | null, content: string, status: Exclude<GenerationStatus, 'idle'>, code?: string | null, message?: string | null }
 )
 export interface ChatTransport {
   stream: (request: ChatRequest, signal: AbortSignal) => AsyncIterable<StreamEvent>

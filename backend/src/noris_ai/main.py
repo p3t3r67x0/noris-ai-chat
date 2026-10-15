@@ -100,11 +100,18 @@ def create_app(
         application.state.tool_registry = tool_registry
         tool_repository = ToolRepository(database, tool_registry)
         application.state.tool_repository = tool_repository
-        tool_runtime = ToolRuntime(tool_repository, tool_registry, ToolPolicy())
+        try:
+            tool_policy = ToolPolicy.from_operator_json(config.tool_permissions_json)
+        except (ValidationError, ValueError):
+            # Invalid configuration cannot grant rights or disclose its contents.
+            # Keep normal chat available with the existing deny-by-default policy.
+            logger.warning("Toolpermissions ungültig; Webtools nicht verfügbar")
+            tool_policy = ToolPolicy()
+        tool_runtime = ToolRuntime(tool_repository, tool_registry, tool_policy)
         application.state.tool_runtime = tool_runtime
         attachments = AttachmentService(config, database)
         application.state.chat_attachments = attachments
-        application.state.chat_service = ChatService(repository)
+        application.state.chat_service = ChatService(repository, tool_repository)
         application.state.chat_tickets = WsTicketStore(config.chat_ws_ticket_ttl_seconds)
         application.state.chat_generations = GenerationManager(
             config, repository, application.state.llm_gateway, attachments, tool_runtime

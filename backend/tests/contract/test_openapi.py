@@ -33,6 +33,8 @@ def test_foundation_and_llm_endpoints_are_exposed() -> None:
         "/api/v1/chat/attachments/{attachment_id}",
         "/api/v1/chat/attachments/{attachment_id}/content",
         "/api/v1/chat/tools/capabilities",
+        "/api/v1/chat/research/capability",
+        "/api/v1/chat/conversations/{conversation_id}/generations/{generation_id}/research",
         "/api/v1/chat/tool-runs/{run_id}",
         "/api/v1/chat/tool-approvals/{approval_id}/decision",
     }
@@ -83,7 +85,7 @@ def test_title_contract_is_bounded_and_cannot_supply_system_instructions() -> No
 
 def test_provider_facts_policy_and_usd_contract_are_explicit() -> None:
     schemas = create_app().openapi()["components"]["schemas"]
-    model = schemas["LLMModel"]["properties"]
+    model = schemas["CatalogLLMModel"]["properties"]
     assert {
         "provider_context_window",
         "provider_max_output_tokens",

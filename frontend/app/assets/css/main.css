@@ -433,3 +433,22 @@ details.message-attachment { display: block; }
 @media (prefers-reduced-motion: reduce) {
   .app-notification, .app-notification-viewport, .app-notification * { animation: none !important; transition: none !important; }
 }
+
+/* P7c uses the existing composer header geometry and scroll observation. */
+.research-privacy { margin: 0.5rem 0.875rem 0; overflow-wrap: anywhere; }
+.research-panel { margin-block: 0.5rem 0.875rem; min-width: 0; }
+.research-status { display: flex; align-items: center; gap: 0.5rem; min-height: 1.5rem; font-size: 0.875rem; }
+.research-sources { display: grid; gap: 0.375rem; margin-block: 0.5rem; padding: 0; list-style: none; }
+.research-source { display: flex; align-items: center; gap: 0.5rem; width: 100%; min-height: 44px; padding: 0.5rem; text-align: start; border: 1px solid var(--ui-border); border-radius: 0.5rem; overflow-wrap: anywhere; background: var(--ui-bg-muted); }
+.research-source:focus-visible, .research-citation:focus-visible { outline: 2px solid var(--ui-primary); outline-offset: 2px; }
+.research-number { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.research-citation { display: inline-flex; justify-content: center; align-items: center; min-width: 44px; min-height: 44px; margin-inline: 0.125rem; color: #2459b8; font-size: 0.85em; vertical-align: baseline; text-decoration: underline; }
+.dark .research-citation { color: #8ab4ff; }
+.research-dialog { width: min(42rem, calc(100vw - 1.5rem)); max-height: calc(100dvh - 2rem); }
+.research-details { display: grid; gap: 1rem; min-width: 0; overflow-wrap: anywhere; }
+.research-details dl { min-width: 0; }
+.research-details dt { margin-top: 0.5rem; font-weight: 600; }
+.research-details dd { overflow-wrap: anywhere; }
+.research-details a { color: #2459b8; text-decoration: underline; }
+.dark .research-details a { color: #8ab4ff; }
+.research-excerpt { max-height: 16rem; overflow-y: auto; white-space: pre-wrap; border-inline-start: 2px solid var(--ui-border); padding-inline-start: 0.75rem; }

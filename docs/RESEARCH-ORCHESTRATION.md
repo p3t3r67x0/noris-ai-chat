@@ -1,5 +1,11 @@
 # P7b – Search Orchestration and LLM Grounding
 
+P7c integriert inzwischen die versionierte Benutzeraktivierung und autorisierte
+Quellenanzeige: [Web Search UX](WEB-SEARCH-UX.md). Die nachfolgenden Angaben zu
+P7b/P2 beschreiben deren ursprünglichen Stand; Researchstatus verwendet jetzt
+additiv dieselbe Outboxsequenz mit `researchEventVersion: 1`. ToolEventVersion 1
+und der bestehende Socket bleiben unverändert.
+
 P7b ergänzt eine ausdrücklich aktivierte, serverseitige Recherche in der vorhandenen
 Chatgenerierung. `NORIS_RESEARCH_ENABLED` ist standardmäßig **false**. Die normale
 App hat weiterhin keine Research-Execute-Route, keinen Composer-Webmodus und keine

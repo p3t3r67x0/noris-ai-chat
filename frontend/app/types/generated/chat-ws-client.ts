@@ -15,21 +15,26 @@ export type Modelid = string
 export type Operation = ("generate" | "continue")
 export type Parentmessageid = (string | null)
 export type Requestid = string
+export type Language = ("de" | "en")
+export type Mode = "web"
+export type Version = 1
+export type Researcheventversion = (1 | null)
 export type Sourceassistantmessageid = (string | null)
 export type Tooleventversion = (1 | null)
 export type Type = "chat.generate"
-export type Version = 1
+export type Version1 = 1
 export type Generationid = string
 export type Type1 = "chat.cancel"
-export type Version1 = 1
+export type Version2 = 1
 export type Generationid1 = string
 export type Lastreceivedseq = number
+export type Researcheventversion1 = (1 | null)
 export type Tooleventversion1 = (1 | null)
 export type Tooleventsonly = boolean
 export type Type2 = "chat.resume"
-export type Version2 = 1
-export type Type3 = "chat.ping"
 export type Version3 = 1
+export type Type3 = "chat.ping"
+export type Version4 = 1
 
 export interface GenerateIncomingMessage {
   assistantMessageId: Assistantmessageid
@@ -44,25 +49,36 @@ export interface GenerateIncomingMessage {
   operation?: Operation
   parentMessageId?: Parentmessageid
   requestId: Requestid
+  research?: (ResearchIntent | null)
+  researchEventVersion?: Researcheventversion
   sourceAssistantMessageId?: Sourceassistantmessageid
   toolEventVersion?: Tooleventversion
   type: Type
+  version: Version1
+}
+/**
+ * Public intent, never an execution permission or a tool plan.
+ */
+export interface ResearchIntent {
+  language: Language
+  mode: Mode
   version: Version
 }
 export interface CancelIncomingMessage {
   generationId: Generationid
   type: Type1
-  version: Version1
+  version: Version2
 }
 export interface ResumeIncomingMessage {
   generationId: Generationid1
   lastReceivedSeq?: Lastreceivedseq
+  researchEventVersion?: Researcheventversion1
   toolEventVersion?: Tooleventversion1
   toolEventsOnly?: Tooleventsonly
   type: Type2
-  version: Version2
+  version: Version3
 }
 export interface PingIncomingMessage {
   type: Type3
-  version: Version3
+  version: Version4
 }

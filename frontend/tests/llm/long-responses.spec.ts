@@ -26,6 +26,24 @@ test('retains long Markdown and continues the same message after browser reload'
   await expect(reply.locator('blockquote')).toHaveText('Zitat')
   await expect(reply).toHaveAttribute('data-message-id', id!)
   await expect(page.locator('.message-assistant')).toHaveCount(1)
+  // Local snapshots batch writes for 120 ms. Await the durable continuation,
+  // independently of the DOM, before checking its exact content and reloading.
+  await expect.poll(() => page.evaluate(({ messageId, prefix }) => {
+    const snapshot = JSON.parse(localStorage.getItem('noris-ai:chat:v1') ?? '{}') as {
+      messages?: Record<string, { content: string, status: string, continuationCount?: number }>
+    }
+    const saved = snapshot.messages?.[messageId!]
+    return {
+      preservesPrefix: saved?.content.startsWith(prefix) ?? false,
+      originalLines: saved?.content.match(/print\('alt'\)/g)?.length ?? 0,
+      continuedLines: saved?.content.match(/print\('neu'\)/g)?.length ?? 0,
+      status: saved?.status,
+      continuationCount: saved?.continuationCount,
+    }
+  }, { messageId: id, prefix: original })).toEqual({
+    preservesPrefix: true, originalLines: 3000, continuedLines: 1,
+    status: 'completed', continuationCount: 1,
+  })
   const content = await page.evaluate((messageId) => {
     const snapshot = JSON.parse(localStorage.getItem('noris-ai:chat:v1')!) as { messages: Record<string, { content: string }> }
     return snapshot.messages[messageId!]?.content

@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { isBusy } from '../lib/chat/types'
 import { CHAT_LIMITS } from '../lib/chat/limits'
-import type { ChatRequest, ChatTransport, GenerationStatus } from '../lib/chat/types'
+import type { ChatRequest, ChatTransport, GenerationStatus, ResearchView } from '../lib/chat/types'
 import { normalizeAppError } from '../lib/notifications/errors'
 import type { ErrorContext, ErrorDiagnostics } from '../lib/notifications/errors'
 import { TransportError } from '../lib/chat/realTransport'
@@ -12,6 +12,7 @@ export interface StreamCallbacks {
   failure?: (code: string, message: string, diagnostics?: ErrorDiagnostics) => void
   replace?: (text: string) => void
   continuation?: (count: number) => void
+  research?: (state: ResearchView['state'], view?: ResearchView | null, loadFailed?: boolean) => void
 }
 
 export function useChatStream(transport: ChatTransport) {
@@ -56,6 +57,7 @@ export function useChatStream(transport: ChatTransport) {
           if (event.content.length > maxResponseChars) throw new TransportError('RESPONSE_SIZE_LIMIT')
           sequence = event.seq
           length = event.content.length
+          if (event.researchState) callbacks.research?.(event.researchState, event.research, event.researchLoadFailed)
           callbacks.replace?.(event.content)
           if (event.continuationCount !== undefined) callbacks.continuation?.(event.continuationCount)
           if (event.code && event.message) {
@@ -69,7 +71,8 @@ export function useChatStream(transport: ChatTransport) {
         if (event.seq <= sequence) continue
         if (event.seq !== sequence + 1) throw new TransportError('STREAM_INTERRUPTED')
         sequence = event.seq
-        if (signal.aborted && event.type !== 'response.cancelled') continue
+        if (event.researchState) callbacks.research?.(event.researchState, event.research, event.researchLoadFailed)
+        if (signal.aborted && event.type !== 'response.cancelled' && event.type !== 'response.research') continue
         if (event.continuationCount !== undefined) callbacks.continuation?.(event.continuationCount)
         if ('content' in event && event.content !== undefined) {
           if (event.content.length > maxResponseChars) throw new TransportError('RESPONSE_SIZE_LIMIT')
@@ -77,6 +80,7 @@ export function useChatStream(transport: ChatTransport) {
           callbacks.replace?.(event.content)
         }
         switch (event.type) {
+          case 'response.research': callbacks.research?.(event.state, event.research, event.researchLoadFailed); break
           case 'response.started':
             if (status.value !== 'submitting') throw new TransportError('INVALID_RESPONSE')
             transition('streaming')

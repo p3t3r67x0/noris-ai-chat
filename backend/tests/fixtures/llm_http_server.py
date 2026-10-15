@@ -115,6 +115,11 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
                 yield b": waiting\n\n"
                 await asyncio.Event().wait()
             chunks = ["Echte ", "HTTP-Antwort ", "mit Grüße 🌍."]
+            if any(
+                str(message["content"]).startswith("EXTERNAL_SOURCE_CONTENT")
+                for message in body["messages"]
+            ):
+                chunks += [" Quelle [[R1]]. Unbekannt [[R9]]."]
             finish = "stop"
             if not is_title and prompt.startswith("/long"):
                 content = "# Lange Antwort\n\n```python\n" + "print('alt')\n" * 3000
