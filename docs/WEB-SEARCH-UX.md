@@ -380,6 +380,24 @@ Produktionsfrontends benötigen außerdem den P7c-Frontendbuild. Danach zeigt
 nativen Starts werden die SearXNGprovideroptionen ausdrücklich in der
 Prozessumgebung gesetzt, da der Provider keine implizite `.env` liest.
 
+Damit die Verbindung beim nächsten Neubau erhalten bleibt, die verwendeten
+Overlays dauerhaft in der lokalen `.env` hinterlegen:
+
+```dotenv
+COMPOSE_FILE=compose.yaml:compose.dev.yaml:compose.searxng-backend.yaml
+```
+
+Weitere lokale Neubauten anschließend mit `make up` ausführen. Dieses Ziel
+verwendet die konfigurierte Dateiliste. Ohne Devstack auch hier
+`compose.dev.yaml` weglassen. `make dev-up` setzt dagegen ausdrücklich nur
+`compose.yaml` und `compose.dev.yaml`; explizite `-f`-Optionen überschreiben
+`COMPOSE_FILE` und entfernen damit die Suchanbindung aus dem Backend.
+
+Wenn nach einem Neubau `RESEARCH_UNAVAILABLE` erscheint, zuerst die tatsächlich
+geladenen Compose-Dateien und die SearXNG-Einstellungen im Backend prüfen.
+`NORIS_SEARXNG_ENABLED=true` in `.env` allein reicht nicht: Erst das Overlay
+übergibt die Providerkonfiguration und verbindet das Backend mit dem Suchnetz.
+
 `available: true` bestätigt Konfiguration und Permissions; es ist kein aktiver
 Netzwerktest. Ein Timeout schon nach etwa drei Sekunden in `searching` kann vom
 SearXNG-Verbindungszeitlimit stammen, obwohl die gesamte Researchdeadline noch
