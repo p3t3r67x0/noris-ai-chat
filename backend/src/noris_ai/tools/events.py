@@ -57,7 +57,7 @@ class ToolProjection(ToolEventSchema):
     errorCode: ToolErrorCode | None = None
 
     @model_validator(mode="after")
-    def consistent(self) -> "ToolProjection":
+    def consistent(self) -> ToolProjection:
         if (self.state == "succeeded") != (self.result is not None):
             raise ValueError("Result requires succeeded state")
         return self
@@ -75,7 +75,7 @@ class ToolEvent(ToolEventSchema):
     payload: ToolProjection
 
     @model_validator(mode="after")
-    def consistent(self) -> "ToolEvent":
+    def consistent(self) -> ToolEvent:
         states: dict[str, tuple[str, ...]] = {
             "tool.started": ("running",),
             "tool.progress": ("queued", "running", "awaiting_approval"),
@@ -110,7 +110,7 @@ class ToolSnapshotEvent(ToolEventSchema):
     runs: list[ToolProjection] = Field(max_length=TOOL_SNAPSHOT_PAGE_SIZE)
 
     @model_validator(mode="after")
-    def consistent(self) -> "ToolSnapshotEvent":
+    def consistent(self) -> ToolSnapshotEvent:
         if any(run.lastSequence > self.lastSequence for run in self.runs):
             raise ValueError("Projection exceeds snapshot sequence")
         if len(self.model_dump_json().encode()) > MAX_TOOL_EVENT_BYTES:

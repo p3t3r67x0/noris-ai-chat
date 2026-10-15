@@ -117,11 +117,11 @@ class OpenAICompatibleProvider:
                         models[model.id] = model
                     # Conflicting duplicate IDs have no reliable contract.
                     return [model for key, model in models.items() if key not in duplicates]
-        except (TimeoutError, httpx.TimeoutException):
+        except TimeoutError, httpx.TimeoutException:
             raise LLMError("TIMEOUT", 504) from None
         except httpx.HTTPError:
             raise LLMError("PROVIDER_UNREACHABLE", 503) from None
-        except (ValueError, UnicodeError):
+        except ValueError, UnicodeError:
             raise LLMError("INVALID_RESPONSE") from None
 
     async def stream(
@@ -241,7 +241,7 @@ class OpenAICompatibleProvider:
             raise LLMError("PROVIDER_UNREACHABLE", 503) from None
         except httpx.HTTPError:
             raise LLMError("STREAM_INTERRUPTED") from None
-        except (UnicodeError, ValueError):
+        except UnicodeError, ValueError:
             raise LLMError("INVALID_RESPONSE") from None
 
     @classmethod
@@ -266,7 +266,7 @@ class OpenAICompatibleProvider:
                     for field in ("code", "type")
                 ):
                     raise LLMError("CONTEXT_LIMIT", 413)
-            except (ValueError, UnicodeError):
+            except ValueError, UnicodeError:
                 pass
         cls._validate_status(response.status_code)
 

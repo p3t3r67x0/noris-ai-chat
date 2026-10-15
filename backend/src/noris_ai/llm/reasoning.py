@@ -18,7 +18,7 @@ PROFILES: dict[str, tuple[str, dict[str, str]]] = {
 }
 
 
-def preference_mapping(model: "LLMModel") -> dict["ReasoningPreference", str]:
+def preference_mapping(model: LLMModel) -> dict[ReasoningPreference, str]:
     from typing import cast
 
     profile = PROFILES.get(model.id)
@@ -40,7 +40,7 @@ def preference_mapping(model: "LLMModel") -> dict["ReasoningPreference", str]:
     }
 
 
-def apply_preference(model: "LLMModel", preference: "ReasoningPreference | None") -> "LLMModel":
+def apply_preference(model: LLMModel, preference: ReasoningPreference | None) -> LLMModel:
     if preference is None:
         return model
     effort = preference_mapping(model).get(preference)

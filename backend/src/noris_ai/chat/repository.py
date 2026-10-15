@@ -782,7 +782,7 @@ class ChatRepository:
     async def begin_generation(
         self,
         owner_id: uuid.UUID,
-        command: "GenerateIncomingMessage",
+        command: GenerateIncomingMessage,
         *,
         allow_images: bool = False,
         max_attachments: int = 10,

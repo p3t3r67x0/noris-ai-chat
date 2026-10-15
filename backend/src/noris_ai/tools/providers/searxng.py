@@ -82,7 +82,7 @@ class SearXNGSettings(BaseSettings):
             parsed = urlsplit(self.base_url)
             url = httpx.URL(self.base_url)
             port = parsed.port
-        except (ValueError, httpx.InvalidURL):
+        except ValueError, httpx.InvalidURL:
             raise ValueError("Invalid configured SearXNG endpoint") from None
         if (
             url.scheme not in {"http", "https"}
@@ -106,7 +106,7 @@ class SearXNGSettings(BaseSettings):
             try:
                 if permitted_address(address, self.allowed_addresses) != address:
                     raise ValueError("Noncanonical address")
-            except (ValueError, ToolError):
+            except ValueError, ToolError:
                 raise ValueError("Invalid configured SearXNG address") from None
         return self
 
@@ -177,7 +177,7 @@ def _source_url(value: str) -> HttpUrl | None:
             str(url).split("?", 1)[0].split("#", 1)[0] + ("?" + query if query else "")
         )
         return normalized if len(str(normalized)) <= 2048 else None
-    except (ValueError, ValidationError):
+    except ValueError, ValidationError:
         return None
 
 
@@ -187,7 +187,7 @@ def _published_at(value: object) -> datetime | None:
     try:
         date = datetime.fromisoformat(value)
         return date.astimezone(UTC) if date.tzinfo is not None else None
-    except (ValueError, OverflowError):
+    except ValueError, OverflowError:
         return None
 
 
@@ -204,7 +204,7 @@ def _normalize(payload: bytes, search: SearchInput, config_version: str) -> Sear
                 parse_constant=_reject_constant,
             )
         )
-    except (ValueError, RecursionError):
+    except ValueError, RecursionError:
         raise SearXNGError("invalid_response") from None
     if response.unresponsive_engines and not response.results:
         # A reported engine failure without any result is not a genuine zero-hit search.
@@ -358,7 +358,7 @@ class SearXNGProvider:
                             raise SearXNGError("response_too_large")
                         body.extend(chunk)
                     return _normalize(bytes(body), search, self._settings.config_version)
-        except (TimeoutError, httpx.TimeoutException):
+        except TimeoutError, httpx.TimeoutException:
             raise SearXNGError("timeout") from None
         except httpx.RequestError:
             raise SearXNGError("connection_error") from None

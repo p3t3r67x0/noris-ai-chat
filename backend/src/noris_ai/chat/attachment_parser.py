@@ -34,11 +34,13 @@ def extract(
             raise ExtractionError("ATTACHMENT_TEXT_LIMIT")
         return ExtractedAttachment(text=text if text.strip() else None)
     if mime == "application/pdf":
-        from pypdf import PdfReader, filters
+        from pypdf import PdfReader, overwrite_configuration
         from pypdf.errors import LimitReachedError
 
-        filters.ZLIB_MAX_OUTPUT_LENGTH = 8_388_608
-        filters.LZW_MAX_OUTPUT_LENGTH = 8_388_608
+        overwrite_configuration(
+            zlib_maximum_output_length=8_388_608,
+            lzw_maximum_output_length=8_388_608,
+        )
         if not path.read_bytes().startswith(b"%PDF-"):
             raise ValueError("PDF signature")
         reader = PdfReader(path, strict=True)

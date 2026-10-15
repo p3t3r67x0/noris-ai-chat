@@ -56,7 +56,7 @@ tools = foundation.tools
 
 
 class Download(httpx.AsyncByteStream):
-    def __init__(self, server: "FetchHTTP") -> None:
+    def __init__(self, server: FetchHTTP) -> None:
         self.server = server
 
     async def __aiter__(self):

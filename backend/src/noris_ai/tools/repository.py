@@ -488,7 +488,7 @@ class ToolRepository:
                 )
             ):
                 raise ToolError("TOOL_FORBIDDEN")
-        except (ToolError, ValueError, TypeError):
+        except ToolError, ValueError, TypeError:
             raise ToolError("TOOL_FORBIDDEN") from None
         matches = [s for s in value.sources if s.source_id == source_id]
         if len(matches) != 1:

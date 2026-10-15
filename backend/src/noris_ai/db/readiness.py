@@ -28,6 +28,6 @@ class DatabaseReadinessProbe:
                     .all()
                 )
                 return list(revisions) == [LATEST_REVISION]
-        except (SQLAlchemyError, OSError, TimeoutError):
+        except SQLAlchemyError, OSError, TimeoutError:
             # Database exceptions can contain credentials or infrastructure details.
             return False

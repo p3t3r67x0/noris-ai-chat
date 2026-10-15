@@ -77,7 +77,7 @@ async def replay(
     generation_id: UUID,
     after: int,
     capacity: int,
-    tools: "ToolRepository | None",
+    tools: ToolRepository | None,
     *,
     include_tools: bool,
     initial: bool,

@@ -264,7 +264,7 @@ class ResearchOrchestrator:
                 await fence()
                 prepared = True
                 return context.request.model_copy(update={"research_deadline_at": deadline})
-        except (ValidationError, ValueError):
+        except ValidationError, ValueError:
             raise LLMError("RESEARCH_INVALID", 422) from None
         except TimeoutError:
             raise LLMError("TIMEOUT", 504) from None

@@ -123,7 +123,7 @@ def message_response(message: ChatMessage) -> MessageResponse:
 
 
 class ChatService:
-    def __init__(self, repository: ChatRepository, tools: "ToolRepository | None" = None) -> None:
+    def __init__(self, repository: ChatRepository, tools: ToolRepository | None = None) -> None:
         self.repository = repository
         self.tools = tools
 

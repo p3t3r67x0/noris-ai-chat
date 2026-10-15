@@ -85,7 +85,7 @@ class ResearchView(PublicResearchSchema):
     sources: list[ResearchSource] = Field(
         default_factory=lambda: list[ResearchSource](), max_length=6
     )
-    citations: list["CitationReference"] = Field(
+    citations: list[CitationReference] = Field(
         default_factory=lambda: list[CitationReference](), max_length=256
     )
 

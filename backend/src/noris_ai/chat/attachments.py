@@ -163,7 +163,7 @@ class AttachmentService:
                 return parsed
             except TimeoutError:
                 raise ChatError("ATTACHMENT_PROCESSING_TIMEOUT", 422) from None
-            except (ValueError, UnicodeError):
+            except ValueError, UnicodeError:
                 raise ChatError("ATTACHMENT_INVALID", 422) from None
             finally:
                 if process.returncode is None:

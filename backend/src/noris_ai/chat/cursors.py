@@ -31,7 +31,7 @@ class Cursor(BaseModel):
         return base64.urlsafe_b64encode(self.model_dump_json().encode()).decode().rstrip("=")
 
     @classmethod
-    def decode(cls, value: str, scope: str) -> "Cursor":
+    def decode(cls, value: str, scope: str) -> Cursor:
         try:
             if not value or len(value) > 2048:
                 raise ValueError("Cursor length")

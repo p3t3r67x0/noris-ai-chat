@@ -266,7 +266,7 @@ async def extract_text(body: bytes, mime: str, charset: str, context: Generation
         raise ToolError("TOOL_OUTPUT_INVALID")
     try:
         decoded = body.decode(charset, errors="strict")
-    except (UnicodeError, LookupError):
+    except UnicodeError, LookupError:
         raise ToolError("TOOL_OUTPUT_INVALID") from None
     decoded = decoded.removeprefix("\ufeff")
     start = monotonic()
@@ -289,12 +289,12 @@ async def extract_text(body: bytes, mime: str, charset: str, context: Generation
                     raise ToolError("TOOL_OUTPUT_INVALID")
             try:
                 parser.feed(chunk)
-            except (AssertionError, ValueError):
+            except AssertionError, ValueError:
                 raise ToolError("TOOL_OUTPUT_INVALID") from None
             await asyncio.sleep(0)
         try:
             parser.close()
-        except (AssertionError, ValueError):
+        except AssertionError, ValueError:
             raise ToolError("TOOL_OUTPUT_INVALID") from None
         text = normalize_text(
             "".join(parser.primary if any(p.strip() for p in parser.primary) else parser.parts)

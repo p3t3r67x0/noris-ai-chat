@@ -275,7 +275,7 @@ verhindert den normalen Chatstart nicht. Es gibt keine öffentliche Defaultinsta
 oder hartcodierte Produktivdomain. Die `.env.example` enthält ausschließlich
 deaktivierte Beispielwerte; ein Betreiber muss Providerwerte ausdrücklich exportieren.
 
-Native Voraussetzung: vorhandene Python-3.13-/FastAPI-Installation, PostgreSQL,
+Native Voraussetzung: vorhandene Python-3.14-/FastAPI-Installation, PostgreSQL,
 erreichbare separat betriebene SearXNG-Instanz mit JSONfreigabe, DNSauflösung und
 bei externem Betrieb gültige TLS-Zertifikate. Backend und Suchinstanz müssen
 nicht auf demselben Host laufen. Für eine lokale Instanz ist beispielsweise

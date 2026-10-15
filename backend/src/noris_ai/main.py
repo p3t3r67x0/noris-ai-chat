@@ -64,13 +64,13 @@ def create_app(
         if config.searxng_enabled:
             try:
                 search_provider = SearXNGProvider(SearXNGSettings.from_environment())
-            except (ValidationError, SettingsError):
+            except ValidationError, SettingsError:
                 logger.warning("SearXNG-Konfiguration ungültig; Suchtool nicht verfügbar")
         fetch_provider = None
         if config.source_fetch_enabled:
             try:
                 fetch_provider = SourceFetchProvider(SourceFetchSettings())
-            except (ValidationError, SettingsError):
+            except ValidationError, SettingsError:
                 logger.warning("Source-Fetch-Konfiguration ungültig; Fetchtool nicht verfügbar")
 
         async def resolve_source(context: GenerationToolContext, source_id: UUID) -> SearchSource:
@@ -102,7 +102,7 @@ def create_app(
         application.state.tool_repository = tool_repository
         try:
             tool_policy = ToolPolicy.from_operator_json(config.tool_permissions_json)
-        except (ValidationError, ValueError):
+        except ValidationError, ValueError:
             # Invalid configuration cannot grant rights or disclose its contents.
             # Keep normal chat available with the existing deny-by-default policy.
             logger.warning("Toolpermissions ungültig; Webtools nicht verfügbar")
@@ -136,7 +136,7 @@ def create_app(
                 try:
                     async with asyncio.timeout(5):
                         await attachments.cleanup()
-                except (SQLAlchemyError, OSError, TimeoutError):
+                except SQLAlchemyError, OSError, TimeoutError:
                     logger.warning("Could not clean expired attachments")
                 # A database driver can wrap cancellation in SQLAlchemyError.
                 # Never sleep again once the application has begun shutdown.
@@ -151,7 +151,7 @@ def create_app(
                     try:
                         async with asyncio.timeout(5):
                             await tool_runtime.repository.expire_pending(config.chat_owner_id)
-                    except (SQLAlchemyError, TimeoutError):
+                    except SQLAlchemyError, TimeoutError:
                         logger.warning("Could not expire pending tool runs")
                 await asyncio.sleep(1)
 
