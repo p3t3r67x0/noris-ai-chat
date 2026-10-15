@@ -32,7 +32,13 @@ from noris_ai.tools.events import (
 )
 from noris_ai.tools.models import ToolApproval, ToolResult, ToolRun
 from noris_ai.tools.policy import ToolPolicy
-from noris_ai.tools.registry import ToolRegistry, canonical_payload, encode_payload, payload_digest
+from noris_ai.tools.registry import (
+    RegisteredTool,
+    ToolRegistry,
+    canonical_payload,
+    encode_payload,
+    payload_digest,
+)
 from noris_ai.tools.schemas import (
     TERMINAL_STATES,
     ApprovalState,
@@ -358,36 +364,83 @@ class ToolRepository:
                 )
             ):
                 raise ToolError("TOOL_FORBIDDEN")
-            result = await session.get(ToolResult, (run_id, 1))
-            if result is None or result.output_schema != definition.name:
-                raise ToolError("TOOL_OUTPUT_INVALID")
-            output = definition.validate_output(encode_payload(result.output))
-            if payload_digest(canonical_payload(output)) != result.result_digest:
-                raise ToolError("TOOL_OUTPUT_INVALID")
-            if isinstance(output, SearchResult):
-                if (
-                    output.provider != run.provider_key
-                    or output.config_version != run.config_version
-                    or output.provider != "searxng"
-                    or len({s.source_id for s in output.sources}) != len(output.sources)
-                    or any(
-                        s.source_id != search_source_id(output.config_version, str(s.url))
-                        for s in output.sources
-                    )
-                ):
-                    raise ToolError("TOOL_OUTPUT_INVALID")
-                return output
-            if isinstance(output, SourceDocument):
-                source = await self._search_source(session, run, output.source_id)
-                value = definition.validate_input(encode_payload(run.input), "research_step")
-                if (
-                    not isinstance(value, FetchInput)
-                    or value.source_id != source.source_id
-                    or hashlib.sha256(output.text.encode("utf-8")).hexdigest() != output.digest
-                ):
-                    raise ToolError("TOOL_OUTPUT_INVALID")
-                return output
+            return await self._research_output(session, run, definition)
+
+    async def research_snapshot(
+        self,
+        session: AsyncSession,
+        owner: UUID,
+        conversation: UUID,
+        generation: UUID,
+        run_id: UUID,
+        tool_id: str,
+    ) -> SearchResult | SourceDocument:
+        """Read immutable evidence without granting permission to execute again.
+
+        The enclosing reader checks the generation and non-deleted conversation.
+        Historical reads survive flag/policy changes and cancellation; every run,
+        input, result schema and digest is still bound to that exact scope.
+        """
+        run = await session.scalar(
+            select(ToolRun).where(
+                ToolRun.id == run_id,
+                ToolRun.owner_id == owner,
+                ToolRun.conversation_id == conversation,
+                ToolRun.generation_id == generation,
+                ToolRun.tool_id == tool_id,
+                ToolRun.state == "succeeded",
+                ToolRun.parent_run_id.is_(None),
+                ToolRun.cancel_requested_at.is_(None),
+            )
+        )
+        if run is None:
+            raise ToolError("TOOL_FORBIDDEN")
+        definition = self._registry.get(tool_id)
+        if run.schema_version != definition.schema_version:
             raise ToolError("TOOL_OUTPUT_INVALID")
+        return await self._research_output(session, run, definition)
+
+    async def _research_output(
+        self,
+        session: AsyncSession,
+        run: ToolRun,
+        definition: RegisteredTool,
+    ) -> SearchResult | SourceDocument:
+        value = definition.validate_input(
+            encode_payload(run.input), cast(InvocationKind, run.invocation_kind)
+        )
+        if payload_digest(canonical_payload(value)) != run.input_digest:
+            raise ToolError("TOOL_OUTPUT_INVALID")
+        result = await session.get(ToolResult, (run.id, 1))
+        if result is None or result.output_schema != definition.name:
+            raise ToolError("TOOL_OUTPUT_INVALID")
+        output = definition.validate_output(encode_payload(result.output))
+        if payload_digest(canonical_payload(output)) != result.result_digest:
+            raise ToolError("TOOL_OUTPUT_INVALID")
+        if isinstance(output, SearchResult):
+            if (
+                output.provider != run.provider_key
+                or output.config_version != run.config_version
+                or output.provider != "searxng"
+                or len({s.source_id for s in output.sources}) != len(output.sources)
+                or any(
+                    s.source_id != search_source_id(output.config_version, str(s.url))
+                    for s in output.sources
+                )
+            ):
+                raise ToolError("TOOL_OUTPUT_INVALID")
+            return output
+        if isinstance(output, SourceDocument):
+            source = await self._search_source(session, run, output.source_id)
+            value = definition.validate_input(encode_payload(run.input), "research_step")
+            if (
+                not isinstance(value, FetchInput)
+                or value.source_id != source.source_id
+                or hashlib.sha256(output.text.encode("utf-8")).hexdigest() != output.digest
+            ):
+                raise ToolError("TOOL_OUTPUT_INVALID")
+            return output
+        raise ToolError("TOOL_OUTPUT_INVALID")
 
     async def _search_source(
         self, session: AsyncSession, fetch: ToolRun, source_id: UUID

@@ -70,6 +70,7 @@ test-e2e-production:
 
 build:
 	uv build --project backend
+	uv run --project backend --locked python backend/scripts/check_package.py backend/dist/*.whl backend/dist/*.tar.gz
 	pnpm build
 
 up:

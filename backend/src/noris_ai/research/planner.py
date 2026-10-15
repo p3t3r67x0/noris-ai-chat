@@ -105,6 +105,8 @@ def plan_research(
     question: str,
     language: Literal["de", "en"],
     deadline_at: datetime,
+    *,
+    explicit: bool = False,
 ) -> ResearchPlan:
     # Validate before classification or shortening; never silently trim long inputs.
     SearchInput(query=question, language=language)
@@ -114,7 +116,7 @@ def plan_research(
         raise ValueError("Question cannot be safely sent to search")
     intent = (
         "explicit_sources"
-        if EXPLICIT.search(question)
+        if explicit or EXPLICIT.search(question)
         else "current_information"
         if CURRENT.search(question)
         else "not_required"

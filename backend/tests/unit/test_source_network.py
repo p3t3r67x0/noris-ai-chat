@@ -177,3 +177,89 @@ async def test_dns_redirect_checks_every_target_before_connect(
                 fetch_context(), uuid4(), "https://source.example.org/", max_output_bytes=262_144
             )
     assert calls == 1 and resolutions == ["source.example.org", "redirect.example.org"]
+
+
+@pytest.mark.parametrize(
+    "addresses, expected",
+    [
+        (["2a05:d014:58f:6200::258", "35.157.26.135"], "35.157.26.135"),
+        (["35.157.26.135", "2a05:d014:58f:6200::258"], "35.157.26.135"),
+        (["2606:4700:4700::1111", "93.184.216.34"], "93.184.216.34"),
+        (["2606:4700:4700::1111"], "2606:4700:4700::1111"),
+    ],
+)
+async def test_dual_stack_sources_prefer_validated_ipv4_and_keep_ipv6_only(
+    addresses: list[str], expected: str, monkeypatch: pytest.MonkeyPatch
+):
+    dns = AsyncMock(
+        return_value=[
+            (socket.AF_INET6 if ":" in a else socket.AF_INET, socket.SOCK_STREAM, 6, "", (a, 443))
+            for a in addresses
+        ]
+    )
+    monkeypatch.setattr(asyncio.get_running_loop(), "getaddrinfo", dns)
+    network = AsyncMock(return_value=httpx.Response(200, stream=httpx.ByteStream(b"")))
+    monkeypatch.setattr(httpx.AsyncHTTPTransport, "handle_async_request", network)
+    async with PublicSourceTransport() as transport:
+        response = await transport.handle_async_request(
+            httpx.Request("GET", "https://source.example.org/page")
+        )
+        await response.aclose()
+    dns.assert_awaited_once_with("source.example.org", 443, type=socket.SOCK_STREAM)
+    network.assert_awaited_once()
+    pinned = network.call_args.args[0]
+    assert pinned.url.host == expected
+    assert pinned.headers["host"] == "source.example.org"
+    assert pinned.extensions["sni_hostname"] == "source.example.org"
+
+
+@pytest.mark.parametrize(
+    "addresses",
+    [
+        ["35.157.26.135", "fd00::1"],
+        ["fd00::1", "35.157.26.135"],
+        ["10.0.0.1", "2606:4700:4700::1111"],
+        ["2606:4700:4700::1111", "10.0.0.1"],
+    ],
+)
+async def test_dual_stack_source_validates_every_family_before_connect(
+    addresses: list[str], monkeypatch: pytest.MonkeyPatch
+):
+    dns = AsyncMock(
+        return_value=[
+            (socket.AF_INET6 if ":" in a else socket.AF_INET, socket.SOCK_STREAM, 6, "", (a, 443))
+            for a in addresses
+        ]
+    )
+    monkeypatch.setattr(asyncio.get_running_loop(), "getaddrinfo", dns)
+    network = AsyncMock()
+    monkeypatch.setattr(httpx.AsyncHTTPTransport, "handle_async_request", network)
+    async with PublicSourceTransport() as transport:
+        with pytest.raises(ToolError, match="TOOL_FORBIDDEN"):
+            await transport.handle_async_request(
+                httpx.Request("GET", "https://source.example.org/")
+            )
+    dns.assert_awaited_once()
+    network.assert_not_called()
+
+
+async def test_dual_stack_source_connect_failure_does_not_retry_another_address(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    dns = AsyncMock(
+        return_value=[
+            (socket.AF_INET6, socket.SOCK_STREAM, 6, "", ("2606:4700:4700::1111", 443)),
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443)),
+        ]
+    )
+    monkeypatch.setattr(asyncio.get_running_loop(), "getaddrinfo", dns)
+    network = AsyncMock(side_effect=httpx.ConnectError("fixture connection refused"))
+    monkeypatch.setattr(httpx.AsyncHTTPTransport, "handle_async_request", network)
+    async with PublicSourceTransport() as transport:
+        with pytest.raises(httpx.ConnectError):
+            await transport.handle_async_request(
+                httpx.Request("GET", "https://source.example.org/")
+            )
+    dns.assert_awaited_once()
+    network.assert_awaited_once()
+    assert network.call_args.args[0].url.host == "93.184.216.34"

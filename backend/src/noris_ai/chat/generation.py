@@ -44,7 +44,7 @@ from noris_ai.llm.schemas import (
 from noris_ai.llm.titles import log_title_event
 from noris_ai.llm.vision import VisionMessage, supports_images
 from noris_ai.research.orchestrator import ResearchOrchestrator
-from noris_ai.research.schemas import ResearchActivation
+from noris_ai.research.schemas import ResearchActivation, ResearchIntent
 from noris_ai.tools.runtime import ToolRuntime
 
 type Payload = dict[str, object]
@@ -85,6 +85,7 @@ class Peer:
     queue: asyncio.Queue[Payload]
     overflow: asyncio.Event = field(default_factory=asyncio.Event)
     detached: bool = False
+    research_subscriptions: set[UUID] = field(default_factory=lambda: set[UUID]())
     # Existing socket, bounded generation subscriptions; no in-memory outbox.
     subscriptions: dict[UUID, tuple[int, bool, bool]] = field(
         default_factory=lambda: dict[UUID, tuple[int, bool, bool]]()
@@ -108,7 +109,7 @@ class LiveGeneration:
     task: asyncio.Task[None] | None = None
     interruption: bool = False
     cancellation_requested: bool = False
-    research: ResearchActivation | None = None
+    research: ResearchActivation | ResearchIntent | None = None
 
 
 class GenerationManager:
@@ -138,6 +139,7 @@ class GenerationManager:
         peer.detached = True
         self.peers.discard(peer)
         peer.subscriptions.clear()
+        peer.research_subscriptions.clear()
         for live in self.live.values():
             live.peers.discard(peer)
             if not live.peers and live.detached_at is None:
@@ -148,7 +150,7 @@ class GenerationManager:
         peer: Peer,
         command: GenerateIncomingMessage,
         *,
-        research: ResearchActivation | None = None,
+        research: ResearchActivation | ResearchIntent | None = None,
     ) -> None:
         async with self.admission:
             if (
@@ -156,6 +158,13 @@ class GenerationManager:
                 and command.requestId not in self.live
             ):
                 raise LLMError("RATE_LIMIT", 429)
+            if command.research is not None:
+                if command.operation != "generate" or command.researchEventVersion != 1:
+                    raise LLMError("RESEARCH_INVALID", 422)
+                # Accept versioned intent only; the shared orchestrator creates
+                # trusted activation after checking permission, budget, model, context and
+                # cancellation against persisted input before any external call.
+                research = command.research
             if not command.content.strip():
                 raise ChatError("INVALID_INPUT", 422)
             if len(command.attachmentIds) > self.config.chat_attachment_max_files:
@@ -267,15 +276,36 @@ class GenerationManager:
                             "conversation": conversation_response(saved).model_dump(mode="json"),
                         }
                     )
-                    peer.offer(payload)
+                    if command.research is not None:
+                        await self.resume(
+                            peer,
+                            generation.id,
+                            0,
+                            command.toolEventVersion,
+                            research_version=command.researchEventVersion,
+                        )
+                    else:
+                        peer.offer(payload)
                     return
                 async with self.delivery_lock:
-                    self.subscribe(peer, generation.id, 0, command.toolEventVersion == 1)
+                    self.subscribe(
+                        peer,
+                        generation.id,
+                        0,
+                        command.toolEventVersion == 1,
+                        research=command.researchEventVersion == 1,
+                    )
                 live.task = asyncio.create_task(self._run(live, request, path))
                 self.tasks.add(live.task)
                 live.task.add_done_callback(self.task_finished)
             else:
-                await self.resume(peer, command.requestId, 0, command.toolEventVersion)
+                await self.resume(
+                    peer,
+                    command.requestId,
+                    0,
+                    command.toolEventVersion,
+                    research_version=command.researchEventVersion,
+                )
 
     def task_finished(self, task: asyncio.Task[None]) -> None:
         self.tasks.discard(task)
@@ -292,14 +322,26 @@ class GenerationManager:
                     await asyncio.gather(live.task, return_exceptions=True)
 
     def subscribe(
-        self, peer: Peer, generation_id: UUID, sequence: int, tools: bool, tools_only: bool = False
+        self,
+        peer: Peer,
+        generation_id: UUID,
+        sequence: int,
+        tools: bool,
+        tools_only: bool = False,
+        *,
+        research: bool = False,
     ) -> None:
         if peer.detached:
             return
         peer.subscriptions[generation_id] = (sequence, tools, tools_only)
+        if research:
+            peer.research_subscriptions.add(generation_id)
+        else:
+            peer.research_subscriptions.discard(generation_id)
         if len(peer.subscriptions) > 64:
             oldest = next(key for key in peer.subscriptions if key not in self.live)
             peer.subscriptions.pop(oldest)
+            peer.research_subscriptions.discard(oldest)
 
     async def deliver(self, peer: Peer) -> None:
         # A single serialized drain makes commit order authoritative even when
@@ -326,6 +368,7 @@ class GenerationManager:
             for generation_id in list(peer.subscriptions):
                 if generation_id not in visible:
                     peer.subscriptions.pop(generation_id, None)
+                    peer.research_subscriptions.discard(generation_id)
             for generation_id, sequence in rows:
                 subscription = peer.subscriptions.get(generation_id)
                 if subscription is None:
@@ -343,6 +386,7 @@ class GenerationManager:
                     include_tools=include_tools,
                     initial=False,
                     tools_only=tools_only,
+                    include_research=generation_id in peer.research_subscriptions,
                 )
                 if generation_id not in peer.subscriptions:
                     continue
@@ -357,6 +401,8 @@ class GenerationManager:
         last_sequence: int,
         tool_version: int | None = None,
         tools_only: bool = False,
+        *,
+        research_version: int | None = None,
     ) -> None:
         if tools_only and tool_version != 1:
             raise ChatError("INVALID_INPUT", 422)
@@ -374,6 +420,7 @@ class GenerationManager:
                     include_tools=tool_version == 1,
                     initial=True,
                     tools_only=tools_only,
+                    include_research=research_version == 1,
                 )
                 peer.offer(
                     {
@@ -385,7 +432,14 @@ class GenerationManager:
                 )
                 for event in events:
                     peer.offer(event)
-                self.subscribe(peer, generation_id, last, tool_version == 1, tools_only)
+                self.subscribe(
+                    peer,
+                    generation_id,
+                    last,
+                    tool_version == 1,
+                    tools_only,
+                    research=research_version == 1,
+                )
             if live is not None and not peer.detached:
                 live.peers.add(peer)
                 live.detached_at = None

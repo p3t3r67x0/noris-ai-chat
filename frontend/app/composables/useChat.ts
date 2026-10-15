@@ -4,8 +4,8 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { createConversationState } from './useConversations'
 import type { ConversationDependencies } from './useConversations'
 import { useChatStream } from './useChatStream'
-import { visiblePath } from '../lib/chat/types'
-import type { ChatMessage, ChatTransport, MessageRecords, ConversationTitleRequest } from '../lib/chat/types'
+import { NEW_CHAT_DRAFT, visiblePath } from '../lib/chat/types'
+import type { ChatMessage, ChatRequest, ChatTransport, MessageRecords, ConversationTitleRequest } from '../lib/chat/types'
 import { FALLBACK_TITLE, fallbackConversationTitle, TITLE_INPUT_LIMIT } from '../lib/chat/titles'
 import { createConversationTitles } from './useConversationTitles'
 import type { ChatModelId } from './useModelSelection'
@@ -33,6 +33,16 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
   }
   const messages = ref<MessageRecords>({})
   const stream = useChatStream(transport)
+  const researchModes = ref<Record<string, boolean>>({})
+  watch(conversations.activeId, (next, previous) => {
+    if (previous !== null || !next || conversations.records.value[next]?.sidebarVisible !== false
+      || Object.hasOwn(researchModes.value, next)) return
+    researchModes.value = { ...Object.fromEntries(Object.entries(researchModes.value).filter(([key]) => key !== NEW_CHAT_DRAFT)), [next]: researchModes.value[NEW_CHAT_DRAFT] === true }
+  }, { flush: 'sync' })
+  const researchMode = computed({
+    get: () => researchModes.value[conversations.activeId.value ?? NEW_CHAT_DRAFT] === true,
+    set: value => { researchModes.value[conversations.activeId.value ?? NEW_CHAT_DRAFT] = value },
+  })
   const id = dependencies.id ?? (() => globalThis.crypto.randomUUID())
   const now = dependencies.now ?? (() => new Date().toISOString())
   const pathBoundaries = ref<Record<string, string | null>>({})
@@ -114,14 +124,18 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     return messages.value[message.id] ?? message
   }
 
-  function generate(input: ChatMessage, modelId: ChatModelId, attempt = 1, titleRequest?: ConversationTitleRequest): void {
+  function generate(input: ChatMessage, modelId: ChatModelId, attempt = 1, titleRequest?: ConversationTitleRequest, research?: ChatRequest['research']): void {
     const history = path(input.conversationId, input.id).map(messageContext)
     const reply = append(input.conversationId, input.id, 'assistant', '')
     reply.modelId = modelId
     generatingConversationId.value = input.conversationId
     reply.generationId = id()
     reply.modelId = modelId
-    void stream.start({ generationId: reply.generationId, conversationId: input.conversationId, inputMessageId: input.id, modelId, reasoningPreference: reasoningPreference(modelId, input.conversationId), messages: history, attempt, input: { ...input }, assistantMessageId: reply.id, conversation: { ...conversations.records.value[input.conversationId]! } }, {
+    void stream.start({ generationId: reply.generationId, conversationId: input.conversationId, inputMessageId: input.id, modelId, reasoningPreference: reasoningPreference(modelId, input.conversationId), messages: history, attempt, ...(research ? { research } : {}), input: { ...input }, assistantMessageId: reply.id, conversation: { ...conversations.records.value[input.conversationId]! } }, {
+      research: (state, view, loadFailed) => {
+        reply.researchLoadFailed = loadFailed === true
+        reply.research = view ?? (!loadFailed && reply.research ? { ...reply.research, state } : { version: 1, mode: 'web', generationId: reply.generationId!, sourceGenerationId: reply.generationId!, state, inherited: false, modelResponseObserved: false, claimSupport: 'unverified', sources: [], citations: [] })
+      },
       delta: text => { reply.content += text },
       replace: text => { reply.content = text },
       continuation: count => { reply.continuationCount = count },
@@ -147,17 +161,23 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     generatingConversationId.value = conversation.id
     // Keep the saved partial response visible until a resume snapshot arrives.
     void stream.start({ generationId: reply.generationId, conversationId: conversation.id, inputMessageId: input.id, assistantMessageId: reply.id, input: { ...input }, conversation: { ...conversation }, modelId: reply.modelId ?? '', messages: [], attempt: 1, resume: true }, {
+      research: (state, view, loadFailed) => {
+        reply.researchLoadFailed = loadFailed === true
+        reply.research = view ?? (!loadFailed && reply.research ? { ...reply.research, state } : { version: 1, mode: 'web', generationId: reply.generationId!, sourceGenerationId: reply.generationId!, state, inherited: false, modelResponseObserved: false, claimSupport: 'unverified', sources: [], citations: [] })
+      },
       delta: text => { reply.content += text }, replace: text => { reply.content = text }, status: next => { reply.status = next },
       continuation: count => { reply.continuationCount = count },
       failure: (code, message, diagnostics) => { reply.errorCode = code; reply.errorMessage = message; if (diagnostics) reply.errorDiagnostics = diagnostics },
     }).finally(() => { generatingConversationId.value = null })
   }
 
-  function send(text: string, modelId: ChatModelId, attachments: NonNullable<ChatMessage['attachments']> = []): boolean {
+  function send(text: string, modelId: ChatModelId, attachments: NonNullable<ChatMessage['attachments']> = [], research?: ChatRequest['research']): boolean {
     const content = text.trim()
     if (settingsBusy.value || settingsError.value || stream.busy.value || !content || content.length > CHAT_LIMITS.max_message_chars) return false
     const draftConversationId = conversations.activeId.value
+    const searchSelected = researchMode.value
     const conversation = conversations.active.value ?? conversations.create()
+    researchModes.value[conversation.id] = searchSelected
     const parent = visible.value.at(-1)
     if (parent?.role === 'user') return false
     const needsTitle = conversation.activeLeafMessageId === null && !conversation.titleGenerationAttempted && conversation.titleSource === 'fallback'
@@ -167,7 +187,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     }
     const input = append(conversation.id, conversation.activeLeafMessageId, 'user', content)
     if (attachments.length) input.attachments = attachments
-    generate(input, modelId, 1, needsTitle ? { conversationId: conversation.id, inputMessageId: input.id, modelId, firstMessage: Array.from(content).slice(0, TITLE_INPUT_LIMIT).join('') } : undefined)
+    generate(input, modelId, 1, needsTitle ? { conversationId: conversation.id, inputMessageId: input.id, modelId, firstMessage: Array.from(content).slice(0, TITLE_INPUT_LIMIT).join('') } : undefined, research)
     drafts.clear(draftConversationId)
     return true
   }
@@ -248,7 +268,11 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     delete reply.errorMessage
     delete reply.errorDiagnostics
     generatingConversationId.value = reply.conversationId
-    void stream.start({ generationId: reply.generationId ?? id(), conversationId: reply.conversationId, inputMessageId: source.parentMessageId!, assistantMessageId: reply.id, modelId, reasoningPreference: reasoningPreference(modelId, reply.conversationId), messages: history, attempt: 1, operation: 'continue', continuationCount, ...(transport.backend ? { sourceAssistantMessageId: source.id, input: { ...messages.value[source.parentMessageId!]! }, conversation: { ...conversations.records.value[source.conversationId]! } } : {}) }, {
+    void stream.start({ generationId: reply.generationId ?? id(), conversationId: reply.conversationId, inputMessageId: source.parentMessageId!, assistantMessageId: reply.id, modelId, reasoningPreference: reasoningPreference(modelId, reply.conversationId), messages: history, inheritedResearch: Boolean(source.research), attempt: 1, operation: 'continue', continuationCount, ...(transport.backend ? { sourceAssistantMessageId: source.id, input: { ...messages.value[source.parentMessageId!]! }, conversation: { ...conversations.records.value[source.conversationId]! } } : {}) }, {
+      research: (state, view, loadFailed) => {
+        reply.researchLoadFailed = loadFailed === true
+        reply.research = view ?? (!loadFailed && reply.research ? { ...reply.research, state } : { version: 1, mode: 'web', generationId: reply.generationId!, sourceGenerationId: reply.generationId!, state, inherited: false, modelResponseObserved: false, claimSupport: 'unverified', sources: [], citations: [] })
+      },
       delta: text => { reply.content += text },
       replace: text => { reply.content = text },
       continuation: count => { reply.continuationCount = count },
@@ -263,6 +287,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
     messages.value = Object.fromEntries(Object.entries(messages.value).filter(([, message]) => message.conversationId !== conversationId))
     toolRuns.value = Object.fromEntries(Object.entries(toolRuns.value).filter(([, run]) => run.conversationId !== conversationId))
     drafts.remove(conversationId)
+    researchModes.value = Object.fromEntries(Object.entries(researchModes.value).filter(([id]) => id !== conversationId))
     preferredLeaves.value = Object.fromEntries(Object.entries(preferredLeaves.value).filter(([node, leaf]) => Object.hasOwn(messages.value, node) && Object.hasOwn(messages.value, leaf)))
     conversations.remove(conversationId)
   }
@@ -277,7 +302,7 @@ export function createChatState(transport: ChatTransport, dependencies: Conversa
   }
   const variantIndex = computed(() => indexSiblingVariants(messages.value))
   const variants = (messageId: string): readonly ChatMessage[] => variantIndex.value.get(messageId) ?? []
-  return { toolRuns, settingsBusy, settingsError, setConversationMode, setReasoningPreference, reconcileReasoningPreference, retryConversationSettings, conversations, messages, pathBoundaries, variantSummaries, variantSummary: (id: string) => variantSummaries.value[id], visible, stream, titles, generatingConversationId, drafts, preferredLeaves, send, retry, canContinue, continueResponse, newChat, remove, selectVariant, regenerate, edit, variants, snapshot, hydrate, resume }
+  return { researchMode, toolRuns, settingsBusy, settingsError, setConversationMode, setReasoningPreference, reconcileReasoningPreference, retryConversationSettings, conversations, messages, pathBoundaries, variantSummaries, variantSummary: (id: string) => variantSummaries.value[id], visible, stream, titles, generatingConversationId, drafts, preferredLeaves, send, retry, canContinue, continueResponse, newChat, remove, selectVariant, regenerate, edit, variants, snapshot, hydrate, resume }
 }
 
 export function useChat(transport: ChatTransport) {

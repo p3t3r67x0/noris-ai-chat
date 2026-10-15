@@ -42,6 +42,28 @@ MAX_DOWNLOAD_BYTES = 1_048_576
 MAX_DECOMPRESSED_BYTES = 2_097_152
 MAX_HEADER_BYTES = 16_384
 MAX_REDIRECTS = 3
+_FETCH_HEADERS = {
+    "Accept": "text/html, text/plain",
+    "Accept-Encoding": "gzip, identity",
+    "User-Agent": "noris-ai-source-fetch/1",
+}
+_BROWSER_HEADERS = {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Encoding": "gzip, identity",
+    "Accept-Language": "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7",
+    "User-Agent": (
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+    ),
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1",
+    "sec-ch-ua": '"Chromium";v="140", "Not=A?Brand";v="99", "Google Chrome";v="140"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Linux"',
+}
 _FETCH_LOG_SCOPE: ContextVar[bool] = ContextVar("source_fetch_log_scope", default=False)
 
 
@@ -56,7 +78,15 @@ _FETCH_LOG_FILTER = _FetchLogFilter()
 _FETCH_LOG_LOCK = Lock()
 _fetch_log_users = 0
 _FETCH_LOGGERS = tuple(
-    logging.getLogger(name) for name in ("httpx", "httpcore.connection", "httpcore.http11")
+    logging.getLogger(name)
+    for name in (
+        "httpx",
+        "httpcore.connection",
+        "httpcore.http11",
+        "httpcore.http2",
+        "hpack.hpack",
+        "hpack.table",
+    )
 )
 
 
@@ -241,6 +271,8 @@ class SourceFetchProvider:
             raise ToolError("TOOL_UNAVAILABLE")
         url = public_source_url(source_url, allow_http=self._settings.allow_http)
         visited: set[str] = set()
+        browser_headers = False
+        browser_retry = False
         downloaded = 0
         with _fetch_logging():
             try:
@@ -254,19 +286,16 @@ class SourceFetchProvider:
                         context.check()
                         if self._closed:
                             raise ToolError("TOOL_UNAVAILABLE")
-                        if str(url) in visited:
+                        if str(url) in visited and not browser_retry:
                             raise ToolError("TOOL_FORBIDDEN")
+                        browser_retry = False
                         visited.add(str(url))
                         # Build every request from scratch: no cookie jar, auth, referrer
                         # or headers carried over from responses or redirect destinations.
                         request = httpx.Request(
                             "GET",
                             url,
-                            headers={
-                                "Accept": "text/html, text/plain",
-                                "Accept-Encoding": "gzip, identity",
-                                "User-Agent": "noris-ai-source-fetch/1",
-                            },
+                            headers=_BROWSER_HEADERS if browser_headers else _FETCH_HEADERS,
                         )
                         response = await self._client.send(request, stream=True)
                         self._client.cookies.clear()
@@ -287,6 +316,17 @@ class SourceFetchProvider:
                                 continue
                             if response.status_code == 429:
                                 raise ToolError("PROVIDER_RATE_LIMIT")
+                            if (
+                                response.status_code == 403
+                                and not browser_headers
+                                and hop < MAX_REDIRECTS
+                            ):
+                                # One compatibility attempt at the same validated URL;
+                                # it consumes an existing hop and keeps the same byte,
+                                # cancellation, deadline, DNS and TLS limits. Response
+                                # cookies/headers and browser credentials stay excluded.
+                                browser_headers = browser_retry = True
+                                continue
                             if response.status_code != 200:
                                 raise ToolError("PROVIDER_ERROR")
                             mime, charset, encoding = response_metadata(response)
