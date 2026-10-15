@@ -17,7 +17,7 @@
     "api:check": "node scripts/generate-api.mjs --check"
   },
   "devDependencies": {
-    "@types/node": "26.5.1",
+    "@types/node": "26.6.5",
     "json-schema-to-typescript-lite": "15.0.0",
     "typescript": "5.9.3"
   }
