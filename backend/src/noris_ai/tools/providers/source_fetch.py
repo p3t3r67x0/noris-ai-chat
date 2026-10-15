@@ -125,7 +125,7 @@ def redirect_target(response: httpx.Response, *, allow_http: bool) -> httpx.URL:
         target = public_source_url(
             str(response.request.url.join(locations[0])), allow_http=allow_http
         )
-    except (ValueError, httpx.InvalidURL):
+    except ValueError, httpx.InvalidURL:
         raise ToolError("TOOL_FORBIDDEN") from None
     if response.request.url.scheme == "https" and target.scheme != "https":
         raise ToolError("TOOL_FORBIDDEN")
@@ -365,9 +365,9 @@ class SourceFetchProvider:
                             return result
                         finally:
                             await response.aclose()
-            except (TimeoutError, httpx.TimeoutException):
+            except TimeoutError, httpx.TimeoutException:
                 raise ToolError("TOOL_TIMEOUT") from None
-            except (httpx.RequestError, httpx.InvalidURL):
+            except httpx.RequestError, httpx.InvalidURL:
                 raise ToolError("PROVIDER_ERROR") from None
             except zlib.error:
                 raise ToolError("TOOL_OUTPUT_INVALID") from None

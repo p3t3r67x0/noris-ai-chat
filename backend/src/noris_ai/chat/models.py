@@ -109,7 +109,7 @@ class ChatMessage(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
-    attachments: Mapped[list["ChatAttachment"]] = relationship(
+    attachments: Mapped[list[ChatAttachment]] = relationship(
         lazy="selectin",
         viewonly=True,
         foreign_keys="ChatAttachment.message_id",

@@ -125,7 +125,7 @@ def public_source_url(value: str, *, allow_http: bool = False) -> httpx.URL:
         else:
             permitted_address(host, ())
         return url.copy_with(fragment=None)
-    except (ValueError, httpx.InvalidURL):
+    except ValueError, httpx.InvalidURL:
         raise ToolError("TOOL_FORBIDDEN") from None
 
 

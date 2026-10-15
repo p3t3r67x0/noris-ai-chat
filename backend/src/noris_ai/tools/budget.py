@@ -47,7 +47,7 @@ class BudgetAmount:
         ):
             raise ValueError("Invalid cost bound")
 
-    def fits(self, limit: "BudgetAmount") -> bool:
+    def fits(self, limit: BudgetAmount) -> bool:
         return all(getattr(self, k) <= getattr(limit, k) for k in DIMENSIONS)
 
 
@@ -213,7 +213,7 @@ class BudgetCoordinator:
         attempt: int,
         digest: str,
         amount: BudgetAmount,
-        limit: "BudgetAmount",
+        limit: BudgetAmount,
         currency: str,
         *,
         run_id: UUID | None = None,

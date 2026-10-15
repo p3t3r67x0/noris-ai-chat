@@ -280,7 +280,7 @@ def chat_compatible(model: LLMModel) -> bool:
     )
 
 
-def resolve_model(facts: "ProviderModel", config: "Settings") -> LLMModel:
+def resolve_model(facts: ProviderModel, config: Settings) -> LLMModel:
     """Apply operator policy without allowing it to manufacture provider facts."""
     from datetime import UTC, datetime
 

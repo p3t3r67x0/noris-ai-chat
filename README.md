@@ -6,7 +6,7 @@ Der [adaptive Composer](docs/ADAPTIVE-COMPOSER.md) wechselt ohne Fokusverlust zw
 
 ## Voraussetzungen und Versionen
 
-Für den vollständigen Containerstart: Docker Engine und Docker Compose v2 mit `--wait`. Für Entwicklung auf dem Host zusätzlich Python 3.13, uv ab 0.12.5 (Container: 0.12.23), Node.js 24 LTS und pnpm 11.1.3. Node 22 ab 22.22.3 wird ebenfalls unterstützt. `.python-version` und `.nvmrc` legen die empfohlenen Laufzeiten fest.
+Für den vollständigen Containerstart: Docker Engine und Docker Compose v2 mit `--wait`. Für Entwicklung auf dem Host zusätzlich Python 3.14, uv ab 0.12.5 (Container: 0.13.1), Node.js 24 LTS und pnpm 11.1.3. Node 22 ab 22.22.3 wird ebenfalls unterstützt. `.python-version` und `.nvmrc` legen die empfohlenen Laufzeiten fest.
 
 Die Make-Ziele verwenden das Compose-Plugin (`docker compose`) oder automatisch das eigenständige `docker-compose` v2. Damit funktionieren die Startbefehle auch ohne installiertes Docker-CLI-Plugin.
 

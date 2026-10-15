@@ -184,7 +184,7 @@ async def websocket_chat(socket: WebSocket) -> None:
                         else None,
                     }
                 )
-            except (ValidationError, SQLAlchemyError):
+            except ValidationError, SQLAlchemyError:
                 peer.offer(
                     {
                         "version": 1,
@@ -229,7 +229,7 @@ async def websocket_chat(socket: WebSocket) -> None:
     ]
     try:
         await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-    except (WebSocketDisconnect, asyncio.CancelledError):
+    except WebSocketDisconnect, asyncio.CancelledError:
         pass
     finally:
         with anyio.CancelScope(shield=True):

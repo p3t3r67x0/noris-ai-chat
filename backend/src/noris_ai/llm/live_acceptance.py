@@ -201,7 +201,7 @@ class ObservedProvider:
                 call["text_characters"] += len(delta)
                 yield delta
             call["outcome"] = "completed"
-        except (asyncio.CancelledError, GeneratorExit):
+        except asyncio.CancelledError, GeneratorExit:
             call["outcome"] = "cancelled"
             raise
         except LLMError as error:

@@ -56,7 +56,7 @@ class ToolPolicy:
         self.permissions = MappingProxyType(dict(permissions or {}))
 
     @classmethod
-    def from_operator_json(cls, payload: str | None) -> "ToolPolicy":
+    def from_operator_json(cls, payload: str | None) -> ToolPolicy:
         """Explicit server configuration, never a browser/LLM permission path."""
         if not payload:
             return cls()

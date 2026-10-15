@@ -186,5 +186,5 @@ async def read_research(
             sources=sources,
             citations=assessment.citations if assessment else [],
         )
-    except (ValueError, TypeError, ToolError):
+    except ValueError, TypeError, ToolError:
         raise LLMError("RESEARCH_FAILED", 422) from None
