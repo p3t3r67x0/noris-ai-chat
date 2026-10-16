@@ -889,6 +889,8 @@ def test_learning_persistence_reasoning_and_branch_policy(
     assert client.portal is not None
     client.portal.call(settle_title)
     assert isinstance(simulator.calls[-1][0], LearningInstruction)
+    assert "learner turns=1; tutor turns=0" in simulator.calls[-1][0].content
+    assert "Honor that request immediately" in simulator.calls[-1][0].content
     assert simulator.models[-1].reasoning_effort == "high"
     current = client.get(resource, auth=AUTH).json()
     assert current["conversationMode"] == "learning"

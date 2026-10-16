@@ -27,6 +27,7 @@ from noris_ai.chat.schemas import ConversationMode, MessageRole
 from noris_ai.chat.service import ChatService, conversation_response, message_response
 from noris_ai.chat.ws_protocol import GenerateIncomingMessage
 from noris_ai.core.config import Settings
+from noris_ai.learning.state import learning_state
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.gateway import LLMGateway
 from noris_ai.llm.reasoning import preference_mapping
@@ -229,6 +230,9 @@ class GenerationManager:
                         inputMessageId=str(command.inputMessageId),
                         modelId=command.modelId,
                         conversationMode=cast(ConversationMode, conversation.conversation_mode),
+                        learningState=learning_state((m.role, m.content) for m in path)
+                        if conversation.conversation_mode == "learning"
+                        else None,
                         reasoningPreference=conversation.reasoning_preference
                         if conversation.reasoning_preference in preference_mapping(model)
                         else None,

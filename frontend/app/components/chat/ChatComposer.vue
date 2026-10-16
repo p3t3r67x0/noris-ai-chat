@@ -177,7 +177,7 @@ defineExpose({ focus })
             <UButton icon="i-lucide-x" color="neutral" variant="ghost" class="touch-control" :disabled="file.status === 'removing' || (file.status === 'uploading' && !!file.reference)" :aria-label="`${file.filename} entfernen`" @click="removeFile(file.key)" />
           </li>
         </ul>
-        <div v-if="learning" class="composer-learning">
+        <div v-if="learning" class="composer-learning" :title="t('learningHint')">
           <UIcon name="i-lucide-book-open" aria-hidden="true" class="size-5 shrink-0" />
           <span role="status">{{ t('learning') }}</span>
           <UButton icon="i-lucide-x" color="neutral" variant="ghost" class="learning-remove touch-control" :disabled="settingsBusy" :aria-label="t('stopLearning')" @click="deactivateLearning" />
