@@ -2,12 +2,19 @@ import { expect, test } from '@playwright/test'
 import { clearTestConversations, stableModelCatalog } from './chat-fixtures'
 
 const fixtureOrigin = `http://127.0.0.1:${process.env.NORIS_E2E_PROVIDER_PORT ?? 8591}`
+const fixtureModels = ['fixture-alpha', 'fixture-beta', 'vllm/release/gpt-oss-120b']
 test.beforeEach(async ({ page, request }) => {
-  await stableModelCatalog(page)
   await clearTestConversations(request)
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
-  await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: ['fixture-alpha', 'fixture-beta', 'vllm/release/gpt-oss-120b'] } })
+  expect((await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: fixtureModels } })).ok()).toBe(true)
+  // The backend may still cache the preceding test's catalog for one second.
+  // Wait for the requested models before the browser retains that catalog.
+  await expect.poll(async () => {
+    const catalog = await (await request.get('/api/v1/llm/models')).json()
+    return catalog.models.map((model: { id: string }) => model.id)
+  }).toEqual(expect.arrayContaining(fixtureModels))
+  await stableModelCatalog(page)
 })
 test.afterEach(async ({ request }) => {
   await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: ['fixture-alpha', 'fixture-beta', 'fixture-long'] } })

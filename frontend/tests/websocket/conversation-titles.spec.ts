@@ -4,6 +4,8 @@ import type { Page, WebSocketRoute } from '@playwright/test'
 import type { ApiSchemas } from '../../app/types/generated/api'
 import type { ChatWsEvent } from '../../app/types/generated/chat-ws'
 
+// Fixture-state GETs below retry only connection resets: Uvicorn can close an
+// idle keep-alive socket between the long browser assertions.
 const providerURL = `http://127.0.0.1:${process.env.NORIS_E2E_PROVIDER_PORT ?? 8591}`
 const nativeModels = ['vllm/qsu/deepseek-v41-flash', 'vllm/release/gpt-oss-120b']
 
@@ -51,7 +53,7 @@ for (const eventType of ['chat.title.updated', 'chat.conversation.updated'] as c
     const other = await context.newPage()
     await Promise.all([page.goto('/'), other.goto('/')])
     for (const tab of [page, other]) await expect(tab.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
-    const before = (await (await request.get(`${providerURL}/fixture/state`)).json()).title_calls.length
+    const before = (await (await request.get(`${providerURL}/fixture/state`, { maxRetries: 2 })).json()).title_calls.length
     const composer = page.getByRole('textbox', { name: 'Nachricht', exact: true })
     await expect(composer).toBeEnabled()
     await composer.fill('/title-summary-switch')
@@ -111,7 +113,7 @@ for (const eventType of ['chat.title.updated', 'chat.conversation.updated'] as c
       await expect(row.locator('button').first()).toHaveAttribute('title', 'Meine manuellen Zusammenfassungen')
       await expect(row.locator('[data-title-source]')).toHaveAttribute('data-title-source', 'manual')
     }
-    expect((await (await request.get(`${providerURL}/fixture/state`)).json()).title_calls.length - before).toBe(1)
+    expect((await (await request.get(`${providerURL}/fixture/state`, { maxRetries: 2 })).json()).title_calls.length - before).toBe(1)
     await other.close()
   })
 }
@@ -125,14 +127,14 @@ test('a manual title committed during title generation wins immediately in every
   const other = await context.newPage()
   await Promise.all([page.goto('/'), other.goto('/')])
   for (const tab of [page, other]) await expect(tab.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
-  const before = (await (await request.get(`${providerURL}/fixture/state`)).json()).title_calls.length
+  const before = (await (await request.get(`${providerURL}/fixture/state`, { maxRetries: 2 })).json()).title_calls.length
   const composer = page.getByRole('textbox', { name: 'Nachricht', exact: true })
   await expect(composer).toBeEnabled()
   await composer.fill('/title-summary-switch')
   await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await composer.press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
-  await expect.poll(async () => (await (await request.get(`${providerURL}/fixture/state`)).json()).title_calls.length).toBe(before + 1)
+  await expect.poll(async () => (await (await request.get(`${providerURL}/fixture/state`, { maxRetries: 2 })).json()).title_calls.length).toBe(before + 1)
   const conversation = (await (await request.get('/api/v1/conversations')).json()).conversations[0] as ApiSchemas['ConversationResponse']
   expect(conversation.titleSource).toBe('fallback')
   const path = `/api/v1/conversations/${conversation.id}`
@@ -143,7 +145,7 @@ test('a manual title committed during title generation wins immediately in every
   }
   await expect.poll(() => titleEvents.some(event => event.type === 'chat.title.updated' && event.conversationId === conversation.id && event.titleSource === 'manual')).toBe(true)
   expect((await (await request.get(path)).json()).titleSource).toBe('manual')
-  expect((await (await request.get(`${providerURL}/fixture/state`)).json()).title_calls.length - before).toBe(1)
+  expect((await (await request.get(`${providerURL}/fixture/state`, { maxRetries: 2 })).json()).title_calls.length - before).toBe(1)
   await other.close()
 })
 
@@ -169,7 +171,7 @@ for (const [index, name] of ['DeepSeek V4.1 Flash', 'GPT-OSS 120B'].entries()) {
     for (const tab of [page, other]) await expect(tab.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
     await page.getByRole('button', { name: 'Modell auswählen', exact: true }).click()
     await page.getByRole('option', { name: new RegExp(`^${name}`) }).click()
-    const before = (await (await request.get(`${providerURL}/fixture/state`)).json()).title_calls.length
+    const before = (await (await request.get(`${providerURL}/fixture/state`, { maxRetries: 2 })).json()).title_calls.length
     const composer = page.getByRole('textbox', { name: 'Nachricht', exact: true })
     await expect(composer).toBeEnabled()
     await composer.fill('/title-reasoning Docker DNS')
@@ -207,7 +209,7 @@ for (const [index, name] of ['DeepSeek V4.1 Flash', 'GPT-OSS 120B'].entries()) {
     if (await closeSidebar.isVisible()) await closeSidebar.click()
     await page.locator('.message-assistant').last().getByRole('button', { name: 'Antwort erneut generieren', exact: true }).click()
     await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
-    const state = await (await request.get(`${providerURL}/fixture/state`)).json()
+    const state = await (await request.get(`${providerURL}/fixture/state`, { maxRetries: 2 })).json()
     expect(state.title_calls.length - before).toBe(1)
     expect(state.title_calls.at(-1).model).toBe(nativeModels[index])
     expect(state.title_calls.at(-1).max_tokens).toBe(1024)
