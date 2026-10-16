@@ -3,14 +3,20 @@ import type { ApiSchemas } from '../../app/types/generated/api'
 import { expect, test } from '@playwright/test'
 
 const fixtureOrigin = `http://127.0.0.1:${process.env.NORIS_E2E_PROVIDER_PORT ?? 8591}`
+const fixtureModels = ['fixture-alpha', 'fixture-beta', 'vllm/release/gpt-oss-120b']
 type ProviderCall = { model: string, reasoning_effort?: string, messages: { role: string, content: string }[] }
 
 test.beforeEach(async ({ page, request }) => {
-  await stableModelCatalog(page)
   await clearTestConversations(request)
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
-  await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: ['fixture-alpha', 'fixture-beta', 'vllm/release/gpt-oss-120b'] } })
+  expect((await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: fixtureModels } })).ok()).toBe(true)
+  // Await the requested models before retaining the browser's catalog timer.
+  await expect.poll(async () => {
+    const catalog = await (await request.get('/api/v1/llm/models')).json()
+    return catalog.models.map((model: { id: string }) => model.id)
+  }).toEqual(expect.arrayContaining(fixtureModels))
+  await stableModelCatalog(page)
 })
 
 test.afterEach(async ({ request }) => {

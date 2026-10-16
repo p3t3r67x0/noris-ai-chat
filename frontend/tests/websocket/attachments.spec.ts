@@ -257,6 +257,13 @@ test('a failed saved-image preview retries without changing the chat or model', 
 
 test('stopping a vision response preserves the composer and saved attachment', async ({ page, request }) => {
   await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: fixtureModels, imageIds: ['fixture-beta'] } })
+  // Match the other vision cases: await changed metadata and keep it valid
+  // across Enter so catalog expiry cannot swallow the cancellation setup.
+  await expect.poll(async () => {
+    const catalog = await (await request.get('/api/v1/llm/models')).json()
+    return catalog.models.find((model: { id: string, vision?: boolean }) => model.id === 'fixture-beta')?.vision
+  }).toBe(true)
+  await stableModelCatalog(page)
   await page.goto('/')
   await selectFiles(page, [imageFile])
   await page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true }).click()
