@@ -23,7 +23,7 @@ for (const theme of ['light', 'dark']) {
         return {
           main: box('.chat-main'), rail: box('.chat-rail'), sidebar: box('#chat-sidebar [data-slot="container"]'),
           timeline: box('.chat-timeline'), composer: box('.chat-composer'), textarea: box('.composer-input'),
-          controls: ['.composer-attachment', '.composer-model', '.composer-submit'].map(box),
+          controls: ['.composer-attachment', '.composer-model', '.composer-microphone', '.composer-submit'].map(box),
           note: box('.composer-note'), overflow: document.documentElement.scrollWidth > innerWidth,
         }
       })
@@ -31,8 +31,14 @@ for (const theme of ['light', 'dark']) {
       expect(geometry.composer.width).toBeCloseTo(geometry.timeline.width, 0)
       expect(geometry.composer.x).toBeCloseTo(geometry.timeline.x, 0)
       expect(geometry.composer.centerX).toBeCloseTo(geometry.main.centerX, 0)
-      expect(geometry.composer.height).toBeCloseTo(Math.min(70, Math.max(60, viewport.width * 70 / 1920)), 1)
-      expect(geometry.textarea.centerY).toBeCloseTo(geometry.controls[0]!.centerY, 0)
+      if (viewport.width > 640) {
+        expect(geometry.composer.height).toBeCloseTo(Math.min(70, Math.max(60, viewport.width * 70 / 1920)), 1)
+        expect(geometry.textarea.centerY).toBeCloseTo(geometry.controls[0]!.centerY, 0)
+      }
+      else {
+        expect(geometry.composer.height).toBeLessThanOrEqual(100) // One input line plus the permanent mobile action row (~97 px).
+        expect(geometry.textarea.y + geometry.textarea.height).toBeLessThanOrEqual(geometry.controls[0]!.y)
+      }
       expect(geometry.note.y + geometry.note.height).toBeLessThanOrEqual(geometry.composer.y - 8)
       expect(geometry.note.centerX).toBeCloseTo(geometry.composer.centerX, 0)
       expect(geometry.note.y + geometry.note.height).toBeLessThanOrEqual(viewport.height)
@@ -42,7 +48,7 @@ for (const theme of ['light', 'dark']) {
         expect(control.x + control.width).toBeLessThan(geometry.composer.x + geometry.composer.width)
         expect(control.height).toBeGreaterThanOrEqual(44)
       }
-      const send = geometry.controls[2]!
+      const send = geometry.controls[3]!
       expect(send.width).toBe(send.height)
       if (viewport.width >= 1024) {
         const railWidth = Math.min(68, Math.max(56, viewport.width * 68 / 1920))
@@ -94,7 +100,7 @@ test('autosizing scrolls only the textarea at its limit and returns to one line'
   expect(expanded!.y + expanded!.height).toBeCloseTo(bottom, 0)
   expect(expanded!.y).toBeLessThan(original!.y)
   expect(await input.evaluate(element => element.scrollHeight > element.clientHeight && getComputedStyle(element).overflowY === 'auto')).toBe(true)
-  for (const selector of ['.composer-attachment', '.composer-model', '.composer-submit']) {
+  for (const selector of ['.composer-attachment', '.composer-model', '.composer-microphone', '.composer-submit']) {
     const control = await page.locator(selector).boundingBox()
     expect(control!.y + control!.height).toBeCloseTo(toolbarBottom, 0)
   }

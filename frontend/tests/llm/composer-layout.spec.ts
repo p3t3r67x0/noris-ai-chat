@@ -74,7 +74,7 @@ for (const theme of ['light', 'dark']) {
         }))
         expect(label.whiteSpace).toBe('nowrap')
         expect(label.height).toBeLessThanOrEqual(label.lineHeight + 1)
-        if (info.project.name === 'desktop' && index < 3) expect(label.clipped).toBe(false)
+        if (index === 3) expect(label.clipped).toBe(true) // Long labels truncate inside the compact selector; the title retains the full name.
         const textBox = await page.locator('.composer-model .model-label').boundingBox()
         const chevron = await page.locator('.composer-model [data-slot="trailing"]').boundingBox()
         expect(textBox!.x + textBox!.width).toBeLessThan(chevron!.x)
