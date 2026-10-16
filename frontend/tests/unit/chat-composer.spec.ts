@@ -12,10 +12,24 @@ function composer(modelValue: string, busy = false) {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('composer application behavior', () => {
+  it.each(['/lernen', '/learn Thema', '/modell', '/denken', '/suche', '/bild', '/datei', '/hilfe'])('never sends a known local action to the model: %s', async (value) => {
+    const wrapper = composer(value)
+    await wrapper.setProps({ learningAvailable: true })
+    await wrapper.get('form').trigger('submit')
+    expect(wrapper.emitted('send')).toBeUndefined()
+    if (value.startsWith('/lern') || value.startsWith('/learn')) expect(wrapper.emitted('mode')).toEqual([['learning']])
+    wrapper.unmount()
+  })
   it('emits the draft only for valid input and preserves the original whitespace', async () => {
     const wrapper = composer('  Eine Frage\nmit Kontext  ')
     await wrapper.get('form').trigger('submit')
     expect(wrapper.emitted('send')).toEqual([['  Eine Frage\nmit Kontext  ']])
+    wrapper.unmount()
+  })
+  it('retains unknown slash text as an ordinary message', async () => {
+    const wrapper = composer('/unknown text')
+    await wrapper.get('form').trigger('submit')
+    expect(wrapper.emitted('send')).toEqual([['/unknown text']])
     wrapper.unmount()
   })
   it.each(['   ', 'x'.repeat(32_001)])('does not send empty or oversized drafts', async (value) => {

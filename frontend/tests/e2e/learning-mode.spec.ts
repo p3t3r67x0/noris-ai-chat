@@ -1,20 +1,20 @@
 import { expect, test } from '@playwright/test'
 import { savedChat, seedChat } from './chat-fixtures'
 
-test('Plus and slash share one keyboard menu, retain draft, focus and conversation mode', async ({ page }) => {
+test('Plus and slash retain draft, focus and conversation mode', async ({ page }) => {
   await page.goto('/')
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
   await input.fill('Mein Lernziel /')
-  await expect(page.locator('.composer-action-menu')).toBeVisible()
+  await expect(page.locator('.composer-slash-menu')).toBeVisible()
   await input.press('Escape')
-  await expect(page.locator('.composer-action-menu')).toBeHidden()
+  await expect(page.locator('.composer-slash-menu')).toBeHidden()
   await expect(input).toHaveValue('Mein Lernziel /')
   await expect(input).toBeFocused()
   await input.fill('Mein Lernziel /lernen')
-  await expect(page.locator('.composer-action-menu')).toBeVisible()
-  await input.press('ArrowDown')
-  await expect(page.getByRole('menuitem', { name: /^Lernen/ })).toBeFocused()
+  await expect(page.locator('.composer-slash-menu')).toBeVisible()
+  await expect(input).toBeFocused()
+  await expect(page.getByRole('option', { name: /^Lernen/ })).toHaveAttribute('aria-selected', 'true')
   await page.keyboard.press('Enter')
   await expect(page.locator('.composer-learning')).toBeVisible()
   await expect(input).toHaveValue('Mein Lernziel ')
@@ -25,7 +25,7 @@ test('Plus and slash share one keyboard menu, retain draft, focus and conversati
     element.setSelectionRange(7, 7)
     element.dispatchEvent(new Event('input', { bubbles: true }))
   })
-  await expect(page.locator('.composer-action-menu')).toBeVisible()
+  await expect(page.locator('.composer-slash-menu')).toBeVisible()
   await input.press('Enter')
   await expect(input).toHaveValue('Vorne  hinten')
   await expect(page.locator('.message-user')).toHaveCount(0)
@@ -64,13 +64,13 @@ for (const viewport of [{ width: 1920, height: 975 }, { width: 1440, height: 900
       await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
       const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
       await input.fill('/')
-      await expect(page.locator('.composer-action-menu')).toBeVisible()
-      const menu = (await page.locator('.composer-action-menu').boundingBox())!
+      await expect(page.locator('.composer-slash-menu')).toBeVisible()
+      const menu = (await page.locator('.composer-slash-menu').boundingBox())!
       const composer = (await page.locator('.chat-composer').boundingBox())!
       expect(menu.width).toBeCloseTo(composer.width, 0)
       expect(menu.y + menu.height).toBeLessThanOrEqual(composer.y)
       await expect(page).toHaveScreenshot(`learning-${viewport.width}-${theme}-slash.png`, { animations: 'disabled', caret: 'hide' })
-      await page.getByRole('menuitem', { name: /^Lernen/ }).click()
+      await page.getByRole('option', { name: /^Lernen/ }).click()
       await expect(page.locator('.composer-learning')).toBeVisible()
       if (viewport.width === 390) {
         await expect(page.locator('.composer-container')).toHaveAttribute('data-layout', 'expanded')

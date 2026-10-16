@@ -14,6 +14,9 @@ import { useComposerDictation } from '../../composables/useComposerDictation'
 import { useComposerAutosize } from '../../composables/useComposerAutosize'
 import type { UploadEntry } from '../../composables/useChatAttachments'
 import { composerMenuItems } from '../../lib/chat/composerMenu'
+import { useSlashCommands } from '../../composables/useSlashCommands'
+import type { CommandContext } from '../../lib/chat/commands'
+import ChatCommandMenu from './ChatCommandMenu.vue'
 const { t, language } = useAppLocale()
 const privacyId = useId()
 
@@ -41,53 +44,45 @@ watch([learning, webSearch, showReasoning, model], () => nextTick(autosize.resiz
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploadMenu = ref(false)
 const attachmentButton = ref<{ $el: HTMLButtonElement } | null>(null)
-const slashRange = ref<{ start: number, end: number } | null>(null)
+const modelMenu = ref<InstanceType<typeof ChatModelMenu> | null>(null)
+const reasoningMenu = ref<InstanceType<typeof ChatReasoningMenu> | null>(null)
+const commandContext = computed<CommandContext>(() => ({
+  learning: props.learningAvailable !== false && !props.settingsBusy,
+  search: props.researchAvailable === true && selectedModel.value?.researchEligible === true && !selectedModel.value.disabled && !props.researchError && !props.settingsBusy && !props.busy,
+  reasoning: showReasoning.value && !props.settingsBusy && !props.busy,
+  model: CHAT_MODELS.some(item => !item.disabled) && !(props.modelSelectionBusy ?? (props.busy || props.settingsBusy)),
+  image: false,
+  file: Boolean(props.uploadAvailable),
+  actions: {
+    learning: activateLearning,
+    search: () => { webSearch.value = true; void nextTick(focus) },
+    reasoning: () => { void nextTick(() => reasoningMenu.value?.open()) },
+    model: () => { void nextTick(() => modelMenu.value?.open()) },
+    file: chooseFiles,
+    help: () => slash.showHelp(),
+  },
+}))
+const slash = useSlashCommands(text, commandContext, () => prompt.value?.textareaRef, () => props.conversationId)
+watch(slash.open, open => { if (open) uploadMenu.value = false })
+watch(uploadMenu, open => { if (open) slash.close() })
 const actionItems = computed(() => composerMenuItems(t, { upload: chooseFiles, learning: activateLearning, web: toggleSearch }, Boolean(props.uploadAvailable), props.uploadUnavailableReason, { learningAvailable: props.learningAvailable !== false && !props.settingsBusy, learningActive: learning.value, webAvailable: props.researchAvailable, webActive: webSearch.value, webReason: props.researchError }))
 function focus(): void { prompt.value?.textareaRef?.focus({ preventScroll: true }) }
 let returnToComposer = false
 let returnToActionTrigger = false
 function menuEscape(): void { returnToActionTrigger = true }
-function removeSlash(): void {
-  const range = slashRange.value
-  if (range && /^\/(?:lernen|learn)?$/i.test(text.value.slice(range.start, range.end))) {
-    text.value = text.value.slice(0, range.start) + text.value.slice(range.end)
-  }
-  slashRange.value = null
-}
-function chooseFiles(): void { removeSlash(); returnToComposer = true; fileInput.value?.click() }
+function chooseFiles(): void { returnToComposer = true; uploadMenu.value = false; fileInput.value?.click() }
 function activateLearning(): void {
-  removeSlash()
   returnToComposer = true
   uploadMenu.value = false
   emit('mode', 'learning')
   void nextTick(focus)
 }
-function toggleSearch(): void { removeSlash(); returnToComposer = true; uploadMenu.value = false; webSearch.value = !webSearch.value; void nextTick(focus) }
+function toggleSearch(): void { returnToComposer = true; uploadMenu.value = false; webSearch.value = !webSearch.value; void nextTick(focus) }
 function deactivateSearch(): void { webSearch.value = false; void nextTick(focus) }
 function deactivateLearning(): void { emit('mode', 'normal'); void nextTick(focus) }
 function inputChanged(): void {
   autosize.resize()
-  const input = prompt.value?.textareaRef
-  if (!input) return
-  const caret = input.selectionStart
-  const before = input.value.slice(0, caret)
-  const match = /(?:^|\s)(\/(?:lernen|learn)?)$/i.exec(before)
-  if (match) {
-    slashRange.value = { start: caret - match[1]!.length, end: caret }
-    uploadMenu.value = true
-  }
-  else if (slashRange.value) { returnToComposer = true; slashRange.value = null; uploadMenu.value = false }
-}
-function menuKeydown(event: KeyboardEvent): void {
-  if (!uploadMenu.value || event.isComposing) return
-  if (['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key)) {
-    event.preventDefault()
-    event.stopPropagation()
-    const items = [...document.querySelectorAll<HTMLElement>('.composer-action-menu [role="menuitem"]:not([data-disabled])')]
-    ;(event.key === 'ArrowUp' ? items.at(-1) : items[0])?.focus()
-    if (event.key === 'Enter') items[0]?.click()
-  }
-  else if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); returnToComposer = true; uploadMenu.value = false; slashRange.value = null; focus() }
+  slash.update()
 }
 function menuClosed(event: Event): void {
   // Closing animations can finish after the user has opened another control.
@@ -99,19 +94,14 @@ function menuClosed(event: Event): void {
     event.preventDefault()
     returnToComposer = false
     returnToActionTrigger = false
-    slashRange.value = null
     return
   }
-  if (returnToComposer || slashRange.value) { event.preventDefault(); returnToComposer = false; slashRange.value = null; focus() }
+  if (returnToComposer) { event.preventDefault(); returnToComposer = false; focus() }
   else if (returnToActionTrigger || document.activeElement === document.body || document.activeElement?.matches('.chat-main') || document.activeElement?.closest('.composer-action-menu')) {
     event.preventDefault()
     void nextTick(() => attachmentButton.value?.$el.focus({ preventScroll: true }))
   }
   returnToActionTrigger = false
-}
-function menuFocusOutside(event: Event): void {
-  const original = (event as CustomEvent<{ originalEvent: FocusEvent }>).detail?.originalEvent
-  if (slashRange.value && original?.target === prompt.value?.textareaRef) event.preventDefault()
 }
 function removeFile(key: string): void { emit('removeFile', key); focus() }
 function retryFile(key: string): void { emit('retryFile', key); focus() }
@@ -126,6 +116,7 @@ async function filesSelected(event: Event): Promise<void> {
 function sizeLabel(bytes: number): string { return bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB` }
 const tooLong = computed(() => text.value.length > CHAT_LIMITS.max_message_chars)
 function submit(): void {
+  if (slash.guardSubmit()) return
   if (uploadMenu.value || props.settingsBusy || props.busy || props.modelUnavailable || (webSearch.value && props.researchError) || props.inputError || props.uploadBlocked || !text.value.trim() || tooLong.value) return
   dictation.stop()
   emit('send', text.value)
@@ -138,7 +129,7 @@ defineExpose({ focus })
 </script>
 
 <template>
-  <div ref="container" class="composer-container" :data-mode="conversationMode ?? 'normal'" :data-layout="autosize.maximized.value ? 'maximized' : autosize.expanded.value ? 'expanded' : 'compact'" @keydown.capture="menuKeydown" @focusout="focusLeft">
+  <div ref="container" class="composer-container" :data-mode="conversationMode ?? 'normal'" :data-layout="autosize.maximized.value ? 'maximized' : autosize.expanded.value ? 'expanded' : 'compact'" @keydown.capture="slash.keydown" @compositionstart="slash.compositionStart" @compositionend="slash.compositionEnd" @focusout="focusLeft">
     <details v-if="uploadError && uploadErrorNotified" class="mb-2 text-xs text-muted"><summary>Anhangaktion fehlgeschlagen.</summary><p>{{ uploadError }}</p><UButton color="neutral" variant="link" label="Anhänge neu laden" @click="emit('refreshFiles')" /></details>
     <p v-else-if="uploadError" role="alert" class="mb-2 text-center text-xs text-error">{{ uploadError }}</p>
     <p v-if="tooLong" role="status" class="mb-2 text-center text-xs text-error">Die Nachricht darf höchstens {{ CHAT_LIMITS.max_message_chars.toLocaleString('de-DE') }} Zeichen enthalten.</p>
@@ -146,8 +137,10 @@ defineExpose({ focus })
       ref="prompt" v-model="text" :aria-label="t('message')" :placeholder="t('prompt')" :autofocus="false" :rows="1" :aria-describedby="webSearch ? privacyId : undefined"
       variant="naked" color="neutral" :autoresize="false" class="chat-composer" :class="{ 'composer-expanded': autosize.expanded.value || autosize.stacked.value }"
       :ui="{ root: 'gap-0 p-0', header: 'composer-files', body: 'composer-body', base: 'composer-input overflow-y-auto', footer: 'composer-toolbar' }"
-      @submit="submit"
-      @input="inputChanged"
+      :aria-controls="slash.open.value ? slash.listId : undefined"
+      aria-haspopup="listbox"
+      :aria-activedescendant="slash.activeId.value" aria-autocomplete="list" @submit="submit" @input="inputChanged"
+      @click="slash.update" @keyup.left="slash.update" @keyup.right="slash.update"
     >
       <template v-if="hasHeader" #header>
         <ul v-if="hasAttachments" class="attachment-list" aria-label="Anhänge und Textreferenzen">
@@ -191,12 +184,12 @@ defineExpose({ focus })
         </span>
       </template>
       <template #footer>
-        <UDropdownMenu v-model:open="uploadMenu" :items="actionItems" :modal="false" :content="{ side: 'top', align: 'start', ...(container ? { reference: container } : {}), sideOffset: 10, collisionPadding: 12, loop: true, updatePositionStrategy: 'always', onEscapeKeyDown: menuEscape, onCloseAutoFocus: menuClosed, onFocusOutside: menuFocusOutside }" :ui="{ content: 'composer-plus-menu composer-floating-menu composer-action-menu ring-0', viewport: 'p-0', item: 'composer-plus-menu-item composer-menu-item before:hidden', itemLeadingIcon: 'size-5 text-inherit', itemWrapper: 'composer-menu-copy', itemLabel: 'composer-menu-title', itemDescription: 'composer-menu-description' }">
-          <UButton ref="attachmentButton" icon="i-lucide-plus" color="neutral" variant="ghost" class="composer-attachment touch-control" :aria-label="t('composerActions')" :title="t('composerActions')" @click="slashRange = null" />
+        <UDropdownMenu v-model:open="uploadMenu" :items="actionItems" :modal="false" :content="{ side: 'top', align: 'start', ...(container ? { reference: container } : {}), sideOffset: 10, collisionPadding: 12, loop: true, updatePositionStrategy: 'always', onEscapeKeyDown: menuEscape, onCloseAutoFocus: menuClosed }" :ui="{ content: 'composer-plus-menu composer-floating-menu composer-action-menu ring-0', viewport: 'p-0', item: 'composer-plus-menu-item composer-menu-item before:hidden', itemLeadingIcon: 'size-5 text-inherit', itemWrapper: 'composer-menu-copy', itemLabel: 'composer-menu-title', itemDescription: 'composer-menu-description' }">
+          <UButton ref="attachmentButton" icon="i-lucide-plus" color="neutral" variant="ghost" class="composer-attachment touch-control" :aria-label="t('composerActions')" :title="t('composerActions')" @click="slash.close" />
         </UDropdownMenu>
         <div class="composer-model-controls">
-          <ChatModelMenu v-model="model" :busy="modelSelectionBusy ?? (busy || settingsBusy)" compact :label="t('composerModel')" />
-          <ChatReasoningMenu v-if="showReasoning" :model="selectedModel" :preference="reasoningPreference" :disabled="settingsBusy || busy" :anchor="container" @select="emit('reasoning', $event)" />
+          <ChatModelMenu ref="modelMenu" v-model="model" :busy="modelSelectionBusy ?? (busy || settingsBusy)" compact :label="t('composerModel')" />
+          <ChatReasoningMenu v-if="showReasoning" ref="reasoningMenu" :model="selectedModel" :preference="reasoningPreference" :disabled="settingsBusy || busy" :anchor="container" @select="emit('reasoning', $event)" />
         </div>
         <UButton type="button" :icon="dictation.listening.value ? 'i-lucide-mic-off' : 'i-lucide-mic'" color="neutral" variant="ghost" class="composer-microphone touch-control" :class="{ 'is-listening': dictation.listening.value }" :disabled="!dictation.supported.value || busy" :aria-pressed="dictation.listening.value" :aria-label="t(dictation.listening.value ? 'stopDictation' : 'startDictation')" :title="t(dictation.supported.value ? 'startDictation' : 'dictationUnavailable')" @click="dictation.toggle" />
         <UChatPromptSubmit
@@ -207,6 +200,8 @@ defineExpose({ focus })
         />
       </template>
     </UChatPrompt>
+    <ChatCommandMenu v-model:open="slash.open.value" :anchor="container" :input="prompt?.textareaRef" :items="slash.items.value" :active="slash.active.value" :list-id="slash.listId" :help="slash.help.value" @select="slash.execute($event)" @active="slash.active.value = $event" @close="slash.close" />
+    <p v-if="slash.unavailable.value" role="status" class="mt-2 text-sm text-muted">{{ t('commandUnavailable') }}</p>
     <p v-if="webSearch" :id="privacyId" class="research-privacy sr-only">{{ t('researchPrivacy') }}</p>
     <p v-if="dictation.error.value" role="status" class="mt-2 text-sm text-error">{{ t('dictationFailed') }}</p>
     <p v-if="webSearch && researchError" role="status" aria-live="polite" class="mt-2 text-sm text-error">{{ researchError }}</p>

@@ -4,6 +4,13 @@ Das Monorepo enthält die Foundation, die bestehende Chat-Oberfläche, die Noris
 
 Der [adaptive Composer](docs/ADAPTIVE-COMPOSER.md) wechselt ohne Fokusverlust zwischen einer kompakten Zeile und einer wachsenden Texteingabe über der Aktionsleiste. [Dateianhänge](docs/CHAT-ATTACHMENTS.md) werden im WebSocket-Modus authentifiziert hochgeladen, privat gespeichert und nach Reload wiederhergestellt. Text, Markdown und extrahierbarer PDF-Text können im bestehenden Kontextbudget verarbeitet werden. PNG/JPEG-Bilder werden über den dokumentierten Noris-Vision-Vertrag an Modelle mit aktuell bestätigter Bildeingabe übertragen; die bestehenden Kontext- und Budgetgrenzen gelten weiterhin.
 
+Der [Lernmodus](docs/STUDY-MODE.md) lässt sich über das Plus-Menü und `/lernen`
+aktivieren. Er speichert die Moduswahl pro Unterhaltung und verwendet serverseitig
+eine pädagogische Gesprächsführung. Eine direkte Lösung kann jederzeit angefordert
+werden. Das [Slash-Menü](docs/SLASH-COMMANDS.md) öffnet sich bei `/`; `/hilfe`
+zeigt die aktuell verfügbaren Aktionen. Enter oder Tab führt die Auswahl aus,
+Escape schließt sie. Die Befehle öffnen die bestehenden Werkzeuge im Composer.
+
 ## Voraussetzungen und Versionen
 
 Für den vollständigen Containerstart: Docker Engine und Docker Compose v2 mit `--wait`. Für Entwicklung auf dem Host zusätzlich Python 3.14, uv ab 0.12.5 (Container: 0.13.1), Node.js 24 LTS und pnpm 11.1.3. Node 22 ab 22.22.3 wird ebenfalls unterstützt. `.python-version` und `.nvmrc` legen die empfohlenen Laufzeiten fest.

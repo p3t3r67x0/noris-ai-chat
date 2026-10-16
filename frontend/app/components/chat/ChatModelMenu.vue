@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { CHAT_MODELS } from '../../composables/useModelSelection'
 import type { ChatModel, ChatModelId } from '../../composables/useModelSelection'
 
 const props = defineProps<{ label: string, busy?: boolean, compact?: boolean }>()
 const model = defineModel<ChatModelId>({ required: true })
+const open = ref(false)
+defineExpose({ open: () => { open.value = true } })
 const items = computed(() => {
   if (!CHAT_MODELS.some(item => item.category)) return [...CHAT_MODELS]
   const groups: { label: string, models: ChatModel[] }[] = [
@@ -20,7 +22,7 @@ const selectedLabel = computed(() => props.compact ? selected.value?.label.repla
 
 <template>
   <USelectMenu
-    v-model="model" :items="items" value-key="id" :search-input="false" :disabled="busy || !CHAT_MODELS.length"
+    v-model="model" v-model:open="open" :items="items" value-key="id" :search-input="false" :disabled="busy || !CHAT_MODELS.length"
     variant="ghost" color="neutral" :aria-label="label" :class="compact ? 'composer-model' : 'min-w-0 max-w-64 text-base font-semibold'"
     :title="selected?.label"
     :ui="{ base: 'min-h-11', content: 'w-80 max-w-[calc(100vw-2rem)]', itemLabel: 'whitespace-normal break-words', itemDescription: 'whitespace-normal', value: 'truncate', trailingIcon: 'shrink-0' }"

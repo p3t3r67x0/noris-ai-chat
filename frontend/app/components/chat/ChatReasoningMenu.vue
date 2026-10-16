@@ -7,6 +7,7 @@ import type { ReasoningPreference } from '../../lib/chat/reasoning'
 const props = defineProps<{ model?: ChatModel | undefined, preference?: ReasoningPreference | null | undefined, disabled?: boolean | undefined, anchor?: HTMLElement | null | undefined }>()
 const emit = defineEmits<{ select: [preference: ReasoningPreference | null] }>()
 const open = ref(false)
+defineExpose({ open: () => { open.value = true } })
 const supported = computed(() => props.preference && supportsPreference(props.model, props.preference))
 const label = computed(() => supported.value ? REASONING_CHOICES.find(choice => choice.id === props.preference)?.label : 'Standard')
 const items = computed(() => [
