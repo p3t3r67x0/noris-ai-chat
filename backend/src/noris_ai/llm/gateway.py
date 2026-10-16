@@ -11,7 +11,7 @@ import anyio
 from sqlalchemy.exc import SQLAlchemyError
 
 from noris_ai.core.config import Settings
-from noris_ai.learning.policy import LearningInstruction
+from noris_ai.learning.policy import learning_instruction
 from noris_ai.llm.catalog import ModelCatalogService
 from noris_ai.llm.continuation import ContinuationFilter, continuation_messages, utf16_length
 from noris_ai.llm.errors import LLMError
@@ -288,7 +288,7 @@ class LLMGateway:
     def provider_messages(request: ChatRequest) -> list[ProviderMessage]:
         messages: list[ProviderMessage] = list(continuation_messages(request))
         if isinstance(request, PersistedChatRequest) and request.conversationMode == "learning":
-            messages.insert(0, LearningInstruction())
+            messages.insert(0, learning_instruction(request.learningState))
         if isinstance(request, GroundedChatRequest):
             messages.insert(0, ResearchInstruction())
             # External content never receives a privileged role and is never

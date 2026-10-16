@@ -53,7 +53,7 @@ test('Plus and slash share one keyboard menu, retain draft, focus and conversati
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
 
-for (const viewport of [{ width: 1920, height: 975 }, { width: 768, height: 1024 }, { width: 390, height: 844 }]) {
+for (const viewport of [{ width: 1920, height: 975 }, { width: 1440, height: 900 }, { width: 768, height: 1024 }, { width: 390, height: 844 }, { width: 320, height: 740 }]) {
   for (const theme of ['light', 'dark']) {
     test(`learning reference ${viewport.width} ${theme}`, async ({ page }, info) => {
       test.skip(info.project.name !== 'desktop', 'Each requested viewport is captured once.')

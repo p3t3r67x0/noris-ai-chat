@@ -4,6 +4,7 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, computed_field, field_validator, model_validator
 
 from noris_ai.core.schemas import ApiSchema
+from noris_ai.learning.state import LearningState
 
 
 class LLMMessage(ApiSchema):
@@ -233,6 +234,7 @@ class PersistedChatRequest(ChatRequest):
 
     messages: list[LLMMessage] = Field(min_length=1, max_length=10_001)
     conversationMode: Literal["normal", "learning"] = "normal"
+    learningState: LearningState | None = None
 
 
 class ConversationTitleRequest(ApiSchema):

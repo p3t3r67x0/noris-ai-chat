@@ -5,6 +5,7 @@ from pydantic import ValidationError
 
 from noris_ai.core.config import Settings
 from noris_ai.learning.policy import LEARNING_INSTRUCTION, LearningInstruction
+from noris_ai.learning.state import learning_state
 from noris_ai.llm.errors import LLMError
 from noris_ai.llm.gateway import LLMGateway
 from noris_ai.llm.provider import provider_payload
@@ -66,6 +67,34 @@ def test_policy_precedes_untrusted_files_and_uses_existing_branch_and_language()
 def test_normal_mode_does_not_receive_learning_policy() -> None:
     request = learning_request(conversationMode="normal")
     assert LLMGateway.provider_messages(request) == request.messages
+
+
+def test_branch_state_is_rebuilt_without_counting_empty_cancelled_answers() -> None:
+    turns = [("user", "Brüche"), ("assistant", ""), ("assistant", "Welcher Nenner?")]
+    state = learning_state(turns)
+    assert state.learner_turns == 1
+    assert state.tutor_turns == 1
+    assert state.phase == "dialogue"
+    assert not state.review_due
+    assert learning_state(turns) == state  # Reload/retry does not advance counters.
+    assert learning_state(turns[:1]).phase == "orientation"  # Edited branch.
+    assert learning_state(turns * 4).review_due
+
+
+@pytest.mark.parametrize("model_id", ["vllm/release/gpt-oss-120b", "vllm/release/glm-5-2"])
+def test_state_policy_is_model_independent_and_does_not_mutate_history(model_id: str) -> None:
+    state = learning_state([("user", "Give me the complete solution now.")])
+    request = learning_request(modelId=model_id, learningState=state)
+    before = request.model_dump()
+    instruction = LLMGateway.provider_messages(request)[0]
+    assert "learner turns=1; tutor turns=0" in instruction.content
+    assert "Honor that request immediately" in instruction.content
+    assert "German or English" in instruction.content
+    assert "simplify after confusion" in instruction.content
+    assert request.model_dump() == before
+    assert "learningState" not in provider_payload(instruction)
+    with pytest.raises(ValidationError):
+        ChatRequest.model_validate(request.model_dump())
 
 
 def test_policy_survives_continuation_and_retains_all_prior_knowledge() -> None:

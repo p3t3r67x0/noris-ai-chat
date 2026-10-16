@@ -88,6 +88,7 @@ export const messages = {
   uploadPreparing: ['Datei-Upload wird vorbereitet …', 'Preparing file upload …'],
   uploadDemoUnavailable: ['Datei-Upload ist im lokalen Demo-Modus nicht verfügbar.', 'File upload is unavailable in local demo mode.'],
   learning: ['Lernen', 'Learn'], learnNew: ['Lerne Neues', 'Learn something new'],
+  learningHint: ['Lerne Schritt für Schritt. Du kannst jederzeit um eine direkte Lösung bitten.', 'Learn step by step. You can ask for a direct solution at any time.'],
   stopLearning: ['Lernmodus deaktivieren', 'Turn off learning mode'], selected: ['Ausgewählt', 'Selected'],
   conversations: ['Gespräche', 'Conversations'], closeConversations: ['Gesprächsliste schließen', 'Close conversation list'],
   emptyConversations: ['Hier ist Platz für deine Gedanken. Deine Chats erscheinen hier.', 'Room for your ideas. Your chats appear here.'],

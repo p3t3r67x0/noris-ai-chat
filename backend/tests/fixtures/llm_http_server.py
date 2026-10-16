@@ -84,7 +84,7 @@ async def completion(request: Request) -> StreamingResponse | JSONResponse:
         for message in body["messages"]
     )
     is_learning = any(
-        message["role"] == "system" and message["content"] == LEARNING_INSTRUCTION
+        message["role"] == "system" and message["content"].startswith(LEARNING_INSTRUCTION)
         for message in body["messages"]
     )
     (title_calls if is_title else calls).append(body)
