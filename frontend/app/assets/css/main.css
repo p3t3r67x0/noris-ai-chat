@@ -1,13 +1,18 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
+@import "./fonts.css";
 
 /* October 2026 CSS targets; image pixels and unobserved dark/mobile states
    are distinguished in CHATGPT-2026-10-17-GAP-ANALYSIS.md. */
 :root {
+  --font-sans: "Noris Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "Noris Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --default-font-family: var(--font-sans);
+  --default-mono-font-family: var(--font-mono);
   --noris-settings-sidebar-width: clamp(17.5rem, 19.5833vw, 23.5rem);
   --noris-settings-content-width: clamp(45rem, 49.375vw, 59.25rem);
   --noris-settings-font-size: clamp(1rem, 1.04167vw, 1.25rem);
-  --noris-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --noris-font-family: var(--font-sans);
   --noris-rail-width: 0px;
   --noris-sidebar-width: 288px;
   --noris-shell-navigation-width: calc(var(--noris-rail-width) + var(--noris-sidebar-width));
