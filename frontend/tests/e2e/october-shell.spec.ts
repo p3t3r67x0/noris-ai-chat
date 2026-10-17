@@ -165,7 +165,7 @@ for (const theme of ['light', 'dark']) {
     await page.locator('.sidebar-new-chat').click()
     await expect(input).toBeFocused()
     await input.fill('/lang')
-    await pauseBeforeGeneration(page, new Date('2026-10-17T12:00:00Z'))
+    await pauseBeforeGeneration(page)
     await input.press('Enter')
     await page.clock.runFor(1500)
     await expect(page.locator('[data-generation-status="streaming"]')).toBeAttached()

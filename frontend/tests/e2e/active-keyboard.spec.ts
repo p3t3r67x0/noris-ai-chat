@@ -9,7 +9,7 @@ for (const theme of ['light', 'dark']) {
     await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
     const input = page.locator('.composer-input')
     await input.evaluate(element => { element.dataset.retained = 'keyboard-editor' })
-    await pauseBeforeGeneration(page, new Date('2026-10-17T12:00:00Z'))
+    await pauseBeforeGeneration(page)
     await input.fill('/lang')
     await input.press('Enter')
     await page.clock.runFor(1500)
