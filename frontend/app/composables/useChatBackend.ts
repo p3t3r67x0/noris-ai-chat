@@ -1,4 +1,4 @@
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import type { createChatState } from './useChat'
 import type { ChatTransport } from '../lib/chat/types'
 import { conversationFromServer, messageFromServer } from '../lib/chat/backend'
@@ -28,8 +28,11 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     if (existing) existing.attachments = value.attachments ?? []
   }
   const storageWarning = ref<string | null>(null)
+  const lastPersistenceError = ref<string | null>(null)
+  const pendingWrites = ref(0)
+  const restoredDrafts = ref(0)
   const retryPersistence = ref<(() => Promise<void> | void) | null>(null)
-  const failedPersistence = new Map<string, { message: string, retry: () => Promise<void> }>()
+  const failedPersistence = reactive(new Map<string, { message: string, retry: () => Promise<void> }>())
   const failedDrafts = new Map<string, string>()
   function syncPersistenceRecovery(): void {
     storageWarning.value = [...failedPersistence.values()].at(-1)?.message ?? null
@@ -61,7 +64,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   let timer: ReturnType<typeof setTimeout> | undefined
   let draftTimer: ReturnType<typeof setTimeout> | undefined
   let sentDrafts: Record<string, string> = {}
-  let pendingDrafts: Record<string, string> = {}
+  const pendingDrafts = ref<Record<string, string>>({})
   let preferredModelId: string | null = null
   function localJson(key: string, maximum = Infinity): unknown {
     try {
@@ -72,10 +75,10 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   }
   function savePendingDrafts(): void {
     try {
-      localStorage.setItem(OFFLINE_DRAFTS_KEY, JSON.stringify(pendingDrafts))
+      localStorage.setItem(OFFLINE_DRAFTS_KEY, JSON.stringify(pendingDrafts.value))
       if (retryPersistence.value === savePendingDrafts) syncPersistenceRecovery()
     }
-    catch { storageWarning.value = report({ code: 'STORAGE_UNAVAILABLE' }, { operation: 'storage', resourceId: 'drafts' }); retryPersistence.value = savePendingDrafts }
+    catch { storageWarning.value = report({ code: 'STORAGE_UNAVAILABLE' }, { operation: 'storage', resourceId: 'drafts' }); lastPersistenceError.value = storageWarning.value; retryPersistence.value = savePendingDrafts }
   }
 
   function mergeMetadata(values: ApiSchemas['ConversationResponse'][]): void {
@@ -90,7 +93,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       pinnedIds.value = pinnedIds.value.filter(id => id !== value.id)
       if (value.pinnedAt && !value.archivedAt) pinnedIds.value = [...pinnedIds.value, value.id].slice(-500)
     }
-    const pinned = new Set([...sidebarIds.value, ...pinnedIds.value, ...Object.keys(windows.value), ...values.map(c => c.id), ...Object.keys(pendingDrafts), state.conversations.activeId.value, state.generatingConversationId.value])
+    const pinned = new Set([...sidebarIds.value, ...pinnedIds.value, ...Object.keys(windows.value), ...values.map(c => c.id), ...Object.keys(pendingDrafts.value), state.conversations.activeId.value, state.generatingConversationId.value])
     const records = Object.entries(state.conversations.records.value)
     const remove = new Set(records.filter(([id]) => !pinned.has(id)).slice(0, Math.max(0, records.length - 600)).map(([id]) => id))
     if (remove.size) {
@@ -111,7 +114,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     pinnedCursor.value ??= page.nextCursor ?? null
   }
   function evict(): void {
-    const pinned = new Set([state.conversations.activeId.value, state.generatingConversationId.value, olderConversation, ...cache.pendingIds(), ...Object.keys(pendingDrafts)].filter((id): id is string => Boolean(id)))
+    const pinned = new Set([state.conversations.activeId.value, state.generatingConversationId.value, olderConversation, ...cache.pendingIds(), ...Object.keys(pendingDrafts.value)].filter((id): id is string => Boolean(id)))
     const ids = new Set(cache.evictions(pinned))
     // Additional byte budget bounds unusually large inactive responses.
     let bytes = Object.values(state.messages.value).reduce((total, m) => total + m.content.length * 2 + 512, 0)
@@ -173,7 +176,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       await cache.read(id, async () => {
         const draftRecords = state.drafts.records.value
         const draftAtRead = draftRecords[id]
-        const pendingAtRead = Object.hasOwn(pendingDrafts, id)
+        const pendingAtRead = Object.hasOwn(pendingDrafts.value, id)
         const [result, drafts] = await Promise.all([
           backend.path(id, {}, controller.signal),
           backend.request<ApiSchemas['DraftListResponse']>(`/chat/drafts?keys=${id}`, 'GET', undefined, controller.signal),
@@ -182,9 +185,9 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
         // A stream may have started while the request was pending.
         if (id === state.generatingConversationId.value) return
         if (result.conversation.version < (backend.versions.get(id) ?? 0) && result.leafMessageId !== state.conversations.records.value[id]?.activeLeafMessageId) throw new TransportError('VERSION_CONFLICT')
-        // A successful save can clear pendingDrafts before this older read returns.
+        // A successful save can clear pendingDrafts.value before this older read returns.
         // Preserve edits from before/during the read, including replace-and-restore.
-        const applyDraft = !pendingAtRead && !Object.hasOwn(pendingDrafts, id)
+        const applyDraft = !pendingAtRead && !Object.hasOwn(pendingDrafts.value, id)
           && state.drafts.records.value === draftRecords && state.drafts.records.value[id] === draftAtRead
         applyPath(result, preserve)
         if (applyDraft) {
@@ -234,7 +237,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     // Metadata arrives before the active path; never hydrate a partial tree as a legacy snapshot.
     mergeMetadata(snapshot.metadata)
     sentDrafts = { ...sentDrafts, ...snapshot.drafts }
-    state.drafts.records.value = { ...state.drafts.records.value, ...snapshot.drafts, ...pendingDrafts }
+    state.drafts.records.value = { ...state.drafts.records.value, ...snapshot.drafts, ...pendingDrafts.value }
     sidebarIds.value = backend.initialPage?.conversations.map(c => c.id) ?? []
     nextCursor.value = backend.initialPage?.nextCursor ?? null
     pinnedCursor.value = backend.initialPinnedPage?.nextCursor ?? null
@@ -315,11 +318,13 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     return result
   }
   async function persist(operation: Promise<unknown>, context: ErrorContext, retry: () => Promise<unknown>): Promise<void> {
+    pendingWrites.value++
     const key = JSON.stringify([context.operation, context.conversationId, context.resourceId])
     try { await operation; if (failedPersistence.delete(key)) syncPersistenceRecovery() }
     catch (error) {
       const recover = () => persist(retry(), { ...context, attemptId: crypto.randomUUID() }, retry)
       const message = report(error, context, { label: 'Erneut speichern', onClick: recover })
+      lastPersistenceError.value = message
       failedPersistence.set(key, { message, retry: recover }); syncPersistenceRecovery()
       // On conflict, re-read authority. Preserve the unsent draft for recovery.
       if (!state.stream.busy.value) {
@@ -328,6 +333,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
         catch { backendReady.value = false }
       }
     }
+    finally { pendingWrites.value-- }
   }
   const create = state.conversations.create
   const select = state.conversations.select
@@ -422,7 +428,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify({ version: 2, preferredLeaves: state.preferredLeaves.value }))
       if (retryPersistence.value === flushCache) syncPersistenceRecovery()
     }
-    catch { storageWarning.value = report({ code: 'STORAGE_UNAVAILABLE' }, { operation: 'storage', resourceId: 'cache' }); retryPersistence.value = flushCache }
+    catch { storageWarning.value = report({ code: 'STORAGE_UNAVAILABLE' }, { operation: 'storage', resourceId: 'cache' }); lastPersistenceError.value = storageWarning.value; retryPersistence.value = flushCache }
   }
   async function importLocalChats(): Promise<void> {
     if (importBusy.value || !backendReady.value) return
@@ -460,12 +466,12 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       const offline = localJson(OFFLINE_DRAFTS_KEY)
       if (offline && typeof offline === 'object' && !Array.isArray(offline)) {
         for (const [key, text] of Object.entries(offline)) if (typeof text === 'string' && text.length <= 64000 && (key === '__new__' || /^[0-9a-f-]{36}$/.test(key))) {
-          pendingDrafts[key] = text
+          pendingDrafts.value[key] = text
           state.drafts.records.value[key] = text
         }
-        if (Object.keys(pendingDrafts).length) {
+        if (Object.keys(pendingDrafts.value).length) {
           storageWarning.value = 'Ein lokal noch nicht gespeicherter Entwurf wurde wiederhergestellt.'
-          notifications?.notify({ severity: 'info', title: 'Entwurf wiederhergestellt.', description: storageWarning.value })
+          restoredDrafts.value = Object.keys(pendingDrafts.value).length
         }
       }
       await refresh()
@@ -514,8 +520,8 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   })
   watch(state.drafts.records, () => {
     let changed = false
-    for (const [key, content] of Object.entries(state.drafts.records.value)) if (sentDrafts[key] !== content && pendingDrafts[key] !== content) {
-      pendingDrafts[key] = content; changed = true
+    for (const [key, content] of Object.entries(state.drafts.records.value)) if (sentDrafts[key] !== content && pendingDrafts.value[key] !== content) {
+      pendingDrafts.value[key] = content; changed = true
     }
     if (changed) savePendingDrafts()
     clearTimeout(draftTimer)
@@ -531,7 +537,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
           catch (cause) { failedDrafts.set(key, currentContent); throw cause }
           failedDrafts.delete(key)
           sentDrafts[key] = currentContent
-          if (pendingDrafts[key] === currentContent) pendingDrafts = Object.fromEntries(Object.entries(pendingDrafts).filter(([id]) => id !== key))
+          if (pendingDrafts.value[key] === currentContent) pendingDrafts.value = Object.fromEntries(Object.entries(pendingDrafts.value).filter(([id]) => id !== key))
           savePendingDrafts()
         }
         void persist(saveDraft(), { operation: 'draft', conversationId: key, attemptId: crypto.randomUUID() }, saveDraft)
@@ -556,5 +562,11 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     preferredModelId = modelId
     return persist(backend.preferences(state.conversations.activeId.value, modelId), { operation: 'preferences', resourceId: 'model', attemptId: crypto.randomUUID() }, () => backend.preferences(state.conversations.activeId.value, preferredModelId ?? modelId))
   }
-  return { pagination, storageWarning, retryPersistence, saveModelPreference, backendReady, importAvailable, importBusy, importLocalChats, refresh }
+  const persistenceStatus = computed<import('../lib/chat/persistence').PersistenceStatus>(() => ({
+    storage: 'server', ready: backendReady.value, blocked: false,
+    pendingOperations: pendingWrites.value, pendingDrafts: Object.keys(pendingDrafts.value).length,
+    failedOperations: failedPersistence.size + Number(Boolean(retryPersistence.value) && !failedPersistence.size),
+    restoredDrafts: restoredDrafts.value, lastError: lastPersistenceError.value,
+  }))
+  return { pagination, storageWarning, retryPersistence, persistenceStatus, saveModelPreference, backendReady, importAvailable, importBusy, importLocalChats, refresh }
 }

@@ -6,11 +6,12 @@ export interface SettingsCategory {
   id: string, title: MessageKey, icon: string, group: 'personal' | 'noris', entries: SettingEntry[]
 }
 export const settingsRegistry: SettingsCategory[] = [
-  { id: 'general', title: 'general', icon: 'i-lucide-settings', group: 'personal', entries: [{ id: 'language', title: 'language', keywords: ['Deutsch', 'English', 'Sprache der App-Oberfläche'] }] },
+  { id: 'general', title: 'general', icon: 'i-lucide-settings', group: 'personal', entries: [{ id: 'language', title: 'language', keywords: ['Deutsch', 'English', 'Sprache der App-Oberfläche'] }, { id: 'theme', title: 'appearance', keywords: ['Hell', 'Dunkel', 'System'] }] },
   { id: 'appearance', title: 'appearance', icon: 'i-lucide-sun', group: 'personal', entries: [{ id: 'theme', title: 'appearance', keywords: ['Dark Mode', 'Theme', 'Hell', 'Dunkel', 'System', 'Light'] }] },
   { id: 'archived', title: 'archived', icon: 'i-lucide-archive', group: 'personal', entries: [{ id: 'archive', title: 'archived', keywords: ['Wiederherstellen', 'Löschen', 'Restore', 'Delete'] }] },
   { id: 'keyboard', title: 'keyboard', icon: 'i-lucide-command', group: 'personal', entries: [{ id: 'shortcuts', title: 'shortcuts', keywords: ['Enter', 'Shift', 'Ctrl', 'Cmd'] }] },
   { id: 'data-controls', title: 'dataControls', icon: 'i-lucide-shield', group: 'personal', entries: [{ id: 'local-import', title: 'importTitle', keywords: ['Importieren', 'PostgreSQL', 'Import'], requiresImport: true }] },
+  { id: 'backup', title: 'backup', icon: 'i-lucide-database-backup', group: 'personal', entries: [{ id: 'persistence-status', title: 'persistenceStatus', keywords: ['Entwürfe', 'Drafts', 'Speicherfehler', 'Wiederherstellung', 'Recovery', 'Sicherung'] }] },
   { id: 'models', title: 'models', icon: 'i-lucide-box', group: 'noris', entries: [{ id: 'default-model', title: 'defaultModel', keywords: ['LLM', 'Standard', 'Default'] }] },
 ]
 export interface SettingsSearchResult { key: string, label: string, category: string, to: string }

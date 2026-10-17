@@ -6,6 +6,17 @@ import type { ChatMessage, MessageRecords } from './types'
 import { ABSOLUTE_MESSAGE_CHARS, MAX_SNAPSHOT_CHARS } from './limits'
 
 export const CHAT_STORAGE_KEY = 'noris-ai:chat:v1'
+/** Read-only presentation of the existing persistence owner, not stored chat data. */
+export interface PersistenceStatus {
+  storage: 'local' | 'server'
+  ready: boolean
+  blocked: boolean
+  pendingOperations: number
+  pendingDrafts: number
+  failedOperations: number
+  restoredDrafts: number
+  lastError: string | null
+}
 export interface ChatSnapshot {
   version: 1
   conversations: ConversationSnapshot

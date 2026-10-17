@@ -7,6 +7,7 @@ describe('settings registry and locale', () => {
   it.each([
     ['Sprache', '/settings/general#language'], ['Dark Mode', '/settings/appearance#theme'],
     ['Importieren', '/settings/data-controls#local-import'], ['GPT-OSS', '/settings/models#model-gpt-oss'],
+    ['Datensicherung', '/settings/backup'], ['Speicherfehler', '/settings/backup#persistence-status'],
   ])('locates supported settings for %s', (query, to) => {
     expect(searchSettings(query, 'de', capabilities).map(result => result.to)).toContain(to)
   })

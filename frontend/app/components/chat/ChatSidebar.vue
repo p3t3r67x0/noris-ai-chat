@@ -165,7 +165,7 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
     :ui="{
       container: 'h-[var(--chat-viewport-height,100dvh)] bottom-auto',
       inner: 'bg-[var(--noris-sidebar-background)] divide-transparent',
-      header: 'flex-col items-stretch px-2 py-2', body: 'min-h-0 overflow-y-auto px-2', footer: 'p-3',
+      header: 'flex-col items-stretch px-2 py-2', body: 'min-h-0 overflow-y-auto px-2', footer: 'p-3 lg:hidden',
     }"
   >
     <template #header>
@@ -212,7 +212,6 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
       <div class="flex flex-col gap-2">
         <UButton icon="i-lucide-archive" color="neutral" variant="ghost" :label="t('archived')" class="min-h-11 justify-start lg:hidden" @click="showArchive" />
         <UButton icon="i-lucide-settings" color="neutral" variant="ghost" :label="t('settings')" class="min-h-11 justify-start lg:hidden" @click="showSettings" />
-        <UColorModeSelect aria-label="Darstellung" class="w-full" :ui="{ base: 'min-h-11' }" />
         <div class="lg:hidden"><ProfileMenu :demo="demo" :compact="false" /></div>
       </div>
     </template>
