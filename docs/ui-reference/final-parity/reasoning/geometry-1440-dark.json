@@ -52,14 +52,14 @@
     },
     "reasoning": {
       "rect": {
-        "x": 1055.390625,
+        "x": 1054,
         "y": 396,
-        "width": 117.609375,
+        "width": 119,
         "height": 44,
         "top": 396,
         "right": 1173,
         "bottom": 440,
-        "left": 1055.390625
+        "left": 1054
       },
       "styles": {
         "font-size": "16px",

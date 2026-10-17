@@ -1,6 +1,6 @@
 {
   "base": "5d2c56d",
-  "applicationSource": "aa8423d",
+  "applicationSource": "c52a3f0 (self-hosted fonts; final geometry recaptured)",
   "browser": "Playwright 1.64.0 / Chromium 1248",
   "date": "2026-10-17",
   "runs": [
@@ -107,6 +107,69 @@
       "failed": 0,
       "localLog": "/tmp/noris-parity-websocket-golden-final.log",
       "logSHA256": "ebfb4db46703bc8e6786d15c35d366603a041a678d4ea89af16c93858fe188c5"
+    },
+    {
+      "run": "self-hosted-fonts-complete-mock",
+      "passed": 368,
+      "skipped": 69,
+      "failed": 0,
+      "localLog": "/tmp/noris-font-parent-mock-full.log",
+      "logSHA256": "f50d5b57f4f24f4bb901f2768cbf53a6879b975287d540d1fb8dfacea6f2c066",
+      "snapshotMode": "intentional font baseline recapture; no tolerance change"
+    },
+    {
+      "run": "self-hosted-fonts-websocket-visual-workflows",
+      "passed": 36,
+      "skipped": 30,
+      "failed": 0,
+      "localLog": "/tmp/noris-font-parent-websocket-update.log",
+      "logSHA256": "1530097511b16ba80293258a97d753df4b26b34e0cca77beae03328778d9b676",
+      "snapshotMode": "intentional font recapture; unchanged assertions and tolerance"
+    },
+    {
+      "run": "self-hosted-fonts-reference-and-geometry-no-updates",
+      "passed": 47,
+      "skipped": 8,
+      "failed": 0,
+      "localLog": "/tmp/noris-font-parent-mock-verify.log",
+      "logSHA256": "2bd2c8d76a7dc2e75caa2a7ffd1fa77238bf67d1f2f966e576e462d4376f5462",
+      "snapshotMode": "no updates"
+    },
+    {
+      "run": "font-websocket-verification-missing-schema",
+      "passed": 0,
+      "skipped": 0,
+      "failed": 18,
+      "localLog": "/tmp/noris-font-parent-websocket-verify.log",
+      "logSHA256": "135990f413b3aa27266d7af35387d7ad4336fee498a8508f9555d945636eac1a",
+      "note": "Separate integration DB had been downgraded to base by its migration test; only alembic_version existed. No product assertion was reached. Migrated normally and repeated unchanged."
+    },
+    {
+      "run": "font-websocket-no-updates-migrated",
+      "passed": 12,
+      "skipped": 6,
+      "failed": 0,
+      "note": "Same assertions and baselines after migrating the separate disposable DB.",
+      "localLog": "/tmp/noris-font-parent-websocket-verify-migrated.log",
+      "logSHA256": "c28b7c0508d937491514b508d7585769d2f086af3688ea9acc49a32377d56982"
+    },
+    {
+      "run": "font-http-visual-workflows",
+      "passed": 41,
+      "skipped": 17,
+      "failed": 0,
+      "note": "Intentional font recapture; no tolerance change.",
+      "localLog": "/tmp/noris-font-parent-http-update.log",
+      "logSHA256": "ac64f753c69959591d0860cc4f7c27e0a542f47bead69dfdae33a3c5920ae4b1"
+    },
+    {
+      "run": "font-http-model-and-reasoning-no-updates",
+      "passed": 2,
+      "skipped": 0,
+      "failed": 0,
+      "localLog": "/tmp/noris-font-parent-http-verify.log",
+      "logSHA256": "d072c52c1ba628e8014c7d4b55511b0f676574bec0afd05f7265c7c5c9d15b41",
+      "snapshotMode": "no updates"
     }
   ],
   "interpretation": [
@@ -117,7 +180,8 @@
     "Backend full integration initially lacked the non-superuser noris_app role. After provisioning the repository-defined role, its sole failed case passed unchanged. 303 runnable integration cases passed across those runs.",
     "Eight proxy integration cases require unavailable Caddy/nginx prerequisites. Browser skips are existing project/viewport/channel exclusions.",
     "No screenshot tolerance increased and no tests removed. Intentional layout/font baselines were reviewed before verification.",
-    "Production/live-provider suites require their opt-in service/credentials and were not run against a paid external provider."
+    "Production/live-provider suites require their opt-in service/credentials and were not run against a paid external provider.",
+    "After font embedding, the complete mock run passes 368 cases with 69 exclusions; 47 reference/geometry cases pass without updates. All 36 selected WebSocket visual workflows and 41 HTTP visual workflows pass; 12 selected WebSocket cases additionally pass without updates."
   ],
   "staticChecks": {
     "frontendLint": "passed",
@@ -126,7 +190,8 @@
     "toolsTypes": "passed",
     "generatedAPI": "passed",
     "productionBuild": "passed",
-    "gitDiffCheck": "passed"
+    "gitDiffCheck": "passed",
+    "PythonStrictTypes": "passed; exact CI Pyright 1.1.408, 0 errors, 0 warnings"
   },
   "limitations": [
     "Original open/closed-reference CSS viewport and DPR remain unknown; no same-browser pixel-equality claim.",
@@ -140,5 +205,21 @@
     "measuredDeltas": "geometry.json",
     "referenceProvenance": "reference-geometry.json",
     "acceptance": "ACCEPTANCE.md"
+  },
+  "CIRecovery": {
+    "initialFailure": "Pyright reportUnknownVariableType for the search-match default factory",
+    "fix": "default_factory=list[ConversationSearchMatch]",
+    "localLog": "/tmp/noris-parity-python-types.log",
+    "logSHA256": "50bcd85f1ab5b7673b549d9e3e210216bf127777492694316fc6dc25c976cd0f",
+    "OpenAPI": "unchanged; api:check passed"
+  },
+  "fontEnvironmentRecovery": {
+    "initialCI": "123 screenshot failures in both checks and Compose; 243 functional browser cases passed",
+    "cause": "Platform-dependent system font selection; wider glyphs in the CI artifacts",
+    "fix": "Self-host measured Noto Sans and Liberation Mono under renamed Noris font families; metrics/cmap verified, no size or zoom change",
+    "evidence": "font-environment/fonts-used.json",
+    "licenseAndSource": "frontend/public/fonts/manifest.json",
+    "remoteReverification": "pending next CI run",
+    "localReverification": "368 passed, 69 existing project exclusions in the complete mock suite; two CDP tests verify actually used bundled fonts."
   }
 }

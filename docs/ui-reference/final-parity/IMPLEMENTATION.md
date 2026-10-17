@@ -17,9 +17,14 @@ The measured reference column is about 768px wide at x746. Noris now uses a
 composer edges follow the remaining main area; collapsing the sidebar recenters
 both without a fixed left offset. Desktop navigation remains 52+288=340px.
 
-The new body font is the platform sans stack, 16px/26px in all test widths.
-The previous Arial alias on this machine was Arimo; platform sans resolves to
-Noto Sans. The exact original reference font cannot be established from PNG.
+The measured local body font was Noto Sans under the system stack; the previous
+Arial alias was Arimo. CI later exposed different glyph widths under that same
+stack. The app now self-hosts those measured faces as Noris Sans (Noto Sans 2.004,
+400/500/600/700 and italics) and Noris Mono (Liberation Mono 2.1.5). Glyph metrics
+and cmap are verified unchanged; names are changed for packaging. Font files,
+source hashes and OFL notices are in `frontend/public/fonts`. No external font
+service is used. Message size remains 16px/26px. Exact original ChatGPT font
+identity cannot be established from PNG.
 Headings are 24/20/18px, weight 600; composer 16px/24px; captions 12px.
 Tight Markdown lists now omit their parser-hidden paragraph wrappers. This
 removes unintended 16px paragraph margins while retaining loose-list paragraphs.
@@ -150,3 +155,23 @@ The later spinner reference has an explicitly visible **130%** browser-zoom badg
 and includes browser chrome. It is documented separately in the follow-up spinner
 PR; it must not be treated as a 1920×976 CSS-viewport capture or silently mixed
 with these open-chat raster measurements.
+
+CI additionally caught an untyped search-match list factory under strict Pyright
+1.1.408. The generic factory now names ConversationSearchMatch; the exact full
+Python typecheck passes with zero errors. OpenAPI output is unchanged.
+
+11. CI font-environment audit: 123 screenshot failures showed wider glyphs on CI
+    under the system stack. Actual Chromium font queries confirmed the local
+    Noto Sans cuts and Liberation Mono; these are now self-hosted and preloaded.
+    A browser test verifies the used font faces, not just the CSS declaration.
+    Dev Compose also mounts public assets/config so the running app serves them.
+    See `font-environment` for CI images and before/after actual-font evidence.
+
+Font verification: complete mock suite **368 passed / 69 excluded**; reference,
+geometry and actual-font verification without updates **47 passed / 8 excluded**.
+WebSocket visual workflows **36 passed / 30 excluded**, followed by an unchanged
+baseline retest **12 passed / 6 excluded**. HTTP visual workflows **41 passed /
+17 excluded**. The separate integration-test database had first been left at its
+migration base; after regular migration the unchanged WebSocket retest passes.
+See per-run logs and hashes in `TEST-RESULTS.json`. Geometry remains 52+288px
+navigation, 768px column, 16px/26px messages and 54px compact composer.
