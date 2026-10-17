@@ -1,0 +1,140 @@
+{
+  "date": "2026-10-17",
+  "verifiedCodeAndTestsCommit": "b08986d1abe03b963ffb2f024c9b27123aebdde3",
+  "viewports": [
+    [
+      1701,
+      863
+    ],
+    [
+      1440,
+      900
+    ],
+    [
+      1280,
+      800
+    ],
+    [
+      1024,
+      768
+    ],
+    [
+      768,
+      1024
+    ],
+    [
+      390,
+      844
+    ]
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "maxDiffPixelRatio": 0.001,
+  "reference": "Synthetic Noris goldens; private original not committed; no claim of reference pixel equality",
+  "checks": {
+    "eslint": {
+      "exitCode": 0
+    },
+    "nuxtAppTypecheck": {
+      "exitCode": 0,
+      "warning": "Existing optional vue-router/volar/sfc-route-blocks plugin unavailable"
+    },
+    "vueTestTypecheck": {
+      "exitCode": 0,
+      "warning": "Same existing optional Volar plugin warning"
+    },
+    "toolsTypecheck": {
+      "exitCode": 0
+    },
+    "productionBuild": {
+      "exitCode": 0,
+      "durationSeconds": 34.1
+    },
+    "apiDrift": {
+      "exitCode": 0
+    },
+    "unit": {
+      "exitCode": 0,
+      "files": 43,
+      "passed": 572
+    }
+  },
+  "browserRuns": [
+    {
+      "name": "mock_full",
+      "command": "playwright test",
+      "passed": 346,
+      "failed": 4,
+      "skipped": 59,
+      "exitCode": 1,
+      "snapshotUpdate": false
+    },
+    {
+      "name": "mock_settings_recheck",
+      "command": "playwright test tests/e2e/settings.spec.ts",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "snapshotUpdate": false
+    },
+    {
+      "name": "websocket_full_affected",
+      "command": "playwright test --config playwright.websocket.config.ts (10 affected spec files)",
+      "passed": 107,
+      "failed": 1,
+      "skipped": 36,
+      "exitCode": 1,
+      "snapshotUpdate": false
+    },
+    {
+      "name": "websocket_persistence_recheck",
+      "command": "playwright test --config playwright.websocket.config.ts persistent-chat.spec.ts",
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "snapshotUpdate": false
+    },
+    {
+      "name": "sse_record",
+      "command": "playwright test --config playwright.llm.config.ts composer-layout.spec.ts reasoning-selection.spec.ts --update-snapshots",
+      "passed": 37,
+      "failed": 0,
+      "skipped": 13,
+      "exitCode": 0,
+      "snapshotUpdate": true
+    },
+    {
+      "name": "sse_compare",
+      "command": "playwright test --config playwright.llm.config.ts composer-layout.spec.ts reasoning-selection.spec.ts",
+      "passed": 37,
+      "failed": 0,
+      "skipped": 13,
+      "exitCode": 0,
+      "snapshotUpdate": false
+    },
+    {
+      "name": "active_keyboard_record",
+      "command": "playwright test tests/e2e/active-keyboard.spec.ts --update-snapshots",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "snapshotUpdate": true
+    }
+  ],
+  "coverageAfterRechecks": {
+    "mockPassedCases": 350,
+    "websocketPassedCases": 108,
+    "ssePassedCases": 37,
+    "meaning": "Union of full runs and passing affected-file rechecks; duplicates excluded. The full mock and WebSocket commands were not rerun after the final test-only corrections."
+  },
+  "notRun": [
+    "External live-provider suites",
+    "Backend unit suite (unchanged backend)",
+    "Real iOS/Android keyboards and screenreader device acceptance"
+  ]
+}

@@ -1,5 +1,7 @@
 # Design-Tokens
 
+Aktueller Layoutstand: [Chat-Shell vom 17. Oktober 2026](CHATGPT-2026-10-17-IMPLEMENTATION.md). Die dort dokumentierten CSS-Maße und der erhöhte Empty State ersetzen ältere Layoutangaben unten; technische Lifecycle- und Transportverträge bleiben erhalten.
+
 Die folgende Tabelle dokumentiert die historische Referenzmessung. Die aktuelle kompakte Composer-Geometrie (60–70 px Mindesthöhe, proportionaler Pillenradius, 16–22 px Schrift, mindestens 44 px Bedienflächen), die integrierte Websuche und der aktuelle Screenshot-Vergleich stehen in [Composer-Implementierung](composer/IMPLEMENTATION.md).
 
 Quelle: REFERENCE-ANALYSIS.md. Alle Produktwerte werden in `frontend/app/assets/css/main.css` zentral definiert. Geometrie wird bei 1920×975 CSS-Pixeln/DPR 1 gegen Bildpixel verglichen; Skalierung der Originalaufnahme ist unbekannt.

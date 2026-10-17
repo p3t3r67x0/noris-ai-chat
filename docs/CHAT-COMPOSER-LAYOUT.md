@@ -1,5 +1,7 @@
 # Chat-Layout und Composer-Abnahme
 
+Aktueller Layoutstand: [Chat-Shell vom 17. Oktober 2026](ui-reference/CHATGPT-2026-10-17-IMPLEMENTATION.md). Die dort dokumentierten CSS-Maße und der erhöhte Empty State ersetzen ältere Layoutangaben unten; technische Lifecycle- und Transportverträge bleiben erhalten.
+
 Basis: `main` bei `447d6f9`, Branch `fix/chat-composer-layout-fidelity`.
 
 Der Composer verwendet weiterhin `UChatPrompt`, `UChatPromptSubmit` und das dynamische `USelectMenu`. Dessen vorhandene Header-, Body- und Footer-Slots stehen in einer gemeinsamen CSS-Grid-Zeile: Plus, schrumpfende Textarea, Modellwahl und Send/Stop. Aktionsbuttons haben feste quadratische Maße; die Modellwahl besitzt eine begrenzte, vom Namen unabhängige Breite. Es gibt keine absolute Aktionsleiste und kein Textarea-Padding zur Freihaltung darüberliegender Buttons.
