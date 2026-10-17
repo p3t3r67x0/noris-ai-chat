@@ -1,0 +1,97 @@
+{
+  "viewport": {
+    "width": 768,
+    "height": 1024,
+    "deviceScaleFactor": 1
+  },
+  "theme": "dark",
+  "metrics": {
+    "rail": null,
+    "sidebar": null,
+    "header": null,
+    "newChat": null,
+    "recents": null,
+    "row": null,
+    "composer": {
+      "x": 24,
+      "y": 443.765625,
+      "width": 720,
+      "height": 62,
+      "top": 443.765625,
+      "right": 744,
+      "bottom": 505.765625,
+      "left": 24
+    },
+    "textarea": {
+      "x": 85,
+      "y": 460.765625,
+      "width": 410,
+      "height": 28,
+      "top": 460.765625,
+      "right": 495,
+      "bottom": 488.765625,
+      "left": 85
+    },
+    "plus": {
+      "x": 33,
+      "y": 452.765625,
+      "width": 44,
+      "height": 44,
+      "top": 452.765625,
+      "right": 77,
+      "bottom": 496.765625,
+      "left": 33
+    },
+    "model": {
+      "x": 503,
+      "y": 452.765625,
+      "width": 128,
+      "height": 44,
+      "top": 452.765625,
+      "right": 631,
+      "bottom": 496.765625,
+      "left": 503
+    },
+    "microphone": {
+      "x": 639,
+      "y": 452.765625,
+      "width": 44,
+      "height": 44,
+      "top": 452.765625,
+      "right": 683,
+      "bottom": 496.765625,
+      "left": 639
+    },
+    "submit": {
+      "x": 691,
+      "y": 452.765625,
+      "width": 44,
+      "height": 44,
+      "top": 452.765625,
+      "right": 735,
+      "bottom": 496.765625,
+      "left": 691
+    },
+    "greeting": {
+      "x": 40,
+      "y": 370.265625,
+      "width": 688,
+      "height": 37.5,
+      "top": 370.265625,
+      "right": 728,
+      "bottom": 407.765625,
+      "left": 40
+    },
+    "main": {
+      "x": 0,
+      "y": 0,
+      "width": 768,
+      "height": 1024,
+      "top": 0,
+      "right": 768,
+      "bottom": 1024,
+      "left": 0
+    }
+  },
+  "comparisons": []
+}

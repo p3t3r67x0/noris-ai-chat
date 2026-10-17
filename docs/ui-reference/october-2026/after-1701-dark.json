@@ -1,0 +1,123 @@
+{
+  ".chat-rail": {
+    "x": 0,
+    "y": 0,
+    "width": 52,
+    "height": 863,
+    "top": 0,
+    "right": 52,
+    "bottom": 863,
+    "left": 0
+  },
+  ".conversation-sidebar": {
+    "x": 52,
+    "y": 0,
+    "width": 288,
+    "height": 863,
+    "top": 0,
+    "right": 340,
+    "bottom": 863,
+    "left": 52
+  },
+  ".sidebar-heading": {
+    "x": 60,
+    "y": 4,
+    "width": 271,
+    "height": 44,
+    "top": 4,
+    "right": 331,
+    "bottom": 48,
+    "left": 60
+  },
+  ".sidebar-new-chat": {
+    "x": 60,
+    "y": 58,
+    "width": 271,
+    "height": 44,
+    "top": 58,
+    "right": 331,
+    "bottom": 102,
+    "left": 60
+  },
+  ".sidebar-section": {
+    "x": 60,
+    "y": 155,
+    "width": 271,
+    "height": 121.5,
+    "top": 155,
+    "right": 331,
+    "bottom": 276.5,
+    "left": 60
+  },
+  ".conversation-row": null,
+  ".chat-composer": {
+    "x": 576.5,
+    "y": 364.875,
+    "width": 888,
+    "height": 62,
+    "top": 364.875,
+    "right": 1464.5,
+    "bottom": 426.875,
+    "left": 576.5
+  },
+  ".composer-input": {
+    "x": 637.5,
+    "y": 381.875,
+    "width": 578,
+    "height": 28,
+    "top": 381.875,
+    "right": 1215.5,
+    "bottom": 409.875,
+    "left": 637.5
+  },
+  ".composer-attachment": {
+    "x": 585.5,
+    "y": 373.875,
+    "width": 44,
+    "height": 44,
+    "top": 373.875,
+    "right": 629.5,
+    "bottom": 417.875,
+    "left": 585.5
+  },
+  ".composer-model": {
+    "x": 1223.5,
+    "y": 373.875,
+    "width": 128,
+    "height": 44,
+    "top": 373.875,
+    "right": 1351.5,
+    "bottom": 417.875,
+    "left": 1223.5
+  },
+  ".composer-microphone": {
+    "x": 1359.5,
+    "y": 373.875,
+    "width": 44,
+    "height": 44,
+    "top": 373.875,
+    "right": 1403.5,
+    "bottom": 417.875,
+    "left": 1359.5
+  },
+  ".composer-submit": {
+    "x": 1411.5,
+    "y": 373.875,
+    "width": 44,
+    "height": 44,
+    "top": 373.875,
+    "right": 1455.5,
+    "bottom": 417.875,
+    "left": 1411.5
+  },
+  ".empty-chat h1": {
+    "x": 592.5,
+    "y": 291.375,
+    "width": 856,
+    "height": 37.5,
+    "top": 291.375,
+    "right": 1448.5,
+    "bottom": 328.875,
+    "left": 592.5
+  }
+}

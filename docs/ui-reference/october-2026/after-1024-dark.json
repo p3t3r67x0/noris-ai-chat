@@ -1,0 +1,123 @@
+{
+  ".chat-rail": {
+    "x": 0,
+    "y": 0,
+    "width": 52,
+    "height": 768,
+    "top": 0,
+    "right": 52,
+    "bottom": 768,
+    "left": 0
+  },
+  ".conversation-sidebar": {
+    "x": 52,
+    "y": 0,
+    "width": 288,
+    "height": 768,
+    "top": 0,
+    "right": 340,
+    "bottom": 768,
+    "left": 52
+  },
+  ".sidebar-heading": {
+    "x": 60,
+    "y": 4,
+    "width": 271,
+    "height": 44,
+    "top": 4,
+    "right": 331,
+    "bottom": 48,
+    "left": 60
+  },
+  ".sidebar-new-chat": {
+    "x": 60,
+    "y": 58,
+    "width": 271,
+    "height": 44,
+    "top": 58,
+    "right": 331,
+    "bottom": 102,
+    "left": 60
+  },
+  ".sidebar-section": {
+    "x": 60,
+    "y": 155,
+    "width": 271,
+    "height": 121.5,
+    "top": 155,
+    "right": 331,
+    "bottom": 276.5,
+    "left": 60
+  },
+  ".conversation-row": null,
+  ".chat-composer": {
+    "x": 364,
+    "y": 318.328125,
+    "width": 636,
+    "height": 62,
+    "top": 318.328125,
+    "right": 1000,
+    "bottom": 380.328125,
+    "left": 364
+  },
+  ".composer-input": {
+    "x": 425,
+    "y": 335.328125,
+    "width": 326,
+    "height": 28,
+    "top": 335.328125,
+    "right": 751,
+    "bottom": 363.328125,
+    "left": 425
+  },
+  ".composer-attachment": {
+    "x": 373,
+    "y": 327.328125,
+    "width": 44,
+    "height": 44,
+    "top": 327.328125,
+    "right": 417,
+    "bottom": 371.328125,
+    "left": 373
+  },
+  ".composer-model": {
+    "x": 759,
+    "y": 327.328125,
+    "width": 128,
+    "height": 44,
+    "top": 327.328125,
+    "right": 887,
+    "bottom": 371.328125,
+    "left": 759
+  },
+  ".composer-microphone": {
+    "x": 895,
+    "y": 327.328125,
+    "width": 44,
+    "height": 44,
+    "top": 327.328125,
+    "right": 939,
+    "bottom": 371.328125,
+    "left": 895
+  },
+  ".composer-submit": {
+    "x": 947,
+    "y": 327.328125,
+    "width": 44,
+    "height": 44,
+    "top": 327.328125,
+    "right": 991,
+    "bottom": 371.328125,
+    "left": 947
+  },
+  ".empty-chat h1": {
+    "x": 380,
+    "y": 244.828125,
+    "width": 604,
+    "height": 37.5,
+    "top": 244.828125,
+    "right": 984,
+    "bottom": 282.328125,
+    "left": 380
+  }
+}

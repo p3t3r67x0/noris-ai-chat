@@ -1,27 +1,27 @@
 {
-  "axis": 30.1015625,
+  "axis": 26,
   "items": [
     {
-      "button": 30.09375,
-      "icon": 30.0859375,
+      "button": 26,
+      "icon": 26,
       "width": 44,
       "height": 44
     },
     {
-      "button": 30.09375,
-      "icon": 30.09375,
+      "button": 26,
+      "icon": 26,
       "width": 44,
       "height": 44
     },
     {
-      "button": 30.09375,
-      "icon": 30.09375,
+      "button": 26,
+      "icon": 26,
       "width": 44,
       "height": 44
     },
     {
-      "button": 30.09375,
-      "icon": 30.09375,
+      "button": 26,
+      "icon": 26,
       "width": 44,
       "height": 44
     }

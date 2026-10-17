@@ -1,0 +1,206 @@
+{
+  "viewport": {
+    "width": 1440,
+    "height": 900,
+    "deviceScaleFactor": 1
+  },
+  "theme": "light",
+  "metrics": {
+    "rail": {
+      "x": 0,
+      "y": 0,
+      "width": 52,
+      "height": 900,
+      "top": 0,
+      "right": 52,
+      "bottom": 900,
+      "left": 0
+    },
+    "sidebar": {
+      "x": 52,
+      "y": 0,
+      "width": 288,
+      "height": 900,
+      "top": 0,
+      "right": 340,
+      "bottom": 900,
+      "left": 52
+    },
+    "header": {
+      "x": 60,
+      "y": 4,
+      "width": 271,
+      "height": 44,
+      "top": 4,
+      "right": 331,
+      "bottom": 48,
+      "left": 60
+    },
+    "newChat": {
+      "x": 60,
+      "y": 58,
+      "width": 271,
+      "height": 44,
+      "top": 58,
+      "right": 331,
+      "bottom": 102,
+      "left": 60
+    },
+    "recents": {
+      "x": 60,
+      "y": 155,
+      "width": 271,
+      "height": 1988,
+      "top": 155,
+      "right": 331,
+      "bottom": 2143,
+      "left": 60
+    },
+    "row": {
+      "x": 60,
+      "y": 207,
+      "width": 271,
+      "height": 44,
+      "top": 207,
+      "right": 331,
+      "bottom": 251,
+      "left": 60
+    },
+    "composer": {
+      "x": 446,
+      "y": 383,
+      "width": 888,
+      "height": 62,
+      "top": 383,
+      "right": 1334,
+      "bottom": 445,
+      "left": 446
+    },
+    "textarea": {
+      "x": 507,
+      "y": 400,
+      "width": 578,
+      "height": 28,
+      "top": 400,
+      "right": 1085,
+      "bottom": 428,
+      "left": 507
+    },
+    "plus": {
+      "x": 455,
+      "y": 392,
+      "width": 44,
+      "height": 44,
+      "top": 392,
+      "right": 499,
+      "bottom": 436,
+      "left": 455
+    },
+    "model": {
+      "x": 1093,
+      "y": 392,
+      "width": 128,
+      "height": 44,
+      "top": 392,
+      "right": 1221,
+      "bottom": 436,
+      "left": 1093
+    },
+    "microphone": {
+      "x": 1229,
+      "y": 392,
+      "width": 44,
+      "height": 44,
+      "top": 392,
+      "right": 1273,
+      "bottom": 436,
+      "left": 1229
+    },
+    "submit": {
+      "x": 1281,
+      "y": 392,
+      "width": 44,
+      "height": 44,
+      "top": 392,
+      "right": 1325,
+      "bottom": 436,
+      "left": 1281
+    },
+    "greeting": {
+      "x": 462,
+      "y": 309.5,
+      "width": 856,
+      "height": 37.5,
+      "top": 309.5,
+      "right": 1318,
+      "bottom": 347,
+      "left": 462
+    },
+    "main": {
+      "x": 340,
+      "y": 0,
+      "width": 1100,
+      "height": 900,
+      "top": 0,
+      "right": 1440,
+      "bottom": 900,
+      "left": 340
+    }
+  },
+  "comparisons": [
+    {
+      "name": "rail",
+      "dimension": "width",
+      "expected": 52,
+      "certainty": "user-stated markup target; original HTML unavailable",
+      "actual": 52,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "sidebar",
+      "dimension": "width",
+      "expected": 288,
+      "certainty": "derived from user-stated markup targets",
+      "actual": 288,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "main",
+      "dimension": "x",
+      "expected": 340,
+      "certainty": "user-stated markup target; original HTML unavailable",
+      "actual": 340,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "composer",
+      "dimension": "width",
+      "expected": 888,
+      "certainty": "visual estimate / responsive Noris rule",
+      "actual": 888,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "composer",
+      "dimension": "height",
+      "expected": 62,
+      "certainty": "visual estimate",
+      "actual": 62,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "row",
+      "dimension": "height",
+      "expected": 42.5,
+      "certainty": "visual estimate; 44 px accessibility choice",
+      "actual": 44,
+      "absoluteDeviationPx": 1.5,
+      "relativeDeviation": 0.03529411764705882
+    }
+  ]
+}

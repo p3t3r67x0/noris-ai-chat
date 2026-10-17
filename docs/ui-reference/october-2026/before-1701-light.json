@@ -1,0 +1,112 @@
+{
+  ".chat-rail": {
+    "x": 0,
+    "y": 0,
+    "width": 60.234375,
+    "height": 863,
+    "top": 0,
+    "right": 60.234375,
+    "bottom": 863,
+    "left": 0
+  },
+  ".conversation-sidebar": {
+    "x": 60.234375,
+    "y": 0,
+    "width": 333.109375,
+    "height": 863,
+    "top": 0,
+    "right": 393.34375,
+    "bottom": 863,
+    "left": 60.234375
+  },
+  ".sidebar-heading": {
+    "x": 68.234375,
+    "y": 8,
+    "width": 316.109375,
+    "height": 52,
+    "top": 8,
+    "right": 384.34375,
+    "bottom": 60,
+    "left": 68.234375
+  },
+  ".sidebar-new-chat": {
+    "x": 72.234375,
+    "y": 72,
+    "width": 308.109375,
+    "height": 44,
+    "top": 72,
+    "right": 380.34375,
+    "bottom": 116,
+    "left": 72.234375
+  },
+  ".chat-composer": {
+    "x": 604.203125,
+    "y": 772,
+    "width": 885.921875,
+    "height": 62,
+    "top": 772,
+    "right": 1490.125,
+    "bottom": 834,
+    "left": 604.203125
+  },
+  ".composer-input": {
+    "x": 665.203125,
+    "y": 787.9375,
+    "width": 562.1875,
+    "height": 30.109375,
+    "top": 787.9375,
+    "right": 1227.390625,
+    "bottom": 818.046875,
+    "left": 665.203125
+  },
+  ".composer-attachment": {
+    "x": 613.203125,
+    "y": 781,
+    "width": 44,
+    "height": 44,
+    "top": 781,
+    "right": 657.203125,
+    "bottom": 825,
+    "left": 613.203125
+  },
+  ".composer-model": {
+    "x": 1235.390625,
+    "y": 781,
+    "width": 141.734375,
+    "height": 44,
+    "top": 781,
+    "right": 1377.125,
+    "bottom": 825,
+    "left": 1235.390625
+  },
+  ".composer-microphone": {
+    "x": 1385.125,
+    "y": 781,
+    "width": 44,
+    "height": 44,
+    "top": 781,
+    "right": 1429.125,
+    "bottom": 825,
+    "left": 1385.125
+  },
+  ".composer-submit": {
+    "x": 1437.125,
+    "y": 781,
+    "width": 44,
+    "height": 44,
+    "top": 781,
+    "right": 1481.125,
+    "bottom": 825,
+    "left": 1437.125
+  },
+  ".empty-chat h1": {
+    "x": 620.203125,
+    "y": 699.28125,
+    "width": 853.921875,
+    "height": 42.515625,
+    "top": 699.28125,
+    "right": 1474.125,
+    "bottom": 741.796875,
+    "left": 620.203125
+  }
+}
