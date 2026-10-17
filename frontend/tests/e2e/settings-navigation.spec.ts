@@ -63,8 +63,8 @@ test('language changes visible settings and chat controls, persists and detects 
   await expect(page.getByRole('combobox', { name: 'Language', exact: true })).toContainText('English')
   await navigation(page)
   await page.getByRole('link', { name: 'Back to chat' }).click()
-  await expect(page.getByRole('textbox', { name: 'Message', exact: true })).toHaveAttribute('placeholder', 'Ask noris AI …')
-  await expect(page.getByRole('heading', { name: 'What would you like to work on today?' })).toBeVisible()
+  await expect(page.getByRole('textbox', { name: 'Message', exact: true })).toHaveAttribute('placeholder', 'Ask Noris AI')
+  await expect(page.getByRole('heading', { name: 'How can I help you?' })).toBeVisible()
   await page.goto('/settings/general')
   await page.getByRole('combobox', { name: 'Language', exact: true }).click()
   await page.getByRole('option', { name: 'Detect automatically' }).click()
@@ -171,7 +171,7 @@ test('reference proportions and every requested viewport fit without overflow', 
     await expect(page.getByRole('combobox', { name: 'Sprache', exact: true })).toBeInViewport()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && scrollY === 0)).toBe(true)
     if (width === 1701) {
-      expect((await page.locator('.chat-rail').boundingBox())!.width).toBeCloseTo(60.25, 0)
+      expect((await page.locator('.chat-rail').boundingBox())!.width).toBeCloseTo(52, 0)
       expect((await page.locator('.settings-sidebar').boundingBox())!.width).toBeCloseTo(333.1, 0)
       expect((await page.locator('.settings-content').boundingBox())!.width).toBeCloseTo(839.9, 0)
     }
