@@ -1,6 +1,8 @@
 # Measured, self-hosted UI fonts
 
 Noris Sans packages Noto Sans 2.004; Noris Mono packages Liberation Mono 2.1.5.
+Noris Symbols packages Arimo 1.33, the measured fallback for ↑ and ↓; Noto Sans
+does not contain these glyphs. It follows Noris Sans in the font stack.
 These are the faces Chromium actually used for the reference implementation on
 the development host, measured with `CSS.getPlatformFontsForNode`, including
 Noto Sans Medium (500) and SemiBold (600). `system-ui` alone selected different
@@ -14,7 +16,7 @@ in [manifest.json](manifest.json). All faces are licensed under SIL OFL 1.1;
 original copyright notices and the full license are in [OFL.txt](OFL.txt).
 
 No external font service, runtime Python package or model/API call is involved.
-Normal 400/500/600 faces are preloaded; other weights/styles load when needed.
+Normal 400/500/600 faces and the symbol fallback are preloaded; other weights/styles load when needed.
 The existing composer autosizer waits for `document.fonts.ready`.
 
 Regenerate using Python fonttools[woff] 4.61.1 and the matching source fonts:
@@ -23,6 +25,7 @@ Regenerate using Python fonttools[woff] 4.61.1 and the matching source fonts:
 python3 frontend/scripts/package-ui-fonts.py \
   --sans /usr/share/fonts/truetype/noto \
   --mono /usr/share/fonts/truetype/liberation \
+  --symbols /usr/share/fonts/truetype/croscore \
   --ofl-notice /usr/share/doc/fonts-noto-core/copyright
 ```
 

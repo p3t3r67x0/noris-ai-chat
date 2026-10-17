@@ -170,6 +170,15 @@
       "localLog": "/tmp/noris-font-parent-http-verify.log",
       "logSHA256": "d072c52c1ba628e8014c7d4b55511b0f676574bec0afd05f7265c7c5c9d15b41",
       "snapshotMode": "no updates"
+    },
+    {
+      "run": "bundled-symbol-fallback-menu-and-font-no-updates",
+      "passed": 28,
+      "skipped": 26,
+      "failed": 0,
+      "localLog": "/tmp/noris-symbols-parent-browser-verify.log",
+      "logSHA256": "2df583f595b2132a11b3f2c5f23f2bddcb7b54531f2998ab437ca3a382b66acb",
+      "snapshotMode": "no updates; all old menu baselines retained"
     }
   ],
   "interpretation": [
@@ -185,8 +194,8 @@
   ],
   "staticChecks": {
     "frontendLint": "passed",
-    "NuxtApplicationTypecheck": "passed",
-    "strictAppAndTestTypes": "passed; NODE_PATH points to the installed Nuxt dependency directory for the vue-router Volar plugin",
+    "NuxtApplicationTypecheck": "passed with final preload literal types",
+    "strictAppAndTestTypes": "passed with final glyph-font assertion; NODE_PATH resolves the installed Nuxt plugin",
     "toolsTypes": "passed",
     "generatedAPI": "passed",
     "productionBuild": "passed",
@@ -220,6 +229,9 @@
     "evidence": "font-environment/fonts-used.json",
     "licenseAndSource": "frontend/public/fonts/manifest.json",
     "remoteReverification": "pending next CI run",
-    "localReverification": "368 passed, 69 existing project exclusions in the complete mock suite; two CDP tests verify actually used bundled fonts."
+    "localReverification": "368 passed, 69 existing project exclusions in the complete mock suite; two CDP tests verify actually used bundled fonts.",
+    "remainingGlyphFailure": "Second CI: 351 passed / 69 excluded / 17 menu screenshot failures. Noto Sans lacks \u2191 \u2193; actual local fallback was system Arimo (two glyphs).",
+    "glyphFix": "Bundle measured Arimo 1.33 as Noris Symbols after Noris Sans; source metrics/cmap verified; actual custom arrow-font use asserted.",
+    "glyphLocalVerification": "28 passed / 26 excluded without snapshot updates; no menu baseline changes; recaptured geometry unchanged."
   }
 }

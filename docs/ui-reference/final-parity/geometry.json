@@ -125,7 +125,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -181,7 +181,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -237,7 +237,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -293,7 +293,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -349,7 +349,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -405,7 +405,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -461,7 +461,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -517,7 +517,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -573,7 +573,7 @@
               "left": 770
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -629,7 +629,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -685,7 +685,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -741,7 +741,7 @@
               "left": 799
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -801,7 +801,7 @@
               "left": 1417
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -857,7 +857,7 @@
               "left": 1465
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -951,7 +951,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -1007,7 +1007,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -1063,7 +1063,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -1119,7 +1119,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -1175,7 +1175,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -1231,7 +1231,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -1287,7 +1287,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -1343,7 +1343,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -1399,7 +1399,7 @@
               "left": 770
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -1455,7 +1455,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -1511,7 +1511,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -1567,7 +1567,7 @@
               "left": 759
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -1627,7 +1627,7 @@
               "left": 1417
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -1683,7 +1683,7 @@
               "left": 1465
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -1758,7 +1758,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -1814,7 +1814,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -1870,7 +1870,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -1926,7 +1926,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -1982,7 +1982,7 @@
               "left": 602
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -2038,7 +2038,7 @@
               "left": 602
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -2094,7 +2094,7 @@
               "left": 602
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -2150,7 +2150,7 @@
               "left": 602
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -2206,7 +2206,7 @@
               "left": 626
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -2262,7 +2262,7 @@
               "left": 602
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -2318,7 +2318,7 @@
               "left": 602
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -2374,7 +2374,7 @@
               "left": 655
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -2434,7 +2434,7 @@
               "left": 1273
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -2490,7 +2490,7 @@
               "left": 1321
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -2565,7 +2565,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -2621,7 +2621,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -2677,7 +2677,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -2733,7 +2733,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -2789,7 +2789,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -2845,7 +2845,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -2901,7 +2901,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -2957,7 +2957,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -3013,7 +3013,7 @@
               "left": 770
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -3069,7 +3069,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -3125,7 +3125,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -3181,7 +3181,7 @@
               "left": 799
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -3241,7 +3241,7 @@
               "left": 1417
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -3297,7 +3297,7 @@
               "left": 1465
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -3391,7 +3391,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -3447,7 +3447,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -3503,7 +3503,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -3559,7 +3559,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -3615,7 +3615,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -3671,7 +3671,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -3727,7 +3727,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -3783,7 +3783,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -3839,7 +3839,7 @@
               "left": 770
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -3895,7 +3895,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -3951,7 +3951,7 @@
               "left": 746
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -4007,7 +4007,7 @@
               "left": 759
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -4067,7 +4067,7 @@
               "left": 1417
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -4123,7 +4123,7 @@
               "left": 1465
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -4198,7 +4198,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -4254,7 +4254,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -4310,7 +4310,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -4366,7 +4366,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -4422,7 +4422,7 @@
               "left": 602
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -4478,7 +4478,7 @@
               "left": 602
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -4534,7 +4534,7 @@
               "left": 602
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -4590,7 +4590,7 @@
               "left": 602
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -4646,7 +4646,7 @@
               "left": 626
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -4702,7 +4702,7 @@
               "left": 602
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -4758,7 +4758,7 @@
               "left": 602
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -4814,7 +4814,7 @@
               "left": 655
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -4874,7 +4874,7 @@
               "left": 1273
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -4930,7 +4930,7 @@
               "left": 1321
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -5005,7 +5005,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -5061,7 +5061,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -5117,7 +5117,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -5173,7 +5173,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -5229,7 +5229,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -5285,7 +5285,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -5341,7 +5341,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -5397,7 +5397,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -5453,7 +5453,7 @@
               "left": 660.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -5509,7 +5509,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -5565,7 +5565,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -5621,7 +5621,7 @@
               "left": 689.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -5681,7 +5681,7 @@
               "left": 1307.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -5737,7 +5737,7 @@
               "left": 1355.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -5812,7 +5812,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -5868,7 +5868,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -5924,7 +5924,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -5980,7 +5980,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -6036,7 +6036,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -6092,7 +6092,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -6148,7 +6148,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -6204,7 +6204,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -6260,7 +6260,7 @@
               "left": 660.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -6316,7 +6316,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -6372,7 +6372,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -6428,7 +6428,7 @@
               "left": 649.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -6488,7 +6488,7 @@
               "left": 1307.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -6544,7 +6544,7 @@
               "left": 1355.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -6619,7 +6619,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -6675,7 +6675,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -6731,7 +6731,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -6787,7 +6787,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -6843,7 +6843,7 @@
               "left": 492.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -6899,7 +6899,7 @@
               "left": 492.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -6955,7 +6955,7 @@
               "left": 492.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -7011,7 +7011,7 @@
               "left": 492.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -7067,7 +7067,7 @@
               "left": 516.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -7123,7 +7123,7 @@
               "left": 492.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -7179,7 +7179,7 @@
               "left": 492.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -7235,7 +7235,7 @@
               "left": 545.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -7295,7 +7295,7 @@
               "left": 1163.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -7351,7 +7351,7 @@
               "left": 1211.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -7426,7 +7426,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -7482,7 +7482,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -7538,7 +7538,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -7594,7 +7594,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -7650,7 +7650,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -7706,7 +7706,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -7762,7 +7762,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -7818,7 +7818,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -7874,7 +7874,7 @@
               "left": 660.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -7930,7 +7930,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -7986,7 +7986,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -8042,7 +8042,7 @@
               "left": 689.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -8102,7 +8102,7 @@
               "left": 1307.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -8158,7 +8158,7 @@
               "left": 1355.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -8233,7 +8233,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -8289,7 +8289,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -8345,7 +8345,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -8401,7 +8401,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -8457,7 +8457,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -8513,7 +8513,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -8569,7 +8569,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -8625,7 +8625,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -8681,7 +8681,7 @@
               "left": 660.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -8737,7 +8737,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -8793,7 +8793,7 @@
               "left": 636.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -8849,7 +8849,7 @@
               "left": 649.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -8909,7 +8909,7 @@
               "left": 1307.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -8965,7 +8965,7 @@
               "left": 1355.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -9040,7 +9040,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -9096,7 +9096,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -9152,7 +9152,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -9208,7 +9208,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -9264,7 +9264,7 @@
               "left": 492.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -9320,7 +9320,7 @@
               "left": 492.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -9376,7 +9376,7 @@
               "left": 492.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -9432,7 +9432,7 @@
               "left": 492.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -9488,7 +9488,7 @@
               "left": 516.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -9544,7 +9544,7 @@
               "left": 492.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -9600,7 +9600,7 @@
               "left": 492.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -9656,7 +9656,7 @@
               "left": 545.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -9716,7 +9716,7 @@
               "left": 1163.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -9772,7 +9772,7 @@
               "left": 1211.5
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -9847,7 +9847,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -9903,7 +9903,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -9959,7 +9959,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -10015,7 +10015,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -10071,7 +10071,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -10127,7 +10127,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -10183,7 +10183,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -10239,7 +10239,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -10295,7 +10295,7 @@
               "left": 530
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -10351,7 +10351,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -10407,7 +10407,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -10463,7 +10463,7 @@
               "left": 559
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -10523,7 +10523,7 @@
               "left": 1177
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -10579,7 +10579,7 @@
               "left": 1225
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -10654,7 +10654,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -10710,7 +10710,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -10766,7 +10766,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -10822,7 +10822,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -10878,7 +10878,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -10934,7 +10934,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -10990,7 +10990,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -11046,7 +11046,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -11102,7 +11102,7 @@
               "left": 530
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -11158,7 +11158,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -11214,7 +11214,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -11270,7 +11270,7 @@
               "left": 519
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -11330,7 +11330,7 @@
               "left": 1177
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -11386,7 +11386,7 @@
               "left": 1225
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -11461,7 +11461,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -11517,7 +11517,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -11573,7 +11573,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -11629,7 +11629,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -11685,7 +11685,7 @@
               "left": 362
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -11741,7 +11741,7 @@
               "left": 362
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -11797,7 +11797,7 @@
               "left": 362
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -11853,7 +11853,7 @@
               "left": 362
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -11909,7 +11909,7 @@
               "left": 386
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -11965,7 +11965,7 @@
               "left": 362
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -12021,7 +12021,7 @@
               "left": 362
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -12077,7 +12077,7 @@
               "left": 415
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -12137,7 +12137,7 @@
               "left": 1033
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -12193,7 +12193,7 @@
               "left": 1081
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -12268,7 +12268,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -12324,7 +12324,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -12380,7 +12380,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -12436,7 +12436,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -12492,7 +12492,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -12548,7 +12548,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -12604,7 +12604,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -12660,7 +12660,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -12716,7 +12716,7 @@
               "left": 530
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -12772,7 +12772,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -12828,7 +12828,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -12884,7 +12884,7 @@
               "left": 559
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -12944,7 +12944,7 @@
               "left": 1177
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -13000,7 +13000,7 @@
               "left": 1225
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -13075,7 +13075,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -13131,7 +13131,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -13187,7 +13187,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -13243,7 +13243,7 @@
               "left": 340
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -13299,7 +13299,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -13355,7 +13355,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -13411,7 +13411,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -13467,7 +13467,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -13523,7 +13523,7 @@
               "left": 530
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -13579,7 +13579,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -13635,7 +13635,7 @@
               "left": 506
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -13691,7 +13691,7 @@
               "left": 519
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -13751,7 +13751,7 @@
               "left": 1177
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -13807,7 +13807,7 @@
               "left": 1225
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -13882,7 +13882,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -13938,7 +13938,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -13994,7 +13994,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -14050,7 +14050,7 @@
               "left": 52
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -14106,7 +14106,7 @@
               "left": 362
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -14162,7 +14162,7 @@
               "left": 362
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -14218,7 +14218,7 @@
               "left": 362
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -14274,7 +14274,7 @@
               "left": 362
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -14330,7 +14330,7 @@
               "left": 386
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -14386,7 +14386,7 @@
               "left": 362
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -14442,7 +14442,7 @@
               "left": 362
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -14498,7 +14498,7 @@
               "left": 415
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -14558,7 +14558,7 @@
               "left": 1033
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -14614,7 +14614,7 @@
               "left": 1081
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -14697,7 +14697,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -14753,7 +14753,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -14809,7 +14809,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -14865,7 +14865,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -14921,7 +14921,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -14977,7 +14977,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -15033,7 +15033,7 @@
               "left": 36
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -15089,7 +15089,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -15145,7 +15145,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -15201,7 +15201,7 @@
               "left": 28
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -15261,7 +15261,7 @@
               "left": 278
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -15317,7 +15317,7 @@
               "left": 326
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -15400,7 +15400,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -15456,7 +15456,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -15512,7 +15512,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -15568,7 +15568,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -15624,7 +15624,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -15680,7 +15680,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -15736,7 +15736,7 @@
               "left": 36
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -15792,7 +15792,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -15848,7 +15848,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -15904,7 +15904,7 @@
               "left": 28
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -15964,7 +15964,7 @@
               "left": 278
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -16020,7 +16020,7 @@
               "left": 326
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -16103,7 +16103,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -16159,7 +16159,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -16215,7 +16215,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -16271,7 +16271,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -16327,7 +16327,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -16383,7 +16383,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -16439,7 +16439,7 @@
               "left": 36
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -16495,7 +16495,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -16551,7 +16551,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -16607,7 +16607,7 @@
               "left": 28
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -16667,7 +16667,7 @@
               "left": 278
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -16723,7 +16723,7 @@
               "left": 326
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -16806,7 +16806,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -16862,7 +16862,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -16918,7 +16918,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -16974,7 +16974,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -17030,7 +17030,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -17086,7 +17086,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -17142,7 +17142,7 @@
               "left": 36
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -17198,7 +17198,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -17254,7 +17254,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -17310,7 +17310,7 @@
               "left": 28
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -17370,7 +17370,7 @@
               "left": 278
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -17426,7 +17426,7 @@
               "left": 326
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -17509,7 +17509,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -17565,7 +17565,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -17621,7 +17621,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -17677,7 +17677,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -17733,7 +17733,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -17789,7 +17789,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -17845,7 +17845,7 @@
               "left": 36
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -17901,7 +17901,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -17957,7 +17957,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -18013,7 +18013,7 @@
               "left": 28
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -18073,7 +18073,7 @@
               "left": 278
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -18129,7 +18129,7 @@
               "left": 326
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -18212,7 +18212,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -18268,7 +18268,7 @@
               "left": 0
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -18324,7 +18324,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -18380,7 +18380,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -18436,7 +18436,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -18492,7 +18492,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "20px",
               "lineHeight": "26.25px",
               "fontWeight": "600",
@@ -18548,7 +18548,7 @@
               "left": 36
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "26px",
               "fontWeight": "400",
@@ -18604,7 +18604,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "14.4px",
               "lineHeight": "23.4px",
               "fontWeight": "400",
@@ -18660,7 +18660,7 @@
               "left": 12
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -18716,7 +18716,7 @@
               "left": 28
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -18776,7 +18776,7 @@
               "left": 278
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",
@@ -18832,7 +18832,7 @@
               "left": 326
             },
             "styles": {
-              "fontFamily": "\"Noris Sans\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+              "fontFamily": "\"Noris Sans\", \"Noris Symbols\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
               "fontSize": "16px",
               "lineHeight": "24px",
               "fontWeight": "400",

@@ -94,3 +94,11 @@
   font-display: swap;
   src: url("/fonts/noris-mono-bold-italic.woff2") format("woff2");
 }
+
+@font-face {
+  font-family: "Noris Symbols";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/noris-symbols-regular.woff2") format("woff2");
+}

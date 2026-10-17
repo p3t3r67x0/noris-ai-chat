@@ -145,6 +145,18 @@
       "assetSHA256": "774c1cf3ee04e09cca8ecffb62f66a72ed95779dac84ebd8ef138a5f7fb0c0a3",
       "glyphCount": 2425,
       "metricsVerified": true
+    },
+    {
+      "family": "Noris Symbols",
+      "weight": 400,
+      "style": "normal",
+      "asset": "noris-symbols-regular.woff2",
+      "source": "Arimo-Regular.ttf",
+      "sourceVersion": "Version 1.33; ttfautohint (v1.8.2)",
+      "sourceSHA256": "5c315974260455a02fad62495a0ae9a783bb53f0eccf807deb75c7967e7a81d6",
+      "assetSHA256": "62078f17c11739e4310306b2a4de0fe00ffa86fe3fc77a85ee1ed3d34f6e575a",
+      "glyphCount": 3298,
+      "metricsVerified": true
     }
   ]
 }

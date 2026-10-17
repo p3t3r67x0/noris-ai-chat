@@ -175,3 +175,12 @@ baseline retest **12 passed / 6 excluded**. HTTP visual workflows **41 passed /
 migration base; after regular migration the unchanged WebSocket retest passes.
 See per-run logs and hashes in `TEST-RESULTS.json`. Geometry remains 52+288px
 navigation, 768px column, 16px/26px messages and 54px compact composer.
+
+12. Glyph-specific CI follow-up: 351 cases passed and 17 menu snapshots still
+    differed. Their only desktop difference was the keyboard-hint line. Chromium
+    reported two system Arimo glyphs for ↑ and ↓, missing from Noto Sans. Bundle
+    measured Arimo 1.33 as Noris Symbols, verify unchanged source metrics/cmap,
+    preload it and test actual custom-font use including arrows at all weights.
+    All 28 affected-menu/font cases pass without baseline updates (26 project
+    exclusions). Main chat geometry is recaptured and unchanged. See the cropped
+    CI difference and `symbols-before.json` / `symbols-after.json`.
