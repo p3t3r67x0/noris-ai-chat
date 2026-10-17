@@ -58,9 +58,13 @@ for (const theme of ['light', 'dark']) {
       }, height)
       await page.clock.runFor(100)
       const composer = (await page.locator('.chat-composer').boundingBox())!
-      const note = (await page.locator('.composer-note').boundingBox())!
-      expect(note.y + note.height).toBeLessThan(composer.y)
-      expect(note.y + note.height).toBeLessThanOrEqual(height + 20)
+      if (height > 300) {
+        const note = (await page.locator('.composer-note').boundingBox())!
+        expect(note.y + note.height).toBeLessThan(composer.y)
+        expect(note.y + note.height).toBeLessThanOrEqual(height + 20)
+      }
+      else await expect(page.locator('.composer-note')).toBeHidden()
+      expect(composer.y + composer.height).toBeLessThanOrEqual(height + 20)
       await expect(input).toBeFocused()
       expect(await page.locator('.chat-scroll').evaluate(element => element.scrollTop)).toBe(position)
       expect(await page.evaluate(() => scrollY === 0 && document.documentElement.scrollWidth <= innerWidth)).toBe(true)
