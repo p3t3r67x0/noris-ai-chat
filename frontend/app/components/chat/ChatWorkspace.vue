@@ -239,7 +239,6 @@ function saveEdit(): void {
           <span v-else-if="stream.status.value === 'cancelled'">Antwort gestoppt.</span>
           <span v-else-if="stream.status.value === 'completed'" class="sr-only">Antwort abgeschlossen.</span>
         </div>
-        <details v-if="chat.storageWarning.value" class="px-4 pb-3 text-center text-xs text-warning"><summary>Sicherung und Änderungen prüfen</summary><p>{{ chat.storageWarning.value }}</p><UButton v-if="chat.retryPersistence.value" color="neutral" variant="link" label="Erneut speichern" @click="chat.retryPersistence.value?.()" /></details>
       </div>
     </main>
     <UModal v-model:open="editOpen" title="Nachricht bearbeiten" description="Deine ursprüngliche Frage und ihre Antworten bleiben als Variante erhalten.">

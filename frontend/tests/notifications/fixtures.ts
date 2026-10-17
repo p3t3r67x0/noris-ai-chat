@@ -4,8 +4,8 @@ import type { ApiSchemas } from '../../app/types/generated/api'
 
 export const conversationId = '10000000-0000-4000-8000-000000000001'
 const date = '2026-10-12T10:00:00.000Z'
-export async function notificationBackend(page: Page, options: { generationCode?: string, partial?: string, failUploads?: number, failSettings?: number, modelCode?: string, failDelete?: number, restoredDraft?: boolean, disconnect?: boolean } = {}) {
-  const state = { generations: 0, resumes: 0, uploads: 0, settings: 0, deletes: 0, generationCode: options.generationCode ?? 'PROVIDER_UNREACHABLE' }
+export async function notificationBackend(page: Page, options: { generationCode?: string, partial?: string, failUploads?: number, failSettings?: number, failDrafts?: number, modelCode?: string, failDelete?: number, restoredDraft?: boolean, disconnect?: boolean } = {}) {
+  const state = { generations: 0, resumes: 0, uploads: 0, settings: 0, deletes: 0, draftSaves: 0, savedDraft: '', generationCode: options.generationCode ?? 'PROVIDER_UNREACHABLE' }
   let conversation: ApiSchemas['ConversationResponse'] = { id: conversationId, title: 'Benachrichtigungen prüfen', titleSource: 'manual', version: 1, activeLeafMessageId: '10000000-0000-4000-8000-000000000003', createdAt: date, updatedAt: date, archivedAt: null, lastMessageAt: date, conversationMode: 'normal', reasoningPreference: null }
   const messages: ApiSchemas['MessageResponse'][] = [
     { id: '10000000-0000-4000-8000-000000000002', conversationId, parentMessageId: null, role: 'user', content: 'Wie bleiben meine bisherigen Nachrichten erhalten?', status: 'completed', modelId: null, generationId: null, editedFromMessageId: null, createdAt: date, updatedAt: date },
@@ -52,6 +52,12 @@ export async function notificationBackend(page: Page, options: { generationCode?
       return route.fulfill({ status: 204 })
     }
     else if (path === `/conversations/${conversationId}`) json = conversation
+    else if (method === 'PUT' && (path === '/chat/drafts/new' || path.endsWith('/draft'))) {
+      state.draftSaves++
+      if (state.draftSaves <= (options.failDrafts ?? 0)) return error('INTERNAL_ERROR')
+      state.savedDraft = typeof body?.content === 'string' ? body.content : ''
+      return route.fulfill({ status: 204 })
+    }
     else if (method === 'PUT') return route.fulfill({ status: 204 })
     await route.fulfill({ json })
   })

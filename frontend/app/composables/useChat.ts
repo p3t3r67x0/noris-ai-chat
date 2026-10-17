@@ -313,30 +313,35 @@ export function useChat(transport: ChatTransport) {
   }
   const storageWarning = ref<string | null>(null)
   const retryPersistence = ref<(() => void) | null>(null)
+  const lastPersistenceError = ref<string | null>(null)
+  const pendingSave = ref(false)
+  const restoredDrafts = ref(0)
   const notifications = useAppNotifications()
   watch(storageWarning, value => {
     if (!value) return
+    lastPersistenceError.value = value
     const code = value.startsWith('Chats wurden') ? 'STORAGE_CHANGED' : value.startsWith('Gespeicherte Chats') ? 'STORAGE_INVALID' : 'STORAGE_UNAVAILABLE'
     notifications?.reportError({ code }, { operation: 'storage', attemptId: code }, code === 'STORAGE_CHANGED' ? { label: 'Seite neu laden', onClick: () => window.location.reload() } : undefined)
   })
   let stopWatching: (() => void) | undefined
   let timer: ReturnType<typeof setTimeout> | undefined
-  let persistenceAllowed = true
+  const persistenceAllowed = ref(true)
   function flush(): void {
     clearTimeout(timer)
     timer = undefined
-    if (!persistenceAllowed) return
+    if (!persistenceAllowed.value) return
     try {
       const serialized = JSON.stringify(state.snapshot())
       if (serialized.length > MAX_SNAPSHOT_CHARS) throw new Error('Speichergrenze erreicht')
       window.localStorage.setItem(CHAT_STORAGE_KEY, serialized)
+      pendingSave.value = false
       storageWarning.value = null; retryPersistence.value = null
     }
     catch { storageWarning.value = 'Änderungen können gerade nicht lokal gespeichert werden.'; retryPersistence.value = flush }
   }
   function externalChange(event: StorageEvent): void {
     if (event.key !== CHAT_STORAGE_KEY) return
-    persistenceAllowed = false
+    persistenceAllowed.value = false
     state.titles.dispose()
     storageWarning.value = 'Chats wurden in einem anderen Tab geändert. Lade diese Seite neu, um den aktuellen Stand zu verwenden.'
   }
@@ -346,8 +351,8 @@ export function useChat(transport: ChatTransport) {
       const raw = window.localStorage.getItem(CHAT_STORAGE_KEY)
       if (raw) {
         const saved = parseChatSnapshot(raw)
-        if (saved) state.hydrate(saved)
-        else { persistenceAllowed = false; storageWarning.value = 'Gespeicherte Chats konnten nicht geladen werden. Der bisherige Speicher bleibt erhalten.' }
+        if (saved) { state.hydrate(saved); restoredDrafts.value = Object.values(saved.drafts).filter(Boolean).length }
+        else { persistenceAllowed.value = false; storageWarning.value = 'Gespeicherte Chats konnten nicht geladen werden. Der bisherige Speicher bleibt erhalten.' }
       }
       else {
         const legacy = window.localStorage.getItem(CONVERSATIONS_STORAGE_KEY)
@@ -360,6 +365,7 @@ export function useChat(transport: ChatTransport) {
     }
     catch { storageWarning.value = 'Lokaler Speicher ist nicht verfügbar.' }
     const schedule = () => {
+      pendingSave.value = true
       timer ??= setTimeout(flush, 120)
     }
     // Draft keystrokes must not traverse every stored message. Both watchers
@@ -380,5 +386,14 @@ export function useChat(transport: ChatTransport) {
       window.removeEventListener('storage', externalChange)
     }
   })
-  return { ...state, storageWarning, retryPersistence, saveModelPreference: async (_modelId: string) => {}, pagination: undefined, backendReady: ref(true), importAvailable: ref(false), importBusy: ref(false), importLocalChats: async () => {} }
+  const persistenceStatus = computed<import('../lib/chat/persistence').PersistenceStatus>(() => ({
+    storage: 'local', ready: !storageWarning.value && persistenceAllowed.value,
+    blocked: !persistenceAllowed.value,
+    recovery: storageWarning.value?.startsWith('Chats wurden') ? 'reload' : retryPersistence.value ? 'retry' : null,
+    pendingOperations: Number(pendingSave.value),
+    pendingDrafts: pendingSave.value ? Object.values(state.drafts.records.value).filter(Boolean).length : 0,
+    failedOperations: Number(Boolean(storageWarning.value)), restoredDrafts: restoredDrafts.value,
+    lastError: lastPersistenceError.value,
+  }))
+  return { ...state, storageWarning, retryPersistence, persistenceStatus, saveModelPreference: async (_modelId: string) => {}, pagination: undefined, backendReady: ref(true), importAvailable: ref(false), importBusy: ref(false), importLocalChats: async () => {} }
 }

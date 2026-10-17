@@ -35,7 +35,7 @@ export default defineNuxtConfig({
         'lucide:folder-open', 'lucide:image', 'lucide:globe', 'lucide:telescope',
         'lucide:loader-circle', 'lucide:circle-alert', 'lucide:info', 'lucide:external-link',
         'lucide:sparkles', 'lucide:circle-check', 'lucide:mic', 'lucide:mic-off',
-        'lucide:command', 'lucide:shield', 'lucide:box', 'lucide:arrow-left', 'lucide:circle-help', 'lucide:book-open', 'lucide:bug',
+        'lucide:command', 'lucide:shield', 'lucide:database-backup', 'lucide:box', 'lucide:arrow-left', 'lucide:circle-help', 'lucide:book-open', 'lucide:bug',
       ],
     },
   },

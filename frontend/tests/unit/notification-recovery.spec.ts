@@ -97,12 +97,41 @@ describe('chat state and notifications integration', () => {
     await vi.advanceTimersByTimeAsync(1000)
     expect(draft).toHaveBeenCalledOnce()
     expect(sync.retryPersistence.value).not.toBeNull()
+    expect(sync.persistenceStatus.value).toMatchObject({ failedOperations: 1, pendingDrafts: 1, pendingOperations: 0 })
+    expect(sync.persistenceStatus.value.lastError).toBeTruthy()
     chat.drafts.draft.value = 'Current draft'
     await sync.retryPersistence.value?.()
     expect(draft).toHaveBeenLastCalledWith('__new__', 'Current draft')
     await vi.advanceTimersByTimeAsync(350)
     expect(draft).toHaveBeenCalledTimes(2)
     expect(sync.storageWarning.value).toBeNull()
+    expect(sync.persistenceStatus.value).toMatchObject({ failedOperations: 0, pendingDrafts: 0, pendingOperations: 0 })
+    expect(sync.persistenceStatus.value.lastError).toBeTruthy() // Still inspectable in Settings after recovery.
+  })
+  it('recovers offline drafts without an informational chat toast and exposes their status', async () => {
+    vi.useFakeTimers()
+    localStorage.setItem('noris-ai:offline-drafts:v1', JSON.stringify({ __new__: 'Wiederhergestellter Testentwurf' }))
+    const { center, toasts } = notifications()
+    const backend = new ChatBackend()
+    vi.spyOn(backend, 'load').mockResolvedValue({ metadata: [], activeConversationId: null, path: null, drafts: { __new__: '' } })
+    const save = vi.spyOn(backend, 'draft').mockResolvedValue(undefined)
+    const transport = { backend, stream: async function* () {} }
+    let chat!: ReturnType<typeof createChatState>
+    let sync!: ReturnType<typeof useChatBackend>
+    const wrapper = mount(defineComponent({ setup() {
+      chat = createChatState(transport); sync = useChatBackend(chat, transport)
+      return () => h('div')
+    } }), { global: { provide: { [appNotificationsKey as symbol]: center } } })
+    wrappers.push(wrapper)
+    await flushPromises()
+    expect(chat.drafts.draft.value).toBe('Wiederhergestellter Testentwurf')
+    expect(sync.persistenceStatus.value).toMatchObject({ restoredDrafts: 1, pendingDrafts: 1, failedOperations: 0, lastError: null })
+    expect(toasts.value).toHaveLength(0)
+    await vi.advanceTimersByTimeAsync(350)
+    expect(save).toHaveBeenCalledWith('__new__', 'Wiederhergestellter Testentwurf')
+    expect(sync.persistenceStatus.value.pendingDrafts).toBe(0)
+    expect(sync.persistenceStatus.value.restoredDrafts).toBe(1)
+    expect(toasts.value).toHaveLength(0)
   })
   it('announces separate explicit model refresh failures and keeps a generation-triggered check quiet', async () => {
     const { center, toasts } = notifications()

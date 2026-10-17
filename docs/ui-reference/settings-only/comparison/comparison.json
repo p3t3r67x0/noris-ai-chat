@@ -1,0 +1,20 @@
+{
+  "source": "Actual synthetic Noris browser captures on equivalent production builds; not a ChatGPT reference or historical golden",
+  "beforeCommit": "8d6b06f6f552238898109f0bb1d634340c142f9d",
+  "beforeBuildTree": "f61c12ce637a3e7cce42e09f317ecc746c52c953 (same tree as main merge)",
+  "beforeTest": "chat-visual.spec.ts / desktop / empty workspace visual baseline in dark mode",
+  "afterTest": "same test against the combined Settings build",
+  "viewport": [
+    1280,
+    720
+  ],
+  "deviceScaleFactor": 1,
+  "changedBounds": [
+    64,
+    662,
+    186,
+    718
+  ],
+  "diffEncoding": "absolute RGB channel difference",
+  "expectedChange": "Removed appearance footer exposes additional conversation rows; composer geometry and existing disclaimer unchanged."
+}

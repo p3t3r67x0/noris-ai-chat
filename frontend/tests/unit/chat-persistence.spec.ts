@@ -10,7 +10,7 @@ const transport: ChatTransport = { async *stream() { yield { seq: 1, type: 'resp
 function workspace() {
   return mount(defineComponent({ setup() { return useChat(transport) }, render() { return h('div') } }))
 }
-afterEach(() => { vi.useRealTimers(); localStorage.clear() })
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); localStorage.clear() })
 
 describe('atomic persistence lifecycle', () => {
   it('renders a lazily loaded draft after selecting a conversation without a cached draft', () => {
@@ -45,6 +45,38 @@ describe('atomic persistence lifecycle', () => {
     window.dispatchEvent(new Event('pagehide'))
     expect(localStorage.getItem(CHAT_STORAGE_KEY)).toBe(external)
     expect(wrapper.vm.storageWarning).toContain('anderen Tab')
+    expect(wrapper.vm.persistenceStatus).toMatchObject({ blocked: true, recovery: 'reload', failedOperations: 1, pendingOperations: 1 })
+    wrapper.unmount()
+  })
+  it('keeps failed local writes retryable and retains their error after saving the latest draft', async () => {
+    vi.useFakeTimers()
+    const setItem = localStorage.setItem.bind(localStorage)
+    let fail = true
+    vi.spyOn(localStorage, 'setItem').mockImplementation((key, value) => {
+      if (key === CHAT_STORAGE_KEY && fail) throw new DOMException('Synthetic quota', 'QuotaExceededError')
+      setItem(key, value)
+    })
+    const wrapper = workspace()
+    wrapper.vm.drafts.draft.value = 'Aktueller Entwurf bleibt erhalten'
+    await vi.advanceTimersByTimeAsync(150)
+    expect(wrapper.vm.persistenceStatus).toMatchObject({ recovery: 'retry', failedOperations: 1, pendingOperations: 1 })
+    expect(wrapper.vm.retryPersistence).not.toBeNull()
+    expect(localStorage.getItem(CHAT_STORAGE_KEY)).toBeNull()
+    fail = false
+    wrapper.vm.retryPersistence?.()
+    await vi.runAllTicks()
+    expect(parseChatSnapshot(localStorage.getItem(CHAT_STORAGE_KEY)!)?.drafts.__new__).toBe('Aktueller Entwurf bleibt erhalten')
+    expect(wrapper.vm.persistenceStatus).toMatchObject({ failedOperations: 0, pendingOperations: 0 })
+    expect(wrapper.vm.persistenceStatus.lastError).toContain('nicht lokal gespeichert')
+    wrapper.unmount()
+  })
+  it('preserves an unreadable backup without offering tab-conflict reload recovery', () => {
+    localStorage.setItem(CHAT_STORAGE_KEY, 'unreadable existing backup')
+    const wrapper = workspace()
+    expect(wrapper.vm.persistenceStatus).toMatchObject({ blocked: true, recovery: null })
+    wrapper.vm.drafts.draft.value = 'Dieser Entwurf darf die Sicherung nicht überschreiben'
+    window.dispatchEvent(new Event('pagehide'))
+    expect(localStorage.getItem(CHAT_STORAGE_KEY)).toBe('unreadable existing backup')
     wrapper.unmount()
   })
 })

@@ -71,7 +71,8 @@ test('conversation menu supports rename, search, archive and restore by keyboard
 test('theme can switch to dark and survives reload', async ({ page }) => {
   await page.goto('/')
   await openSidebar(page)
-  await page.getByRole('button', { name: 'Darstellung' }).click()
+  await page.goto('/settings/general')
+  await page.getByRole('combobox', { name: 'Darstellung Einstellungen' }).click()
   await page.getByRole('option', { name: 'Dunkel', exact: true }).click()
   await expect(page.locator('html')).toHaveClass(/dark/)
   await page.reload()
