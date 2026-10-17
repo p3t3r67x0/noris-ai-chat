@@ -1,6 +1,6 @@
 import { openChatActions } from './sidebar-helpers'
 import { expect, test } from '@playwright/test'
-import { savedChat, seedChat } from './chat-fixtures'
+import { pauseBeforeGeneration, savedChat, seedChat } from './chat-fixtures'
 
 test('a short send anchors the question and preserves the same focused composer', async ({ page }) => {
   await page.goto('/')
@@ -8,8 +8,7 @@ test('a short send anchors the question and preserves the same focused composer'
   const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
   await input.evaluate(element => { element.dataset.instance = 'original' })
   await input.fill('Meine Frage')
-  await page.clock.install()
-  await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 100))
+  await pauseBeforeGeneration(page)
   await input.press('Enter')
   await page.clock.runFor(50)
   await expect(input).toBeFocused()
@@ -56,8 +55,7 @@ test('switching conversations during a stream keeps drafts and independent scrol
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
   await input.fill('/lang')
-  await page.clock.install()
-  await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 100))
+  await pauseBeforeGeneration(page)
   await input.press('Enter')
   await page.clock.runFor(1000)
   await expect(page.locator('[data-generation-status]')).toHaveAttribute('data-generation-status', 'streaming')

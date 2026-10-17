@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { savedChat, seedChat } from './chat-fixtures'
+import { pauseBeforeGeneration, savedChat, seedChat } from './chat-fixtures'
 
 const viewports = [[1701, 863], [1440, 900], [1280, 800], [1024, 768], [768, 1024], [390, 844]] as const
 const selectors = {
@@ -165,8 +165,7 @@ for (const theme of ['light', 'dark']) {
     await page.locator('.sidebar-new-chat').click()
     await expect(input).toBeFocused()
     await input.fill('/lang')
-    await page.clock.install({ time: new Date('2026-10-17T12:00:00Z') })
-    await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 100))
+    await pauseBeforeGeneration(page, new Date('2026-10-17T12:00:00Z'))
     await input.press('Enter')
     await page.clock.runFor(1500)
     await expect(page.locator('[data-generation-status="streaming"]')).toBeAttached()

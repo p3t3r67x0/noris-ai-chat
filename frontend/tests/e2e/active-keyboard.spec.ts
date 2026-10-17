@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { savedChat, seedChat } from './chat-fixtures'
+import { pauseBeforeGeneration, savedChat, seedChat } from './chat-fixtures'
 
 for (const theme of ['light', 'dark']) {
   test(`active long draft preserves messages above the keyboard ${theme}`, async ({ page }) => {
@@ -9,8 +9,7 @@ for (const theme of ['light', 'dark']) {
     await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
     const input = page.locator('.composer-input')
     await input.evaluate(element => { element.dataset.retained = 'keyboard-editor' })
-    await page.clock.install({ time: new Date('2026-10-17T12:00:00Z') })
-    await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 100))
+    await pauseBeforeGeneration(page, new Date('2026-10-17T12:00:00Z'))
     await input.fill('/lang')
     await input.press('Enter')
     await page.clock.runFor(1500)

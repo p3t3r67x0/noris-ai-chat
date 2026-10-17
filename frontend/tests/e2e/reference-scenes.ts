@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test'
 import type { Page, TestInfo } from '@playwright/test'
-import { codeChat, referenceChat, savedChat, seedChat } from './chat-fixtures'
+import { pauseBeforeGeneration, codeChat, referenceChat, savedChat, seedChat } from './chat-fixtures'
 
 function contrastRatio(foreground: string, background: string): number {
   const luminance = (color: string): number => {
@@ -41,8 +41,7 @@ export async function captureScene(page: Page, testInfo: TestInfo, scene: string
     // in the next turn. No production component receives a screenshot-only state.
     const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
     await input.fill('/lang')
-    await page.clock.install({ time: new Date('2026-10-09T12:00:00Z') })
-    await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 100))
+    await pauseBeforeGeneration(page)
     await input.press('Enter')
     await page.clock.runFor(1000)
     await expect(page.locator('[data-generation-status]')).toHaveAttribute('data-generation-status', 'streaming')
@@ -56,8 +55,7 @@ export async function captureScene(page: Page, testInfo: TestInfo, scene: string
   if (scene === 'streaming') {
     const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
     await input.fill('/lang')
-    await page.clock.install({ time: new Date('2026-10-09T12:00:00Z') })
-    await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 100))
+    await pauseBeforeGeneration(page)
     await input.press('Enter')
     await page.clock.runFor(2500)
     await expect(page.locator('[data-generation-status]')).toHaveAttribute('data-generation-status', 'streaming')

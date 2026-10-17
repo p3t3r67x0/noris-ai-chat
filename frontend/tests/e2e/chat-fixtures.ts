@@ -2,6 +2,13 @@ import type { Page } from '@playwright/test'
 import type { ChatSnapshot } from '../../app/lib/chat/persistence'
 import { CHAT_STORAGE_KEY, parseChatSnapshot } from '../../app/lib/chat/persistence'
 
+// Install while no generation is running. A fixed future pause removes the
+// Date.now()/pauseAt RPC race; the test's virtual streaming intervals stay exact.
+export async function pauseBeforeGeneration(page: Page, time = new Date('2026-10-09T12:00:00Z')): Promise<void> {
+  await page.clock.install({ time })
+  await page.clock.pauseAt(new Date(time.getTime() + 60_000))
+}
+
 export function savedChat(turns = 1): ChatSnapshot {
   const date = '2026-10-09T12:00:00.000Z'
   const snapshot: ChatSnapshot = {

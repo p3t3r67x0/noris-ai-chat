@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
-import { savedChat, seedChat } from './chat-fixtures'
+import { pauseBeforeGeneration, savedChat, seedChat } from './chat-fixtures'
 import { originalCode, overflowMarkdown, strengthTable } from '../fixtures/markdown'
 
 async function expectBoundedMarkdown(page: Page): Promise<void> {
@@ -97,8 +97,7 @@ test('code wrapping toggles by keyboard, retains highlighting and copies the ori
 test('incomplete streaming tables stay bounded and preserve following and manual reading', async ({ page }) => {
   await page.goto('/')
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
-  await page.clock.install()
-  await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 100))
+  await pauseBeforeGeneration(page)
   // The existing mock echoes this Markdown prompt through real incremental deltas.
   const row = `| Klarheit | ${'Vollständig lesbare deutsche Beschreibung. '.repeat(8)} | https://example.com/${'pfad'.repeat(50)} | ${'Dateiname'.repeat(50)} | Weitere Angaben |\n`
   const table = `| Stärke | Bedeutung | Link | Datei | Kontext |\n| --- | --- | --- | --- | --- |\n${row.repeat(3)}`

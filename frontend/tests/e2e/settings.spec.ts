@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { savedChat, seedChat } from './chat-fixtures'
+import { pauseBeforeGeneration, savedChat, seedChat } from './chat-fixtures'
 import { openDataControls, openSettingsCategory, returnToChat } from './settings-helpers'
 
 for (const theme of ['light', 'dark']) {
@@ -37,8 +37,7 @@ for (const theme of ['light', 'dark']) {
     await input.evaluate(element => { element.dataset.instance = 'original' })
     await input.fill('/lang')
     const before = await page.locator('.composer-dock').boundingBox()
-    await page.clock.install()
-    await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 100))
+    await pauseBeforeGeneration(page)
     await input.press('Enter')
     for (const elapsed of [1000, 1500]) {
       await page.clock.runFor(elapsed)

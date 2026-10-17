@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { savedChat, seedChat } from './chat-fixtures'
+import { pauseBeforeGeneration, savedChat, seedChat } from './chat-fixtures'
 
 test('Enter anchors a new question under the header, follows growth and respects manual reading', async ({ page }) => {
   await seedChat(page, savedChat(60))
@@ -7,8 +7,7 @@ test('Enter anchors a new question under the header, follows growth and respects
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true', { timeout: 15_000 })
   const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
   await input.fill('/lang')
-  await page.clock.install()
-  await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 100))
+  await pauseBeforeGeneration(page)
   await input.press('Enter')
   await expect(input).toBeFocused()
   const scroll = page.locator('.chat-scroll')
