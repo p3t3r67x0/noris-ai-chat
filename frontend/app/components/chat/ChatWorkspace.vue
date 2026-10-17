@@ -9,6 +9,7 @@ import ChatSidebar from './ChatSidebar.vue'
 import EmptyChatState from './EmptyChatState.vue'
 import ChatComposer from './ChatComposer.vue'
 import ChatTimeline from './ChatTimeline.vue'
+import ChatLoadingSpinner from './ChatLoadingSpinner.vue'
 import { useChatViewport } from '../../composables/useChatViewport'
 import { useSidebarPreference } from '../../composables/useSidebarPreference'
 import ChatRail from './ChatRail.vue'
@@ -89,7 +90,7 @@ watch(inSettings, async (settings) => {
     requestAnimationFrame(() => { if (scroll) scroll.scrollTop = readingPosition; composer.value?.focus() })
   }
 }, { flush: 'pre' })
-const canSend = computed(() => !chat.settingsBusy.value && !chat.settingsError.value && modelCanSend.value && chat.backendReady.value && !chat.pagination?.historyLoading.value && !chat.pagination?.historyError.value)
+const canSend = computed(() => !chat.pagination?.initialLoading.value && !chat.settingsBusy.value && !chat.settingsError.value && modelCanSend.value && chat.backendReady.value && !chat.pagination?.historyLoading.value && !chat.pagination?.historyError.value)
 const selectedModel = computed(() => selection.models.find(model => model.id === modelId.value))
 const reasoningPreference = computed(() => {
   const preference = conversations.active.value?.reasoningPreference
@@ -117,7 +118,17 @@ const chatSidebarOpen = computed({ get: () => sidebarOpen.value && !inSettings.v
 const sidebar = ref<InstanceType<typeof ChatSidebar> | null>(null)
 const timeline = ref<InstanceType<typeof ChatTimeline> | null>(null)
 const composer = ref<InstanceType<typeof ChatComposer> | null>(null)
-const empty = computed(() => chat.visible.value.length === 0 && !chat.pagination?.historyLoading.value && !chat.pagination?.historyError.value)
+const initialLoading = computed(() => Boolean(chat.pagination) && (Boolean(chat.pagination?.initialLoading.value) || !chat.backendReady.value) && !chat.pagination?.sidebarError.value)
+const conversationLoading = computed(() => Boolean(chat.pagination?.conversationLoading.value))
+const historyPaginationLoading = computed(() => Boolean(chat.pagination?.olderLoading.value))
+const loadingConversation = computed(() => initialLoading.value || conversationLoading.value)
+const conversationLoadError = computed(() => chat.pagination?.historyError.value || (!chat.backendReady.value ? chat.pagination?.sidebarError.value : null))
+const loadingState = computed(() => initialLoading.value ? 'initial' : conversationLoading.value ? 'conversation' : historyPaginationLoading.value ? 'pagination' : stream.busy.value ? 'streaming' : 'idle')
+const empty = computed(() => chat.visible.value.length === 0 && !loadingConversation.value && !conversationLoadError.value)
+function retryChatLoad(): void {
+  if (chat.backendReady.value) chat.pagination?.retryHistory()
+  else void chat.pagination?.reloadSidebar()
+}
 const { viewportStyle } = useChatViewport()
 const ready = ref(false)
 onMounted(() => {
@@ -153,6 +164,11 @@ function addReference(value: ApiSchemas['TextReference']): void {
 }
 async function selectConversation(id: string, messageId?: string): Promise<void> {
   conversations.select(id)
+  if (!chat.backendReady.value && transport.backend) {
+    transport.backend.requestedConversationId = id
+    void chat.pagination?.reloadSidebar()
+  }
+  if (typeof route.query.conversationId === 'string') void router.replace({ query: { ...route.query, conversationId: id } })
   if (!messageId) return
   await nextTick()
   if (chat.pagination) {
@@ -162,7 +178,7 @@ async function selectConversation(id: string, messageId?: string): Promise<void>
   await nextTick()
   timeline.value?.revealMessage(messageId)
 }
-function newChat(): void { chat.newChat(); if (inSettings.value) void router.push('/'); else void nextTick(() => composer.value?.focus()) }
+function newChat(): void { chat.newChat(); if (route.query.conversationId) void router.replace({ query: { ...route.query, conversationId: undefined } }); if (inSettings.value) void router.push('/'); else void nextTick(() => composer.value?.focus()) }
 async function continueResponse(id: string): Promise<void> {
   if (modelsLoading.value) await refreshModels()
   if (canSend.value) chat.continueResponse(id, modelId.value)
@@ -224,12 +240,14 @@ function saveEdit(): void {
     <main v-show="!inSettings" id="chat-main" class="chat-main" aria-label="Chat" tabindex="-1" :inert="inSettings">
       <ChatHeader :sidebar-open="sidebarOpen" :demo="mode === 'mock'" @toggle-sidebar="sidebarOpen = !sidebarOpen" @new-chat="newChat" />
       <div class="chat-content" :data-empty="empty">
-        <p v-if="chat.pagination?.historyLoading.value" role="status" class="p-4 text-sm text-muted">Chat wird geladen …</p>
-        <div v-if="chat.pagination?.historyError.value" class="p-4 text-sm text-warning">
-          <details><summary>Chat konnte nicht geladen werden.</summary><p>{{ chat.pagination.historyError.value }}</p></details>
-          <UButton color="neutral" variant="link" label="Chat erneut laden" @click="chat.pagination.retryHistory" />
+        <ChatLoadingSpinner v-if="loadingConversation" />
+        <div v-show="!empty" class="chat-message-pane" :aria-busy="loadingConversation" :data-loading-state="loadingState">
+          <div v-if="conversationLoadError" role="alert" class="p-4 text-sm text-warning">
+            <details><summary>Chat konnte nicht geladen werden.</summary><p>{{ conversationLoadError }}</p></details>
+            <UButton color="neutral" variant="link" label="Chat erneut laden" @click="retryChatLoad" />
+          </div>
+          <ChatTimeline v-show="chat.visible.value.length > 0" ref="timeline" :class="{ 'chat-timeline-pending': loadingConversation }" :inert="loadingConversation" :aria-hidden="loadingConversation || undefined" :messages="chat.visible.value" :conversation-id="conversations.activeId.value" :busy="stream.busy.value || Boolean(chat.pagination?.historyLoading.value)" :variants="chat.variants" :variant-summary="chat.variantSummary" :persistent-scroll="Boolean(chat.pagination)" :has-older="chat.pagination?.hasOlder.value" :older-loading="chat.pagination?.olderLoading.value" :load-older="chat.pagination?.loadOlder" :can-continue="chat.canContinue" @reference="addReference" @continue="continueResponse" @edit="beginEdit" @regenerate="regenerateResponse" @select-variant="chat.selectVariant" />
         </div>
-        <ChatTimeline v-show="chat.visible.value.length > 0" ref="timeline" :messages="chat.visible.value" :conversation-id="conversations.activeId.value" :busy="stream.busy.value || Boolean(chat.pagination?.historyLoading.value)" :variants="chat.variants" :variant-summary="chat.variantSummary" :persistent-scroll="Boolean(chat.pagination)" :has-older="chat.pagination?.hasOlder.value" :older-loading="chat.pagination?.olderLoading.value" :load-older="chat.pagination?.loadOlder" :can-continue="chat.canContinue" @reference="addReference" @continue="continueResponse" @edit="beginEdit" @regenerate="regenerateResponse" @select-variant="chat.selectVariant" />
         <div class="composer-dock">
           <EmptyChatState v-if="empty" />
           <div v-if="modelError || modelNotice" class="px-4 pb-2 text-sm text-muted">
@@ -270,3 +288,9 @@ function saveEdit(): void {
     <slot />
   </div>
 </template>
+
+<style scoped>
+.chat-content { position: relative; }
+.chat-message-pane { position: relative; display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; }
+.chat-timeline-pending { visibility: hidden; pointer-events: none; }
+</style>

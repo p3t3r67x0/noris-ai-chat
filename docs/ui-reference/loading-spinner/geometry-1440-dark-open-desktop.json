@@ -1,0 +1,37 @@
+{
+  "viewport": {
+    "width": 1440,
+    "height": 900,
+    "dpr": 1
+  },
+  "pane": {
+    "x": 340,
+    "y": 52,
+    "width": 1100,
+    "height": 848,
+    "top": 52,
+    "right": 1440,
+    "bottom": 900,
+    "left": 340
+  },
+  "spinner": {
+    "x": 880,
+    "y": 466,
+    "width": 20,
+    "height": 20,
+    "top": 466,
+    "right": 900,
+    "bottom": 486,
+    "left": 880
+  },
+  "centerDeltaX": 0,
+  "centerDeltaY": 0,
+  "styles": {
+    "stroke": "2.5px",
+    "color": "rgba(0, 0, 0, 0.63)",
+    "animation": "none",
+    "duration": "1e-05s",
+    "timing": "ease",
+    "iterations": "1"
+  }
+}

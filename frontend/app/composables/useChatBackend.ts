@@ -1,4 +1,4 @@
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from 'vue'
 import type { createChatState } from './useChat'
 import type { ChatTransport } from '../lib/chat/types'
 import { conversationFromServer, messageFromServer } from '../lib/chat/backend'
@@ -49,6 +49,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   const pinnedCursor = ref<string | null>(null)
   const pinnedLoading = ref(false)
   const pinnedError = ref<string | null>(null)
+  const initialLoading = ref(true)
   const sidebarLoading = ref(false)
   const sidebarError = ref<string | null>(null)
   const nextCursor = ref<string | null>(null)
@@ -56,7 +57,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
   const historyError = ref<string | null>(null)
   const windows = ref<Record<string, ApiSchemas['ActivePathResponse']>>({})
   const cache = new ChatLoadCache()
-  let viewRequest: { id: string, abort: AbortController } | undefined
+  const viewRequest = shallowRef<{ id: string, abort: AbortController, preserve?: boolean }>()
   let viewRevision = 0
   let selectingVariant: string | undefined
   let olderConversation: string | undefined
@@ -163,10 +164,10 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     if (id === state.generatingConversationId.value) return
     if (!force && cache.valid(id, backend.versions.get(id) ?? 0)) return
     const foreground = state.conversations.activeId.value === id
-    if (foreground && viewRequest && viewRequest.id !== id) { viewRequest.abort.abort(); cache.cancelRead(viewRequest.id) }
+    if (foreground && viewRequest.value && viewRequest.value.id !== id) { viewRequest.value.abort.abort(); cache.cancelRead(viewRequest.value.id) }
     const revision = foreground ? ++viewRevision : -1
-    const controller = foreground && viewRequest?.id === id ? viewRequest.abort : new AbortController()
-    if (foreground) { viewRequest = { id, abort: controller }; historyLoading.value = true; historyError.value = null }
+    const controller = foreground && viewRequest.value?.id === id ? viewRequest.value.abort : new AbortController()
+    if (foreground) { viewRequest.value = { id, abort: controller, preserve }; historyLoading.value = true; historyError.value = null }
     try {
       const conversation = state.conversations.records.value[id]
       // A file selection can create a chat before its first message. Wait for
@@ -201,7 +202,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     catch (error) {
       if (!controller.signal.aborted && state.conversations.activeId.value === id) historyError.value = report(error, { operation: 'history', conversationId: id, attemptId: String(revision) }, { label: 'Chat erneut laden', onClick: () => loadConversation(id, true) })
     }
-    finally { if (foreground && revision === viewRevision) { historyLoading.value = false; viewRequest = undefined } }
+    finally { if (foreground && revision === viewRevision) { historyLoading.value = false; viewRequest.value = undefined } }
   }
   backend.onConversation = (value) => {
     const previous = state.conversations.records.value[value.id]
@@ -247,7 +248,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     if (active && active !== backend.initialPath?.conversation.id) void loadConversation(active)
   }
   async function loadMore(): Promise<void> {
-    if (sidebarLoading.value || !nextCursor.value) return
+    if (initialLoading.value || sidebarLoading.value || !nextCursor.value) return
     sidebarLoading.value = true; sidebarError.value = null
     try {
       const result = await backend.page({ pinned: 'false', cursor: nextCursor.value })
@@ -259,11 +260,13 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     finally { sidebarLoading.value = false }
   }
   async function reloadSidebar(): Promise<void> {
-    if (sidebarLoading.value) return
+    if (initialLoading.value || sidebarLoading.value) return
+    const initializing = !backendReady.value
     const previousError = sidebarError.value
     sidebarLoading.value = true; sidebarError.value = null
+    if (initializing) initialLoading.value = true
     try {
-      if (!backendReady.value) await refresh()
+      if (initializing) { await refresh(); await restoreInitialView() }
       else {
         const result = await backend.page({ pinned: 'false' })
         if (disposed) return
@@ -272,11 +275,11 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
         nextCursor.value = result.nextCursor ?? null
       }
       await reloadPinned()
-      await transport.connect?.()
+      if (!initializing) await transport.connect?.()
       if (storageWarning.value === previousError) storageWarning.value = null
     }
     catch (error) { sidebarError.value = report(error, { operation: 'sidebar', attemptId: crypto.randomUUID() }, { label: 'Erneut laden', onClick: reloadSidebar }) }
-    finally { sidebarLoading.value = false }
+    finally { sidebarLoading.value = false; if (initializing) initialLoading.value = false }
   }
   async function reloadPinned(more = false): Promise<void> {
     if (pinnedLoading.value || (more && !pinnedCursor.value)) return
@@ -380,7 +383,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     const conversationId = conversation.id
     const revision = ++viewRevision
     const controller = new AbortController()
-    viewRequest = { id: conversationId, abort: controller }
+    viewRequest.value = { id: conversationId, abort: controller }
     selectingVariant = conversationId
     const leaf = conversation.activeLeafMessageId
     if (leaf) for (const message of state.visible.value) state.preferredLeaves.value[message.id] = leaf
@@ -398,7 +401,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
         applyPath(result)
       }
       catch (error) { if (!controller.signal.aborted && state.conversations.activeId.value === conversationId) historyError.value = report(error, { operation: 'variant', conversationId, resourceId: id, attemptId: String(revision) }, { label: 'Chat erneut laden', onClick: () => loadConversation(conversationId, true) }) }
-      finally { if (revision === viewRevision) { historyLoading.value = false; viewRequest = undefined }; if (selectingVariant === conversationId) selectingVariant = undefined }
+      finally { if (revision === viewRevision) { historyLoading.value = false; viewRequest.value = undefined }; if (selectingVariant === conversationId) selectingVariant = undefined }
     })()
     return true
   }
@@ -475,8 +478,33 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     catch (error) { storageWarning.value = report(error, { operation: 'import', attemptId: crypto.randomUUID() }, { label: 'Erneut importieren', onClick: importLocalChats }) }
     finally { importBusy.value = false }
   }
+  async function restoreInitialView(): Promise<void> {
+    // Recover an explicitly saved reader position with bounded active-chat
+    // paging. No inactive messages are loaded. At most 20 pages (1,000 rows).
+    const positions = localJson('noris-ai:chat-scroll:v1', 16000)
+    if (positions) {
+      const active = state.conversations.activeId.value
+      const entry = Array.isArray(positions) ? positions.find(item => Array.isArray(item) && item[0] === active) : undefined
+      const anchor = entry?.[1]?.following === false && typeof entry[1].messageId === 'string' ? entry[1].messageId : null
+      for (let page = 0; anchor && !state.messages.value[anchor] && windows.value[active ?? '']?.nextCursor && page < 20 && state.conversations.activeId.value === active; page++) {
+        await loadOlder()
+        if (historyError.value) break
+      }
+    }
+    await transport.connect?.()
+    // Only variant-view preferences are read from cache. Message content and
+    // active conversation always come from the database.
+    const value = localJson(CHAT_CACHE_KEY, 256000)
+    if (value) {
+      if (value && typeof value === 'object' && 'preferredLeaves' in value && value.preferredLeaves && typeof value.preferredLeaves === 'object') {
+        state.preferredLeaves.value = Object.fromEntries(Object.entries(value.preferredLeaves).filter(([node, leaf]) => /^[0-9a-f-]{36}$/.test(node) && typeof leaf === 'string' && /^[0-9a-f-]{36}$/.test(leaf)).slice(-2000))
+      }
+    }
+    const running = Object.values(state.messages.value).find(m => m.generationId && (m.status === 'streaming' || m.status === 'submitting'))
+    if (running) state.resume(running.id)
+  }
   onMounted(async () => {
-    sidebarLoading.value = true
+    initialLoading.value = true
     try {
       try { importAvailable.value = Boolean(localStorage.getItem(CHAT_STORAGE_KEY)) }
       catch { storageWarning.value = report({ code: 'STORAGE_UNAVAILABLE' }, { operation: 'storage', resourceId: 'import' }) }
@@ -492,44 +520,22 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
         }
       }
       await refresh()
-      // Recover an explicitly saved reader position with bounded active-chat
-      // paging. No inactive messages are loaded. At most 20 pages (1,000 rows).
-      const positions = localJson('noris-ai:chat-scroll:v1', 16000)
-      if (positions) {
-        const active = state.conversations.activeId.value
-        const entry = Array.isArray(positions) ? positions.find(item => Array.isArray(item) && item[0] === active) : undefined
-        const anchor = entry?.[1]?.following === false && typeof entry[1].messageId === 'string' ? entry[1].messageId : null
-        for (let page = 0; anchor && !state.messages.value[anchor] && windows.value[active ?? '']?.nextCursor && page < 20; page++) {
-          await loadOlder()
-          if (historyError.value) break
-        }
-      }
-      await transport.connect?.()
-      // Only variant-view preferences are read from cache. Message content and
-      // active conversation always come from the database.
-      const value = localJson(CHAT_CACHE_KEY, 256000)
-      if (value) {
-        if (value && typeof value === 'object' && 'preferredLeaves' in value && value.preferredLeaves && typeof value.preferredLeaves === 'object') {
-          state.preferredLeaves.value = Object.fromEntries(Object.entries(value.preferredLeaves).filter(([node, leaf]) => /^[0-9a-f-]{36}$/.test(node) && typeof leaf === 'string' && /^[0-9a-f-]{36}$/.test(leaf)).slice(-2000))
-        }
-      }
-      const running = Object.values(state.messages.value).find(m => m.generationId && (m.status === 'streaming' || m.status === 'submitting'))
-      if (running) state.resume(running.id)
+      await restoreInitialView()
     }
     catch (error) { storageWarning.value = report(error, { operation: 'sidebar', attemptId: 'initial' }, { label: 'Erneut laden', onClick: reloadSidebar }); sidebarError.value = storageWarning.value }
-    finally { sidebarLoading.value = false }
+    finally { initialLoading.value = false }
   })
   watch([state.preferredLeaves, state.conversations.activeId], () => {
     clearTimeout(timer); timer = setTimeout(flushCache, 120)
   }, { deep: true })
   watch(state.conversations.activeId, id => {
     if (backendReady.value) {
-      if (viewRequest && viewRequest.id !== id) { viewRequest.abort.abort(); cache.cancelRead(viewRequest.id); viewRequest = undefined }
+      if (viewRequest.value && viewRequest.value.id !== id) { viewRequest.value.abort.abort(); cache.cancelRead(viewRequest.value.id); viewRequest.value = undefined }
       ++viewRevision; historyLoading.value = false
       void persist(backend.preferences(id), { operation: 'preferences', conversationId: id, attemptId: crypto.randomUUID() }, () => backend.preferences(state.conversations.activeId.value))
       historyError.value = null
       if (id) void loadConversation(id)
-      else { historyLoading.value = false; viewRequest?.abort.abort() }
+      else { historyLoading.value = false; viewRequest.value?.abort.abort() }
     }
   })
   watch(state.generatingConversationId, (id, previous) => {
@@ -562,15 +568,18 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       flushCache()
     }, 300)
   }, { deep: true, flush: 'sync' })
-  onUnmounted(() => { disposed = true; viewRequest?.abort.abort(); clearTimeout(timer); clearTimeout(draftTimer); flushCache(); transport.dispose?.() })
+  onUnmounted(() => { disposed = true; viewRequest.value?.abort.abort(); clearTimeout(timer); clearTimeout(draftTimer); flushCache(); transport.dispose?.() })
   const pagination = {
     revision,
     conversations: computed(() => [...new Set([...pinnedIds.value, ...sidebarIds.value])].flatMap(id => { const c = state.conversations.records.value[id]; return c && !c.archivedAt && c.sidebarVisible !== false ? [c] : [] })),
     pinnedLoading, pinnedError, hasMorePinned: computed(() => Boolean(pinnedCursor.value)), reloadPinned: () => reloadPinned(), loadMorePinned: () => reloadPinned(true),
     pinnedWindowedList: computed(() => pinnedIds.value.length >= 500),
-    sidebarLoading, sidebarError, hasMore: computed(() => Boolean(nextCursor.value)), loadMore, reloadSidebar,
+    initialLoading, sidebarLoading: computed(() => initialLoading.value || sidebarLoading.value), sidebarError, hasMore: computed(() => Boolean(nextCursor.value)), loadMore, reloadSidebar,
     windowedList: computed(() => sidebarIds.value.length >= 500),
     historyLoading, historyError, olderLoading,
+    // Existing preserved refreshes reconcile a finished stream without replacing
+    // its rendered timeline. Derive presentation from that request intent.
+    conversationLoading: computed(() => historyLoading.value && !viewRequest.value?.preserve),
     hasOlder: computed(() => Boolean(windows.value[state.conversations.activeId.value ?? '']?.nextCursor)),
     loadOlder, retryHistory: () => { const id = state.conversations.activeId.value; if (id) void loadConversation(id, true) },
     search, loadArchive, loadConversation, navigateToMessage,
