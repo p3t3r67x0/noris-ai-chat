@@ -85,7 +85,7 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
       const welcome = (await page.locator('.empty-chat').boundingBox())!
       const composer = (await page.locator('.chat-composer').boundingBox())!
       expect(composer.y - (welcome.y + welcome.height)).toBeLessThan(3)
-      expect(viewport.height - composer.y - composer.height).toBeLessThanOrEqual(30)
+      expect(composer.y + composer.height).toBeCloseTo(viewport.height * 0.49 + 4, 0)
       await input.evaluate(element => { element.dataset.instance = 'same-composer' })
       await capture('empty')
       await input.fill('Erkläre mir SearXNG.')

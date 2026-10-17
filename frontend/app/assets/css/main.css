@@ -362,10 +362,13 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
   .empty-chat h1 { font-size: 1.25rem; margin-bottom: 0.75rem; }
 }
 @container (max-height: 300px) {
+  .chat-main { --noris-header-height: 44px; }
+  .chat-content[data-empty="false"] { --noris-composer-input-max-height: min(10rem, 18cqh); }
+  .composer-dock { padding-top: 0; }
+  .composer-note { display: none; }
   .chat-content[data-empty="true"] { padding-block: 0 env(safe-area-inset-bottom); }
   .chat-content[data-empty="true"]::before { flex-basis: 0; }
-  .chat-content[data-empty="true"] .composer-dock { padding-top: 0; }
-  .chat-content[data-empty="true"] .attachment-list { max-height: 15cqh; }
+  .composer-dock .attachment-list { max-height: 15cqh; }
   .empty-chat h1 { font-size: 1rem; margin-bottom: 0.25rem; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -426,7 +429,6 @@ details.message-attachment { display: block; }
 .message-image-error { display: flex; align-items: center; flex-wrap: wrap; max-width: 100%; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--noris-text-secondary); }
 
 .composer-expanded:has(.composer-files) { --noris-composer-input-max-height: min(10rem, 15cqh); }
-@container (max-height: 300px) { .composer-dock:has(.composer-files) .composer-note { display: none; } }
 
 /* Nuxt UI toasts float below the header and never participate in chat layout. */
 .app-notification-viewport {
