@@ -140,5 +140,13 @@ Detailed measurements: [geometry.json](geometry.json). Product screenshots:
 `NORIS_PARITY_URL=http://127.0.0.1:3078` and a stage argument. `compare.py`
 regenerates the synthetic differences and geometry delta report.
 
-Validation results and remaining items will be recorded in TEST-RESULTS.json
-only after the actual runs finish.
+Actual validation runs, targeted recoveries and environment-dependent skips are
+recorded in [TEST-RESULTS.json](TEST-RESULTS.json). No test was removed and no
+screenshot tolerance was increased. A 3,000-line automatic-continuation scenario
+uses the existing 15-second provider-completion budget on mobile; its content,
+node-identity, continuity, persistence and event-count assertions remain intact.
+
+The later spinner reference has an explicitly visible **130%** browser-zoom badge
+and includes browser chrome. It is documented separately in the follow-up spinner
+PR; it must not be treated as a 1920×976 CSS-viewport capture or silently mixed
+with these open-chat raster measurements.

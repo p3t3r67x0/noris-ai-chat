@@ -1,0 +1,23 @@
+{
+  "viewport": {
+    "width": 1701,
+    "height": 863
+  },
+  "theme": "light",
+  "heading": {
+    "x": 60,
+    "y": 148,
+    "width": 271,
+    "height": 44
+  },
+  "row": {
+    "x": 60,
+    "y": 200,
+    "width": 271,
+    "height": 37
+  },
+  "expectedWidth": 271,
+  "actualWidth": 271,
+  "absoluteDeviationPx": 0,
+  "reference": "Noris row geometry; user screenshot confirms the required equal hover width"
+}

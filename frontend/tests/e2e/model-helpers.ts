@@ -13,7 +13,7 @@ export async function openModelChoices(page: Page): Promise<string> {
 
 export async function expectSelectedModel(page: Page, name: string | RegExp): Promise<void> {
   const draft = await openModelChoices(page)
-  await expect(page.getByRole('option', { name, exact: typeof name === 'string' })).toHaveAttribute('aria-selected', 'true')
+  await expect(page.getByRole('option', { name, exact: typeof name === 'string', selected: true })).toHaveAttribute('aria-selected', 'true')
   await page.locator('.composer-input').press('Escape')
   const current = await page.locator('.composer-input').inputValue()
   expect([draft, `${draft} `]).toContain(current)

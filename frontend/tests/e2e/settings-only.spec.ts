@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { savedChat, seedChat } from './chat-fixtures'
 import { openSettingsCategory, returnToChat } from './settings-helpers'
 import { CHAT_STORAGE_KEY } from '../../app/lib/chat/persistence'
@@ -62,7 +63,7 @@ for (const theme of ['light', 'dark']) {
     const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
     await input.fill('Synthetischer Entwurf für die Datensicherung')
     await expect.poll(() => page.evaluate(key => JSON.parse(localStorage.getItem(key)!).drafts.main, CHAT_STORAGE_KEY)).toBe('Synthetischer Entwurf für die Datensicherung')
-    const root = resolve('../docs/ui-reference/settings-only')
+    const root = fileURLToPath(new URL('../../../docs/ui-reference/final-parity/settings', import.meta.url))
     await mkdir(root, { recursive: true })
     const capture = async (name: string) => {
       await expect(page).toHaveScreenshot(`settings-only-${theme}-${name}.png`, { animations: 'disabled', caret: 'hide' })
