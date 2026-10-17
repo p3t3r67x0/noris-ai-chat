@@ -386,6 +386,28 @@ unveränderten gespeicherten Volltitel und genau einen Titelrequest auch nach
 Reload. Geometrie wird als JSON an den Browserreport angehängt. Produktcode,
 Snapshot-Toleranzen, Assertion-Timeouts und Baselines bleiben unverändert.
 
+Nach der Korrektur bestanden lokal auch die **vollständigen** Transportsuiten:
+SSE **83 erfolgreich / 13 ausgelassen**, WebSocket **208 erfolgreich / 36
+ausgelassen**, jeweils ohne Snapshot-Aktualisierung. Damit sind auch die zuvor
+nicht lokal ausgeführten Recherche-, Quellen-, Pagination- und Toolfälle erfasst.
+
+Beim folgenden CI-Lauf auf `5418737` bestand der Compose-Push-Job. Der parallele
+[Compose-PR-Job 117416543849](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/39039720672/job/117416543849)
+zeigte zusätzlich einen Initialisierungswettlauf in
+`frontend/tests/websocket/web-search-ui.spec.ts`: Der mobile Chatwechseltest
+füllte bereits das serverseitige Textfeld, während `.chat-workspace` noch
+`data-ready="false"` und `inert` trug. Dies belegen die DOM-Snapshots unmittelbar
+vor und nach `fill` im Playwright-Trace. Die Hydrierung setzte die Eingabe zurück;
+`click` wartete anschließend bis zum Testende auf den deaktivierten Sendebutton.
+Der eigentliche Chatwechsel wurde noch nicht erreicht.
+
+Die Recherche-UI-Tests warten nun nach jeder ersten Navigation auf das bestehende
+`data-ready="true"`-Signal von `ChatWorkspace.vue:198`, entsprechend dem bereits
+verwendeten Muster anderer Tests. Es wurde keine neue Produktzustandslogik
+hinzugefügt und kein Timeout erhöht. Die vollständige Recherche-UI-Datei bestand
+anschließend lokal mit **16 Fällen** (Desktop und Mobile); ESLint und der
+Test-Typecheck bestanden ebenfalls.
+
 Die Zahlen der ursprünglichen lokalen Teilprüfungen oben bleiben historische
 Nachweise. Aktuelle vollständige CI-Ergebnisse sind über die Checks des
 [Pull Requests #88](https://github.com/p3t3r67x0/noris-ai-chat/pull/88) nachvollziehbar.

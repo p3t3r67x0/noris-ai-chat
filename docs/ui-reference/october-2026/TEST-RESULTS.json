@@ -173,6 +173,38 @@
     "productCodeChanged": false,
     "snapshotToleranceChanged": false,
     "baselinesChanged": false,
-    "latestChecks": "https://github.com/p3t3r67x0/noris-ai-chat/pull/88/checks"
+    "latestChecks": "https://github.com/p3t3r67x0/noris-ai-chat/pull/88/checks",
+    "localFullSse": {
+      "passed": 83,
+      "skipped": 13,
+      "failed": 0,
+      "exitCode": 0,
+      "snapshotUpdate": false
+    },
+    "localFullWebsocket": {
+      "passed": 208,
+      "skipped": 36,
+      "failed": 0,
+      "exitCode": 0,
+      "snapshotUpdate": false
+    },
+    "composeHydrationRace": {
+      "run": 39039720672,
+      "job": 117416543849,
+      "head": "5418737b46d122c6b5c578055568d44ba7587524",
+      "passed": 165,
+      "skipped": 78,
+      "failed": 1,
+      "cause": "The pending-admission mobile test filled the inert SSR textarea before Vue hydration (data-ready=false in trace), which reset its value. The first send click then waited on the disabled button; the tested chat switch was never reached.",
+      "fix": "Wait for the existing chat-workspace data-ready=true signal after initial navigation in web-search-ui.spec.ts. No production code or timeout changes.",
+      "localRecheck": {
+        "passed": 16,
+        "skipped": 0,
+        "failed": 0,
+        "exitCode": 0,
+        "eslintExitCode": 0,
+        "testTypecheckExitCode": 0
+      }
+    }
   }
 }

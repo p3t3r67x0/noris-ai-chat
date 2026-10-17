@@ -601,3 +601,4 @@ frontend/tests/websocket/composer-plus-menu.spec.ts
 frontend/tests/websocket/new-chat.spec.ts
 frontend/tests/websocket/october-attachments.spec.ts
 frontend/tests/websocket/persistent-chat.spec.ts
+frontend/tests/websocket/web-search-ui.spec.ts
