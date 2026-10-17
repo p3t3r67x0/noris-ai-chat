@@ -6,6 +6,8 @@ test.beforeEach(async ({ page }, info) => {
   const snapshot = info.title.startsWith('code selection') ? codeChat() : savedChat()
   snapshot.messages['user-0']!.content = 'Erste Zeile einer Benutzerfrage.\nZweite Zeile mit weiterem Kontext.\nEine dritte Zeile bleibt erhalten.'
   await seedChat(page, snapshot)
+  // Keep the sidebar group stable while event timestamps continue to advance.
+  await page.clock.install({ time: new Date('2026-10-12T12:00:00Z') })
   await page.goto('/')
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
 })
