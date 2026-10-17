@@ -1,0 +1,11 @@
+{
+  "allRectsEqual": true,
+  "computedStyleDifferences": {
+    ".chat-content": {
+      "position": [
+        "static",
+        "relative"
+      ]
+    }
+  }
+}

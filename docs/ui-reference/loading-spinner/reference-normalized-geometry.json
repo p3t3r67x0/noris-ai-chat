@@ -28,7 +28,7 @@
   "centerDeltaY": 0,
   "styles": {
     "stroke": "2.5px",
-    "color": "rgba(0, 0, 0, 0.63)",
+    "color": "rgb(93, 93, 93)",
     "animation": "none",
     "duration": "1e-05s",
     "timing": "ease",

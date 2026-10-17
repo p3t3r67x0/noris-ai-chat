@@ -1,0 +1,329 @@
+{
+  "date": "2026-10-17",
+  "source": "Final loading and first-upload logic is applicationSource; shared glyph fallback from Parent #90 at 3698901.",
+  "browser": "Playwright 1.64.0 / Chromium 1248",
+  "runs": [
+    {
+      "run": "frontend-unit",
+      "passed": 584,
+      "skipped": 0,
+      "failed": 0,
+      "note": "Complete 44-file suite; direct-target normalization also retested separately afterwards.",
+      "localLog": "/tmp/noris-spinner-unit-final.log",
+      "logSHA256": "7dcd9464046b7834466ca1b88eaa2d0e087fc1474730216bbc2962750cd3b61e"
+    },
+    {
+      "run": "direct-url-unit-final",
+      "passed": 16,
+      "skipped": 0,
+      "failed": 0,
+      "note": "Includes uppercase UUID normalization and explicit new-chat intent.",
+      "localLog": "/tmp/noris-spinner-direct-url-unit-final.log",
+      "logSHA256": "78f3e4592e640b10e0ab48ed1168e9639e34b501b0a1f96b728411d12d8bb880"
+    },
+    {
+      "run": "loading-matrix-before-font-embedding",
+      "passed": 33,
+      "skipped": 17,
+      "failed": 0,
+      "note": "Final spinner shape, states, colors and scroll recovery; no snapshot updates.",
+      "localLog": "/tmp/noris-spinner-matrix-verified.log",
+      "logSHA256": "aab8f75024e11c8241a99826003f59a9ae002a481e0c5ebc7e6d2237d173f771"
+    },
+    {
+      "run": "websocket-desktop-complete-before-font-embedding",
+      "passed": 144,
+      "skipped": 2,
+      "failed": 6,
+      "note": "One Chromium crash; three catalog-fixture failures; two 1px native-progress raster differences. Targeted recovery follows.",
+      "localLog": "/tmp/noris-spinner-websocket-desktop-full.log",
+      "logSHA256": "f8a56b39020207fd1ec7acc669993413cd22f53ef6cd340f33fb3e2749f5872d"
+    },
+    {
+      "run": "websocket-mobile-complete-before-font-embedding",
+      "passed": 98,
+      "skipped": 53,
+      "failed": 1,
+      "note": "One catalog-fixture upload failure. Targeted recovery follows.",
+      "localLog": "/tmp/noris-spinner-websocket-mobile-full.log",
+      "logSHA256": "7ba65fc14c2723d963469d0331bfb0047399962686d24cff8a546e07412a14c7"
+    },
+    {
+      "run": "upload-boundary-and-new-chat-recovery",
+      "passed": 6,
+      "skipped": 0,
+      "failed": 0,
+      "note": "Unchanged upload-limit retest plus four malformed/unavailable URL New Chat recovery cases.",
+      "localLog": "/tmp/noris-spinner-boundary-recovery-final.log",
+      "logSHA256": "1f20dab1912383601638d17ac9746cc3170970ec9e6f35ca50850212b8f38129"
+    },
+    {
+      "run": "running-dev-server-final",
+      "passed": 1,
+      "skipped": 0,
+      "failed": 0,
+      "note": "Actual bind-mounted app at port 3000; all API/WS intercepted with synthetic data.",
+      "localLog": "/tmp/noris-spinner-active-dev-final.log",
+      "logSHA256": "ff106b54aaaa860bea2081f13aad9b7b7d90ee6f5cc3a13a2c3750db5534bb6c"
+    },
+    {
+      "run": "matching-parent-fonts-before-capture",
+      "passed": 1,
+      "skipped": 0,
+      "failed": 0,
+      "note": "Same synthetic fixture, viewport, DPR and bundled fonts on the parent production build.",
+      "localLog": "/tmp/noris-spinner-font-before.log",
+      "logSHA256": "067b79de3f8ec8a6a951f096e94d35c9b4e3f3e5ac8a99503a78bb03a7697635"
+    },
+    {
+      "run": "final-font-loading-matrix",
+      "passed": 33,
+      "skipped": 17,
+      "failed": 0,
+      "note": "Intentional bundled-font recapture; actual neutral colors and exact centers asserted.",
+      "localLog": "/tmp/noris-spinner-font-matrix-update.log",
+      "logSHA256": "0608db218610aa00b5ca5dd1ecd8750eba9f544fb4d94d92db337a27c508b61f"
+    },
+    {
+      "run": "final-font-loading-and-upload-no-updates",
+      "passed": 41,
+      "skipped": 21,
+      "failed": 4,
+      "note": "All loading/recovery cases pass. Four attachment screenshot cases differ by a raster row; all 14 measured DOMRects and computed typography match the parent, apart from the intentional chat-content position property. Investigated before localized baseline changes.",
+      "localLog": "/tmp/noris-spinner-font-final-verify.log",
+      "logSHA256": "f86fe470cf8855f2127311f49fc73c0b4817d29ea6b1188e754cef285c655ee0"
+    },
+    {
+      "run": "paint-layout-browser-experiment",
+      "passed": 4,
+      "skipped": 0,
+      "failed": 0,
+      "note": "Browser-only display:contents override passes all four original attachment baselines; no product/baseline edits in this experiment.",
+      "localLog": "/tmp/noris-spinner-paint-diagnostic.log",
+      "logSHA256": "1bf33491371755eb928c5d87bfeeabcb4aefabde94428be426f9201f6750fa26"
+    },
+    {
+      "run": "conditional-empty-layout-product-check",
+      "passed": 0,
+      "skipped": 0,
+      "failed": 4,
+      "note": "Applying the flattening only in final empty state was insufficient; correction revised to cover the full transition.",
+      "localLog": "/tmp/noris-spinner-pane-attachments-verify.log",
+      "logSHA256": "08fb834e60d06d873c76a58be0ccd73e44848d7e7407bb2179164937d8b205c2"
+    },
+    {
+      "run": "superseded-conditional-layout-mock",
+      "passed": 13,
+      "interrupted": 2,
+      "notRun": 422,
+      "failed": 0,
+      "note": "Stopped own obsolete run after the conditional-layout experiment failed; not counted as a complete-suite pass.",
+      "localLog": "/tmp/noris-spinner-pane-mock-full.log",
+      "logSHA256": "86398178adbf637d829ac34ccdc05bc00e0ffc98c07aac30e24dbaae5e73d8bf"
+    },
+    {
+      "run": "always-flat-layout-product-check",
+      "passed": 1,
+      "skipped": 0,
+      "failed": 4,
+      "note": "Initial spinner/dock geometry passes; four attachment rasters still differ. Experiment removed.",
+      "localLog": "/tmp/noris-spinner-flat-target-verify.log",
+      "logSHA256": "cdae115cc7d89ad37cfda3667ca6ecb02cf0b705c82e9ffb18880be68d9d87ce"
+    },
+    {
+      "run": "pending-layout-experiment-measurement",
+      "passed": 1,
+      "skipped": 0,
+      "failed": 0,
+      "note": "Browser-only flattening moves composer y899 to y87 during held initial load; restoration returns y899.",
+      "localLog": "/tmp/noris-spinner-pending-probe.log",
+      "logSHA256": "095f88562029a22b21ab506f88b733670362edceb834ab2bea4e431b0ee1faf2"
+    },
+    {
+      "run": "four-reviewed-attachment-captures",
+      "passed": 4,
+      "skipped": 0,
+      "failed": 0,
+      "note": "Only four reviewed one-row render differences recaptured; no tolerance changes.",
+      "localLog": "/tmp/noris-spinner-final-attachment-rendering-update.log",
+      "logSHA256": "29fd36a402896598a1e196a506fd568c01a7a4a9da271ef224083d651cc14409"
+    },
+    {
+      "run": "final-loading-and-all-visual-workflows",
+      "passed": 76,
+      "skipped": 47,
+      "failed": 1,
+      "note": "All product assertions pass; one context.close trace fails because a diagnostic used the broad default output directory and deleted a live trace. Diagnostic output was isolated.",
+      "localLog": "/tmp/noris-spinner-final-browser-verification.log",
+      "logSHA256": "d0127ef378b8252eab6176f774170ec6bd61adc334ba588998484174de1f3099"
+    },
+    {
+      "run": "unchanged-artifact-teardown-retest",
+      "passed": 1,
+      "skipped": 0,
+      "failed": 0,
+      "note": "Same mobile compact screenshot case passes unchanged after isolating artifacts.",
+      "localLog": "/tmp/noris-spinner-final-artifact-retest.log",
+      "logSHA256": "74b685224c7356ce7a21159df585b4050ab1ef5e6f4d6f13c493fef67b5e1aec"
+    },
+    {
+      "run": "complete-mock-interrupted-externally",
+      "exitCode": 143,
+      "localLog": "/tmp/noris-spinner-final-mock-full.log",
+      "note": "SIGTERM interrupted the run before its summary. Two desktop Settings cases and remaining mobile cases are scheduled for isolated retesting; this is not a complete-suite pass.",
+      "desktopPassed": 226,
+      "desktopFailed": 2,
+      "desktopSkipped": 1,
+      "mobilePassed": 12,
+      "unreported": 196
+    },
+    {
+      "run": "final-symbol-font-desktop-menus-and-settings-no-updates",
+      "passed": 29,
+      "skipped": 0,
+      "failed": 0,
+      "localLog": "/tmp/noris-spinner-symbols-desktop-final.log",
+      "logSHA256": "4f054624df4c39b5a1e4b9d3b9ee40590b7fd2bc58f198e16f91bbedaf44d061",
+      "note": "All affected model/command/learning menus, actual glyph-font use and both previously failed Settings cases pass unchanged."
+    },
+    {
+      "run": "final-symbol-font-loading-upload-lifecycle",
+      "passed": 43,
+      "skipped": 21,
+      "failed": 0,
+      "note": "Final glyph-stack build, all required loading/scroll/error states and upload boundaries, no snapshot updates.",
+      "localLog": "/tmp/noris-spinner-symbols-lifecycle-final.log",
+      "logSHA256": "5ba4dd91fc3799951fb4f99f34b86a3750046045b497bf4ca9e428c87bff2941"
+    },
+    {
+      "run": "all-final-mobile-cases",
+      "passed": 140,
+      "skipped": 68,
+      "failed": 0,
+      "note": "Complete mobile project on final glyph-stack build, no snapshot updates.",
+      "localLog": "/tmp/noris-spinner-symbols-mobile-final.log",
+      "logSHA256": "5fc10d67a422e2c40df1527853269b4d07700d2cc3c57c54a4f00179c96d1320"
+    },
+    {
+      "run": "new-upload-view-regression-before-fix",
+      "passed": 0,
+      "skipped": 0,
+      "failed": 1,
+      "note": "A held first path after creating an upload chat incorrectly inserted the global spinner and hid the known empty view. Reproduced before correcting its existing preserve-view classification.",
+      "localLog": "/tmp/noris-spinner-new-upload-before.log",
+      "logSHA256": "12dc6da4900edd8baaa6785ff9850a62dc14a99e2d8d6ebe0e57d2add6021c5e"
+    },
+    {
+      "run": "frontend-unit-final-upload-view",
+      "passed": 584,
+      "skipped": 0,
+      "failed": 0,
+      "note": "Complete 44-file unit suite after the final upload-view correction.",
+      "localLog": "/tmp/noris-spinner-upload-unit-final.log",
+      "logSHA256": "46a6f3f9b49b523ebffb9714ee67cc661aedf019bccfd2de478f27e5f7bccf27"
+    },
+    {
+      "run": "known-empty-view-and-original-attachment-baselines",
+      "passed": 3,
+      "skipped": 0,
+      "failed": 2,
+      "note": "New empty-view regression and both original confirmed-attachment baselines pass. Only pending-upload raster images remain different.",
+      "localLog": "/tmp/noris-spinner-upload-target-final.log",
+      "logSHA256": "364ed7784c600e8f72020a21cd73b5c2c10a6367fe0b5ac2f395fcd2fc606508"
+    },
+    {
+      "run": "two-pending-upload-rendering-captures",
+      "passed": 2,
+      "skipped": 0,
+      "failed": 0,
+      "note": "Only two measured pending-upload rasters recaptured; confirmed-attachment baselines restored to parent originals.",
+      "localLog": "/tmp/noris-spinner-upload-pending-rendering-update.log",
+      "logSHA256": "68a571a4bef56aaf3c3d43125bd35b906d1d8506bee283f0a2eb47435cea6a2e"
+    },
+    {
+      "run": "accepted-final-loading-upload-lifecycle",
+      "passed": 45,
+      "skipped": 21,
+      "failed": 0,
+      "note": "Complete latest loading, first-upload, Retry/anchor, motion, color, viewport and upload-boundary matrix; no snapshot updates.",
+      "localLog": "/tmp/noris-spinner-upload-lifecycle-final.log",
+      "logSHA256": "bea570d52fe117feabda964343b9632f7ea8f4ea42fe9c872513dc1fe8ac4249"
+    },
+    {
+      "run": "accepted-running-dev-server",
+      "passed": 1,
+      "skipped": 0,
+      "failed": 0,
+      "note": "Actual refreshed Docker frontend on port 3000; all API/WS intercepted.",
+      "localLog": "/tmp/noris-spinner-active-dev-accepted.log",
+      "logSHA256": "5993fd4b34e8e95b8c715f73cb02875e3c76a91ec3455a26eb6a336a05526a4f"
+    },
+    {
+      "run": "accepted-production-before-after-fixture",
+      "passed": 1,
+      "skipped": 0,
+      "failed": 0,
+      "note": "Final production build, identical synthetic fixture/viewport/DPR as the before capture.",
+      "localLog": "/tmp/noris-spinner-production-capture-accepted.log",
+      "logSHA256": "c12054d2168b76558bcf030aea59ef2173650e9c13cbfffe489ae89faa459969"
+    }
+  ],
+  "staticChecks": {
+    "frontendLint": "passed; full final-glyph lint plus final changed-file lint",
+    "applicationAndTestTypes": "passed; /tmp/noris-spinner-upload-types-final.log",
+    "productionBuild": "passed; final upload-view correction and shared glyph stack; /tmp/noris-spinner-upload-final-build.log",
+    "backend": "Parent PR #90: strict Python types, unit/integration and API contract checks; spinner adds no backend endpoint."
+  },
+  "interpretation": [
+    "Per-run counts overlap; they must not be summed as unique tests.",
+    "Complete desktop/mobile WebSocket runs are recorded with their initial failures, followed by targeted retests.",
+    "Skipped cases are explicit duplicate viewport/project exclusions. No screenshot tolerance increased and no tests removed.",
+    "Latest final-build loading/upload suite: 45 passed, 21 explicit project/viewport exclusions, without snapshot updates.",
+    "Final glyph-build complete mobile project: 140 passed / 68 exclusions. Final desktop menu/font/Settings retest: 29 passed unchanged.",
+    "The first-upload correction affects the existing backend history-view classification; the held-path regression proves no global-spinner/empty-view flicker while sending remains disabled.",
+    "All source changes are covered by final lint, strict app/test types, production build and the complete 584-test frontend unit suite."
+  ],
+  "geometry": {
+    "canonicalCSSViewport": [
+      1920,
+      976
+    ],
+    "DPR": 1,
+    "openCenter": [
+      1130,
+      514
+    ],
+    "closedCenter": [
+      986,
+      514
+    ],
+    "ringCSSPx": 20,
+    "strokeCSSPx": 2.5,
+    "rotationMs": 900,
+    "referenceRasterCenterDelta": [
+      -0.45,
+      0.45
+    ]
+  },
+  "artifacts": {
+    "before": "loading-before.png",
+    "after": "loading-after.png",
+    "diff": "loading-diff.png",
+    "geometry": "capture-geometry.json",
+    "reference": "reference-geometry.json",
+    "lifecycleEvidence": [
+      "scroll-retry-desktop.json",
+      "scroll-retry-mobile.json"
+    ],
+    "attachmentRendering": "attachment-rendering/comparison.json",
+    "rejectedLayoutMeasurement": "layout-experiment.json",
+    "activeDevelopmentProof": "active-dev-geometry.json"
+  },
+  "limitations": [
+    "Original Firefox CSS viewport and DPR are unknown; the screenshot visibly shows 130% zoom. The normalized comparison is a raster reconstruction, not original-browser pixel equality.",
+    "No supplied Dark/Mobile spinner reference; these states have geometry and behavior checks.",
+    "Private original pixels and private conversations are excluded from Git.",
+    "Two 390px pending-upload images retain one-row native/inline raster differences; all 14 actual rectangles and typography/padding/margins agree. Confirmed attachment views match the unchanged parent baselines after correcting the preserved empty view."
+  ],
+  "applicationSource": "8e5fd5f0ea65e0de09a60ef7e158cf4faa600636"
+}
