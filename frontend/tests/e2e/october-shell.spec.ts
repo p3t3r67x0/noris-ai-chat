@@ -43,6 +43,10 @@ for (const theme of ['light', 'dark']) {
         expect(metrics.composer!.height).toBe(62)
         // 44 px keeps the reference's compact rhythm and a full touch target.
         expect(metrics.row!.height).toBe(44)
+        expect(metrics.newChat!.y).toBeGreaterThanOrEqual(metrics.header!.bottom)
+        expect(metrics.newChat!.height).toBeGreaterThanOrEqual(44)
+        await expect(page.locator('.sidebar-title:visible')).toHaveText('Noris AI')
+        expect(await page.locator('.empty-chat h1').evaluate(element => getComputedStyle(element).fontSize)).toBe('30px')
       }
       for (const key of ['plus', 'microphone', 'submit']) {
         expect(metrics[key]!.width).toBeGreaterThanOrEqual(44)
