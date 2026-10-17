@@ -1,0 +1,245 @@
+{
+  "date": "2026-10-17",
+  "verifiedCodeAndTestsCommit": "b08986d1abe03b963ffb2f024c9b27123aebdde3",
+  "viewports": [
+    [
+      1701,
+      863
+    ],
+    [
+      1440,
+      900
+    ],
+    [
+      1280,
+      800
+    ],
+    [
+      1024,
+      768
+    ],
+    [
+      768,
+      1024
+    ],
+    [
+      390,
+      844
+    ]
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "maxDiffPixelRatio": 0.001,
+  "reference": "Synthetic Noris goldens; private original not committed; no claim of reference pixel equality",
+  "checks": {
+    "eslint": {
+      "exitCode": 0
+    },
+    "nuxtAppTypecheck": {
+      "exitCode": 0,
+      "warning": "Existing optional vue-router/volar/sfc-route-blocks plugin unavailable"
+    },
+    "vueTestTypecheck": {
+      "exitCode": 0,
+      "warning": "Same existing optional Volar plugin warning"
+    },
+    "toolsTypecheck": {
+      "exitCode": 0
+    },
+    "productionBuild": {
+      "exitCode": 0,
+      "durationSeconds": 34.1
+    },
+    "apiDrift": {
+      "exitCode": 0
+    },
+    "unit": {
+      "exitCode": 0,
+      "files": 43,
+      "passed": 572
+    }
+  },
+  "browserRuns": [
+    {
+      "name": "mock_full",
+      "command": "playwright test",
+      "passed": 346,
+      "failed": 4,
+      "skipped": 59,
+      "exitCode": 1,
+      "snapshotUpdate": false
+    },
+    {
+      "name": "mock_settings_recheck",
+      "command": "playwright test tests/e2e/settings.spec.ts",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "snapshotUpdate": false
+    },
+    {
+      "name": "websocket_full_affected",
+      "command": "playwright test --config playwright.websocket.config.ts (10 affected spec files)",
+      "passed": 107,
+      "failed": 1,
+      "skipped": 36,
+      "exitCode": 1,
+      "snapshotUpdate": false
+    },
+    {
+      "name": "websocket_persistence_recheck",
+      "command": "playwright test --config playwright.websocket.config.ts persistent-chat.spec.ts",
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "snapshotUpdate": false
+    },
+    {
+      "name": "sse_record",
+      "command": "playwright test --config playwright.llm.config.ts composer-layout.spec.ts reasoning-selection.spec.ts --update-snapshots",
+      "passed": 37,
+      "failed": 0,
+      "skipped": 13,
+      "exitCode": 0,
+      "snapshotUpdate": true
+    },
+    {
+      "name": "sse_compare",
+      "command": "playwright test --config playwright.llm.config.ts composer-layout.spec.ts reasoning-selection.spec.ts",
+      "passed": 37,
+      "failed": 0,
+      "skipped": 13,
+      "exitCode": 0,
+      "snapshotUpdate": false
+    },
+    {
+      "name": "active_keyboard_record",
+      "command": "playwright test tests/e2e/active-keyboard.spec.ts --update-snapshots",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "snapshotUpdate": true
+    }
+  ],
+  "coverageAfterRechecks": {
+    "mockPassedCases": 350,
+    "websocketPassedCases": 108,
+    "ssePassedCases": 37,
+    "meaning": "Union of full runs and passing affected-file rechecks; duplicates excluded. The full mock and WebSocket commands were not rerun after the final test-only corrections."
+  },
+  "notRun": [
+    "External live-provider suites",
+    "Backend unit suite (unchanged backend)",
+    "Real iOS/Android keyboards and screenreader device acceptance"
+  ],
+  "ciFollowup": {
+    "reportedRun": 39037862011,
+    "reportedJob": 117411213241,
+    "reportedHead": "595af77b971f5b96580fcfa129c99010a3c49efc",
+    "mock": {
+      "passed": 350,
+      "skipped": 59,
+      "failed": 0
+    },
+    "composeSmoke": "passed",
+    "sseBeforeFix": {
+      "passed": 82,
+      "skipped": 13,
+      "failed": 1
+    },
+    "cause": "SSE title assertion expected the former typography/layout. The existing component correctly chooses the semantic middle candidate within its one-pixel glyph rounding budget.",
+    "localReproduction": {
+      "passed": 1,
+      "failed": 1,
+      "exitCode": 1
+    },
+    "localFocusedRecheck": {
+      "passed": 2,
+      "failed": 0,
+      "exitCode": 0
+    },
+    "measuredTitleGeometry": {
+      "viewportWidth": 1280,
+      "fontSizePx": 16,
+      "availableLabelWidthPx": 255,
+      "fullTitleWidthPx": 254.640625,
+      "existingGlyphReservePx": 1
+    },
+    "productCodeChanged": false,
+    "snapshotToleranceChanged": false,
+    "baselinesChanged": false,
+    "latestChecks": "https://github.com/p3t3r67x0/noris-ai-chat/pull/88/checks",
+    "localFullSse": {
+      "passed": 83,
+      "skipped": 13,
+      "failed": 0,
+      "exitCode": 0,
+      "snapshotUpdate": false
+    },
+    "localFullWebsocket": {
+      "passed": 208,
+      "skipped": 36,
+      "failed": 0,
+      "exitCode": 0,
+      "snapshotUpdate": false
+    },
+    "composeHydrationRace": {
+      "run": 39039720672,
+      "job": 117416543849,
+      "head": "5418737b46d122c6b5c578055568d44ba7587524",
+      "passed": 165,
+      "skipped": 78,
+      "failed": 1,
+      "cause": "The pending-admission mobile test filled the inert SSR textarea before Vue hydration (data-ready=false in trace), which reset its value. The first send click then waited on the disabled button; the tested chat switch was never reached.",
+      "fix": "Wait for the existing chat-workspace data-ready=true signal after initial navigation in web-search-ui.spec.ts. No production code or timeout changes.",
+      "localRecheck": {
+        "passed": 16,
+        "skipped": 0,
+        "failed": 0,
+        "exitCode": 0,
+        "eslintExitCode": 0,
+        "testTypecheckExitCode": 0
+      }
+    },
+    "greenFullRuns": {
+      "head": "6f8ed086127ea62e19953d8275a353d3ddd8dd55",
+      "pullRequest": 39041604392,
+      "push": 39041601311,
+      "checks": "success",
+      "composeSmoke": "success"
+    }
+  },
+  "recentsHoverFollowup": {
+    "viewport": [
+      1701,
+      863
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "headingX": 60,
+    "rowX": 60,
+    "headingWidth": 271,
+    "rowWidth": 271,
+    "absoluteDeviationPx": 0,
+    "record": {
+      "passed": 2,
+      "failed": 0
+    },
+    "shellComparison": {
+      "passed": 16,
+      "skipped": 16,
+      "failed": 0,
+      "snapshotUpdate": false
+    },
+    "eslintExitCode": 0,
+    "testTypecheckExitCode": 0,
+    "productionBuildExitCode": 0
+  }
+}

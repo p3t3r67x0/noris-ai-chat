@@ -1,0 +1,112 @@
+{
+  ".chat-rail": {
+    "x": 0,
+    "y": 0,
+    "width": 0,
+    "height": 0,
+    "top": 0,
+    "right": 0,
+    "bottom": 0,
+    "left": 0
+  },
+  ".conversation-sidebar": {
+    "x": 0,
+    "y": 0,
+    "width": 0,
+    "height": 0,
+    "top": 0,
+    "right": 0,
+    "bottom": 0,
+    "left": 0
+  },
+  ".sidebar-heading": {
+    "x": 0,
+    "y": 0,
+    "width": 0,
+    "height": 0,
+    "top": 0,
+    "right": 0,
+    "bottom": 0,
+    "left": 0
+  },
+  ".sidebar-new-chat": {
+    "x": 0,
+    "y": 0,
+    "width": 0,
+    "height": 0,
+    "top": 0,
+    "right": 0,
+    "bottom": 0,
+    "left": 0
+  },
+  ".chat-composer": {
+    "x": 12,
+    "y": 735,
+    "width": 366,
+    "height": 97,
+    "top": 735,
+    "right": 378,
+    "bottom": 832,
+    "left": 12
+  },
+  ".composer-input": {
+    "x": 28,
+    "y": 751,
+    "width": 334,
+    "height": 25,
+    "top": 751,
+    "right": 362,
+    "bottom": 776,
+    "left": 28
+  },
+  ".composer-attachment": {
+    "x": 20,
+    "y": 780,
+    "width": 44,
+    "height": 44,
+    "top": 780,
+    "right": 64,
+    "bottom": 824,
+    "left": 20
+  },
+  ".composer-model": {
+    "x": 168.5,
+    "y": 780,
+    "width": 97.5,
+    "height": 44,
+    "top": 780,
+    "right": 266,
+    "bottom": 824,
+    "left": 168.5
+  },
+  ".composer-microphone": {
+    "x": 274,
+    "y": 780,
+    "width": 44,
+    "height": 44,
+    "top": 780,
+    "right": 318,
+    "bottom": 824,
+    "left": 274
+  },
+  ".composer-submit": {
+    "x": 326,
+    "y": 780,
+    "width": 44,
+    "height": 44,
+    "top": 780,
+    "right": 370,
+    "bottom": 824,
+    "left": 326
+  },
+  ".empty-chat h1": {
+    "x": 28,
+    "y": 639.46875,
+    "width": 334,
+    "height": 66,
+    "top": 639.46875,
+    "right": 362,
+    "bottom": 705.46875,
+    "left": 28
+  }
+}

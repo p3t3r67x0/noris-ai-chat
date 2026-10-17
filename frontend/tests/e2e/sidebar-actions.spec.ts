@@ -71,7 +71,7 @@ for (const [width, height] of sizes) for (const theme of ['light', 'dark']) {
         await centered(page)
         await sidebar(page)
         expect((await centered(page)).axis).toBe(before.axis)
-        await expect.poll(async () => (await page.locator('.conversation-sidebar').boundingBox())?.width).toBeCloseTo(Math.max(272, Math.min(376, width * 0.195833)), 0)
+        await expect.poll(async () => (await page.locator('.conversation-sidebar').boundingBox())?.width).toBeCloseTo(288, 0)
       }
       else {
         await expect(page.locator('.chat-rail')).toBeHidden()

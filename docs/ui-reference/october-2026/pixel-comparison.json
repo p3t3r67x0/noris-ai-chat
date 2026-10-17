@@ -1,0 +1,122 @@
+[
+  {
+    "before": "before-1024-dark.png",
+    "after": "after-1024-dark.png",
+    "diff": "diff-1024-dark.png",
+    "width": 1024,
+    "height": 768,
+    "changedPixels": 129205,
+    "changedRatio": 0.16429265340169272,
+    "meaning": "Synthetic Noris before/after change, not a reference fidelity score"
+  },
+  {
+    "before": "before-1024-light.png",
+    "after": "after-1024-light.png",
+    "diff": "diff-1024-light.png",
+    "width": 1024,
+    "height": 768,
+    "changedPixels": 117561,
+    "changedRatio": 0.14948654174804688,
+    "meaning": "Synthetic Noris before/after change, not a reference fidelity score"
+  },
+  {
+    "before": "before-1280-dark.png",
+    "after": "after-1280-dark.png",
+    "diff": "diff-1280-dark.png",
+    "width": 1280,
+    "height": 800,
+    "changedPixels": 157809,
+    "changedRatio": 0.1541103515625,
+    "meaning": "Synthetic Noris before/after change, not a reference fidelity score"
+  },
+  {
+    "before": "before-1280-light.png",
+    "after": "after-1280-light.png",
+    "diff": "diff-1280-light.png",
+    "width": 1280,
+    "height": 800,
+    "changedPixels": 145075,
+    "changedRatio": 0.1416748046875,
+    "meaning": "Synthetic Noris before/after change, not a reference fidelity score"
+  },
+  {
+    "before": "before-1440-dark.png",
+    "after": "after-1440-dark.png",
+    "diff": "diff-1440-dark.png",
+    "width": 1440,
+    "height": 900,
+    "changedPixels": 151289,
+    "changedRatio": 0.11673533950617283,
+    "meaning": "Synthetic Noris before/after change, not a reference fidelity score"
+  },
+  {
+    "before": "before-1440-light.png",
+    "after": "after-1440-light.png",
+    "diff": "diff-1440-light.png",
+    "width": 1440,
+    "height": 900,
+    "changedPixels": 146473,
+    "changedRatio": 0.1130192901234568,
+    "meaning": "Synthetic Noris before/after change, not a reference fidelity score"
+  },
+  {
+    "before": "before-1701-dark.png",
+    "after": "after-1701-dark.png",
+    "diff": "diff-1701-dark.png",
+    "width": 1701,
+    "height": 863,
+    "changedPixels": 210899,
+    "changedRatio": 0.1436677899919821,
+    "meaning": "Synthetic Noris before/after change, not a reference fidelity score"
+  },
+  {
+    "before": "before-1701-light.png",
+    "after": "after-1701-light.png",
+    "diff": "diff-1701-light.png",
+    "width": 1701,
+    "height": 863,
+    "changedPixels": 162142,
+    "changedRatio": 0.11045373759420367,
+    "meaning": "Synthetic Noris before/after change, not a reference fidelity score"
+  },
+  {
+    "before": "before-390-dark.png",
+    "after": "after-390-dark.png",
+    "diff": "diff-390-dark.png",
+    "width": 390,
+    "height": 844,
+    "changedPixels": 89253,
+    "changedRatio": 0.27115384615384613,
+    "meaning": "Synthetic Noris before/after change, not a reference fidelity score"
+  },
+  {
+    "before": "before-390-light.png",
+    "after": "after-390-light.png",
+    "diff": "diff-390-light.png",
+    "width": 390,
+    "height": 844,
+    "changedPixels": 87024,
+    "changedRatio": 0.2643820634341961,
+    "meaning": "Synthetic Noris before/after change, not a reference fidelity score"
+  },
+  {
+    "before": "before-768-dark.png",
+    "after": "after-768-dark.png",
+    "diff": "diff-768-dark.png",
+    "width": 768,
+    "height": 1024,
+    "changedPixels": 114121,
+    "changedRatio": 0.14511235555013022,
+    "meaning": "Synthetic Noris before/after change, not a reference fidelity score"
+  },
+  {
+    "before": "before-768-light.png",
+    "after": "after-768-light.png",
+    "diff": "diff-768-light.png",
+    "width": 768,
+    "height": 1024,
+    "changedPixels": 110987,
+    "changedRatio": 0.14112726847330728,
+    "meaning": "Synthetic Noris before/after change, not a reference fidelity score"
+  }
+]

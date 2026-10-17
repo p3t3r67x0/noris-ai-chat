@@ -1,0 +1,206 @@
+{
+  "viewport": {
+    "width": 1280,
+    "height": 800,
+    "deviceScaleFactor": 1
+  },
+  "theme": "light",
+  "metrics": {
+    "rail": {
+      "x": 0,
+      "y": 0,
+      "width": 52,
+      "height": 800,
+      "top": 0,
+      "right": 52,
+      "bottom": 800,
+      "left": 0
+    },
+    "sidebar": {
+      "x": 52,
+      "y": 0,
+      "width": 288,
+      "height": 800,
+      "top": 0,
+      "right": 340,
+      "bottom": 800,
+      "left": 52
+    },
+    "header": {
+      "x": 60,
+      "y": 4,
+      "width": 271,
+      "height": 44,
+      "top": 4,
+      "right": 331,
+      "bottom": 48,
+      "left": 60
+    },
+    "newChat": {
+      "x": 60,
+      "y": 58,
+      "width": 271,
+      "height": 44,
+      "top": 58,
+      "right": 331,
+      "bottom": 102,
+      "left": 60
+    },
+    "recents": {
+      "x": 60,
+      "y": 155,
+      "width": 271,
+      "height": 1988,
+      "top": 155,
+      "right": 331,
+      "bottom": 2143,
+      "left": 60
+    },
+    "row": {
+      "x": 60,
+      "y": 207,
+      "width": 271,
+      "height": 44,
+      "top": 207,
+      "right": 331,
+      "bottom": 251,
+      "left": 60
+    },
+    "composer": {
+      "x": 366,
+      "y": 334,
+      "width": 888,
+      "height": 62,
+      "top": 334,
+      "right": 1254,
+      "bottom": 396,
+      "left": 366
+    },
+    "textarea": {
+      "x": 427,
+      "y": 351,
+      "width": 578,
+      "height": 28,
+      "top": 351,
+      "right": 1005,
+      "bottom": 379,
+      "left": 427
+    },
+    "plus": {
+      "x": 375,
+      "y": 343,
+      "width": 44,
+      "height": 44,
+      "top": 343,
+      "right": 419,
+      "bottom": 387,
+      "left": 375
+    },
+    "model": {
+      "x": 1013,
+      "y": 343,
+      "width": 128,
+      "height": 44,
+      "top": 343,
+      "right": 1141,
+      "bottom": 387,
+      "left": 1013
+    },
+    "microphone": {
+      "x": 1149,
+      "y": 343,
+      "width": 44,
+      "height": 44,
+      "top": 343,
+      "right": 1193,
+      "bottom": 387,
+      "left": 1149
+    },
+    "submit": {
+      "x": 1201,
+      "y": 343,
+      "width": 44,
+      "height": 44,
+      "top": 343,
+      "right": 1245,
+      "bottom": 387,
+      "left": 1201
+    },
+    "greeting": {
+      "x": 382,
+      "y": 260.5,
+      "width": 856,
+      "height": 37.5,
+      "top": 260.5,
+      "right": 1238,
+      "bottom": 298,
+      "left": 382
+    },
+    "main": {
+      "x": 340,
+      "y": 0,
+      "width": 940,
+      "height": 800,
+      "top": 0,
+      "right": 1280,
+      "bottom": 800,
+      "left": 340
+    }
+  },
+  "comparisons": [
+    {
+      "name": "rail",
+      "dimension": "width",
+      "expected": 52,
+      "certainty": "user-stated markup target; original HTML unavailable",
+      "actual": 52,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "sidebar",
+      "dimension": "width",
+      "expected": 288,
+      "certainty": "derived from user-stated markup targets",
+      "actual": 288,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "main",
+      "dimension": "x",
+      "expected": 340,
+      "certainty": "user-stated markup target; original HTML unavailable",
+      "actual": 340,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "composer",
+      "dimension": "width",
+      "expected": 888,
+      "certainty": "visual estimate / responsive Noris rule",
+      "actual": 888,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "composer",
+      "dimension": "height",
+      "expected": 62,
+      "certainty": "visual estimate",
+      "actual": 62,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "row",
+      "dimension": "height",
+      "expected": 42.5,
+      "certainty": "visual estimate; 44 px accessibility choice",
+      "actual": 44,
+      "absoluteDeviationPx": 1.5,
+      "relativeDeviation": 0.03529411764705882
+    }
+  ]
+}

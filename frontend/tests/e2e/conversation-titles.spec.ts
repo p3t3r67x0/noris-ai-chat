@@ -2,7 +2,7 @@ import { openChatActions } from './sidebar-helpers'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { writeFile } from 'node:fs/promises'
-import { savedChat } from './chat-fixtures'
+import { pauseBeforeGeneration, savedChat } from './chat-fixtures'
 import { CHAT_STORAGE_KEY } from '../../app/lib/chat/persistence'
 
 async function sidebar(page: Page) {
@@ -17,8 +17,7 @@ async function send(page: Page, text: string) {
   await input.fill(text); await input.press('Enter')
 }
 async function pause(page: Page) {
-  await page.clock.install()
-  await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 100))
+  await pauseBeforeGeneration(page)
 }
 async function completeAnswer(page: Page): Promise<void> {
   // Stop virtual time at completion so the existing delayed title is still pending.

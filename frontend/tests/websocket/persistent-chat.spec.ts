@@ -1,4 +1,4 @@
-import { clearTestConversations } from './chat-fixtures'
+import { clearTestConversations, stableModelCatalog } from './chat-fixtures'
 import type { ApiSchemas } from '../../app/types/generated/api'
 import { expect, test } from '@playwright/test'
 import { selectText } from '../e2e/text-selection-helpers'
@@ -135,6 +135,9 @@ test('reload during generation resumes without duplicated text', async ({ page, 
 
 
 test('continuation creates an immutable sibling and persists selected variants after reload', async ({ page, request }, info) => {
+  // This case checks persistence, not catalog expiry. The one-second fixture
+  // refresh can disable Enter between its keydown and submission under load.
+  await stableModelCatalog(page)
   await page.goto('/')
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   await page.getByRole('button', { name: 'Modell auswählen', exact: true }).click()

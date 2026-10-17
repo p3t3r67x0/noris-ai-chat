@@ -1,0 +1,206 @@
+{
+  "viewport": {
+    "width": 1024,
+    "height": 768,
+    "deviceScaleFactor": 1
+  },
+  "theme": "dark",
+  "metrics": {
+    "rail": {
+      "x": 0,
+      "y": 0,
+      "width": 52,
+      "height": 768,
+      "top": 0,
+      "right": 52,
+      "bottom": 768,
+      "left": 0
+    },
+    "sidebar": {
+      "x": 52,
+      "y": 0,
+      "width": 288,
+      "height": 768,
+      "top": 0,
+      "right": 340,
+      "bottom": 768,
+      "left": 52
+    },
+    "header": {
+      "x": 60,
+      "y": 4,
+      "width": 271,
+      "height": 44,
+      "top": 4,
+      "right": 331,
+      "bottom": 48,
+      "left": 60
+    },
+    "newChat": {
+      "x": 60,
+      "y": 58,
+      "width": 271,
+      "height": 44,
+      "top": 58,
+      "right": 331,
+      "bottom": 102,
+      "left": 60
+    },
+    "recents": {
+      "x": 60,
+      "y": 155,
+      "width": 271,
+      "height": 1988,
+      "top": 155,
+      "right": 331,
+      "bottom": 2143,
+      "left": 60
+    },
+    "row": {
+      "x": 60,
+      "y": 207,
+      "width": 271,
+      "height": 44,
+      "top": 207,
+      "right": 331,
+      "bottom": 251,
+      "left": 60
+    },
+    "composer": {
+      "x": 364,
+      "y": 318.328125,
+      "width": 636,
+      "height": 62,
+      "top": 318.328125,
+      "right": 1000,
+      "bottom": 380.328125,
+      "left": 364
+    },
+    "textarea": {
+      "x": 425,
+      "y": 335.328125,
+      "width": 326,
+      "height": 28,
+      "top": 335.328125,
+      "right": 751,
+      "bottom": 363.328125,
+      "left": 425
+    },
+    "plus": {
+      "x": 373,
+      "y": 327.328125,
+      "width": 44,
+      "height": 44,
+      "top": 327.328125,
+      "right": 417,
+      "bottom": 371.328125,
+      "left": 373
+    },
+    "model": {
+      "x": 759,
+      "y": 327.328125,
+      "width": 128,
+      "height": 44,
+      "top": 327.328125,
+      "right": 887,
+      "bottom": 371.328125,
+      "left": 759
+    },
+    "microphone": {
+      "x": 895,
+      "y": 327.328125,
+      "width": 44,
+      "height": 44,
+      "top": 327.328125,
+      "right": 939,
+      "bottom": 371.328125,
+      "left": 895
+    },
+    "submit": {
+      "x": 947,
+      "y": 327.328125,
+      "width": 44,
+      "height": 44,
+      "top": 327.328125,
+      "right": 991,
+      "bottom": 371.328125,
+      "left": 947
+    },
+    "greeting": {
+      "x": 380,
+      "y": 244.828125,
+      "width": 604,
+      "height": 37.5,
+      "top": 244.828125,
+      "right": 984,
+      "bottom": 282.328125,
+      "left": 380
+    },
+    "main": {
+      "x": 340,
+      "y": 0,
+      "width": 684,
+      "height": 768,
+      "top": 0,
+      "right": 1024,
+      "bottom": 768,
+      "left": 340
+    }
+  },
+  "comparisons": [
+    {
+      "name": "rail",
+      "dimension": "width",
+      "expected": 52,
+      "certainty": "user-stated markup target; original HTML unavailable",
+      "actual": 52,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "sidebar",
+      "dimension": "width",
+      "expected": 288,
+      "certainty": "derived from user-stated markup targets",
+      "actual": 288,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "main",
+      "dimension": "x",
+      "expected": 340,
+      "certainty": "user-stated markup target; original HTML unavailable",
+      "actual": 340,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "composer",
+      "dimension": "width",
+      "expected": 636,
+      "certainty": "visual estimate / responsive Noris rule",
+      "actual": 636,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "composer",
+      "dimension": "height",
+      "expected": 62,
+      "certainty": "visual estimate",
+      "actual": 62,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "row",
+      "dimension": "height",
+      "expected": 42.5,
+      "certainty": "visual estimate; 44 px accessibility choice",
+      "actual": 44,
+      "absoluteDeviationPx": 1.5,
+      "relativeDeviation": 0.03529411764705882
+    }
+  ]
+}

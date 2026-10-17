@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { savedChat, seedChat } from './chat-fixtures'
+import { pauseBeforeGeneration, savedChat, seedChat } from './chat-fixtures'
 import { openDataControls, openSettingsCategory, returnToChat } from './settings-helpers'
 
 for (const theme of ['light', 'dark']) {
@@ -37,8 +37,7 @@ for (const theme of ['light', 'dark']) {
     await input.evaluate(element => { element.dataset.instance = 'original' })
     await input.fill('/lang')
     const before = await page.locator('.composer-dock').boundingBox()
-    await page.clock.install()
-    await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 100))
+    await pauseBeforeGeneration(page)
     await input.press('Enter')
     for (const elapsed of [1000, 1500]) {
       await page.clock.runFor(elapsed)
@@ -59,9 +58,13 @@ for (const theme of ['light', 'dark']) {
       }, height)
       await page.clock.runFor(100)
       const composer = (await page.locator('.chat-composer').boundingBox())!
-      const note = (await page.locator('.composer-note').boundingBox())!
-      expect(note.y + note.height).toBeLessThan(composer.y)
-      expect(note.y + note.height).toBeLessThanOrEqual(height + 20)
+      if (height > 300) {
+        const note = (await page.locator('.composer-note').boundingBox())!
+        expect(note.y + note.height).toBeLessThan(composer.y)
+        expect(note.y + note.height).toBeLessThanOrEqual(height + 20)
+      }
+      else await expect(page.locator('.composer-note')).toBeHidden()
+      expect(composer.y + composer.height).toBeLessThanOrEqual(height + 20)
       await expect(input).toBeFocused()
       expect(await page.locator('.chat-scroll').evaluate(element => element.scrollTop)).toBe(position)
       expect(await page.evaluate(() => scrollY === 0 && document.documentElement.scrollWidth <= innerWidth)).toBe(true)

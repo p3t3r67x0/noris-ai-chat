@@ -1,5 +1,7 @@
 # Kompakter Composer
 
+Aktueller Layoutstand: [Chat-Shell vom 17. Oktober 2026](../CHATGPT-2026-10-17-IMPLEMENTATION.md). Die dort dokumentierten CSS-Maße und der erhöhte Empty State ersetzen ältere Layoutangaben unten; technische Lifecycle- und Transportverträge bleiben erhalten.
+
 Der bestehende `ChatComposer.vue` verwendet weiterhin `UChatPrompt`, dessen Textarea und IME-Behandlung sowie `UChatPromptSubmit`. Enter, Shift+Enter, Slash-Menü, Dateiupload, Modellwahl, Denkaufwand und Websuche verwenden ihre bisherigen Anwendungsgrenzen.
 
 ## Struktur und Maße

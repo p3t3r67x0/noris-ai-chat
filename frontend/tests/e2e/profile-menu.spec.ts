@@ -10,6 +10,8 @@ async function openProfile(page: Page) {
   const trigger = page.locator('.profile-trigger:visible')
   await trigger.click()
   await expect(page.locator('.profile-menu:not(.profile-help-menu)')).toBeVisible()
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+  expect(await trigger.evaluate(element => getComputedStyle(element).pointerEvents)).toBe('auto')
   return trigger
 }
 
@@ -46,6 +48,9 @@ test('profile actions retain the chat draft, restore focus and dismiss on click 
 
 test('keyboard activation, arrows, Tab and Shift+Tab return to the profile trigger', async ({ page }) => {
   await page.goto('/settings/general')
+  // The SSR shell is inert until hydration; focus()/keyboard.press() do not
+  // wait for it to become interactive like a pointer click does.
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   const trigger = page.locator('.profile-trigger:visible')
   const menu = page.locator('.profile-menu:not(.profile-help-menu)')
   for (const key of ['Enter', 'Space']) {

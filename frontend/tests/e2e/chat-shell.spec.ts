@@ -15,7 +15,7 @@ test('shell is responsive, has a bounded composer and renders without client err
   page.on('console', message => { if (message.type() === 'error' || /hydration/i.test(message.text())) errors.push(message.text()) })
   await page.goto('/')
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
-  await expect(page.getByRole('heading', { name: 'Was möchtest du heute bewegen?' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Wie kann ich dir helfen?' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Modell auswählen' })).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'Nachricht' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)

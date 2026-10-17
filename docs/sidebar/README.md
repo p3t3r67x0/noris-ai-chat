@@ -1,5 +1,7 @@
 # Sidebar: Rail-Zentrierung und persistente Chat-Fixierungen
 
+Aktueller Layoutstand: [Chat-Shell vom 17. Oktober 2026](../ui-reference/CHATGPT-2026-10-17-IMPLEMENTATION.md). Die dort dokumentierten CSS-Maße und der erhöhte Empty State ersetzen ältere Layoutangaben unten; technische Lifecycle- und Transportverträge bleiben erhalten.
+
 ## Bestandsanalyse
 
 | Bestehender Baustein | Wiederverwendung |

@@ -1,5 +1,7 @@
 # Responsive Spezifikation
 
+Aktueller Layoutstand: [Chat-Shell vom 17. Oktober 2026](CHATGPT-2026-10-17-IMPLEMENTATION.md). Die dort dokumentierten CSS-Maße und der erhöhte Empty State ersetzen ältere Layoutangaben unten; technische Lifecycle- und Transportverträge bleiben erhalten.
+
 OBSERVED: ausschließlich Desktop1920×975. Alle anderen Referenzlayouts sind UNVERIFIED; folgende Noris-Regeln sind INFERRED und werden als Produktverhalten geprüft.
 
 | Viewport | Layout |
