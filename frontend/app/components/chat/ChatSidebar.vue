@@ -167,7 +167,7 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
 
 <template>
   <USidebar
-    id="chat-sidebar" v-model:open="open" :title="t('conversations')" description="Deine Chats mit noris AI"
+    id="chat-sidebar" v-model:open="open" :title="t('conversations')" :aria-label="t('conversations')" description="Deine Chats mit noris AI"
     collapsible="offcanvas" mode="slideover" :aria-hidden="!open" :inert="!open"
     class="conversation-sidebar" style="--sidebar-width: var(--noris-sidebar-width)"
     :menu="{ side: 'left', content: { onCloseAutoFocus: finishDrawerHandoff }, ui: { content: 'max-w-[min(23.5rem,90vw)] bg-[var(--noris-sidebar-background)]' } }"
