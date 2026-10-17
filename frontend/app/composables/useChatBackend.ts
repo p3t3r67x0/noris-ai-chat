@@ -167,7 +167,10 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     if (foreground && viewRequest.value && viewRequest.value.id !== id) { viewRequest.value.abort.abort(); cache.cancelRead(viewRequest.value.id) }
     const revision = foreground ? ++viewRevision : -1
     const controller = foreground && viewRequest.value?.id === id ? viewRequest.value.abort : new AbortController()
-    if (foreground) { viewRequest.value = { id, abort: controller, preserve }; historyLoading.value = true; historyError.value = null }
+    // A first upload already owns a known empty local view. Persisting and
+    // reading its new server path must not replace that view with a global loader.
+    const preserveView = preserve || (!backend.versions.has(id) && state.conversations.records.value[id]?.activeLeafMessageId === null)
+    if (foreground) { viewRequest.value = { id, abort: controller, preserve: preserveView }; historyLoading.value = true; historyError.value = null }
     try {
       const conversation = state.conversations.records.value[id]
       // A file selection can create a chat before its first message. Wait for
