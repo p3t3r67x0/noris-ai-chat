@@ -10,6 +10,8 @@ async function openProfile(page: Page) {
   const trigger = page.locator('.profile-trigger:visible')
   await trigger.click()
   await expect(page.locator('.profile-menu:not(.profile-help-menu)')).toBeVisible()
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+  expect(await trigger.evaluate(element => getComputedStyle(element).pointerEvents)).toBe('auto')
   return trigger
 }
 

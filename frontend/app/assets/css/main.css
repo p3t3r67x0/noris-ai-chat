@@ -401,7 +401,7 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 .profile-trigger-copy { display: flex; flex-direction: column; align-items: flex-start; font-size: var(--noris-account-label-font-size); }
 .profile-trigger-copy small { font-size: var(--noris-account-caption-font-size); color: var(--noris-text-secondary); }
 /* Keep the trigger clickable while Reka contains focus and disables outside pointers. */
-.profile-trigger[data-state="open"] { pointer-events: auto; }
+.profile-trigger[aria-expanded="true"] { pointer-events: auto; }
 
 .composer-files { grid-column: 1; grid-row: 1; width: 100%; min-width: 0; }
 .attachment-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0.25rem; list-style: none; max-height: min(10rem, 20cqh); overflow-y: auto; }
