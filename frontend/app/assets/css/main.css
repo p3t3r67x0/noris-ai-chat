@@ -5,7 +5,7 @@
 /* October 2026 CSS targets; image pixels and unobserved dark/mobile states
    are distinguished in CHATGPT-2026-10-17-GAP-ANALYSIS.md. */
 :root {
-  --font-sans: "Noris Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Noris Sans", "Noris Symbols", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "Noris Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   --default-font-family: var(--font-sans);
   --default-mono-font-family: var(--font-mono);

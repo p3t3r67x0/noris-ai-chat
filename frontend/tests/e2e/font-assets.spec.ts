@@ -9,7 +9,7 @@ test('uses the bundled UI and code faces at their actual weights', async ({ page
       const node = document.createElement('p')
       node.id = `font-probe-${weight}`
       node.style.fontWeight = String(weight)
-      node.textContent = 'Synthetische Schriftprüfung ÄÖÜ 123'
+      node.textContent = 'Synthetische Schriftprüfung ÄÖÜ 123 ↑ ↓'
       document.body.append(node)
     }
     const code = document.createElement('code')
@@ -18,6 +18,7 @@ test('uses the bundled UI and code faces at their actual weights', async ({ page
     document.body.append(code)
     await Promise.all([400, 500, 600, 700].map(weight => document.fonts.load(`${weight} 16px "Noris Sans"`)))
     await document.fonts.load('16px "Noris Mono"')
+    await document.fonts.load('16px "Noris Symbols"')
     await document.fonts.ready
   })
   const session = await page.context().newCDPSession(page)
@@ -31,6 +32,7 @@ test('uses the bundled UI and code faces at their actual weights', async ({ page
     const used = result.fonts.filter(font => font.glyphCount > 0)
     expect(used.length).toBeGreaterThan(0)
     expect(used.every(font => font.isCustomFont && font.familyName.startsWith('Noris '))).toBe(true)
+    if (face === '400') expect(used.some(font => font.familyName === 'Noris Symbols')).toBe(true)
     measured[face] = result.fonts
   }
   const path = info.outputPath('fonts-used.json')

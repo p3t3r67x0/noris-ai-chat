@@ -1,0 +1,66 @@
+{
+  "400": [
+    {
+      "familyName": "Noris Sans",
+      "postScriptName": "NorisSans-Regular",
+      "isCustomFont": true,
+      "glyphCount": 37
+    },
+    {
+      "familyName": "Noris Symbols",
+      "postScriptName": "NorisSymbols",
+      "isCustomFont": true,
+      "glyphCount": 2
+    }
+  ],
+  "500": [
+    {
+      "familyName": "Noris Sans Medium",
+      "postScriptName": "NorisSans-Medium",
+      "isCustomFont": true,
+      "glyphCount": 37
+    },
+    {
+      "familyName": "Noris Symbols",
+      "postScriptName": "NorisSymbols",
+      "isCustomFont": true,
+      "glyphCount": 2
+    }
+  ],
+  "600": [
+    {
+      "familyName": "Noris Symbols",
+      "postScriptName": "NorisSymbols",
+      "isCustomFont": true,
+      "glyphCount": 2
+    },
+    {
+      "familyName": "Noris Sans SemiBold",
+      "postScriptName": "NorisSans-SemiBold",
+      "isCustomFont": true,
+      "glyphCount": 37
+    }
+  ],
+  "700": [
+    {
+      "familyName": "Noris Sans",
+      "postScriptName": "NorisSans-Bold",
+      "isCustomFont": true,
+      "glyphCount": 37
+    },
+    {
+      "familyName": "Noris Symbols",
+      "postScriptName": "NorisSymbols",
+      "isCustomFont": true,
+      "glyphCount": 2
+    }
+  ],
+  "mono": [
+    {
+      "familyName": "Noris Mono",
+      "postScriptName": "NorisMono",
+      "isCustomFont": true,
+      "glyphCount": 20
+    }
+  ]
+}

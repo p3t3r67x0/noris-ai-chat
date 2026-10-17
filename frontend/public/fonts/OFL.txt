@@ -1,10 +1,12 @@
+Copyright 2010 Google Inc. All Rights Reserved.
+
 Copyright 2015 Google LLC. All Rights Reserved.
 
 Digitized data copyright (c) 2010 Google Corporation.
 Copyright (c) 2012 Red Hat, Inc.
 
 Original Liberation fonts have Reserved Font Name Liberation.
-The packaged fonts use the names Noris Sans / Noris Mono.
+The packaged fonts use the names Noris Sans / Noris Mono / Noris Symbols.
 Glyph outlines are not edited; horizontal metrics and cmap are verified.
 
 SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007

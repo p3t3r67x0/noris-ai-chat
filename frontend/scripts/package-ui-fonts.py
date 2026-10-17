@@ -13,6 +13,7 @@ from fontTools.ttLib import TTFont
 parser = argparse.ArgumentParser()
 parser.add_argument("--sans", type=Path, required=True)
 parser.add_argument("--mono", type=Path, required=True)
+parser.add_argument("--symbols", type=Path, required=True)
 parser.add_argument("--ofl-notice", type=Path, required=True)
 args = parser.parse_args()
 frontend = Path(__file__).resolve().parents[1]
@@ -21,13 +22,13 @@ output.mkdir(parents=True, exist_ok=True)
 faces = []
 rules = []
 copyrights = set()
-for family, directory, source_prefix, alias in [
-    ("sans", args.sans, "NotoSans", "Noris Sans"),
-    ("mono", args.mono, "LiberationMono", "Noris Mono"),
+for family, directory, source_prefix, alias, weights, styles in [
+    ("sans", args.sans, "NotoSans", "Noris Sans", [(400, "Regular"), (500, "Medium"), (600, "SemiBold"), (700, "Bold")], ["normal", "italic"]),
+    ("mono", args.mono, "LiberationMono", "Noris Mono", [(400, "Regular"), (700, "Bold")], ["normal", "italic"]),
+    ("symbols", args.symbols, "Arimo", "Noris Symbols", [(400, "Regular")], ["normal"]),
 ]:
-    weights = [(400, "Regular"), (500, "Medium"), (600, "SemiBold"), (700, "Bold")] if family == "sans" else [(400, "Regular"), (700, "Bold")]
     for weight, cut in weights:
-        for style in ["normal", "italic"]:
+        for style in styles:
             source_cut = cut if style == "normal" else "Italic" if cut == "Regular" else f"{cut}Italic"
             source = directory / f"{source_prefix}-{source_cut}.ttf"
             font = TTFont(source, recalcTimestamp=False, recalcBBoxes=False)
@@ -38,7 +39,7 @@ for family, directory, source_prefix, alias in [
             # copyright/license records; only family/unique/PostScript names change.
             for name in font["name"].names:
                 if name.nameID in {1, 3, 4, 6, 16, 17, 18, 21, 22}:
-                    value = name.toUnicode().replace("Noto Sans", alias).replace("NotoSans", "NorisSans").replace("Liberation Mono", alias).replace("LiberationMono", "NorisMono")
+                    value = name.toUnicode().replace("Noto Sans", alias).replace("NotoSans", "NorisSans").replace("Liberation Mono", alias).replace("LiberationMono", "NorisMono").replace("Arimo", "NorisSymbols" if name.nameID == 6 else alias)
                     name.string = value.encode(name.getEncoding())
             slug = source_cut.lower().replace("italic", "-italic").strip("-")
             destination = output / f"noris-{family}-{slug}.woff2"
@@ -64,7 +65,7 @@ end = notice.find("\nLicense:", start)
 text = notice[start:end if end >= 0 else None]
 text = "\n".join("" if line.strip() == "." else line.removeprefix(" ") for line in text.splitlines())
 credits = "\n\n".join(sorted(copyrights))
-(output / "OFL.txt").write_text(credits + "\n\nOriginal Liberation fonts have Reserved Font Name Liberation.\nThe packaged fonts use the names Noris Sans / Noris Mono.\nGlyph outlines are not edited; horizontal metrics and cmap are verified.\n\n" + "SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007\n\n" + text + "\n")
+(output / "OFL.txt").write_text(credits + "\n\nOriginal Liberation fonts have Reserved Font Name Liberation.\nThe packaged fonts use the names Noris Sans / Noris Mono / Noris Symbols.\nGlyph outlines are not edited; horizontal metrics and cmap are verified.\n\n" + "SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007\n\n" + text + "\n")
 (output / "manifest.json").write_text(json.dumps({"format": "WOFF2", "packager": "fonttools 4.61.1", "fonts": faces}, indent=2) + "\n")
 (frontend / "app/assets/css/fonts.css").write_text("/* Self-hosted measured fonts; licenses and source hashes: /fonts/. */\n" + "\n".join(rules))
 print(f"Packaged {len(faces)} faces; {sum((output / face['asset']).stat().st_size for face in faces):,} WOFF2 bytes.")
