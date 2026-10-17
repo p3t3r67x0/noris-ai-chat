@@ -241,7 +241,7 @@ function saveEdit(): void {
       <ChatHeader :sidebar-open="sidebarOpen" :demo="mode === 'mock'" @toggle-sidebar="sidebarOpen = !sidebarOpen" @new-chat="newChat" />
       <div class="chat-content" :data-empty="empty">
         <ChatLoadingSpinner v-if="loadingConversation" />
-        <div v-show="!empty" class="chat-message-pane" :aria-busy="loadingConversation" :data-loading-state="loadingState">
+        <div class="chat-message-pane" :aria-busy="loadingConversation" :data-loading-state="loadingState">
           <div v-if="conversationLoadError" role="alert" class="p-4 text-sm text-warning">
             <details><summary>Chat konnte nicht geladen werden.</summary><p>{{ conversationLoadError }}</p></details>
             <UButton color="neutral" variant="link" label="Chat erneut laden" @click="retryChatLoad" />
@@ -292,5 +292,7 @@ function saveEdit(): void {
 <style scoped>
 .chat-content { position: relative; }
 .chat-message-pane { position: relative; display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; }
+/* The existing content spacers own empty-chat centering, without a nested flex box. */
+.chat-content[data-empty="true"] .chat-message-pane { display: contents; }
 .chat-timeline-pending { visibility: hidden; pointer-events: none; }
 </style>
