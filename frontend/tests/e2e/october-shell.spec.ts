@@ -138,7 +138,10 @@ for (const theme of ['light', 'dark']) {
     }
     await input.fill('')
     await page.locator('.chat-rail .profile-trigger').hover()
-    await expect(page.getByRole('tooltip')).toHaveText('Lokaler Arbeitsbereich')
+    // Reka exposes the description through a hidden referenced span; assert
+    // both the visible Nuxt UI text and the button's computed description.
+    await expect(page.locator('[data-slot="text"]').filter({ hasText: 'Lokaler Arbeitsbereich' })).toBeVisible()
+    await expect(page.locator('.chat-rail .profile-trigger')).toHaveAccessibleDescription('Lokaler Arbeitsbereich')
     await page.locator('.rail-home').hover()
     await expect(page.locator('.rail-home')).toHaveAttribute('aria-current', 'page')
     await expect(page).toHaveScreenshot(`october-${theme}-rail.png`, { animations: 'disabled' })
