@@ -19,6 +19,7 @@ async function retry(): Promise<void> {
   try { await chat.retryPersistence.value() }
   finally { retrying.value = false }
 }
+function reload(): void { window.location.reload() }
 </script>
 
 <template>
@@ -32,7 +33,10 @@ async function retry(): Promise<void> {
     <SettingsRow :title="t('backupRestoredDrafts')" :description="t('backupRestoredDescription')"><span data-restored-drafts>{{ status.restoredDrafts }}</span></SettingsRow>
     <SettingsRow v-if="notice" :title="t('backupNotice')" :description="notice" />
     <SettingsRow v-if="status.lastError" :title="t('backupLastError')" :description="status.lastError" />
-    <SettingsRow v-if="chat.retryPersistence.value" :title="t('backupRecovery')" :description="t('backupRecoveryDescription')">
+    <SettingsRow v-if="status.recovery === 'reload'" :title="t('backupRecovery')" :description="t('backupReloadDescription')">
+      <UButton color="neutral" variant="outline" class="settings-action" :label="t('backupReload')" @click="reload" />
+    </SettingsRow>
+    <SettingsRow v-else-if="chat.retryPersistence.value" :title="t('backupRecovery')" :description="t('backupRecoveryDescription')">
       <UButton color="neutral" variant="outline" class="settings-action" :label="t('backupRetry')" :loading="retrying" :disabled="retrying" @click="retry" />
     </SettingsRow>
   </div>

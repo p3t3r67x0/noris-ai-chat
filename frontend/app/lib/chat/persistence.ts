@@ -11,6 +11,7 @@ export interface PersistenceStatus {
   storage: 'local' | 'server'
   ready: boolean
   blocked: boolean
+  recovery: 'retry' | 'reload' | null
   pendingOperations: number
   pendingDrafts: number
   failedOperations: number

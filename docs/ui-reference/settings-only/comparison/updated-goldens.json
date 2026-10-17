@@ -1,0 +1,274 @@
+[
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/desktop/adaptive-1440-compact-dark.png",
+    "beforeSize": [
+      1440,
+      900
+    ],
+    "afterSize": [
+      1440,
+      900
+    ],
+    "changedBounds": [
+      68,
+      165,
+      1280,
+      888
+    ]
+  },
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/desktop/adaptive-1440-compact-light.png",
+    "beforeSize": [
+      1440,
+      900
+    ],
+    "afterSize": [
+      1440,
+      900
+    ],
+    "changedBounds": [
+      68,
+      165,
+      1278,
+      888
+    ]
+  },
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/desktop/profile-menu-dark.png",
+    "beforeSize": [
+      1920,
+      975
+    ],
+    "afterSize": [
+      1920,
+      975
+    ],
+    "changedBounds": [
+      29,
+      144,
+      1656,
+      946
+    ]
+  },
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/desktop/profile-menu-light.png",
+    "beforeSize": [
+      1920,
+      975
+    ],
+    "afterSize": [
+      1920,
+      975
+    ],
+    "changedBounds": [
+      29,
+      144,
+      1656,
+      946
+    ]
+  },
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/desktop/settings-general-dark.png",
+    "beforeSize": [
+      1920,
+      975
+    ],
+    "afterSize": [
+      1920,
+      975
+    ],
+    "changedBounds": [
+      10,
+      10,
+      1656,
+      946
+    ]
+  },
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/desktop/settings-general-light.png",
+    "beforeSize": [
+      1920,
+      975
+    ],
+    "afterSize": [
+      1920,
+      975
+    ],
+    "changedBounds": [
+      10,
+      10,
+      1656,
+      946
+    ]
+  },
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/desktop/text-selection-action.png",
+    "beforeSize": [
+      1280,
+      720
+    ],
+    "afterSize": [
+      1280,
+      720
+    ],
+    "changedBounds": [
+      4,
+      10,
+      1180,
+      719
+    ]
+  },
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/desktop/workspace-dark.png",
+    "beforeSize": [
+      1280,
+      720
+    ],
+    "afterSize": [
+      1280,
+      720
+    ],
+    "changedBounds": [
+      68,
+      626,
+      1195,
+      719
+    ]
+  },
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/mobile/adaptive-1440-compact-dark.png",
+    "beforeSize": [
+      1440,
+      900
+    ],
+    "afterSize": [
+      1440,
+      900
+    ],
+    "changedBounds": [
+      68,
+      165,
+      1280,
+      888
+    ]
+  },
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/mobile/adaptive-1440-compact-light.png",
+    "beforeSize": [
+      1440,
+      900
+    ],
+    "afterSize": [
+      1440,
+      900
+    ],
+    "changedBounds": [
+      68,
+      165,
+      1278,
+      888
+    ]
+  },
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/mobile/profile-menu-dark.png",
+    "beforeSize": [
+      412,
+      839
+    ],
+    "afterSize": [
+      412,
+      839
+    ],
+    "changedBounds": [
+      23,
+      158,
+      400,
+      814
+    ]
+  },
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/mobile/profile-menu-light.png",
+    "beforeSize": [
+      412,
+      839
+    ],
+    "afterSize": [
+      412,
+      839
+    ],
+    "changedBounds": [
+      23,
+      158,
+      400,
+      814
+    ]
+  },
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/mobile/reference-drawer-dark.png",
+    "beforeSize": [
+      390,
+      844
+    ],
+    "afterSize": [
+      390,
+      844
+    ],
+    "changedBounds": [
+      0,
+      415,
+      378,
+      832
+    ]
+  },
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/mobile/reference-drawer-light.png",
+    "beforeSize": [
+      390,
+      844
+    ],
+    "afterSize": [
+      390,
+      844
+    ],
+    "changedBounds": [
+      0,
+      415,
+      378,
+      832
+    ]
+  },
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/mobile/settings-general-dark.png",
+    "beforeSize": [
+      412,
+      839
+    ],
+    "afterSize": [
+      412,
+      839
+    ],
+    "changedBounds": [
+      12,
+      25,
+      400,
+      814
+    ]
+  },
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/mobile/settings-general-light.png",
+    "beforeSize": [
+      412,
+      839
+    ],
+    "afterSize": [
+      412,
+      839
+    ],
+    "changedBounds": [
+      12,
+      25,
+      400,
+      814
+    ]
+  }
+]

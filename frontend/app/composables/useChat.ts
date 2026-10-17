@@ -388,7 +388,9 @@ export function useChat(transport: ChatTransport) {
   })
   const persistenceStatus = computed<import('../lib/chat/persistence').PersistenceStatus>(() => ({
     storage: 'local', ready: !storageWarning.value && persistenceAllowed.value,
-    blocked: !persistenceAllowed.value, pendingOperations: Number(pendingSave.value),
+    blocked: !persistenceAllowed.value,
+    recovery: storageWarning.value?.startsWith('Chats wurden') ? 'reload' : retryPersistence.value ? 'retry' : null,
+    pendingOperations: Number(pendingSave.value),
     pendingDrafts: pendingSave.value ? Object.values(state.drafts.records.value).filter(Boolean).length : 0,
     failedOperations: Number(Boolean(storageWarning.value)), restoredDrafts: restoredDrafts.value,
     lastError: lastPersistenceError.value,

@@ -12,6 +12,8 @@ export const messages = {
   backupNotice: ['Aktueller Sicherungshinweis', 'Current backup notice'], backupLastError: ['Letzter bekannter Speicherfehler', 'Last known save error'],
   backupRecovery: ['Wiederherstellung', 'Recovery'], backupRecoveryDescription: ['Die vorhandenen Speicheraktionen mit dem aktuellen Stand erneut ausführen.', 'Retry the existing save actions using the current data.'],
   backupRetry: ['Erneut speichern', 'Retry saving'],
+  backupReload: ['Seite neu laden', 'Reload page'],
+  backupReloadDescription: ['Lade die Seite neu, um den aktuellen Speicherstand erneut einzulesen. Die bestehende Sicherung wird dabei nicht überschrieben.', 'Reload to read the current saved state again. The existing backup will not be overwritten.'],
   settings: ['Einstellungen', 'Settings'], general: ['Allgemein', 'General'], appearance: ['Darstellung', 'Appearance'],
   archived: ['Archivierte Chats', 'Archived chats'], keyboard: ['Tastatur', 'Keyboard'], models: ['Modelle', 'Models'],
   dataControls: ['Datenkontrollen', 'Data controls'], personal: ['Persönlich', 'Personal'], search: ['Suche', 'Search'],

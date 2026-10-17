@@ -563,7 +563,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     return persist(backend.preferences(state.conversations.activeId.value, modelId), { operation: 'preferences', resourceId: 'model', attemptId: crypto.randomUUID() }, () => backend.preferences(state.conversations.activeId.value, preferredModelId ?? modelId))
   }
   const persistenceStatus = computed<import('../lib/chat/persistence').PersistenceStatus>(() => ({
-    storage: 'server', ready: backendReady.value, blocked: false,
+    storage: 'server', ready: backendReady.value, blocked: false, recovery: retryPersistence.value ? 'retry' : null,
     pendingOperations: pendingWrites.value, pendingDrafts: Object.keys(pendingDrafts.value).length,
     failedOperations: failedPersistence.size + Number(Boolean(retryPersistence.value) && !failedPersistence.size),
     restoredDrafts: restoredDrafts.value, lastError: lastPersistenceError.value,
