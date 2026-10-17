@@ -126,7 +126,8 @@
     "toolsTypes": "passed",
     "generatedAPI": "passed",
     "productionBuild": "passed",
-    "gitDiffCheck": "passed"
+    "gitDiffCheck": "passed",
+    "PythonStrictTypes": "passed; exact CI Pyright 1.1.408, 0 errors, 0 warnings"
   },
   "limitations": [
     "Original open/closed-reference CSS viewport and DPR remain unknown; no same-browser pixel-equality claim.",
@@ -140,5 +141,12 @@
     "measuredDeltas": "geometry.json",
     "referenceProvenance": "reference-geometry.json",
     "acceptance": "ACCEPTANCE.md"
+  },
+  "CIRecovery": {
+    "initialFailure": "Pyright reportUnknownVariableType for the search-match default factory",
+    "fix": "default_factory=list[ConversationSearchMatch]",
+    "localLog": "/tmp/noris-parity-python-types.log",
+    "logSHA256": "50bcd85f1ab5b7673b549d9e3e210216bf127777492694316fc6dc25c976cd0f",
+    "OpenAPI": "unchanged; api:check passed"
   }
 }

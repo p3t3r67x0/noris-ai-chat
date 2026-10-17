@@ -150,3 +150,7 @@ The later spinner reference has an explicitly visible **130%** browser-zoom badg
 and includes browser chrome. It is documented separately in the follow-up spinner
 PR; it must not be treated as a 1920×976 CSS-viewport capture or silently mixed
 with these open-chat raster measurements.
+
+CI additionally caught an untyped search-match list factory under strict Pyright
+1.1.408. The generic factory now names ConversationSearchMatch; the exact full
+Python typecheck passes with zero errors. OpenAPI output is unchanged.
