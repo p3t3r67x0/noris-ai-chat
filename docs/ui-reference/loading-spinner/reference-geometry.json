@@ -1,0 +1,70 @@
+{
+  "source": "ChatGPT-Bild 17. Okt. 2026, 21_02_05.png",
+  "sha256": "41c8c44db3b301455632864863e2c27d2387f2d8bee449d60f892a49bfa26f55",
+  "rasterSize": {
+    "width": 1920,
+    "height": 1080
+  },
+  "browserZoom": {
+    "visibleBadge": "130%",
+    "evidence": "Address bar in source raster",
+    "originalCSSViewport": null,
+    "originalDPR": null
+  },
+  "contentRaster": {
+    "x": 0,
+    "y": 85,
+    "width": 1920,
+    "height": 976
+  },
+  "measuredRaster": {
+    "navigationWidth": 443,
+    "railWidth": 68,
+    "spinnerBounds": {
+      "x": 1169,
+      "y": 594,
+      "width": 26,
+      "height": 26
+    },
+    "spinnerCenter": {
+      "x": 1181.5,
+      "y": 606.5
+    },
+    "backgroundRGB": [
+      252,
+      252,
+      252
+    ],
+    "darkArcRGB": [
+      93,
+      93,
+      93
+    ],
+    "trackRGB": [
+      204,
+      204,
+      204
+    ],
+    "estimatedStroke": 3.25,
+    "estimatedDarkArcFraction": 0.75
+  },
+  "normalization": {
+    "effectiveRasterScale": 1.3,
+    "reason": "Visible zoom and rail 68 / CSS 52 are consistent; effective DPR 1.3 is a reconstruction, not original metadata.",
+    "estimatedCSSSpinnerSize": 20,
+    "estimatedCSSStroke": 2.5,
+    "position": "Center of main content below 52 CSS-px header, including composer area",
+    "testCSSViewport": {
+      "width": 1477,
+      "height": 751
+    },
+    "testDPR": 1.3
+  },
+  "uncertaintyRasterPx": 1,
+  "privateOriginal": "/tmp/noris-spinner-reference/reference.png",
+  "limitations": [
+    "No observed animation duration can be inferred from a still image; 900ms uses requested range.",
+    "Dark/mobile loading references are unavailable.",
+    "Original Firefox CSS viewport/DPR are unknown; no raw same-browser pixel equality claim."
+  ]
+}

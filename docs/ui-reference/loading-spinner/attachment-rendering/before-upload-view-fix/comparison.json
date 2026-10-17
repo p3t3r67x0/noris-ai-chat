@@ -1,0 +1,66 @@
+[
+  {
+    "name": "attachment-390-light",
+    "rasterSize": [
+      390,
+      844
+    ],
+    "changedPixelsAbsolute": 2089,
+    "differenceBounds": [
+      24,
+      278,
+      366,
+      406
+    ],
+    "geometry": "Identical parent/spinner DOMRects and computed font metrics; one-row paint difference after initial loading.",
+    "decision": "Retain required stable pending dock position; no coordinate offsets or tolerance increase."
+  },
+  {
+    "name": "attachment-390-dark",
+    "rasterSize": [
+      390,
+      844
+    ],
+    "changedPixelsAbsolute": 2065,
+    "differenceBounds": [
+      24,
+      278,
+      366,
+      406
+    ],
+    "geometry": "Identical parent/spinner DOMRects and computed font metrics; one-row paint difference after initial loading.",
+    "decision": "Retain required stable pending dock position; no coordinate offsets or tolerance increase."
+  },
+  {
+    "name": "october-uploading-390-light",
+    "rasterSize": [
+      390,
+      844
+    ],
+    "changedPixelsAbsolute": 1971,
+    "differenceBounds": [
+      24,
+      266,
+      366,
+      406
+    ],
+    "geometry": "Identical parent/spinner DOMRects and computed font metrics; one-row paint difference after initial loading.",
+    "decision": "Retain required stable pending dock position; no coordinate offsets or tolerance increase."
+  },
+  {
+    "name": "october-uploading-390-dark",
+    "rasterSize": [
+      390,
+      844
+    ],
+    "changedPixelsAbsolute": 1959,
+    "differenceBounds": [
+      24,
+      266,
+      366,
+      406
+    ],
+    "geometry": "Identical parent/spinner DOMRects and computed font metrics; one-row paint difference after initial loading.",
+    "decision": "Retain required stable pending dock position; no coordinate offsets or tolerance increase."
+  }
+]

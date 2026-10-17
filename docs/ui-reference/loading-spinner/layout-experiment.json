@@ -1,0 +1,21 @@
+{
+  "before": {
+    "x": 746,
+    "y": 899,
+    "width": 768,
+    "height": 54
+  },
+  "after": {
+    "x": 746,
+    "y": 87,
+    "width": 768,
+    "height": 54
+  },
+  "restored": {
+    "x": 746,
+    "y": 899,
+    "width": 768,
+    "height": 54
+  },
+  "note": "A browser-only always-contents override matches attachment rastering but violates the required bottom dock during a held initial load. Auto-margin variants retain the dock but did not resolve the raster difference."
+}

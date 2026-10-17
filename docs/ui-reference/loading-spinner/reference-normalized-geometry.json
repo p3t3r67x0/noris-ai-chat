@@ -1,0 +1,48 @@
+{
+  "viewport": {
+    "width": 1477,
+    "height": 751,
+    "dpr": 1.2999999523162842
+  },
+  "pane": {
+    "x": 340,
+    "y": 52,
+    "width": 1137,
+    "height": 699,
+    "top": 52,
+    "right": 1477,
+    "bottom": 751,
+    "left": 340
+  },
+  "spinner": {
+    "x": 898.5,
+    "y": 391.5,
+    "width": 20,
+    "height": 20,
+    "top": 391.5,
+    "right": 918.5,
+    "bottom": 411.5,
+    "left": 898.5
+  },
+  "centerDeltaX": 0,
+  "centerDeltaY": 0,
+  "styles": {
+    "stroke": "2.5px",
+    "color": "rgb(93, 93, 93)",
+    "animation": "none",
+    "duration": "1e-05s",
+    "timing": "ease",
+    "iterations": "1"
+  },
+  "rasterCenter": {
+    "x": 1181.05,
+    "y": 521.95
+  },
+  "referenceCenter": {
+    "x": 1181.5,
+    "y": 521.5
+  },
+  "referenceBrowserContentTop": 85,
+  "scale": 1.3,
+  "note": "Raster-scale reconstruction; original CSS viewport and DPR are not recorded in the PNG."
+}

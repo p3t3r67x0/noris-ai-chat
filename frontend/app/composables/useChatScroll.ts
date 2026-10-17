@@ -2,7 +2,7 @@ import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { Ref } from 'vue'
 import { distanceToBottom, followingAfterScroll, scrollButtonVisible } from '../lib/chat/scroll'
 
-export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HTMLElement | null>, conversationId: Ref<string | null>, turnId: Ref<string | null>, persistent = false) {
+export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HTMLElement | null>, conversationId: Ref<string | null>, turnId: Ref<string | null>, persistent = false, pending: Ref<boolean | undefined> = ref(false)) {
   const following = ref(true)
   const distance = ref(0)
   const showScrollButton = ref(false)
@@ -31,7 +31,7 @@ export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HT
   function saveAnchor(): void {
     const element = scroller.value
     const id = conversationId.value
-    if (!persistent || !id || !element || restoring || changing) return
+    if (!persistent || !id || !element || restoring || changing || pending.value) return
     const viewport = element.getBoundingClientRect()
     const message = [...element.querySelectorAll<HTMLElement>('[data-message-id]')].find(node => node.getBoundingClientRect().bottom > viewport.top)
     anchors.delete(id)
@@ -76,7 +76,7 @@ export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HT
     measure()
   }
   function follow(): void {
-    if (!following.value || changing || frame !== undefined) return
+    if (!following.value || changing || pending.value || frame !== undefined) return
     frame = requestAnimationFrame(() => {
       frame = undefined
       if (following.value && !changing) setTop(scroller.value?.scrollHeight ?? 0)
@@ -89,7 +89,7 @@ export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HT
   }
   function onScroll(): void {
     const element = scroller.value
-    if (!element || changing) return
+    if (!element || changing || pending.value) return
     measure()
     following.value = followingAfterScroll(following.value, lastTop, element.scrollTop, distance.value, element.scrollHeight - element.clientHeight)
     lastTop = element.scrollTop
@@ -110,6 +110,7 @@ export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HT
   function contentChanged(): void { measure(); follow() }
   function contentRendered(): void {
     measure()
+    if (pending.value) return
     if (restoring && restoreAnchor()) return
     if (following.value && !changing) {
       cancelFrame()
@@ -130,15 +131,32 @@ export function useChatScroll(scroller: Ref<HTMLElement | null>, content: Ref<HT
     else if (id !== previousId || turn !== previousTurn) { following.value = true; setTop(scroller.value?.scrollHeight ?? 0) }
     changing = false
     if (id !== previousId) restoring = persistent
+    if (pending.value) return
     if (!restoreAnchor()) follow()
   }, { flush: 'pre' })
+
+  const stopPending = watch(pending, async loading => {
+    cancelFrame()
+    if (loading) return
+    const currentRevision = revision
+    await nextTick()
+    if (pending.value || currentRevision !== revision) return
+    // A retry can mount a partial path before loading the older saved anchor.
+    // Restore once the complete path is laid out and the pending view is revealed.
+    frame = requestAnimationFrame(() => {
+      frame = undefined
+      measure()
+      restoring = persistent
+      if (!restoreAnchor()) follow()
+    })
+  })
 
   onMounted(() => {
     observer = new ResizeObserver(() => { measure(); follow() })
     if (scroller.value) observer.observe(scroller.value)
     if (content.value) observer.observe(content.value)
-    measure(); if (!restoreAnchor()) follow()
+    measure(); if (!pending.value && !restoreAnchor()) follow()
   })
-  onUnmounted(() => { saveAnchor(); ++revision; stopWatching(); observer?.disconnect(); cancelFrame() })
+  onUnmounted(() => { saveAnchor(); ++revision; stopWatching(); stopPending(); observer?.disconnect(); cancelFrame() })
   return { pause, following, showScrollButton, scrollToBottom, contentChanged, contentRendered, onScroll, onWheel, onKeydown, onTouchstart, onTouchmove }
 }

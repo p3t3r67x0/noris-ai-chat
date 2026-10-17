@@ -26,6 +26,31 @@ async function selectFiles(page: Page, files = [textFile]): Promise<void> {
   await (await chooser).setFiles(files)
 }
 
+test('a new attachment keeps the known empty chat visible while its first path loads', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.locator('.empty-chat')).toBeVisible()
+  const input = page.locator('.composer-input')
+  await input.fill('Ein neuer synthetischer Anhang')
+  const original = await input.elementHandle()
+  let release!: () => void
+  let hit!: () => void
+  const held = new Promise<void>(resolve => { release = resolve })
+  const requested = new Promise<void>(resolve => { hit = resolve })
+  await page.route('**/api/v1/conversations/*/active-path?*', async route => { hit(); await held; await route.fallback() })
+  try {
+    await selectFiles(page)
+    await requested
+    await expect(page.getByRole('status', { name: 'Chat wird geladen', exact: true })).toHaveCount(0)
+    await expect(page.locator('.empty-chat')).toBeVisible()
+    await expect(input).toHaveValue('Ein neuer synthetischer Anhang')
+    await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeDisabled()
+    expect(await original!.evaluate(node => node === document.querySelector('.composer-input'))).toBe(true)
+  }
+  finally { release() }
+  await expect(page.locator('[data-upload-status="uploaded"]')).toHaveCount(1)
+  await expect(input).toHaveValue('Ein neuer synthetischer Anhang')
+})
+
 test('native multiple selection persists previews, layout and server context through reload', async ({ page, request }) => {
   await page.goto('/')
   const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })

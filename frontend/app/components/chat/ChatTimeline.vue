@@ -6,7 +6,7 @@ import { useChatScroll } from '../../composables/useChatScroll'
 import ChatMessageView from './ChatMessage.vue'
 import ChatTextSelection from './ChatTextSelection.vue'
 
-const props = defineProps<{ messages: readonly ChatMessage[], conversationId: string | null, busy: boolean, variants: (id: string) => readonly ChatMessage[], variantSummary?: (id: string) => ApiSchemas['VariantSummary'] | undefined, persistentScroll?: boolean, hasOlder?: boolean | undefined, olderLoading?: boolean | undefined, loadOlder?: (() => Promise<void>) | undefined, canContinue?: (id: string) => boolean }>()
+const props = defineProps<{ messages: readonly ChatMessage[], conversationId: string | null, busy: boolean, loading?: boolean, variants: (id: string) => readonly ChatMessage[], variantSummary?: (id: string) => ApiSchemas['VariantSummary'] | undefined, persistentScroll?: boolean, hasOlder?: boolean | undefined, olderLoading?: boolean | undefined, loadOlder?: (() => Promise<void>) | undefined, canContinue?: (id: string) => boolean }>()
 const emit = defineEmits<{ edit: [id: string], regenerate: [id: string], continue: [id: string], selectVariant: [id: string], reference: [value: ApiSchemas['TextReference']] }>()
 const scroller = ref<HTMLElement | null>(null)
 const content = ref<HTMLElement | null>(null)
@@ -19,7 +19,7 @@ const turns = computed(() => {
   return result
 })
 const turnId = computed(() => turns.value.at(-1)?.[0]?.id ?? null)
-const scroll = useChatScroll(scroller, content, toRef(props, 'conversationId'), turnId, props.persistentScroll)
+const scroll = useChatScroll(scroller, content, toRef(props, 'conversationId'), turnId, props.persistentScroll, toRef(props, 'loading'))
 async function older(): Promise<void> {
   if (!scroller.value || !props.loadOlder) return
   const id = props.conversationId

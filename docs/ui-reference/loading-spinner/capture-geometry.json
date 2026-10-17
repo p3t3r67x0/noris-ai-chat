@@ -1,0 +1,49 @@
+{
+  "viewport": {
+    "width": 1920,
+    "height": 976,
+    "dpr": 1,
+    "scale": 1
+  },
+  "main": {
+    "x": 340,
+    "y": 0,
+    "width": 1580,
+    "height": 976,
+    "top": 0,
+    "right": 1920,
+    "bottom": 976,
+    "left": 340
+  },
+  "content": {
+    "x": 340,
+    "y": 52,
+    "width": 1580,
+    "height": 924,
+    "top": 52,
+    "right": 1920,
+    "bottom": 976,
+    "left": 340
+  },
+  "spinner": {
+    "x": 1120,
+    "y": 504,
+    "width": 20,
+    "height": 20,
+    "top": 504,
+    "right": 1140,
+    "bottom": 524,
+    "left": 1120
+  },
+  "composer": {
+    "x": 746,
+    "y": 899,
+    "width": 768,
+    "height": 54,
+    "top": 899,
+    "right": 1514,
+    "bottom": 953,
+    "left": 746
+  },
+  "url": "http://127.0.0.1:8723/"
+}
