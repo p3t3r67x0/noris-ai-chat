@@ -20,6 +20,39 @@ async function geometry(page: Page) {
 }
 
 for (const theme of ['light', 'dark']) {
+  test(`recent heading hover matches conversation width ${theme}`, async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'Desktop hover geometry; the shell matrix covers the mobile drawer.')
+    await page.setViewportSize({ width: 1701, height: 863 })
+    await seedChat(page, savedChat(1), theme)
+    await page.goto('/')
+    await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+    const heading = page.getByRole('button', { name: 'Letzte', exact: true })
+    const row = page.locator('.conversation-row:visible').first()
+    const headingRect = (await heading.boundingBox())!
+    const rowRect = (await row.boundingBox())!
+    expect(headingRect.x).toBe(rowRect.x)
+    expect(headingRect.width).toBe(rowRect.width)
+    await heading.hover()
+    expect(await heading.evaluate(element => getComputedStyle(element).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)')
+    const sidebar = page.locator('.conversation-sidebar:visible')
+    const root = resolve('../docs/ui-reference/october-2026')
+    await sidebar.screenshot({ path: resolve(root, `recents-hover-${theme}.png`), animations: 'disabled' })
+    await expect(sidebar).toHaveScreenshot(`recents-hover-${theme}.png`, { animations: 'disabled' })
+    await writeFile(resolve(root, `recents-hover-${theme}.json`), JSON.stringify({
+      viewport: { width: 1701, height: 863 }, theme, heading: headingRect, row: rowRect,
+      expectedWidth: rowRect.width, actualWidth: headingRect.width, absoluteDeviationPx: 0,
+      reference: 'Noris row geometry; user screenshot confirms the required equal hover width',
+    }, null, 2) + '\n')
+    await heading.focus()
+    await heading.press('Enter')
+    await expect(heading).toHaveAttribute('aria-expanded', 'false')
+    await expect(row).toBeHidden()
+    await heading.press('Enter')
+    await expect(row).toBeVisible()
+    await expect(heading).toBeFocused()
+    expect((await row.boundingBox())!.height).toBe(rowRect.height)
+  })
+
   for (const [width, height] of viewports) {
     test(`October shell ${width}x${height} ${theme}`, async ({ page }, info) => {
       test.skip(info.project.name !== 'desktop', 'This matrix defines its own viewports; the mobile project covers touch interactions separately.')

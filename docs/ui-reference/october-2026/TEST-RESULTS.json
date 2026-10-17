@@ -205,6 +205,41 @@
         "eslintExitCode": 0,
         "testTypecheckExitCode": 0
       }
+    },
+    "greenFullRuns": {
+      "head": "6f8ed086127ea62e19953d8275a353d3ddd8dd55",
+      "pullRequest": 39041604392,
+      "push": 39041601311,
+      "checks": "success",
+      "composeSmoke": "success"
     }
+  },
+  "recentsHoverFollowup": {
+    "viewport": [
+      1701,
+      863
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "headingX": 60,
+    "rowX": 60,
+    "headingWidth": 271,
+    "rowWidth": 271,
+    "absoluteDeviationPx": 0,
+    "record": {
+      "passed": 2,
+      "failed": 0
+    },
+    "shellComparison": {
+      "passed": 16,
+      "skipped": 16,
+      "failed": 0,
+      "snapshotUpdate": false
+    },
+    "eslintExitCode": 0,
+    "testTypecheckExitCode": 0,
+    "productionBuildExitCode": 0
   }
 }

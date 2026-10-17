@@ -454,3 +454,30 @@ Nachweise. Aktuelle vollständige CI-Ergebnisse sind über die Checks des
 | AC-18 Themes | Light-/Dark-Matrix, Kontrast- und Theme-Persistenztests |
 | AC-19 Accessibility | Keyboard, Fokus, Touch und ARIA; manuelle Geräteabnahme offen |
 | AC-20 Evidenz | Versionierte synthetische Bilder, JSON-Messungen und Pixel-Diffs |
+
+## Nachkorrektur: Hoverbreite von „Letzte“
+
+Der Benutzervergleich vom 17. Oktober zeigt eine um 16 px zu schmale
+Hoverfläche der Abschnittsüberschrift. Ursache ist das horizontale Padding
+von `.sidebar-group`: Der darin liegende Button hatte nur 255 px Breite,
+während die Gesprächszeile 271 px breit ist. Bei aufklappbaren Gruppen liegt
+das Padding jetzt im Button selbst. Text und Pfeil behalten ihre Position,
+die Hoverfläche beginnt wie die Chatzeile bei x=60 und misst 271 px.
+Die DOMRect-Abweichung zur Zeile beträgt in Light und Dark 0 px.
+
+Belege: [Light](october-2026/recents-hover-light.png),
+[Dark](october-2026/recents-hover-dark.png) und die zugehörigen JSON-Messwerte.
+Der neue Test in `october-shell.spec.ts` prüft gleiche x-Position und Breite,
+sichtbaren Hover und Ein-/Ausklappen per Enter bei erhaltenem Fokus und
+unveränderter Zeilenhöhe. Die bestehenden Vergleichsbilder und Toleranzen
+werden beibehalten; lediglich zwei neue Hoverbaselines kommen hinzu.
+
+Die vorausgehenden CI-Korrekturen für `6f8ed08` sind durch beide vollständigen
+Läufe bestätigt: [PR-CI](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/39041604392)
+und [Branch-CI](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/39041601311),
+jeweils `checks` und `compose-smoke` erfolgreich.
+
+Hover-Nachprüfung: Produktionsbuild, ESLint und Test-Typecheck erfolgreich;
+Aufnahme der zwei neuen Baselines erfolgreich. Anschließende vollständige
+October-Shell-Datei ohne Updates: **16 bestanden, 16 projektspezifisch
+ausgelassen**, keine fehlgeschlagenen Fälle.

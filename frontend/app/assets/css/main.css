@@ -174,7 +174,8 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 .sidebar-new-chat { min-height: var(--noris-navigation-row-height); padding-inline: 0.5rem; gap: 0.5rem; font-size: var(--noris-sidebar-font-size); font-weight: 400; }
 .sidebar-section { margin-top: var(--noris-sidebar-section-gap); }
 .sidebar-group { margin: 0; padding: 0 0.5rem 0.5rem; color: var(--noris-text-secondary); font-size: var(--noris-sidebar-font-size); font-weight: 400; }
-.sidebar-section-toggle { display: flex; align-items: center; gap: 0.5rem; width: 100%; min-height: 44px; text-align: left; border-radius: 0.5rem; }
+.sidebar-group:has(.sidebar-section-toggle) { padding-inline: 0; }
+.sidebar-section-toggle { display: flex; align-items: center; gap: 0.5rem; width: 100%; min-height: 44px; padding-inline: 0.5rem; text-align: left; border-radius: 0.5rem; }
 .sidebar-section-toggle:hover { background: var(--noris-hover-background); }
 .sidebar-section-toggle .iconify { margin-inline-start: auto; }
 .sidebar-account-avatar, .sidebar-account-label { font-size: var(--noris-account-label-font-size); line-height: var(--noris-account-label-line-height); }

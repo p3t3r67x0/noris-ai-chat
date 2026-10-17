@@ -206,6 +206,10 @@ docs/ui-reference/october-2026/geometry-390-light.json
 docs/ui-reference/october-2026/geometry-768-dark.json
 docs/ui-reference/october-2026/geometry-768-light.json
 docs/ui-reference/october-2026/pixel-comparison.json
+docs/ui-reference/october-2026/recents-hover-dark.json
+docs/ui-reference/october-2026/recents-hover-dark.png
+docs/ui-reference/october-2026/recents-hover-light.json
+docs/ui-reference/october-2026/recents-hover-light.png
 docs/ui-reference/reasoning/after-1440-dark.png
 docs/ui-reference/reasoning/after-1440-light.png
 docs/ui-reference/reasoning/after-1700-dark.png
@@ -339,6 +343,8 @@ frontend/tests/e2e/__screenshots__/linux/desktop/october-light-streaming.png
 frontend/tests/e2e/__screenshots__/linux/desktop/october-light-two.png
 frontend/tests/e2e/__screenshots__/linux/desktop/profile-menu-dark.png
 frontend/tests/e2e/__screenshots__/linux/desktop/profile-menu-light.png
+frontend/tests/e2e/__screenshots__/linux/desktop/recents-hover-dark.png
+frontend/tests/e2e/__screenshots__/linux/desktop/recents-hover-light.png
 frontend/tests/e2e/__screenshots__/linux/desktop/reference-active-dark.png
 frontend/tests/e2e/__screenshots__/linux/desktop/reference-active-light.png
 frontend/tests/e2e/__screenshots__/linux/desktop/reference-code-dark.png
