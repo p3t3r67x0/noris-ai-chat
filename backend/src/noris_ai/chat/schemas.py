@@ -83,7 +83,7 @@ class ConversationSearchMatch(JsonApiSchema):
 class ConversationListResponse(JsonApiSchema):
     conversations: list[ConversationResponse]
     matches: list[ConversationSearchMatch] = Field(
-        default_factory=list, exclude_if=lambda value: not value
+        default_factory=list[ConversationSearchMatch], exclude_if=lambda value: not value
     )
     nextCursor: str | None = None
     hasMore: bool = False
