@@ -10,9 +10,7 @@ const { t } = useAppLocale()
 <template>
   <nav class="chat-rail" aria-label="Noris-Navigation">
     <UTooltip :text="t('home')">
-      <UButton color="neutral" variant="ghost" class="rail-home touch-control" :aria-label="t('home')" :aria-current="homeActive ? 'page' : undefined" @click="$emit('home')">
-        <span class="rail-mark" aria-hidden="true">n</span>
-      </UButton>
+      <UButton icon="i-lucide-house" color="neutral" variant="ghost" class="rail-home touch-control" :aria-label="t('home')" :aria-current="homeActive ? 'page' : undefined" @click="$emit('home')" />
     </UTooltip>
     <UTooltip :text="t('searchChats')">
       <UButton icon="i-lucide-search" color="neutral" variant="ghost" class="touch-control" :aria-label="t('searchChats')" @click="$emit('search')" />

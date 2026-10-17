@@ -335,7 +335,6 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
   .chat-rail { display: flex; flex-shrink: 0; flex-direction: column; align-items: center; gap: 1rem; width: var(--noris-rail-width); padding: 0.5rem 0; z-index: 11; background: var(--noris-rail-background); box-shadow: inset -1px 0 var(--noris-border); }
   .chat-rail button { border-radius: 0.75rem; }
   .chat-rail button[aria-current="page"] { background: var(--noris-active-background); }
-  .rail-mark { font-size: 1.5rem; font-weight: 700; line-height: 1; }
   .conversation-sidebar > [data-slot="container"] { inset-inline-start: var(--noris-rail-width); }
   .conversation-sidebar > [data-slot="container"][data-state="collapsed"] { inset-inline-start: calc(var(--noris-rail-width) - var(--noris-sidebar-width)); }
   .conversation-sidebar > [data-slot="container"] { border-inline-end: 1px solid var(--noris-border); }
