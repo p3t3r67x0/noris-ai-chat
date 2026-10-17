@@ -33,11 +33,11 @@ for (const viewport of [{ width: 1920, height: 975 }, { width: 1440, height: 900
       const positions = await Promise.all(controls.map(selector => page.locator(selector).boundingBox()))
       const singleLine = await input.evaluate(element => element.clientHeight)
       if (viewport.width === 1920) {
-        // The supplied desktop reference is 1920 × 975 with a ~1003 × 70 px composer.
-        expect(original.width).toBeCloseTo(1000, 0)
-        expect(original.height).toBeCloseTo(70, 0)
-        expect(original.y + original.height).toBeCloseTo(946, 0)
-        expect(await input.evaluate(element => Number.parseFloat(getComputedStyle(element).fontSize))).toBeCloseTo(22, 1)
+        // October CSS targets are distinct from the supplied 1920 × 975 image pixels.
+        expect(original.width).toBeCloseTo(888, 0)
+        expect(original.height).toBeCloseTo(62, 0)
+        expect(original.y + original.height).toBeCloseTo(975 * 0.49 + 4, 0)
+        expect(await input.evaluate(element => Number.parseFloat(getComputedStyle(element).fontSize))).toBeCloseTo(18, 1)
       }
 
       async function geometry(): Promise<void> {

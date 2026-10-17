@@ -19,6 +19,23 @@ function fixture(conversation = chat, setPinned = vi.fn()) {
   return { wrapper, setPinned }
 }
 describe('existing sidebar chat actions', () => {
+  it('collapses recent rows without unmounting them or changing conversation state', async () => {
+    const { wrapper } = fixture()
+    const toggle = wrapper.get('.sidebar-section-toggle')
+    const row = wrapper.get('[data-conversation-id="synthetic"]').element
+    expect(toggle.text()).toContain('Letzte')
+    expect(toggle.attributes('aria-expanded')).toBe('true')
+    const list = wrapper.get(`#${toggle.attributes('aria-controls')}`)
+    await toggle.trigger('click')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    expect(list.attributes('style')).toContain('display: none')
+    await wrapper.setProps({ conversations: [{ ...chat, title: 'Aktualisierter Titel' }] })
+    await toggle.trigger('click')
+    expect(wrapper.get('[data-conversation-id="synthetic"]').element).toBe(row)
+    expect(wrapper.get('[data-conversation-id="synthetic"]').text()).toContain('Aktualisierter Titel')
+    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(wrapper.emitted('newChat')).toBeUndefined()
+  })
   it('keeps menu state and accessible labels associated with the same row', async () => {
     const { wrapper } = fixture()
     const row = wrapper.get('[data-conversation-id="synthetic"]')
