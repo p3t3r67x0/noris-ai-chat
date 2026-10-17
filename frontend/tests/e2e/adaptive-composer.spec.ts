@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test'
 import { savedChat, seedChat } from './chat-fixtures'
 
 test.use({ deviceScaleFactor: 1 })
+// Three screenshot states plus repeated resize/focus checks exceed 30s on shared runners.
+test.setTimeout(60_000)
 for (const viewport of [{ width: 1701, height: 863 }, { width: 1440, height: 900 }, { width: 390, height: 844 }]) {
   for (const theme of ['light', 'dark']) {
     test(`adaptive composer ${viewport.width} ${theme}`, async ({ page }) => {
@@ -19,7 +21,7 @@ for (const viewport of [{ width: 1701, height: 863 }, { width: 1440, height: 900
       async function geometry(): Promise<void> {
         const box = (await composer.boundingBox())!
         expect(box.y + box.height).toBeCloseTo(original.y + original.height, 0)
-        for (const selector of ['.composer-attachment', '.composer-model', '.composer-submit']) {
+        for (const selector of ['.composer-attachment', '.composer-submit']) {
           const button = (await page.locator(selector).boundingBox())!
           expect(button.y + button.height / 2).toBeCloseTo(send.y + send.height / 2, 0)
         }

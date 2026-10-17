@@ -1,10 +1,11 @@
+import { expectSelectedModel } from '../e2e/model-helpers'
 import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/api/v1/llm/models')
   await page.goto('/')
   await expect(page.locator('[data-ready="true"]')).toBeVisible({ timeout: 20_000 })
-  await expect(page.getByRole('button', { name: 'Modell auswählen', exact: true })).toContainText('Fixture Alpha')
+  await expectSelectedModel(page, 'Fixture Alpha')
 })
 
 test('retains long Markdown and continues the same message after browser reload', async ({ page }, info) => {

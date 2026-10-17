@@ -8,7 +8,7 @@ const selectors = {
   rail: '.chat-rail', sidebar: '.conversation-sidebar', header: '.sidebar-heading',
   newChat: '.sidebar-new-chat', recents: '.sidebar-section', row: '.conversation-row',
   composer: '.chat-composer', textarea: '.composer-input', plus: '.composer-attachment',
-  model: '.composer-model', microphone: '.composer-microphone', submit: '.composer-submit',
+  microphone: '.composer-microphone', submit: '.composer-submit',
   greeting: '.empty-chat h1', main: '.chat-main',
 }
 
@@ -35,7 +35,7 @@ for (const theme of ['light', 'dark']) {
     await heading.hover()
     expect(await heading.evaluate(element => getComputedStyle(element).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)')
     const sidebar = page.locator('.conversation-sidebar:visible')
-    const root = resolve('../docs/ui-reference/october-2026')
+    const root = resolve('../docs/ui-reference/final-parity/shell-regression')
     await sidebar.screenshot({ path: resolve(root, `recents-hover-${theme}.png`), animations: 'disabled' })
     await expect(sidebar).toHaveScreenshot(`recents-hover-${theme}.png`, { animations: 'disabled' })
     await writeFile(resolve(root, `recents-hover-${theme}.json`), JSON.stringify({
@@ -65,7 +65,7 @@ for (const theme of ['light', 'dark']) {
       await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
       await page.evaluate(() => document.fonts.ready)
       const metrics = await geometry(page)
-      expect(metrics.composer!.width).toBe(Math.min(888, width - (width >= 1024 ? 340 : 0) - (width > 640 ? 48 : 24)))
+      expect(metrics.composer!.width).toBe(Math.min(768, width - (width >= 1024 ? 340 : 0) - (width > 640 ? 48 : 24)))
       expect(metrics.composer!.x + metrics.composer!.width / 2).toBeCloseTo(metrics.main!.x + metrics.main!.width / 2, 0)
       expect(metrics.greeting!.bottom).toBeLessThan(metrics.composer!.y)
       expect(metrics.composer!.bottom).toBeLessThan(height * 0.55)
@@ -73,11 +73,11 @@ for (const theme of ['light', 'dark']) {
         expect(metrics.rail!.width).toBe(52)
         expect(metrics.sidebar!.width).toBe(288)
         expect(metrics.main!.x).toBe(340)
-        expect(metrics.composer!.height).toBe(62)
+        expect(metrics.composer!.height).toBe(54)
         // 44 px keeps the reference's compact rhythm and a full touch target.
-        expect(metrics.row!.height).toBe(44)
+        expect(metrics.row!.height).toBe(37)
         expect(metrics.newChat!.y).toBeGreaterThanOrEqual(metrics.header!.bottom)
-        expect(metrics.newChat!.height).toBeGreaterThanOrEqual(44)
+        expect(metrics.newChat!.height).toBeGreaterThanOrEqual(37)
         await expect(page.getByRole('complementary', { name: 'Gespräche', exact: true })).toBeVisible()
         await expect(page.locator('.sidebar-title:visible')).toHaveText('Noris AI')
         expect(await page.locator('.empty-chat h1').evaluate(element => getComputedStyle(element).fontSize)).toBe('30px')
@@ -91,16 +91,16 @@ for (const theme of ['light', 'dark']) {
         { name: 'rail', dimension: 'width', expected: 52, certainty: 'user-stated markup target; original HTML unavailable' },
         { name: 'sidebar', dimension: 'width', expected: 288, certainty: 'derived from user-stated markup targets' },
         { name: 'main', dimension: 'x', expected: 340, certainty: 'user-stated markup target; original HTML unavailable' },
-        { name: 'composer', dimension: 'width', expected: Math.min(888, width - 388), certainty: 'visual estimate / responsive Noris rule' },
-        { name: 'composer', dimension: 'height', expected: 62, certainty: 'visual estimate' },
-        { name: 'row', dimension: 'height', expected: 42.5, certainty: 'visual estimate; 44 px accessibility choice' },
+        { name: 'composer', dimension: 'width', expected: Math.min(768, width - 388), certainty: 'visual estimate / responsive Noris rule' },
+        { name: 'composer', dimension: 'height', expected: 54, certainty: 'visual estimate' },
+        { name: 'row', dimension: 'height', expected: 37, certainty: 'current raster estimate; mobile controls retain 44px' },
       ] : []
       const comparisons = expectations.map(item => {
         const actual = metrics[item.name]![item.dimension as 'width' | 'height' | 'x']
         return { ...item, actual, absoluteDeviationPx: Math.abs(actual - item.expected), relativeDeviation: Math.abs(actual - item.expected) / item.expected }
       })
       const evidence = { viewport: { width, height, deviceScaleFactor: 1 }, theme, metrics, comparisons }
-      const root = resolve('../docs/ui-reference/october-2026')
+      const root = resolve('../docs/ui-reference/final-parity/shell-regression')
       await mkdir(root, { recursive: true })
       await writeFile(resolve(root, `geometry-${width}-${theme}.json`), JSON.stringify(evidence, null, 2) + '\n')
       await info.attach('geometry', { body: JSON.stringify(evidence, null, 2), contentType: 'application/json' })
@@ -155,6 +155,9 @@ for (const theme of ['light', 'dark']) {
   }
 
   test(`October interactions and visual states ${theme}`, async ({ page }, info) => {
+    // Ten complete-page captures plus interaction checks exceeded 30s under
+    // concurrent local builds; per-assertion and pixel tolerances stay unchanged.
+    test.setTimeout(60_000)
     test.skip(info.project.name !== 'desktop', 'Desktop interaction matrix runs once.')
     await page.setViewportSize({ width: 1701, height: 863 })
     const snapshot = savedChat(0)

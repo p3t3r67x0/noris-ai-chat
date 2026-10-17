@@ -75,6 +75,7 @@ for (const size of [{ width: 1700, height: 900 }, { width: 1440, height: 900 }, 
       for (const toast of await page.locator('.app-notification').all()) {
         const box = (await toast.boundingBox())!
         expect(box.y).toBeGreaterThanOrEqual(header!.y + header!.height)
+        expect(box.x + box.width / 2).toBeCloseTo(size.width / 2, 0)
         expect(box.x).toBeGreaterThanOrEqual(0)
         expect(box.x + box.width).toBeLessThanOrEqual(size.width)
         expect(box.y + box.height).toBeLessThanOrEqual(size.height)

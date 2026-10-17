@@ -1,3 +1,4 @@
+import { expectSelectedModel, selectChatModel } from '../e2e/model-helpers'
 import { clearTestConversations, stableModelCatalog } from './chat-fixtures'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
@@ -16,6 +17,7 @@ test.afterEach(async ({ request }) => {
 
 const textFile = { name: 'synthetic.txt', mimeType: 'text/plain', buffer: Buffer.from('Synthetic upload context for the local simulator.') }
 async function selectFiles(page: Page, files = [textFile]): Promise<void> {
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   await expect(page.locator('.composer-attachment')).toBeEnabled()
   await page.locator('.composer-attachment').click()
   const chooser = page.waitForEvent('filechooser')
@@ -115,11 +117,11 @@ test('file count, type and size limits are visible and never create usable attac
   await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeDisabled()
 })
 
-for (const width of [1701, 1440, 390]) {
+for (const width of [1920, 1701, 1440, 390]) {
   for (const theme of ['light', 'dark']) {
     test(`confirmed attachment preview ${width} ${theme}`, async ({ page }, info) => {
       test.skip(info.project.name !== 'desktop', 'The screenshot matrix runs once; upload interactions also run with touch emulation.')
-      await page.setViewportSize({ width, height: width === 1701 ? 863 : width === 390 ? 844 : 900 })
+      await page.setViewportSize({ width, height: width === 1920 ? 976 : width === 1701 ? 863 : width === 390 ? 844 : 900 })
       await page.addInitScript(value => localStorage.setItem('noris-ai-theme', value), theme)
       await page.goto('/')
       await selectFiles(page)
@@ -127,8 +129,7 @@ for (const width of [1701, 1440, 390]) {
       await expect(page).toHaveScreenshot(`attachment-${width}-${theme}.png`, { animations: 'disabled', caret: 'hide' })
       await page.getByRole('textbox', { name: 'Nachricht', exact: true }).fill('Additional wrapped text for the synthetic attachment. '.repeat(10))
       await expect(page.locator('[data-upload-status="uploaded"]')).toHaveCount(1)
-      await page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true }).click()
-      await page.getByRole('option', { name: 'Fixture Beta' }).click()
+      await selectChatModel(page, 'Fixture Beta')
       const positions = await page.locator('.composer-toolbar button').evaluateAll(elements => elements.map(e => { const r = e.getBoundingClientRect(); return r.y + r.height / 2 }))
       expect(new Set(positions).size).toBe(1)
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
@@ -178,17 +179,14 @@ test('vision attachments survive model changes and reload and reach the provider
   await selectFiles(page, [imageFile])
   await input.fill('Describe this synthetic image')
   await expect(page.locator('.composer-submit')).toBeDisabled()
-  await page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true }).click()
-  await page.getByRole('option', { name: 'Fixture Beta' }).click()
+  await selectChatModel(page, 'Fixture Beta')
   await expect(page.locator('[data-upload-status="uploaded"]')).toContainText('Für Bildanalyse bereit')
   await expect(input).toHaveAttribute('data-instance', 'original-vision-composer')
   await expect(page.locator('.composer-submit')).toBeEnabled()
-  await page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true }).click()
-  await page.getByRole('option', { name: 'Fixture Alpha' }).click()
+  await selectChatModel(page, 'Fixture Alpha')
   await expect(page.locator('.composer-submit')).toBeDisabled()
   await expect(page.locator('.attachment-preview')).toHaveCount(1)
-  await page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true }).click()
-  await page.getByRole('option', { name: 'Fixture Beta' }).click()
+  await selectChatModel(page, 'Fixture Beta')
   await page.reload()
   await expect(page.locator('[data-upload-status="uploaded"]')).toContainText('Für Bildanalyse bereit')
   await expect(input).toHaveValue('Describe this synthetic image')
@@ -235,8 +233,7 @@ test('a failed saved-image preview retries without changing the chat or model', 
   })
   await page.goto('/')
   await selectFiles(page, [imageFile])
-  await page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true }).click()
-  await page.getByRole('option', { name: 'Fixture Beta' }).click()
+  await selectChatModel(page, 'Fixture Beta')
   const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
   await input.fill('Describe this synthetic image')
   await expect(page.locator('[data-upload-status="uploaded"]')).toContainText('Für Bildanalyse bereit')
@@ -250,7 +247,7 @@ test('a failed saved-image preview retries without changing the chat or model', 
   const image = page.getByRole('img', { name: 'Angehängtes Bild: synthetic.png', exact: true })
   await expect.poll(() => image.evaluate(element => (element as HTMLImageElement).naturalWidth)).toBe(16)
   await expect(page.locator('.message-image-error')).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true })).toContainText('Fixture Beta')
+  await expectSelectedModel(page, 'Fixture Beta')
   expect((await (await request.get('/api/v1/conversations')).json()).conversations[0].id).toBe(conversationId)
   expect((await (await request.get(`${fixtureOrigin}/fixture/state`)).json()).calls.length).toBe(before)
 })
@@ -266,8 +263,7 @@ test('stopping a vision response preserves the composer and saved attachment', a
   await stableModelCatalog(page)
   await page.goto('/')
   await selectFiles(page, [imageFile])
-  await page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true }).click()
-  await page.getByRole('option', { name: 'Fixture Beta' }).click()
+  await selectChatModel(page, 'Fixture Beta')
   const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
   await input.evaluate(element => { element.dataset.instance = 'vision-stop' })
   await input.fill('/slow Describe this synthetic image')

@@ -5,7 +5,7 @@ import { resolve } from 'node:path'
 
 const sizes = [[1700, 900], [1440, 900], [768, 1024], [390, 844]] as const
 async function sidebar(page: Page) {
-  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
   await expect(page.getByRole('navigation', { name: 'Gespräche', exact: true })).toBeVisible()
 }

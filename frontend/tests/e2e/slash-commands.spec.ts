@@ -1,3 +1,4 @@
+import { expectSelectedModel } from './model-helpers'
 import { expect, test } from '@playwright/test'
 import { savedChat, seedChat } from './chat-fixtures'
 
@@ -28,7 +29,7 @@ test('slash filtering, aliases, keyboard completion, help and local submit guard
   await input.press('Enter')
   await expect(page.getByRole('option', { name: /noris Fast/ })).toBeVisible()
   await page.getByRole('option', { name: /noris Fast/ }).click()
-  await expect(page.locator('.composer-model')).toContainText('Fast')
+  await expectSelectedModel(page, /noris Fast/)
   await expect(page.locator('.composer-learning')).toBeVisible()
   await input.fill('/hilfe')
   await input.press('Enter')

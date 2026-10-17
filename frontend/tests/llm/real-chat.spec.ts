@@ -1,3 +1,4 @@
+import { expectSelectedModel, selectChatModel } from '../e2e/model-helpers'
 import { expect, test } from '@playwright/test'
 import { CHAT_STORAGE_KEY } from '../../app/lib/chat/persistence'
 import { stableModelCatalog } from '../websocket/chat-fixtures'
@@ -13,7 +14,7 @@ test.beforeEach(async ({ page, request }) => {
   await page.goto('/api/v1/llm/models')
   await page.goto('/')
   await expect(page.locator('[data-ready="true"]')).toBeVisible({ timeout: 20_000 })
-  await expect(page.getByRole('button', { name: 'Modell auswählen', exact: true })).toContainText('Fixture Alpha')
+  await expectSelectedModel(page, 'Fixture Alpha')
 })
 
 test('streams real HTTP text through the existing chat state', async ({ page }) => {
@@ -55,8 +56,7 @@ test('Retry and model switching keep only the original active path', async ({ pa
   await page.getByRole('textbox', { name: 'Nachricht', exact: true }).fill(prompt)
   await page.getByRole('textbox', { name: 'Nachricht', exact: true }).press('Enter')
   await expect(page.locator('[data-generation-status="failed"]')).toBeAttached()
-  await page.getByRole('button', { name: 'Modell auswählen', exact: true }).click()
-  await page.getByRole('option', { name: 'Fixture Beta' }).click()
+  await selectChatModel(page, 'Fixture Beta')
   await page.locator('.message-assistant').last().getByRole('button', { name: 'Erneut versuchen', exact: true }).click()
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   const state = await request.get(`${fixtureOrigin}/fixture/state`).then(response => response.json()) as { calls: { model: string, messages: { role: string, content: string }[] }[] }
@@ -73,8 +73,7 @@ for (const finish of ['long', 'length'] as const) {
     await stableModelCatalog(page)
     await page.reload()
     await expect(page.locator('[data-ready="true"]')).toBeVisible()
-    await page.getByRole('button', { name: 'Modell auswählen', exact: true }).click()
-    await page.getByRole('option', { name: 'Fixture Long' }).click()
+    await selectChatModel(page, 'Fixture Long')
     await page.getByRole('textbox', { name: 'Nachricht', exact: true }).fill(`/${finish === 'long' ? 'tokens-long' : 'length'} ${info.project.name}`)
     await page.getByRole('textbox', { name: 'Nachricht', exact: true }).press('Enter')
     await expect(page.locator(`[data-generation-status="${finish === 'long' ? 'completed' : 'incomplete'}"]`)).toBeAttached()

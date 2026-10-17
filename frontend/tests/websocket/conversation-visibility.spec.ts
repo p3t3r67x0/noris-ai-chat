@@ -17,7 +17,7 @@ async function openSearch(page: Page) {
   return dialog
 }
 async function newChat(page: Page) {
-  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
   await page.locator('.sidebar-primary-actions').filter({ visible: true }).getByRole('button', { name: 'Neuer Chat', exact: true }).click()
   // Mobile focus remains trapped until the drawer's closing transition ends.

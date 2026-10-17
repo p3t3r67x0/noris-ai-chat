@@ -25,7 +25,7 @@ export async function captureScene(page: Page, testInfo: TestInfo, scene: string
   await page.goto('/')
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true', { timeout: 15_000 })
   await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /dark/ : /light/)
-  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
   if (scene === 'sidebar-closed' && await toggle.getAttribute('aria-expanded') === 'true') await toggle.click()
   if (scene === 'drawer') {
     await toggle.click()

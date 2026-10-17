@@ -123,7 +123,7 @@ export function useModelSelection(options: { mode?: 'mock' | 'real' | 'websocket
     if (isChatModelId(value)) notice.value = null
     if (!import.meta.client || !isChatModelId(value)) return
     try { window.localStorage.setItem('noris-ai:model', value) }
-    catch { /* Persistence is optional. */ }
+    catch { notifications?.notify({ severity: 'warning', title: 'Modellauswahl nicht gespeichert', description: 'Die Auswahl bleibt für diese Sitzung erhalten. Bitte prüfe den Browserspeicher.', key: 'model-preference-storage' }) }
   })
   return { modelId, models: CHAT_MODELS, catalogModels, error, notice, loading, stale, canSend, fallbackId, refresh, chooseFallback }
 }

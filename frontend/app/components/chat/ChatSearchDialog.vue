@@ -4,22 +4,25 @@ import type { useChatBackend } from '../../composables/useChatBackend'
 import { useConversationSearch } from '../../composables/useConversationSearch'
 import { useChatViewport } from '../../composables/useChatViewport'
 import { useAppLocale } from '../../composables/useAppLocale'
+import type { ChatMessage } from '../../lib/chat/types'
 import type { Conversation } from '../../lib/chat/conversations'
 import { compareConversations } from '../../lib/chat/conversations'
 import { useAppNotifications } from '../../composables/useAppNotifications'
 
 const props = defineProps<{
   conversations: readonly Conversation[]
+  messages?: readonly ChatMessage[] | undefined
   pagination?: ReturnType<typeof useChatBackend>['pagination'] | undefined
   returnFocus?: HTMLElement | null
 }>()
 const open = defineModel<boolean>('open', { required: true })
-const emit = defineEmits<{ select: [id: string] }>()
-const { query, results, loading, error, diagnostics, cursor, search } = useConversationSearch(open, () => props.conversations, () => props.pagination)
+const emit = defineEmits<{ select: [id: string, messageId?: string] }>()
+const { query, results, matches, loading, error, diagnostics, cursor, search } = useConversationSearch(open, () => props.conversations, () => props.pagination)
 const notifications = useAppNotifications()
 const { viewportStyle } = useChatViewport()
 const { t } = useAppLocale()
 const selected = ref(false)
+const selectedMessage = ref<string | undefined>()
 const selectionVisible = ref(false)
 let focusRevision = 0
 watch(query, () => { selectionVisible.value = false }, { flush: 'sync' })
@@ -30,23 +33,36 @@ const input = computed(() => ({
   ui: { root: () => 'chat-search-input', base: () => 'chat-search-input-base', trailing: () => 'chat-search-input-trailing' },
 }))
 
-function select(id: string): void {
+function select(id: string, messageId?: string): void {
   selected.value = true
+  selectedMessage.value = messageId
   open.value = false
-  emit('select', id)
+  emit('select', id, messageId)
 }
 
+const localMatches = computed(() => {
+  const needle = query.value.trim().toLocaleLowerCase()
+  if (!needle || props.pagination) return []
+  return (props.messages ?? []).filter(message => message.content.toLocaleLowerCase().includes(needle)).map(message => {
+    const index = message.content.toLocaleLowerCase().indexOf(needle)
+    const start = Math.max(0, index - 60)
+    return { conversationId: message.conversationId, messageId: message.id, excerpt: `${start ? '…' : ''}${message.content.slice(start, start + 180)}` }
+  })
+})
+const searchMatches = computed(() => props.pagination ? matches.value : localMatches.value)
 const groups = computed(() => [{
-  id: 'recent-chats', label: t('recentChats'), ignoreFilter: Boolean(props.pagination),
-  items: [...(props.pagination ? results.value : props.conversations)].sort(compareConversations).map(conversation => ({
-    id: conversation.id, label: conversation.title, icon: 'i-lucide-message-circle', onSelect: () => select(conversation.id),
-  })),
+  id: 'recent-chats', label: t('recentChats'), ignoreFilter: true,
+  items: [...(props.pagination ? results.value : props.conversations)].sort(compareConversations).filter(conversation => props.pagination || !query.value.trim() || conversation.title.toLocaleLowerCase().includes(query.value.trim().toLocaleLowerCase()) || searchMatches.value.some(match => match.conversationId === conversation.id)).map(conversation => {
+    const match = searchMatches.value.find(match => match.conversationId === conversation.id)
+    return { id: conversation.id, label: conversation.title, ...(match ? { description: match.excerpt } : {}), icon: 'i-lucide-message-circle', onSelect: () => select(conversation.id, match?.messageId) }
+  }),
 }])
 
 function initialFocus(event: Event): void {
   event.preventDefault()
   focusRevision++
   selected.value = false
+  selectedMessage.value = undefined
   selectionVisible.value = false
   // This version of the palette exposes no content-ID prop. Label the native
   // Reka listbox so the input's controls relationship targets the actual popup.
@@ -74,6 +90,10 @@ function restoreFocus(event: Event): void {
   void nextTick(() => requestAnimationFrame(() => {
     if (open.value || revision !== focusRevision) return
     if (!chosen && trigger?.isConnected && !trigger.closest('[inert], [role="dialog"][data-state="closed"]') && trigger.getClientRects().length) trigger.focus({ preventScroll: true })
+    else if (chosen && selectedMessage.value) {
+      const message = [...document.querySelectorAll<HTMLElement>('[data-message-id]')].find(node => node.dataset.messageId === selectedMessage.value)
+      if (message) { message.tabIndex = -1; message.focus({ preventScroll: true }) }
+    }
     else (document.querySelector<HTMLElement>('.composer-input') ?? document.querySelector<HTMLElement>('#chat-main'))?.focus({ preventScroll: true })
   }))
 }
@@ -101,7 +121,7 @@ const content = computed(() => ({
           content: () => 'chat-search-content', viewport: () => 'chat-search-viewport',
           group: () => 'chat-search-group', label: () => 'chat-search-label',
           item: () => 'chat-search-row', itemLeadingIcon: () => 'chat-search-icon',
-          itemWrapper: () => 'chat-search-row-copy', itemLabel: () => 'chat-search-row-title',
+          itemWrapper: () => 'chat-search-row-copy', itemLabel: () => 'chat-search-row-title', itemDescription: () => 'chat-search-row-excerpt',
           empty: () => 'chat-search-empty', footer: () => 'chat-search-footer',
         }"
         @keydown="revealKeyboardSelection" @pointermove="revealPointerSelection"

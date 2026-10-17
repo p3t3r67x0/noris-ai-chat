@@ -1,3 +1,4 @@
+import { expectSelectedModel, selectChatModel } from '../e2e/model-helpers'
 import { expect, test } from '@playwright/test'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -32,12 +33,11 @@ test.beforeEach(async ({ page }) => {
   })
   await page.goto('/')
   await expect(page.locator('[data-ready="true"]')).toBeVisible({ timeout: 20_000 })
-  await expect(page.getByRole('button', { name: 'Modell auswählen', exact: true })).toContainText('GPT-OSS 120B')
+  await expectSelectedModel(page, 'GPT-OSS 120B')
 })
 
 test('explicitly enabled Noris smoke, focus, anchoring and safe error display', async ({ page }) => {
-  await page.getByRole('button', { name: 'Modell auswählen', exact: true }).click()
-  await page.getByRole('option', { name: 'GPT-OSS 120B', exact: true }).click()
+  await selectChatModel(page, 'GPT-OSS 120B')
   await page.evaluate(() => {
     document.documentElement.dataset.liveStreamSeen = 'false'
     const observer = new MutationObserver((mutations) => {

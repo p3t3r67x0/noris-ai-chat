@@ -50,6 +50,9 @@ async function openProfileSettings(page: Page) {
 
 for (const theme of ['light', 'dark']) {
   test(`settings-only controls and recovery status in ${theme}`, async ({ page }, info) => {
+    // The complete chat/settings/recovery screenshot sequence exceeds 30s on
+    // the shared browser host. Keep individual assertions and pixel limits.
+    test.setTimeout(60_000)
     const width = info.project.name === 'mobile' ? 390 : 1440
     await page.setViewportSize({ width, height: width === 390 ? 844 : 900 })
     await page.emulateMedia({ colorScheme: theme as 'light' | 'dark', reducedMotion: 'reduce' })

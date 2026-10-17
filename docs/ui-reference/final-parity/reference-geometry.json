@@ -1,0 +1,76 @@
+{
+  "source": "reference.png",
+  "sha256": "cfe8d41861bc87521368d0b8ae64697edd2f758bd3be0298173001514ce792c7",
+  "imagePixels": [
+    1920,
+    976
+  ],
+  "originalCssViewport": null,
+  "originalDpr": null,
+  "originalZoom": 1,
+  "classification": "Raster measurements, not reference DOMRects. Zoom 100% is user-confirmed. CSS viewport and DPR cannot be proved from PNG metadata.",
+  "rectangles": {
+    "rail": {
+      "x": 0,
+      "y": 0,
+      "width": 52,
+      "height": 976,
+      "uncertaintyPx": 1
+    },
+    "sidebar": {
+      "x": 52,
+      "y": 0,
+      "width": 288,
+      "height": 976,
+      "uncertaintyPx": 1
+    },
+    "main": {
+      "x": 340,
+      "y": 0,
+      "width": 1580,
+      "height": 976,
+      "uncertaintyPx": 1
+    },
+    "chat": {
+      "x": 746,
+      "width": 768,
+      "uncertaintyPx": 2
+    },
+    "composer": {
+      "x": 746,
+      "y": 899,
+      "width": 768,
+      "height": 54,
+      "uncertaintyPx": 2
+    }
+  },
+  "typography": {
+    "messageFontSizeEstimate": 16,
+    "lineHeightEstimate": 26,
+    "fontFamily": "Unknown; system sans appearance",
+    "evidence": "Visible paragraph baselines and glyph bounding boxes; nominal CSS metrics cannot be recovered exactly from a PNG."
+  },
+  "missing": [
+    "Dark/mobile reference",
+    "Original CSS viewport and DPR metadata"
+  ],
+  "zoomEvidence": "User confirmed browser zoom 100% for both screenshots.",
+  "closedSidebar": {
+    "sha256": "6b930262788c5364002483f0e71e20fa6b220a483fc0b29a11ef8c58ff8c6b42",
+    "imagePixels": [
+      1920,
+      975
+    ],
+    "originalZoom": 1,
+    "originalCssViewport": null,
+    "originalDpr": null,
+    "rasterEstimates": {
+      "railWidth": 68,
+      "composerWidth": 1000,
+      "composerHeight": 70,
+      "composerX": 493,
+      "uncertaintyPx": 3
+    },
+    "classification": "Different apparent raster scale from the open reference (rail 68/52, column ~1000/768). No equal-viewport/DPR comparison can be established. Used for structure and relative centering only."
+  }
+}

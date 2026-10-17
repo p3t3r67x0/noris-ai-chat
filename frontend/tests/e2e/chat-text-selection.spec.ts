@@ -1,3 +1,4 @@
+import { openModelChoices } from './model-helpers'
 import { expect, test } from '@playwright/test'
 import { codeChat, savedChat, seedChat } from './chat-fixtures'
 import { selectText } from './text-selection-helpers'
@@ -94,7 +95,7 @@ test('selection is hidden while dragging and outside clicks dismiss it', async (
   await page.getByRole('textbox', { name: 'Nachricht', exact: true }).click()
   await expect(page.getByRole('button', { name: 'noris AI fragen', exact: true })).toHaveCount(0)
   await selectText(page, '.assistant-content strong')
-  await page.getByRole('button', { name: 'Modell auswählen', exact: true }).click()
+  await openModelChoices(page)
   await expect(page.getByRole('button', { name: 'noris AI fragen', exact: true })).toHaveCount(0)
 })
 

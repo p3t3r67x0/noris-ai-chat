@@ -53,7 +53,7 @@ for (const viewport of [{ width: 1920, height: 975 }, { width: 1440, height: 900
     await expect(page.locator('td')).toHaveCount(14)
     await expectBoundedMarkdown(page)
     if (viewport.width >= 1024) {
-      const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+      const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
       await expect(toggle).toHaveAttribute('aria-expanded', 'true')
       await toggle.click()
       await expect(toggle).toHaveAttribute('aria-expanded', 'false')

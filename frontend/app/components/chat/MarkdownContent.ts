@@ -45,7 +45,8 @@ function renderTokens(tokens: readonly Token[], environment: CitationEnvironment
       if (!token) break
       if (token.nesting === -1) break
       const key = index
-      if (token.type === 'inline') nodes.push(...renderTokens(token.children ?? [], environment, citation, label, link))
+      if (token.hidden && token.nesting === 1) nodes.push(...children(link))
+      else if (token.type === 'inline') nodes.push(...renderTokens(token.children ?? [], environment, citation, label, link))
       else if (token.type === 'text') nodes.push(...renderCitationText(token.content, environment, citation, label, link))
       else if (token.type === 'code_inline') nodes.push(h('code', { key }, environment.restore(token.content)))
       else if (token.type === 'softbreak') nodes.push('\n')
