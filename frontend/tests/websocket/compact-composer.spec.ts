@@ -109,7 +109,9 @@ for (const viewport of [{ width: 1920, height: 975 }, { width: 1440, height: 900
       await screenshot('shrunk-empty')
 
       const colors = await page.locator('.composer-submit').evaluate(element => ({ background: getComputedStyle(element).backgroundColor, color: getComputedStyle(element).color }))
-      expect(colors).toEqual({ background: 'rgb(0, 0, 0)', color: 'rgb(255, 255, 255)' })
+      expect(colors).toEqual(theme === 'dark'
+        ? { background: 'rgb(236, 236, 236)', color: 'rgb(21, 21, 21)' }
+        : { background: 'rgb(13, 13, 13)', color: 'rgb(255, 255, 255)' })
       await expect(page.locator('.composer-microphone')).toHaveAccessibleName('Diktieren')
     })
   }

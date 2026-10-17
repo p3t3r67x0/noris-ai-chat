@@ -364,6 +364,9 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 }
 @container (max-height: 300px) {
   .chat-content[data-empty="true"] { padding-block: 0 env(safe-area-inset-bottom); }
+  .chat-content[data-empty="true"]::before { flex-basis: 0; }
+  .chat-content[data-empty="true"] .composer-dock { padding-top: 0; }
+  .chat-content[data-empty="true"] .attachment-list { max-height: 15cqh; }
   .empty-chat h1 { font-size: 1rem; margin-bottom: 0.25rem; }
 }
 @media (prefers-reduced-motion: reduce) {
