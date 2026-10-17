@@ -28,3 +28,7 @@ python3 frontend/scripts/package-ui-fonts.py \
 
 Typography targets remain 16px/26px for messages, 16px/24px for the composer and
 24/20/18px headings. The original ChatGPT font identity is not claimed.
+
+Webfont shaping/rasterization can differ slightly from the host system-font path.
+Baselines are reviewed and recaptured after embedding; font size, line height,
+column width and screenshot tolerances are not changed for the new font path.
