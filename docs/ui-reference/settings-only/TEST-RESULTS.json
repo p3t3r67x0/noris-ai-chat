@@ -1,8 +1,32 @@
 {
-  "baseCommit": "b48ce9331ff9a1e89f40f5e5a936e25471fc42a2",
   "date": "2026-10-17",
-  "scope": "Settings-only controls and existing persistence recovery; hover fix separately in PR 88",
-  "checks": {
+  "scope": "Settings-only controls and existing persistence recovery; merged PR 88 shell and hover geometry preserved",
+  "screenshots": {
+    "newGoldens": 16,
+    "updatedExistingGoldens": 16,
+    "syntheticDocumentationScenes": 16,
+    "comparison": "comparison/",
+    "privateReferenceImagesCommitted": false,
+    "tolerancesChanged": false,
+    "desktopDeviceScaleFactor": 1,
+    "mobileDeviceScaleFactor": 2.625,
+    "baselineScale": "css",
+    "documentationScale": "device"
+  },
+  "environmentIssues": [
+    "Temporary directory quota; resolved with an owned test-results temporary directory",
+    "Initial parallel runs under high load: PostgreSQL lock timeout, build exit 137 and mock exit 143; process termination cause not fully verified. These are not counted as passing runs.",
+    "Fixture startup failed before testing on a conflicting port and on a database name without test marker; resolved with dedicated ports and explicitly named test databases.",
+    "Existing optional vue-router/volar plugin and existing build target warnings"
+  ],
+  "ci": "https://github.com/p3t3r67x0/noris-ai-chat/pull/89 — current-head complete CI results are maintained in the PR; historical local runs remain listed separately.",
+  "notRun": [
+    "External live model providers",
+    "Physical iOS/Android keyboards and screenreader acceptance"
+  ],
+  "originalBaseCommit": "b48ce9331ff9a1e89f40f5e5a936e25471fc42a2",
+  "baseCommit": "8d6b06f6f552238898109f0bb1d634340c142f9d",
+  "checksBeforeMainIntegration": {
     "eslint": 0,
     "nuxtAppTypecheck": 0,
     "testTypecheck": 0,
@@ -15,7 +39,7 @@
       "passed": 575
     }
   },
-  "browserRuns": [
+  "browserRunsBeforeMainIntegration": [
     {
       "name": "mock_full_record_before_additional_tab_recovery",
       "passed": 332,
@@ -73,23 +97,52 @@
       "snapshotUpdate": false
     }
   ],
-  "screenshots": {
-    "newGoldens": 16,
-    "updatedExistingGoldens": 16,
-    "syntheticDocumentationScenes": 16,
-    "comparison": "comparison/",
-    "privateReferenceImagesCommitted": false,
-    "tolerancesChanged": false
+  "checks": {
+    "eslint": 0,
+    "nuxtAppTypecheck": 0,
+    "testTypecheck": 0,
+    "toolsTypecheck": 0,
+    "productionBuild": 0,
+    "apiDrift": 0,
+    "unit": {
+      "exitCode": 0,
+      "files": 43,
+      "passed": 577
+    }
   },
-  "environmentIssues": [
-    "Temporary directory quota; resolved with an owned test-results temporary directory",
-    "Initial parallel runs under high load: PostgreSQL lock timeout, build exit 137 and mock exit 143; process termination cause not fully verified. These are not counted as passing runs.",
-    "Fixture startup failed before testing on a conflicting port and on a database name without test marker; resolved with dedicated ports and explicitly named test databases.",
-    "Existing optional vue-router/volar plugin and existing build target warnings"
-  ],
-  "ci": "Full current-head results are linked in the pull request; no local aborted run is represented as passing.",
-  "notRun": [
-    "External live model providers",
-    "Physical iOS/Android keyboards and screenreader acceptance"
+  "browserRuns": [
+    {
+      "name": "combined_main_full_mock_record",
+      "passed": 358,
+      "skipped": 61,
+      "failed": 0,
+      "exitCode": 0,
+      "snapshotUpdate": true
+    },
+    {
+      "name": "combined_main_independent_visual_and_recovery_comparison",
+      "passed": 42,
+      "skipped": 16,
+      "failed": 0,
+      "exitCode": 0,
+      "snapshotUpdate": false
+    },
+    {
+      "name": "combined_main_websocket_upload_stop_and_settings_recovery",
+      "passed": 10,
+      "skipped": 6,
+      "failed": 0,
+      "exitCode": 0,
+      "snapshotUpdate": false
+    },
+    {
+      "name": "actual_main_before_capture",
+      "passed": 1,
+      "skipped": 0,
+      "failed": 0,
+      "exitCode": 0,
+      "snapshotUpdate": false,
+      "codeTree": "f61c12ce637a3e7cce42e09f317ecc746c52c953 (same tree as main merge)"
+    }
   ]
 }

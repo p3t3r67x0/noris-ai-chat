@@ -10,12 +10,21 @@ import DeleteConversationDialog from './DeleteConversationDialog.vue'
 import ConversationTitle from './ConversationTitle.vue'
 import ProfileMenu from './ProfileMenu.vue'
 import ChatSearchDialog from './ChatSearchDialog.vue'
+import ChatSidebarSection from './ChatSidebarSection.vue'
 const { t } = useAppLocale()
 
 const props = defineProps<{ demo?: boolean, pagination?: ReturnType<typeof useChatBackend>['pagination'] | undefined, conversations: readonly Conversation[], archived: readonly Conversation[], activeId: string | null, removeConversation: (id: string) => void | Promise<void>, setPinned: (id: string, pinned: boolean) => void | Promise<void> }>()
 const open = defineModel<boolean>('open', { required: true })
 const emit = defineEmits<{ newChat: [], focusComposer: [], select: [id: string], rename: [id: string, title: string], archive: [id: string], restore: [id: string], settings: [] }>()
-const groups = computed(() => groupConversations(props.conversations))
+// Presentation only: preserve the existing comparators and independent server
+// cursor windows, but collect the chronological sections under one heading.
+const groups = computed(() => {
+  const sorted = groupConversations(props.conversations)
+  const pinned = sorted.filter(group => group.label === 'Fixierte Chats')
+  return [...pinned, { label: 'recents', conversations: sorted.filter(group => group.label !== 'Fixierte Chats').flatMap(group => group.conversations) }]
+})
+const recentsOpen = ref(true)
+const hasConversations = computed(() => groups.value.some(group => group.conversations.length > 0))
 const openMenuId = ref<string | null>(null)
 const pendingPins = ref(new Set<string>())
 const pinAnnouncement = ref('')
@@ -158,21 +167,25 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
 
 <template>
   <USidebar
-    id="chat-sidebar" v-model:open="open" :title="t('conversations')" description="Deine Chats mit noris AI"
+    id="chat-sidebar" v-model:open="open" :title="t('conversations')" :aria-label="t('conversations')" description="Deine Chats mit noris AI"
     collapsible="offcanvas" mode="slideover" :aria-hidden="!open" :inert="!open"
     class="conversation-sidebar" style="--sidebar-width: var(--noris-sidebar-width)"
     :menu="{ side: 'left', content: { onCloseAutoFocus: finishDrawerHandoff }, ui: { content: 'max-w-[min(23.5rem,90vw)] bg-[var(--noris-sidebar-background)]' } }"
     :ui="{
       container: 'h-[var(--chat-viewport-height,100dvh)] bottom-auto',
       inner: 'bg-[var(--noris-sidebar-background)] divide-transparent',
-      header: 'flex-col items-stretch px-2 py-2', body: 'min-h-0 overflow-y-auto px-2', footer: 'p-3 lg:hidden',
+      header: 'flex-col items-stretch px-2 py-1', body: 'min-h-0 overflow-y-auto px-2', footer: 'p-3 lg:hidden',
     }"
   >
     <template #header>
       <div class="sidebar-heading">
         <span class="sidebar-title">Noris AI</span>
-        <UButton icon="i-lucide-search" color="neutral" variant="ghost" class="touch-control hidden lg:inline-flex" :aria-label="t('chatSearch')" @click="showSearch" />
-        <UButton icon="i-lucide-panel-left-close" color="neutral" variant="ghost" class="touch-control" :aria-label="t('closeConversations')" @click="open = false" />
+        <UTooltip :text="t('chatSearch')">
+          <UButton icon="i-lucide-search" color="neutral" variant="ghost" class="touch-control hidden lg:inline-flex" :aria-label="t('chatSearch')" @click="showSearch" />
+        </UTooltip>
+        <UTooltip :text="t('closeConversations')">
+          <UButton icon="i-lucide-panel-left-close" color="neutral" variant="ghost" class="touch-control" :aria-label="t('closeConversations')" aria-controls="chat-sidebar" :aria-expanded="open" @click="open = false" />
+        </UTooltip>
       </div>
       <div class="sidebar-primary-actions">
         <UButton icon="i-lucide-square-pen" color="neutral" variant="ghost" :label="t('newChat')" class="sidebar-new-chat min-h-11 justify-start rounded-lg" @click="newChat" />
@@ -184,11 +197,9 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
       <span role="status" aria-live="polite" class="sr-only">{{ pinAnnouncement }}</span>
       <details v-if="pagination?.sidebarError.value" class="px-3 py-2 text-sm text-warning"><summary>Chatliste nicht verfügbar.</summary><p>{{ pagination.sidebarError.value }}</p></details>
       <UButton v-if="pagination?.sidebarError.value || pagination?.windowedList.value" color="neutral" variant="ghost" label="Neueste Chats laden" :loading="pagination?.sidebarLoading.value" @click="pagination?.reloadSidebar" />
-      <p v-if="pagination?.sidebarLoading.value && groups.length === 0" role="status" class="px-3 py-2 text-sm text-muted">Chats werden geladen …</p>
-      <p v-if="groups.length === 0 && !pagination?.sidebarLoading.value && !pagination?.sidebarError.value" class="px-3 py-6 text-sm leading-relaxed text-muted">{{ t('emptyConversations') }}</p>
-      <section v-for="group in groups" :key="group.label" class="mt-5" :aria-label="group.label === 'Fixierte Chats' ? t('pinnedChats') : group.label">
-        <h2 class="sidebar-group">{{ group.label === 'Fixierte Chats' ? t('pinnedChats') : group.label }}</h2>
-        <ul class="space-y-0.5">
+      <p v-if="pagination?.sidebarLoading.value && !hasConversations" role="status" class="px-3 py-2 text-sm text-muted">Chats werden geladen …</p>
+      <ChatSidebarSection v-for="group in groups" :key="group.label" v-model:open="recentsOpen" :collapsible="group.label === 'recents'" :title="group.label === 'Fixierte Chats' ? t('pinnedChats') : t('recents')">
+        <ul>
           <li v-for="conversation in group.conversations" :key="conversation.id" class="conversation-row group" :data-conversation-id="conversation.id" :data-active="activeId === conversation.id" :data-menu-open="openMenuId === conversation.id">
             <button type="button" :aria-current="activeId === conversation.id ? 'page' : undefined" :title="conversation.title" @click="selectChat(conversation.id)">
               <ConversationTitle :title="conversation.title" :source="conversation.titleSource" />
@@ -201,11 +212,12 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
             </div>
           </li>
         </ul>
+        <p v-if="group.label === 'recents' && recentsOpen && !hasConversations && !pagination?.sidebarLoading.value && !pagination?.sidebarError.value" class="px-2 py-3 text-sm leading-relaxed text-muted">{{ t('emptyConversations') }}</p>
         <UButton v-if="group.label === 'Fixierte Chats' && pagination?.hasMorePinned.value" color="neutral" variant="ghost" :label="t('morePinnedChats')" :loading="pagination.pinnedLoading.value" class="mt-2 w-full" @click="pagination.loadMorePinned" />
         <UButton v-if="group.label === 'Fixierte Chats' && pagination?.pinnedWindowedList.value" color="neutral" variant="ghost" label="Neueste fixierte Chats laden" :loading="pagination.pinnedLoading.value" class="mt-2 w-full" @click="pagination.reloadPinned" />
-      </section>
+      </ChatSidebarSection>
       <p v-if="pagination?.pinnedError.value" role="alert" class="px-3 py-2 text-sm text-warning">{{ pagination.pinnedError.value }} <UButton label="Fixierte Chats erneut laden" variant="link" @click="pagination.reloadPinned" /></p>
-      <UButton v-if="pagination?.hasMore.value" color="neutral" variant="ghost" :label="t('moreChats')" :loading="pagination.sidebarLoading.value" class="mt-3 w-full" @click="pagination.loadMore" />
+      <UButton v-if="recentsOpen && pagination?.hasMore.value" color="neutral" variant="ghost" :label="t('moreChats')" :loading="pagination.sidebarLoading.value" class="mt-3 w-full" @click="pagination.loadMore" />
     </nav>
 
     <template #footer>

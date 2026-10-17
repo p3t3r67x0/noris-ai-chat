@@ -1,3 +1,4 @@
+import { pauseBeforeGeneration } from './chat-fixtures'
 import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
@@ -58,8 +59,7 @@ test('mock failure keeps partial output and supports another attempt', async ({ 
   await input.press('Enter')
   await expect(page.locator('.message-assistant')).toHaveAttribute('data-status', 'failed')
   await expect(page.locator('.message-assistant')).toContainText('Teilantwort')
-  await page.clock.install()
-  await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now()) + 100))
+  await pauseBeforeGeneration(page)
   await page.locator('.message-assistant').last().getByRole('button', { name: 'Erneut versuchen', exact: true }).click()
   await expect(page.locator('[data-generation-status]')).toHaveAttribute('data-generation-status', 'submitting')
   await page.clock.runFor(450)

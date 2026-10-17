@@ -1,5 +1,7 @@
 # Adaptiver Chat-Composer
 
+Aktueller Layoutstand: [Chat-Shell vom 17. Oktober 2026](ui-reference/CHATGPT-2026-10-17-IMPLEMENTATION.md). Die dort dokumentierten CSS-Maße und der erhöhte Empty State ersetzen ältere Layoutangaben unten; technische Lifecycle- und Transportverträge bleiben erhalten.
+
 ## CI-Nachprüfung vom 2026-10-11
 
 Der abgeschlossene [Compose-Browserjob 114435754381](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/38127803240/job/114435754381?pr=43) meldete 16 Suchdialog-Screenshotabweichungen bei 257 erfolgreichen Tests. Die bisherigen Baselines enthielten noch den alten Composer und den Hinweis unterhalb des Composers. Die synthetischen Expected/Actual/Diff-Artefakte wurden lokal verglichen: Die relevante Geometrieänderung liegt im Hintergrund-Composer; Suchfeld, Dialoggeometrie und Trefferlayout bleiben erhalten. In acht Bildern unterscheidet sich zusätzlich die Rasterung eines einzelnen Zeichens im unveränderten synthetischen Treffernamen. Alle Actual-Bilder stimmen pixelgenau mit dem jeweiligen CI-Retry überein. Nur diese 16 synthetischen Baselines wurden aus den bereits vorhandenen CI-Aufnahmen übernommen; Toleranzen und Assertions bleiben bestehen.

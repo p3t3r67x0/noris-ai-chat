@@ -1,0 +1,112 @@
+{
+  ".chat-rail": {
+    "x": 0,
+    "y": 0,
+    "width": 56,
+    "height": 900,
+    "top": 0,
+    "right": 56,
+    "bottom": 900,
+    "left": 0
+  },
+  ".conversation-sidebar": {
+    "x": 56,
+    "y": 0,
+    "width": 281.984375,
+    "height": 900,
+    "top": 0,
+    "right": 337.984375,
+    "bottom": 900,
+    "left": 56
+  },
+  ".sidebar-heading": {
+    "x": 64,
+    "y": 8,
+    "width": 264.984375,
+    "height": 52,
+    "top": 8,
+    "right": 328.984375,
+    "bottom": 60,
+    "left": 64
+  },
+  ".sidebar-new-chat": {
+    "x": 68,
+    "y": 72,
+    "width": 256.984375,
+    "height": 44,
+    "top": 72,
+    "right": 324.984375,
+    "bottom": 116,
+    "left": 68
+  },
+  ".chat-composer": {
+    "x": 504.984375,
+    "y": 811,
+    "width": 768,
+    "height": 60,
+    "top": 811,
+    "right": 1272.984375,
+    "bottom": 871,
+    "left": 504.984375
+  },
+  ".composer-input": {
+    "x": 564.984375,
+    "y": 828,
+    "width": 460,
+    "height": 26,
+    "top": 828,
+    "right": 1024.984375,
+    "bottom": 854,
+    "left": 564.984375
+  },
+  ".composer-attachment": {
+    "x": 512.984375,
+    "y": 819,
+    "width": 44,
+    "height": 44,
+    "top": 819,
+    "right": 556.984375,
+    "bottom": 863,
+    "left": 512.984375
+  },
+  ".composer-model": {
+    "x": 1032.984375,
+    "y": 819,
+    "width": 128,
+    "height": 44,
+    "top": 819,
+    "right": 1160.984375,
+    "bottom": 863,
+    "left": 1032.984375
+  },
+  ".composer-microphone": {
+    "x": 1168.984375,
+    "y": 819,
+    "width": 44,
+    "height": 44,
+    "top": 819,
+    "right": 1212.984375,
+    "bottom": 863,
+    "left": 1168.984375
+  },
+  ".composer-submit": {
+    "x": 1220.984375,
+    "y": 819,
+    "width": 44,
+    "height": 44,
+    "top": 819,
+    "right": 1264.984375,
+    "bottom": 863,
+    "left": 1220.984375
+  },
+  ".empty-chat h1": {
+    "x": 520.984375,
+    "y": 743.515625,
+    "width": 736,
+    "height": 35.984375,
+    "top": 743.515625,
+    "right": 1256.984375,
+    "bottom": 779.5,
+    "left": 520.984375
+  }
+}

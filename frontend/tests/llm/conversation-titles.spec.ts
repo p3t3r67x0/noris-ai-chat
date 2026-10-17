@@ -2,6 +2,7 @@ import { openChatActions } from '../e2e/sidebar-helpers'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { CHAT_STORAGE_KEY } from '../../app/lib/chat/persistence'
+import type { ChatSnapshot } from '../../app/lib/chat/persistence'
 import type { ConversationTitleRequest } from '../../app/lib/chat/types'
 
 const fixtureOrigin = `http://127.0.0.1:${Number(process.env.NORIS_E2E_PROVIDER_PORT ?? 8591)}`
@@ -66,17 +67,61 @@ test('the existing provider contract compacts a verbose title without another pa
   expect(results).toHaveLength(1)
 })
 
-test('a generated title uses available space and fits beside hover or touch actions without changing storage', async ({ page, isMobile }) => {
+test('a generated title uses available space and fits beside hover or touch actions without changing storage', async ({ page, isMobile }, info) => {
+  const fullTitle = 'Docker DNS Troubleshooting Guide'
+  const caption = isMobile ? 'Docker DNS' : 'Docker DNS Troubleshooting'
+  let titleRequests = 0
+  page.on('request', request => { if (request.url().endsWith('/llm/conversation-title')) titleRequests++ })
   await page.setViewportSize({ width: 1280, height: 800 })
   await send(page, '/title-wide')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   await sidebar(page)
   const label = page.getByRole('navigation', { name: 'Gespräche' }).locator('span[data-title-source="generated"]').first()
-  await expect(label).toHaveText(isMobile ? 'Docker DNS' : 'Docker DNS Troubleshooting Guide')
-  await expect(label.locator('..')).toHaveAttribute('title', 'Docker DNS Troubleshooting Guide')
-  await label.locator('..').hover()
+  // The 288 px sidebar with 16 px text needs the middle candidate before hover.
+  // Verify the actual font geometry, rather than assuming the old sidebar width.
+  await expect(label).toHaveText(caption)
+  const button = label.locator('..')
+  const row = button.locator('..')
+  await expect(button).toHaveAttribute('title', fullTitle)
+  const widths = await label.evaluate((element, title) => {
+    const style = getComputedStyle(element)
+    const context = document.createElement('canvas').getContext('2d')
+    if (!context) throw new Error('Textmessung nicht verfügbar')
+    context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
+    const range = document.createRange()
+    range.selectNodeContents(element)
+    return { available: element.clientWidth, caption: range.getBoundingClientRect().width, fullTitle: context.measureText(title).width }
+  }, fullTitle)
+  // Keep the component's existing one-pixel reserve for browser glyph rounding.
+  const fittingBudget = widths.available - 1
+  expect(widths.caption).toBeLessThanOrEqual(fittingBudget)
+  expect(widths.fullTitle).toBeGreaterThan(fittingBudget)
+  const before = await row.boundingBox()
+  await button.hover()
   await expect(label).toHaveText('Docker DNS')
+  await expect(row.getByRole('button', { name: 'Chat-Aktionen', exact: true })).toBeVisible()
   expect(await label.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+  expect(await row.boundingBox()).toEqual(before)
+  const actions = (await row.locator('.conversation-actions').boundingBox())!
+  const titleBox = (await label.boundingBox())!
+  expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(actions.x)
+  await page.mouse.move(0, 0)
+  await expect(label).toHaveText(caption)
+  await button.focus()
+  await expect(label).toHaveText('Docker DNS')
+  await expect(row.getByRole('button', { name: 'Chat-Aktionen', exact: true })).toBeVisible()
+  expect(await row.boundingBox()).toEqual(before)
+  await expect.poll(() => page.evaluate(key => {
+    const snapshot = JSON.parse(localStorage.getItem(key)!) as ChatSnapshot
+    return Object.values(snapshot.conversations.conversations).map(({ title, titleSource }) => ({ title, titleSource }))
+  }, CHAT_STORAGE_KEY)).toEqual([{ title: fullTitle, titleSource: 'generated' }])
+  await page.reload()
+  await expect(page.locator('[data-ready="true"]')).toBeVisible()
+  await sidebar(page)
+  await expect(label).toHaveText(caption)
+  await expect(button).toHaveAttribute('title', fullTitle)
+  expect(titleRequests).toBe(1)
+  await info.attach('generated-title-geometry', { body: JSON.stringify({ viewport: page.viewportSize(), isMobile, widths, row: before }, null, 2), contentType: 'application/json' })
 })
 
 test('a late backend title cannot overwrite a manual rename', async ({ page }) => {

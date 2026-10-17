@@ -1,0 +1,123 @@
+{
+  ".chat-rail": {
+    "x": 0,
+    "y": 0,
+    "width": 0,
+    "height": 0,
+    "top": 0,
+    "right": 0,
+    "bottom": 0,
+    "left": 0
+  },
+  ".conversation-sidebar": {
+    "x": 0,
+    "y": 0,
+    "width": 0,
+    "height": 0,
+    "top": 0,
+    "right": 0,
+    "bottom": 0,
+    "left": 0
+  },
+  ".sidebar-heading": {
+    "x": 0,
+    "y": 0,
+    "width": 0,
+    "height": 0,
+    "top": 0,
+    "right": 0,
+    "bottom": 0,
+    "left": 0
+  },
+  ".sidebar-new-chat": {
+    "x": 0,
+    "y": 0,
+    "width": 0,
+    "height": 0,
+    "top": 0,
+    "right": 0,
+    "bottom": 0,
+    "left": 0
+  },
+  ".sidebar-section": {
+    "x": 0,
+    "y": 0,
+    "width": 0,
+    "height": 0,
+    "top": 0,
+    "right": 0,
+    "bottom": 0,
+    "left": 0
+  },
+  ".conversation-row": null,
+  ".chat-composer": {
+    "x": 24,
+    "y": 443.765625,
+    "width": 720,
+    "height": 62,
+    "top": 443.765625,
+    "right": 744,
+    "bottom": 505.765625,
+    "left": 24
+  },
+  ".composer-input": {
+    "x": 85,
+    "y": 460.765625,
+    "width": 410,
+    "height": 28,
+    "top": 460.765625,
+    "right": 495,
+    "bottom": 488.765625,
+    "left": 85
+  },
+  ".composer-attachment": {
+    "x": 33,
+    "y": 452.765625,
+    "width": 44,
+    "height": 44,
+    "top": 452.765625,
+    "right": 77,
+    "bottom": 496.765625,
+    "left": 33
+  },
+  ".composer-model": {
+    "x": 503,
+    "y": 452.765625,
+    "width": 128,
+    "height": 44,
+    "top": 452.765625,
+    "right": 631,
+    "bottom": 496.765625,
+    "left": 503
+  },
+  ".composer-microphone": {
+    "x": 639,
+    "y": 452.765625,
+    "width": 44,
+    "height": 44,
+    "top": 452.765625,
+    "right": 683,
+    "bottom": 496.765625,
+    "left": 639
+  },
+  ".composer-submit": {
+    "x": 691,
+    "y": 452.765625,
+    "width": 44,
+    "height": 44,
+    "top": 452.765625,
+    "right": 735,
+    "bottom": 496.765625,
+    "left": 691
+  },
+  ".empty-chat h1": {
+    "x": 40,
+    "y": 370.265625,
+    "width": 688,
+    "height": 37.5,
+    "top": 370.265625,
+    "right": 728,
+    "bottom": 407.765625,
+    "left": 40
+  }
+}

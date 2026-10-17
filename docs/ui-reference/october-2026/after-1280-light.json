@@ -1,0 +1,123 @@
+{
+  ".chat-rail": {
+    "x": 0,
+    "y": 0,
+    "width": 52,
+    "height": 800,
+    "top": 0,
+    "right": 52,
+    "bottom": 800,
+    "left": 0
+  },
+  ".conversation-sidebar": {
+    "x": 52,
+    "y": 0,
+    "width": 288,
+    "height": 800,
+    "top": 0,
+    "right": 340,
+    "bottom": 800,
+    "left": 52
+  },
+  ".sidebar-heading": {
+    "x": 60,
+    "y": 4,
+    "width": 271,
+    "height": 44,
+    "top": 4,
+    "right": 331,
+    "bottom": 48,
+    "left": 60
+  },
+  ".sidebar-new-chat": {
+    "x": 60,
+    "y": 58,
+    "width": 271,
+    "height": 44,
+    "top": 58,
+    "right": 331,
+    "bottom": 102,
+    "left": 60
+  },
+  ".sidebar-section": {
+    "x": 60,
+    "y": 155,
+    "width": 271,
+    "height": 121.5,
+    "top": 155,
+    "right": 331,
+    "bottom": 276.5,
+    "left": 60
+  },
+  ".conversation-row": null,
+  ".chat-composer": {
+    "x": 366,
+    "y": 334,
+    "width": 888,
+    "height": 62,
+    "top": 334,
+    "right": 1254,
+    "bottom": 396,
+    "left": 366
+  },
+  ".composer-input": {
+    "x": 427,
+    "y": 351,
+    "width": 578,
+    "height": 28,
+    "top": 351,
+    "right": 1005,
+    "bottom": 379,
+    "left": 427
+  },
+  ".composer-attachment": {
+    "x": 375,
+    "y": 343,
+    "width": 44,
+    "height": 44,
+    "top": 343,
+    "right": 419,
+    "bottom": 387,
+    "left": 375
+  },
+  ".composer-model": {
+    "x": 1013,
+    "y": 343,
+    "width": 128,
+    "height": 44,
+    "top": 343,
+    "right": 1141,
+    "bottom": 387,
+    "left": 1013
+  },
+  ".composer-microphone": {
+    "x": 1149,
+    "y": 343,
+    "width": 44,
+    "height": 44,
+    "top": 343,
+    "right": 1193,
+    "bottom": 387,
+    "left": 1149
+  },
+  ".composer-submit": {
+    "x": 1201,
+    "y": 343,
+    "width": 44,
+    "height": 44,
+    "top": 343,
+    "right": 1245,
+    "bottom": 387,
+    "left": 1201
+  },
+  ".empty-chat h1": {
+    "x": 382,
+    "y": 260.5,
+    "width": 856,
+    "height": 37.5,
+    "top": 260.5,
+    "right": 1238,
+    "bottom": 298,
+    "left": 382
+  }
+}

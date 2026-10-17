@@ -1,6 +1,11 @@
 # Darstellung und Datensicherung ausschließlich in den Einstellungen
 
-Ausgangspunkt: `main` / `b48ce9331ff9a1e89f40f5e5a936e25471fc42a2`.
+Ursprünglicher Ausgangspunkt: `main` / `b48ce9331ff9a1e89f40f5e5a936e25471fc42a2`.
+Nach dem Benutzer-Merge von PR #88 wurde `main` /
+`8d6b06f6f552238898109f0bb1d634340c142f9d` integriert. Die dort korrigierte
+Shell-Geometrie und die gleich breite Hoverfläche von „Letzte“ bleiben erhalten.
+Der Konflikt im Sidebar-Layout wurde mit dem gemergten Header-Padding und dem
+ausgeblendeten Desktop-Footer dieser Änderung aufgelöst.
 Isolierter Branch `fix/settings-only-controls-clean-chat`; keine Übernahme der
 unfertigen Modell-/Suchänderungen aus der separaten Fidelity-Runde 2.
 
@@ -89,15 +94,21 @@ letzte bekannte Fehler bleibt bis zum Ende der Sitzung nachvollziehbar.
 
 Backend, APIs, Abhängigkeiten, Modellwahl, Reasoning, Uploads, Streaming und
 Conversation-Verwaltung werden durch diese Änderung nicht angepasst. Die
-separat angefragte Hoverkorrektur für „Letzte“ liegt im Fidelity-PR #88.
+separat angefragte Hoverkorrektur für „Letzte“ ist bereits über Fidelity-PR #88
+in `main` enthalten. Die fachlichen Änderungen dieses PRs bleiben auf
+Darstellungseinstellung, Datensicherungsanzeige und deren Recovery beschränkt.
 
 ## Visuelle Nachweise
 
 Im [Bildordner](settings-only/) liegen 16 synthetische Noris-Aufnahmen: offener
 und geschlossener Chat, Darstellung unter Allgemein und Datensicherung; jeweils
 Hell/Dunkel bei 1440×900 und 390×844 CSS-Pixeln. Der mobile Pixel-7-Test verwendet
-seinen vorhandenen DPR 2,75; Desktop DPR 1. Keine privaten Vorlagen wurden
-übernommen.
+seinen vorhandenen DPR 2,625 (1024×2216 Bildpixel bei 390×844 CSS-Pixeln);
+Desktop DPR 1. Die Playwright-Baselines selbst verwenden CSS-Pixel.
+Keine privaten Vorlagen wurden
+übernommen. Die Aufnahmen entstehen nach der Integration von `main` gegen den
+kombinierten Produktionsbuild; die erste Version bleibt im Commit
+`5c540738f3e179aee9167d3d3300cf6be1677392` nachvollziehbar.
 
 | Desktop Hell | Desktop Dunkel |
 | --- | --- |
@@ -110,7 +121,7 @@ Noris-Ansicht `workspace-dark` bei 1280×720. Sie zeigen den entfernten Footer
 und die dadurch zusätzlich sichtbaren Chatzeilen. Dies ist kein Pixelvergleich
 mit der privaten ChatGPT-Referenz. Testtoleranzen bleiben unverändert.
 
-## Tatsächlich ausgeführte Prüfungen
+## Prüfungen vor der Integration von PR #88
 
 | Prüfung | Ergebnis |
 | --- | --- |
@@ -145,6 +156,43 @@ Der erste SSE-Gesamtlauf ergab 80 erfolgreiche, drei fehlgeschlagene und
 isolierten Wiederholung mit 16 Fällen. Der erste Gesamtlauf wird deshalb
 nicht nachträglich als erfolgreich ausgewiesen. Die vollständige CI führt
 alle SSE-Fälle ohne Snapshot-Updates erneut aus.
+
+## Validierung nach Integration des gemergten main
+
+Erneut gegen `main` / `8d6b06f6f552238898109f0bb1d634340c142f9d`
+plus dieser Settings-Änderung ausgeführt:
+
+| Prüfung | Tatsächliches Ergebnis |
+| --- | --- |
+| ESLint, App-/Test-/Tool-Typechecks | erfolgreich |
+| Produktionsbuild und API-Drift | erfolgreich |
+| Vollständige Frontend-Units | 577 bestanden, 43 Dateien |
+| Vollständige Mock-Browsersuite mit Bildaufnahme | 358 bestanden, 61 projektspezifisch ausgelassen |
+| Unabhängiger Bild-/Recovery-Vergleich ohne Updates | 42 bestanden, 16 projektspezifisch ausgelassen |
+| WebSocket-Upload, Stop und Settings-Recovery ohne Updates | 10 bestanden, sechs projektspezifisch ausgelassen |
+| Tatsächliche Vorher-Aufnahme des main im separaten Worktree | ein Fall bestanden, keine Snapshot-Updates |
+
+Die unabhängige Vergleichsauswahl deckt alle 16 neuen und alle 16 geänderten
+bestehenden Baselines ab. Zusätzlich prüft sie Composer-Wachstum und Schrumpfen,
+Sidebar-Collapse, die bestehende Keyboard-Auswahl und beide Themes. Die
+Hovermessung für „Letzte“ bleibt bei **X = 60 px und Breite = 271 px** für
+Abschnittsschaltfläche und Chatzeile; die Breitenabweichung beträgt **0 px**.
+Die WebSocket-Auswahl enthält die sechs gemergten Upload-/Stop-Szenen und die
+vier neuen serverseitigen Recovery-Fälle. Kein Testlimit wurde angehoben.
+
+Die 16 Dokumentationsbilder wurden mit dem kombinierten Build neu aufgenommen.
+`comparison/before.png` stammt aus einer tatsächlichen Browseraufnahme des
+main-äquivalenten Builds im separaten Worktree, `after.png` aus demselben
+synthetischen Test gegen den kombinierten Build. Die absolute RGB-Differenz
+liegt im Rechteck `[64, 662, 186, 718]` (links, oben, rechts, unten): entfernter
+Darstellungsfooter und zusätzlich sichtbare Chatzeilen. Composer und Hauptinhalt
+ändern sich in diesem Vergleich nicht. Die historischen Evidenzdateien anderer
+Features bleiben unverändert; neue Noris-Baselines ersetzen keine privaten
+ChatGPT-Referenzbilder.
+
+Die [PR-Ansicht](https://github.com/p3t3r67x0/noris-ai-chat/pull/89) enthält die
+vollständigen aktuellen CI-Läufe. Die lokalen Läufe vor der main-Integration
+stehen oben und in `TEST-RESULTS.json` ausdrücklich getrennt vom kombinierten Stand.
 
 ## Umgebung und Grenzen
 

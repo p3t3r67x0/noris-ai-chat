@@ -2,6 +2,15 @@ import type { Page } from '@playwright/test'
 import type { ChatSnapshot } from '../../app/lib/chat/persistence'
 import { CHAT_STORAGE_KEY, parseChatSnapshot } from '../../app/lib/chat/persistence'
 
+// Install while no generation is running. Keep mounted Vue event timestamps
+// monotonic, then pause well ahead of the RPC round trip. Streaming intervals
+// remain controlled precisely by runFor after this setup.
+export async function pauseBeforeGeneration(page: Page): Promise<void> {
+  const time = new Date()
+  await page.clock.install({ time })
+  await page.clock.pauseAt(new Date(time.getTime() + 60_000))
+}
+
 export function savedChat(turns = 1): ChatSnapshot {
   const date = '2026-10-09T12:00:00.000Z'
   const snapshot: ChatSnapshot = {

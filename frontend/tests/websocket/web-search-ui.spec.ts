@@ -23,6 +23,7 @@ for (const theme of ['light', 'dark'] as const) {
     const commands: Record<string, unknown>[] = []
     page.on('websocket', socket => socket.on('framesent', frame => commands.push(JSON.parse(String(frame.payload)))))
     await page.goto('/')
+    await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
     await enable(page)
     await input(page).fill('What is QGIS?')
     await page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true }).click()
@@ -71,6 +72,7 @@ for (const theme of ['light', 'dark'] as const) {
   test(`P7c reload during search resumes without new requests; Stop fences fetches (${theme})`, async ({ page, request }) => {
     await page.addInitScript(value => localStorage.setItem('noris-ai-theme', value), theme)
     await page.goto('/')
+    await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
     await enable(page)
     const before = await (await request.get('/api/v1/fixture/search-state')).json()
     await input(page).fill('QGIS-slow')
@@ -102,6 +104,7 @@ test('P7c activation survives attachment preparation and incompatible model hint
     await route.fulfill({ response, json: { ...value, expires_in_seconds: 60, models: value.models.map((model: Record<string, unknown>) => ({ ...model, research_eligible: incompatible ? false : model.research_eligible })) } })
   })
   await page.goto('/')
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   await enable(page)
   await input(page).fill('My question stays here')
   await page.locator('input[type="file"]').setInputFiles({ name: 'context.txt', mimeType: 'text/plain', buffer: Buffer.from('Private attachment text is not a search query.') })
@@ -121,6 +124,7 @@ test('P7c activation survives attachment preparation and incompatible model hint
 test('P7c English research errors are localized in the answer and notification', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('noris-ai:language', 'en'))
   await page.goto('/')
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   await page.getByRole('button', { name: 'Attachments and tools', exact: true }).click()
   await page.getByRole('menuitem', { name: /^Web search/ }).click()
   await page.getByRole('textbox', { name: 'Message', exact: true }).fill('QGIS-error')
@@ -136,6 +140,7 @@ test('P7c chat switch during pending admission never sends the old draft to anot
   const commands: Record<string, unknown>[] = []
   page.on('websocket', socket => socket.on('framesent', frame => commands.push(JSON.parse(String(frame.payload)))))
   await page.goto('/')
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   await input(page).fill('Existing conversation B')
   await page.getByRole('button', { name: 'Nachricht senden', exact: true }).click()
   await expect(page.locator('.message-assistant').last()).toHaveAttribute('data-status', 'completed')
@@ -171,6 +176,7 @@ test('P7c model change during research affects only the next request', async ({ 
   const commands: Record<string, unknown>[] = []
   page.on('websocket', socket => socket.on('framesent', frame => commands.push(JSON.parse(String(frame.payload)))))
   await page.goto('/')
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   await enable(page)
   await input(page).fill('QGIS-slow')
   await input(page).press('Enter')

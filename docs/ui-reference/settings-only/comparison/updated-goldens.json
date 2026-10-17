@@ -1,40 +1,83 @@
 [
   {
-    "path": "frontend/tests/e2e/__screenshots__/linux/desktop/adaptive-1440-compact-dark.png",
+    "path": "frontend/tests/e2e/__screenshots__/linux/desktop/october-390-dark-drawer.png",
+    "beforeCommit": "8d6b06f6f552238898109f0bb1d634340c142f9d",
     "beforeSize": [
-      1440,
-      900
+      390,
+      844
     ],
     "afterSize": [
-      1440,
-      900
+      390,
+      844
     ],
     "changedBounds": [
-      68,
-      165,
-      1280,
-      888
-    ]
+      0,
+      607,
+      351,
+      768
+    ],
+    "dimensionsChanged": false
   },
   {
-    "path": "frontend/tests/e2e/__screenshots__/linux/desktop/adaptive-1440-compact-light.png",
+    "path": "frontend/tests/e2e/__screenshots__/linux/desktop/october-390-light-drawer.png",
+    "beforeCommit": "8d6b06f6f552238898109f0bb1d634340c142f9d",
     "beforeSize": [
-      1440,
-      900
+      390,
+      844
     ],
     "afterSize": [
-      1440,
-      900
+      390,
+      844
     ],
     "changedBounds": [
-      68,
-      165,
-      1278,
-      888
-    ]
+      0,
+      607,
+      351,
+      768
+    ],
+    "dimensionsChanged": false
+  },
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/desktop/october-768-dark-drawer.png",
+    "beforeCommit": "8d6b06f6f552238898109f0bb1d634340c142f9d",
+    "beforeSize": [
+      768,
+      1024
+    ],
+    "afterSize": [
+      768,
+      1024
+    ],
+    "changedBounds": [
+      0,
+      787,
+      376,
+      948
+    ],
+    "dimensionsChanged": false
+  },
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/desktop/october-768-light-drawer.png",
+    "beforeCommit": "8d6b06f6f552238898109f0bb1d634340c142f9d",
+    "beforeSize": [
+      768,
+      1024
+    ],
+    "afterSize": [
+      768,
+      1024
+    ],
+    "changedBounds": [
+      0,
+      787,
+      376,
+      948
+    ],
+    "dimensionsChanged": false
   },
   {
     "path": "frontend/tests/e2e/__screenshots__/linux/desktop/profile-menu-dark.png",
+    "beforeCommit": "8d6b06f6f552238898109f0bb1d634340c142f9d",
     "beforeSize": [
       1920,
       975
@@ -44,14 +87,16 @@
       975
     ],
     "changedBounds": [
-      29,
-      144,
-      1656,
-      946
-    ]
+      17,
+      20,
+      1648,
+      950
+    ],
+    "dimensionsChanged": false
   },
   {
     "path": "frontend/tests/e2e/__screenshots__/linux/desktop/profile-menu-light.png",
+    "beforeCommit": "8d6b06f6f552238898109f0bb1d634340c142f9d",
     "beforeSize": [
       1920,
       975
@@ -61,14 +106,54 @@
       975
     ],
     "changedBounds": [
-      29,
-      144,
-      1656,
-      946
-    ]
+      17,
+      20,
+      1648,
+      950
+    ],
+    "dimensionsChanged": false
+  },
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/desktop/recents-hover-dark.png",
+    "beforeCommit": "8d6b06f6f552238898109f0bb1d634340c142f9d",
+    "beforeSize": [
+      288,
+      863
+    ],
+    "afterSize": [
+      288,
+      863
+    ],
+    "changedBounds": [
+      12,
+      794,
+      134,
+      851
+    ],
+    "dimensionsChanged": false
+  },
+  {
+    "path": "frontend/tests/e2e/__screenshots__/linux/desktop/recents-hover-light.png",
+    "beforeCommit": "8d6b06f6f552238898109f0bb1d634340c142f9d",
+    "beforeSize": [
+      288,
+      863
+    ],
+    "afterSize": [
+      288,
+      863
+    ],
+    "changedBounds": [
+      12,
+      794,
+      112,
+      851
+    ],
+    "dimensionsChanged": false
   },
   {
     "path": "frontend/tests/e2e/__screenshots__/linux/desktop/settings-general-dark.png",
+    "beforeCommit": "8d6b06f6f552238898109f0bb1d634340c142f9d",
     "beforeSize": [
       1920,
       975
@@ -78,14 +163,16 @@
       975
     ],
     "changedBounds": [
-      10,
-      10,
-      1656,
-      946
-    ]
+      17,
+      20,
+      1648,
+      950
+    ],
+    "dimensionsChanged": false
   },
   {
     "path": "frontend/tests/e2e/__screenshots__/linux/desktop/settings-general-light.png",
+    "beforeCommit": "8d6b06f6f552238898109f0bb1d634340c142f9d",
     "beforeSize": [
       1920,
       975
@@ -95,82 +182,16 @@
       975
     ],
     "changedBounds": [
-      10,
-      10,
-      1656,
-      946
-    ]
-  },
-  {
-    "path": "frontend/tests/e2e/__screenshots__/linux/desktop/text-selection-action.png",
-    "beforeSize": [
-      1280,
-      720
+      17,
+      20,
+      1648,
+      950
     ],
-    "afterSize": [
-      1280,
-      720
-    ],
-    "changedBounds": [
-      4,
-      10,
-      1180,
-      719
-    ]
-  },
-  {
-    "path": "frontend/tests/e2e/__screenshots__/linux/desktop/workspace-dark.png",
-    "beforeSize": [
-      1280,
-      720
-    ],
-    "afterSize": [
-      1280,
-      720
-    ],
-    "changedBounds": [
-      68,
-      626,
-      1195,
-      719
-    ]
-  },
-  {
-    "path": "frontend/tests/e2e/__screenshots__/linux/mobile/adaptive-1440-compact-dark.png",
-    "beforeSize": [
-      1440,
-      900
-    ],
-    "afterSize": [
-      1440,
-      900
-    ],
-    "changedBounds": [
-      68,
-      165,
-      1280,
-      888
-    ]
-  },
-  {
-    "path": "frontend/tests/e2e/__screenshots__/linux/mobile/adaptive-1440-compact-light.png",
-    "beforeSize": [
-      1440,
-      900
-    ],
-    "afterSize": [
-      1440,
-      900
-    ],
-    "changedBounds": [
-      68,
-      165,
-      1278,
-      888
-    ]
+    "dimensionsChanged": false
   },
   {
     "path": "frontend/tests/e2e/__screenshots__/linux/mobile/profile-menu-dark.png",
+    "beforeCommit": "8d6b06f6f552238898109f0bb1d634340c142f9d",
     "beforeSize": [
       412,
       839
@@ -184,10 +205,12 @@
       158,
       400,
       814
-    ]
+    ],
+    "dimensionsChanged": false
   },
   {
     "path": "frontend/tests/e2e/__screenshots__/linux/mobile/profile-menu-light.png",
+    "beforeCommit": "8d6b06f6f552238898109f0bb1d634340c142f9d",
     "beforeSize": [
       412,
       839
@@ -201,10 +224,12 @@
       158,
       400,
       814
-    ]
+    ],
+    "dimensionsChanged": false
   },
   {
     "path": "frontend/tests/e2e/__screenshots__/linux/mobile/reference-drawer-dark.png",
+    "beforeCommit": "8d6b06f6f552238898109f0bb1d634340c142f9d",
     "beforeSize": [
       390,
       844
@@ -215,13 +240,15 @@
     ],
     "changedBounds": [
       0,
-      415,
-      378,
-      832
-    ]
+      607,
+      351,
+      768
+    ],
+    "dimensionsChanged": false
   },
   {
     "path": "frontend/tests/e2e/__screenshots__/linux/mobile/reference-drawer-light.png",
+    "beforeCommit": "8d6b06f6f552238898109f0bb1d634340c142f9d",
     "beforeSize": [
       390,
       844
@@ -232,13 +259,15 @@
     ],
     "changedBounds": [
       0,
-      415,
-      378,
-      832
-    ]
+      607,
+      351,
+      768
+    ],
+    "dimensionsChanged": false
   },
   {
     "path": "frontend/tests/e2e/__screenshots__/linux/mobile/settings-general-dark.png",
+    "beforeCommit": "8d6b06f6f552238898109f0bb1d634340c142f9d",
     "beforeSize": [
       412,
       839
@@ -252,10 +281,12 @@
       25,
       400,
       814
-    ]
+    ],
+    "dimensionsChanged": false
   },
   {
     "path": "frontend/tests/e2e/__screenshots__/linux/mobile/settings-general-light.png",
+    "beforeCommit": "8d6b06f6f552238898109f0bb1d634340c142f9d",
     "beforeSize": [
       412,
       839
@@ -269,6 +300,7 @@
       25,
       400,
       814
-    ]
+    ],
+    "dimensionsChanged": false
   }
 ]

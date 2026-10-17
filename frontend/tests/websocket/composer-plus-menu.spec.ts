@@ -251,7 +251,7 @@ for (const width of [1440, 1700, 768, 390]) {
       await expect(menu).toBeVisible()
       await menu.evaluate(element => Promise.all(element.getAnimations().map(animation => animation.finished)))
       await page.mouse.move(0, 0)
-      await expect.poll(async () => (await buttonAppearance(page)).circle).toBe(theme === 'light' ? 'rgb(239, 239, 239)' : 'rgb(43, 43, 43)')
+      await expect.poll(async () => (await buttonAppearance(page)).circle).toBe(theme === 'light' ? 'rgb(233, 233, 233)' : 'rgb(54, 54, 54)')
       expect(await buttonAppearance(page)).toMatchObject({ background: 'rgba(0, 0, 0, 0)', shadow: 'none', border: '0px', width: '44px', height: '44px', radius: '50%', transform: 'none' })
       expect(await trigger.boundingBox()).toEqual(anchor)
       expect(await trigger.locator('[data-slot="leadingIcon"]').boundingBox()).toEqual(iconBefore)

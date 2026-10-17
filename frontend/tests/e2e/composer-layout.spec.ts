@@ -32,7 +32,7 @@ for (const theme of ['light', 'dark']) {
       expect(geometry.composer.x).toBeCloseTo(geometry.timeline.x, 0)
       expect(geometry.composer.centerX).toBeCloseTo(geometry.main.centerX, 0)
       if (viewport.width > 640) {
-        expect(geometry.composer.height).toBeCloseTo(Math.min(70, Math.max(60, viewport.width * 70 / 1920)), 1)
+        expect(geometry.composer.height).toBeCloseTo(62, 1)
         expect(geometry.textarea.centerY).toBeCloseTo(geometry.controls[0]!.centerY, 0)
       }
       else {
@@ -51,14 +51,14 @@ for (const theme of ['light', 'dark']) {
       const send = geometry.controls[3]!
       expect(send.width).toBe(send.height)
       if (viewport.width >= 1024) {
-        const railWidth = Math.min(68, Math.max(56, viewport.width * 68 / 1920))
-        const sidebarWidth = Math.min(376, Math.max(272, viewport.width * 376 / 1920))
+        const railWidth = 52
+        const sidebarWidth = 288
         expect(geometry.rail.width).toBeCloseTo(railWidth, 0)
         expect(geometry.rail.height).toBe(viewport.height)
         expect(geometry.sidebar.width).toBeCloseTo(sidebarWidth, 0)
         expect(geometry.main.x).toBeCloseTo(railWidth + sidebarWidth, 0)
         expect(geometry.main.width).toBeCloseTo(viewport.width - railWidth - sidebarWidth, 0)
-        if (viewport.width >= 1701) expect(geometry.composer.width).toBeCloseTo(viewport.width * 1000 / 1920, 0)
+        if (viewport.width >= 1701) expect(geometry.composer.width).toBeCloseTo(888, 0)
         const scrollTop = await page.locator('.chat-scroll').evaluate(element => element.scrollTop)
         await page.locator('#chat-sidebar [data-slot="body"]').evaluate(element => { element.scrollTop = element.scrollHeight })
         expect(await page.locator('.chat-scroll').evaluate(element => element.scrollTop)).toBe(scrollTop)

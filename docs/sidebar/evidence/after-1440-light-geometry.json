@@ -1,27 +1,27 @@
 {
-  "axis": 28,
+  "axis": 26,
   "items": [
     {
-      "button": 28,
-      "icon": 27.9921875,
+      "button": 26,
+      "icon": 26,
       "width": 44,
       "height": 44
     },
     {
-      "button": 28,
-      "icon": 28,
+      "button": 26,
+      "icon": 26,
       "width": 44,
       "height": 44
     },
     {
-      "button": 28,
-      "icon": 28,
+      "button": 26,
+      "icon": 26,
       "width": 44,
       "height": 44
     },
     {
-      "button": 28,
-      "icon": 28,
+      "button": 26,
+      "icon": 26,
       "width": 44,
       "height": 44
     }

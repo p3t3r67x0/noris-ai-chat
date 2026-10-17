@@ -197,7 +197,7 @@ function saveEdit(): void {
 <template>
   <div class="chat-workspace" :class="{ 'settings-workspace': inSettings }" :style="viewportStyle" :data-ready="ready" :inert="!ready" :aria-busy="!ready">
     <a :href="inSettings ? '#settings-main' : '#chat-main'" class="sr-only z-50 rounded-md bg-default p-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4">{{ inSettings ? t('skipSettings') : t('skipChat') }}</a>
-    <ChatRail :demo="mode === 'mock'" @home="inSettings ? router.push('/') : newChat()" @search="router.push('/').then(() => sidebar?.openSearch())" @archive="router.push('/settings/archived')" />
+    <ChatRail :demo="mode === 'mock'" :home-active="!inSettings" :archive-active="route.path === '/settings/archived'" @home="inSettings ? router.push('/') : newChat()" @search="router.push('/').then(() => sidebar?.openSearch())" @archive="router.push('/settings/archived')" />
     <div v-show="!inSettings" class="chat-sidebar-container" :inert="inSettings" :aria-hidden="inSettings || undefined">
       <ChatSidebar
         ref="sidebar" v-model:open="chatSidebarOpen"
