@@ -26,6 +26,7 @@ for (const theme of ['light', 'dark']) {
       await page.setViewportSize({ width, height })
       const snapshot = savedChat(0)
       snapshot.conversations.activeConversationId = null
+      delete snapshot.conversations.conversations.main
       await seedChat(page, snapshot, theme)
       await page.goto('/')
       await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
@@ -116,6 +117,7 @@ for (const theme of ['light', 'dark']) {
     await page.setViewportSize({ width: 1701, height: 863 })
     const snapshot = savedChat(0)
     snapshot.conversations.activeConversationId = null
+    delete snapshot.conversations.conversations.main
     await seedChat(page, snapshot, theme)
     await page.clock.setFixedTime(new Date('2026-10-17T12:00:00Z'))
     await page.goto('/')
