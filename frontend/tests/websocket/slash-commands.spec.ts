@@ -1,3 +1,4 @@
+import { expectSelectedModel } from '../e2e/model-helpers'
 import { expect, test } from '@playwright/test'
 import { clearTestConversations, stableModelCatalog } from './chat-fixtures'
 
@@ -26,7 +27,8 @@ test('slash actions reuse model, reasoning, search and upload boundaries without
   const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
   const menu = page.locator('.composer-slash-menu')
   const state = await (await request.get(`${fixtureOrigin}/fixture/state`)).json()
-  await expect(page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true })).toBeEnabled({ timeout: 15_000 })
+  await expect(page.locator('.composer-input')).toBeEnabled()
+  await expectSelectedModel(page, /Fixture|GPT|GLM/)
   await input.fill('/modell')
   await input.press('Enter')
   await page.getByRole('option', { name: /GPT-OSS 120B/ }).click()

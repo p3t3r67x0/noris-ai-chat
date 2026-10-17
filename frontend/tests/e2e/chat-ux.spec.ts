@@ -52,7 +52,7 @@ test('chat switching restores reading position and the sidebar scrolls independe
   const scroll = page.locator('.chat-scroll')
   await scroll.evaluate(element => { element.scrollTop = 1500; element.dispatchEvent(new Event('scroll')) })
   const position = await scroll.evaluate(element => element.scrollTop)
-  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
   const navigation = page.getByRole('navigation', { name: 'Gespräche' })
   await navigation.getByRole('button', { name: 'Gedanken 1', exact: true }).click()

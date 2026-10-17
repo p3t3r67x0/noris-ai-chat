@@ -1,3 +1,4 @@
+import { selectChatModel } from './model-helpers'
 import { expect, test } from '@playwright/test'
 import { savedChat, seedChat } from './chat-fixtures'
 
@@ -33,9 +34,7 @@ test('Plus and slash retain draft, focus and conversation mode', async ({ page }
   await page.reload()
   await expect(page.locator('.composer-learning')).toBeVisible()
   await expect(input).toHaveValue('Mein Lernziel ')
-  const model = page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true })
-  await model.click()
-  await page.getByRole('option', { name: /noris Fast/ }).click()
+  await selectChatModel(page, /noris Fast/)
   await expect(page.locator('.composer-learning')).toBeVisible()
   await page.getByRole('button', { name: 'Lernmodus deaktivieren', exact: true }).click()
   await expect(page.locator('.composer-learning')).toBeHidden()

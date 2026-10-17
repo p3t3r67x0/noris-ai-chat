@@ -1,3 +1,4 @@
+import { expectSelectedModel, selectChatModel } from '../e2e/model-helpers'
 import { clearTestConversations, stableModelCatalog } from './chat-fixtures'
 import type { ApiSchemas } from '../../app/types/generated/api'
 import { expect, test } from '@playwright/test'
@@ -140,8 +141,7 @@ test('continuation creates an immutable sibling and persists selected variants a
   await stableModelCatalog(page)
   await page.goto('/')
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
-  await page.getByRole('button', { name: 'Modell auswählen', exact: true }).click()
-  await page.getByRole('option', { name: 'Fixture Long' }).click()
+  await selectChatModel(page, 'Fixture Long')
   const composer = page.getByRole('textbox', { name: 'Nachricht' })
   await composer.fill(`/auto-limit ws ${info.project.name}`)
   await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
@@ -150,7 +150,7 @@ test('continuation creates an immutable sibling and persists selected variants a
   const original = await page.locator('.message-assistant').getAttribute('data-message-id')
   await page.reload()
   await expect(page.locator('.message-assistant')).toHaveAttribute('data-status', 'incomplete')
-  await expect(page.getByRole('button', { name: 'Modell auswählen', exact: true })).toContainText('Fixture Long')
+  await expectSelectedModel(page, 'Fixture Long')
   await page.getByRole('button', { name: 'Weiterschreiben', exact: true }).click()
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   const continued = await page.locator('.message-assistant').getAttribute('data-message-id')
@@ -179,7 +179,7 @@ test('manual title, archive, restore and deletion are persisted from the existin
   await composer.press('Enter')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   const c = (await (await request.get('/api/v1/conversations')).json()).conversations[0]
-  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
   const sidebar = async () => {
     await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
     if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
@@ -238,7 +238,7 @@ test('manual rename survives a version conflict after automatic title generation
     }
     else await route.continue()
   })
-  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
   const row = page.locator(`[data-conversation-id="${c.id}"]:visible`)
   await row.hover()

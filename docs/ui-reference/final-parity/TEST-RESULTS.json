@@ -1,0 +1,237 @@
+{
+  "base": "5d2c56d",
+  "applicationSource": "c52a3f0 (self-hosted fonts; final geometry recaptured)",
+  "browser": "Playwright 1.64.0 / Chromium 1248",
+  "date": "2026-10-17",
+  "runs": [
+    {
+      "run": "frontend-unit",
+      "passed": 580,
+      "skipped": 0,
+      "failed": 0,
+      "localLog": "/tmp/noris-parity-unit-last.log",
+      "logSHA256": "8bda3b63f7a816501f0cfa0bc51beba16a285952b5c624e6bab0fd8f3e477957"
+    },
+    {
+      "run": "backend-unit",
+      "passed": 1087,
+      "skipped": 0,
+      "failed": 0,
+      "localLog": "/tmp/noris-parity-backend-unit.log",
+      "logSHA256": "f6665d43a66668ca66eb711dcd2392c6cf9899a09694a2edf85aa76d43099163"
+    },
+    {
+      "run": "search-integration",
+      "passed": 4,
+      "skipped": 0,
+      "failed": 0,
+      "localLog": "/tmp/noris-parity-search-integration.log",
+      "logSHA256": "504585b6d0d6086f29ba899322a75368a6c08bda9d442ba890df061ade4da71b"
+    },
+    {
+      "run": "backend-integration-full",
+      "passed": 302,
+      "skipped": 8,
+      "failed": 1,
+      "localLog": "/tmp/noris-parity-integration-full.log",
+      "logSHA256": "279aea36adeb8feceb34addc48718558eb20237d0c25395f3360ceed1b9418aa"
+    },
+    {
+      "run": "backend-role-prerequisite-retest",
+      "passed": 1,
+      "skipped": 0,
+      "failed": 0,
+      "localLog": "/tmp/noris-parity-role-retest.log",
+      "logSHA256": "e3cb389662450b7eeb13fb986496e0efcc47f4d93769854a85e21e3231aa751d"
+    },
+    {
+      "run": "mock-full-final-build",
+      "passed": 366,
+      "skipped": 69,
+      "failed": 0,
+      "localLog": "/tmp/noris-parity-mock-final-build.log",
+      "logSHA256": "df5417d93ea17c12e9a7a76fdcfc9297afbe55b94a9e359ac56133caeea62c9e"
+    },
+    {
+      "run": "mock-screenshot-verification-without-updates",
+      "passed": 83,
+      "skipped": 30,
+      "failed": 0,
+      "localLog": "/tmp/noris-parity-golden-verification.log",
+      "logSHA256": "0bc2f671d85e86b035a1393ceed5064c98e25cfbf811c84a3e9870113966a846"
+    },
+    {
+      "run": "notification-presentation",
+      "passed": 16,
+      "skipped": 0,
+      "failed": 0,
+      "localLog": "/tmp/noris-parity-notifications-final.log",
+      "logSHA256": "462fa2ae6fdbdcbf9ef59a4dc8384d50cafe085f79d8c6261f5e6d221f739de3"
+    },
+    {
+      "run": "http-llm-full",
+      "passed": 81,
+      "skipped": 17,
+      "failed": 6,
+      "localLog": "/tmp/noris-parity-llm-full.log",
+      "logSHA256": "fbb01f712bf3a63d01cc6e8384046e40fec119ccdd71664ff481c510e8ca1375"
+    },
+    {
+      "run": "http-llm-targeted-final-build",
+      "passed": 30,
+      "skipped": 12,
+      "failed": 0,
+      "localLog": "/tmp/noris-parity-llm-retest.log",
+      "logSHA256": "d073e3dd8c3e5066f4f7b3a47ad2adf1bfdf3b6ce212ef709124175f54a8f455"
+    },
+    {
+      "run": "websocket-full-before-final-gap-fix",
+      "passed": 196,
+      "skipped": 38,
+      "failed": 20,
+      "localLog": "/tmp/noris-parity-websocket-verified.log",
+      "logSHA256": "dc916a0d7c03e61fef8aabb1466ffd7802b62125269133d61853563810adbad9"
+    },
+    {
+      "run": "websocket-targeted-final-build-update",
+      "passed": 20,
+      "skipped": 9,
+      "failed": 1,
+      "localLog": "/tmp/noris-parity-websocket-retest.log",
+      "logSHA256": "e10f0b291bd59c91666ef7ae9f1bfa226cacd4132e05a3eff203244d8ef5e929"
+    },
+    {
+      "run": "websocket-final-without-snapshot-updates",
+      "passed": 21,
+      "skipped": 9,
+      "failed": 0,
+      "localLog": "/tmp/noris-parity-websocket-golden-final.log",
+      "logSHA256": "ebfb4db46703bc8e6786d15c35d366603a041a678d4ea89af16c93858fe188c5"
+    },
+    {
+      "run": "self-hosted-fonts-complete-mock",
+      "passed": 368,
+      "skipped": 69,
+      "failed": 0,
+      "localLog": "/tmp/noris-font-parent-mock-full.log",
+      "logSHA256": "f50d5b57f4f24f4bb901f2768cbf53a6879b975287d540d1fb8dfacea6f2c066",
+      "snapshotMode": "intentional font baseline recapture; no tolerance change"
+    },
+    {
+      "run": "self-hosted-fonts-websocket-visual-workflows",
+      "passed": 36,
+      "skipped": 30,
+      "failed": 0,
+      "localLog": "/tmp/noris-font-parent-websocket-update.log",
+      "logSHA256": "1530097511b16ba80293258a97d753df4b26b34e0cca77beae03328778d9b676",
+      "snapshotMode": "intentional font recapture; unchanged assertions and tolerance"
+    },
+    {
+      "run": "self-hosted-fonts-reference-and-geometry-no-updates",
+      "passed": 47,
+      "skipped": 8,
+      "failed": 0,
+      "localLog": "/tmp/noris-font-parent-mock-verify.log",
+      "logSHA256": "2bd2c8d76a7dc2e75caa2a7ffd1fa77238bf67d1f2f966e576e462d4376f5462",
+      "snapshotMode": "no updates"
+    },
+    {
+      "run": "font-websocket-verification-missing-schema",
+      "passed": 0,
+      "skipped": 0,
+      "failed": 18,
+      "localLog": "/tmp/noris-font-parent-websocket-verify.log",
+      "logSHA256": "135990f413b3aa27266d7af35387d7ad4336fee498a8508f9555d945636eac1a",
+      "note": "Separate integration DB had been downgraded to base by its migration test; only alembic_version existed. No product assertion was reached. Migrated normally and repeated unchanged."
+    },
+    {
+      "run": "font-websocket-no-updates-migrated",
+      "passed": 12,
+      "skipped": 6,
+      "failed": 0,
+      "note": "Same assertions and baselines after migrating the separate disposable DB.",
+      "localLog": "/tmp/noris-font-parent-websocket-verify-migrated.log",
+      "logSHA256": "c28b7c0508d937491514b508d7585769d2f086af3688ea9acc49a32377d56982"
+    },
+    {
+      "run": "font-http-visual-workflows",
+      "passed": 41,
+      "skipped": 17,
+      "failed": 0,
+      "note": "Intentional font recapture; no tolerance change.",
+      "localLog": "/tmp/noris-font-parent-http-update.log",
+      "logSHA256": "ac64f753c69959591d0860cc4f7c27e0a542f47bead69dfdae33a3c5920ae4b1"
+    },
+    {
+      "run": "font-http-model-and-reasoning-no-updates",
+      "passed": 2,
+      "skipped": 0,
+      "failed": 0,
+      "localLog": "/tmp/noris-font-parent-http-verify.log",
+      "logSHA256": "d072c52c1ba628e8014c7d4b55511b0f676574bec0afd05f7265c7c5c9d15b41",
+      "snapshotMode": "no updates"
+    },
+    {
+      "run": "bundled-symbol-fallback-menu-and-font-no-updates",
+      "passed": 28,
+      "skipped": 26,
+      "failed": 0,
+      "localLog": "/tmp/noris-symbols-parent-browser-verify.log",
+      "logSHA256": "2df583f595b2132a11b3f2c5f23f2bddcb7b54531f2998ab437ca3a382b66acb",
+      "snapshotMode": "no updates; all old menu baselines retained"
+    }
+  ],
+  "interpretation": [
+    "Per-run counts include overlapping cases; do not sum them as unique tests.",
+    "All 366 runnable mock cases pass in the complete final-build run; 83 selected cases additionally verify baselines without updates.",
+    "All 87 runnable HTTP-provider cases pass across the full run and final targeted recovery.",
+    "All 216 runnable WebSocket cases pass across the full run and final targeted recovery; 21 targeted cases additionally verify baselines without updates.",
+    "Backend full integration initially lacked the non-superuser noris_app role. After provisioning the repository-defined role, its sole failed case passed unchanged. 303 runnable integration cases passed across those runs.",
+    "Eight proxy integration cases require unavailable Caddy/nginx prerequisites. Browser skips are existing project/viewport/channel exclusions.",
+    "No screenshot tolerance increased and no tests removed. Intentional layout/font baselines were reviewed before verification.",
+    "Production/live-provider suites require their opt-in service/credentials and were not run against a paid external provider.",
+    "After font embedding, the complete mock run passes 368 cases with 69 exclusions; 47 reference/geometry cases pass without updates. All 36 selected WebSocket visual workflows and 41 HTTP visual workflows pass; 12 selected WebSocket cases additionally pass without updates."
+  ],
+  "staticChecks": {
+    "frontendLint": "passed",
+    "NuxtApplicationTypecheck": "passed with final preload literal types",
+    "strictAppAndTestTypes": "passed with final glyph-font assertion; NODE_PATH resolves the installed Nuxt plugin",
+    "toolsTypes": "passed",
+    "generatedAPI": "passed",
+    "productionBuild": "passed",
+    "gitDiffCheck": "passed",
+    "PythonStrictTypes": "passed; exact CI Pyright 1.1.408, 0 errors, 0 warnings"
+  },
+  "limitations": [
+    "Original open/closed-reference CSS viewport and DPR remain unknown; no same-browser pixel-equality claim.",
+    "No original Dark/Mobile reference is supplied.",
+    "Full-page pixel differences use synthetic Noris before/after, not private ChatGPT source pixels."
+  ],
+  "artifacts": {
+    "before": "before.png",
+    "after": "after.png",
+    "diff": "diff.png",
+    "measuredDeltas": "geometry.json",
+    "referenceProvenance": "reference-geometry.json",
+    "acceptance": "ACCEPTANCE.md"
+  },
+  "CIRecovery": {
+    "initialFailure": "Pyright reportUnknownVariableType for the search-match default factory",
+    "fix": "default_factory=list[ConversationSearchMatch]",
+    "localLog": "/tmp/noris-parity-python-types.log",
+    "logSHA256": "50bcd85f1ab5b7673b549d9e3e210216bf127777492694316fc6dc25c976cd0f",
+    "OpenAPI": "unchanged; api:check passed"
+  },
+  "fontEnvironmentRecovery": {
+    "initialCI": "123 screenshot failures in both checks and Compose; 243 functional browser cases passed",
+    "cause": "Platform-dependent system font selection; wider glyphs in the CI artifacts",
+    "fix": "Self-host measured Noto Sans and Liberation Mono under renamed Noris font families; metrics/cmap verified, no size or zoom change",
+    "evidence": "font-environment/fonts-used.json",
+    "licenseAndSource": "frontend/public/fonts/manifest.json",
+    "remoteReverification": "pending next CI run",
+    "localReverification": "368 passed, 69 existing project exclusions in the complete mock suite; two CDP tests verify actually used bundled fonts.",
+    "remainingGlyphFailure": "Second CI: 351 passed / 69 excluded / 17 menu screenshot failures. Noto Sans lacks \u2191 \u2193; actual local fallback was system Arimo (two glyphs).",
+    "glyphFix": "Bundle measured Arimo 1.33 as Noris Symbols after Noris Sans; source metrics/cmap verified; actual custom arrow-font use asserted.",
+    "glyphLocalVerification": "28 passed / 26 excluded without snapshot updates; no menu baseline changes; recaptured geometry unchanged."
+  }
+}

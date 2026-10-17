@@ -373,6 +373,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       throw cause
     }
   }
+  let variantRequest: Promise<void> | undefined
   state.selectVariant = (id) => {
     const conversation = state.conversations.active.value
     if (!backendReady.value || state.stream.busy.value || !conversation || historyLoading.value) return false
@@ -384,7 +385,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     const leaf = conversation.activeLeafMessageId
     if (leaf) for (const message of state.visible.value) state.preferredLeaves.value[message.id] = leaf
     historyLoading.value = true
-    void (async () => {
+    variantRequest = (async () => {
       try {
         const result = await backend.path(conversationId, { messageId: id, ...(state.preferredLeaves.value[id] ? { preferredLeafId: state.preferredLeaves.value[id] } : {}) }, controller.signal)
         if (disposed || state.conversations.activeId.value !== conversationId || state.stream.busy.value) return
@@ -400,6 +401,22 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
       finally { if (revision === viewRevision) { historyLoading.value = false; viewRequest = undefined }; if (selectingVariant === conversationId) selectingVariant = undefined }
     })()
     return true
+  }
+  async function navigateToMessage(id: string, messageId: string): Promise<boolean> {
+    await loadConversation(id)
+    const visible = () => state.visible.value.some(message => message.id === messageId)
+    if (state.conversations.activeId.value !== id || visible()) return visible()
+    // Resolve an inactive branch through the existing variant action, including
+    // its ownership, generation, persistence and request-version guards.
+    if (!state.selectVariant(messageId)) return false
+    await variantRequest
+    while (state.conversations.activeId.value === id && !visible() && !historyError.value) {
+      const cursor = windows.value[id]?.nextCursor
+      if (!cursor || state.stream.busy.value) break
+      await loadOlder()
+      if (windows.value[id]?.nextCursor === cursor) break
+    }
+    return state.conversations.activeId.value === id && visible()
   }
   const regenerate = state.regenerate
   state.regenerate = (id, modelId) => {
@@ -556,7 +573,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     historyLoading, historyError, olderLoading,
     hasOlder: computed(() => Boolean(windows.value[state.conversations.activeId.value ?? '']?.nextCursor)),
     loadOlder, retryHistory: () => { const id = state.conversations.activeId.value; if (id) void loadConversation(id, true) },
-    search, loadArchive, loadConversation,
+    search, loadArchive, loadConversation, navigateToMessage,
   }
   function saveModelPreference(modelId: string): Promise<void> {
     preferredModelId = modelId

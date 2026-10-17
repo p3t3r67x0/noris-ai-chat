@@ -23,7 +23,7 @@ for (const theme of ['light', 'dark']) {
         return {
           main: box('.chat-main'), rail: box('.chat-rail'), sidebar: box('#chat-sidebar [data-slot="container"]'),
           timeline: box('.chat-timeline'), composer: box('.chat-composer'), textarea: box('.composer-input'),
-          controls: ['.composer-attachment', '.composer-model', '.composer-microphone', '.composer-submit'].map(box),
+          controls: ['.composer-attachment', '.composer-microphone', '.composer-submit'].map(box),
           note: box('.composer-note'), overflow: document.documentElement.scrollWidth > innerWidth,
         }
       })
@@ -32,7 +32,7 @@ for (const theme of ['light', 'dark']) {
       expect(geometry.composer.x).toBeCloseTo(geometry.timeline.x, 0)
       expect(geometry.composer.centerX).toBeCloseTo(geometry.main.centerX, 0)
       if (viewport.width > 640) {
-        expect(geometry.composer.height).toBeCloseTo(62, 1)
+        expect(geometry.composer.height).toBeCloseTo(54, 1)
         expect(geometry.textarea.centerY).toBeCloseTo(geometry.controls[0]!.centerY, 0)
       }
       else {
@@ -48,7 +48,7 @@ for (const theme of ['light', 'dark']) {
         expect(control.x + control.width).toBeLessThan(geometry.composer.x + geometry.composer.width)
         expect(control.height).toBeGreaterThanOrEqual(44)
       }
-      const send = geometry.controls[3]!
+      const send = geometry.controls[2]!
       expect(send.width).toBe(send.height)
       if (viewport.width >= 1024) {
         const railWidth = 52
@@ -58,7 +58,7 @@ for (const theme of ['light', 'dark']) {
         expect(geometry.sidebar.width).toBeCloseTo(sidebarWidth, 0)
         expect(geometry.main.x).toBeCloseTo(railWidth + sidebarWidth, 0)
         expect(geometry.main.width).toBeCloseTo(viewport.width - railWidth - sidebarWidth, 0)
-        if (viewport.width >= 1701) expect(geometry.composer.width).toBeCloseTo(888, 0)
+        if (viewport.width >= 1701) expect(geometry.composer.width).toBeCloseTo(768, 0)
         const scrollTop = await page.locator('.chat-scroll').evaluate(element => element.scrollTop)
         await page.locator('#chat-sidebar [data-slot="body"]').evaluate(element => { element.scrollTop = element.scrollHeight })
         expect(await page.locator('.chat-scroll').evaluate(element => element.scrollTop)).toBe(scrollTop)
@@ -74,9 +74,9 @@ for (const theme of ['light', 'dark']) {
       }
       // Enter keyboard modality after the drawer's pointer interaction.
       await page.keyboard.press('Tab')
-      await page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true }).focus()
-      await expect(page.locator('.composer-model')).toBeFocused()
-      expect(await page.locator('.composer-model').evaluate(element => getComputedStyle(element).outlineStyle)).toBe('solid')
+      await page.locator('.composer-attachment').focus()
+      await expect(page.locator('.composer-attachment')).toBeFocused()
+      expect(await page.locator('.composer-attachment').evaluate(element => getComputedStyle(element).outlineStyle)).toBe('solid')
       await info.attach('composer-geometry', { body: JSON.stringify(geometry, null, 2), contentType: 'application/json' })
     })
   }
@@ -100,7 +100,7 @@ test('autosizing scrolls only the textarea at its limit and returns to one line'
   expect(expanded!.y + expanded!.height).toBeCloseTo(bottom, 0)
   expect(expanded!.y).toBeLessThan(original!.y)
   expect(await input.evaluate(element => element.scrollHeight > element.clientHeight && getComputedStyle(element).overflowY === 'auto')).toBe(true)
-  for (const selector of ['.composer-attachment', '.composer-model', '.composer-microphone', '.composer-submit']) {
+  for (const selector of ['.composer-attachment', '.composer-microphone', '.composer-submit']) {
     const control = await page.locator(selector).boundingBox()
     expect(control!.y + control!.height).toBeCloseTo(toolbarBottom, 0)
   }
@@ -133,7 +133,7 @@ test('an empty chat keeps a growing draft visible above the visual keyboard view
     expect(heading.y + heading.height).toBeLessThanOrEqual(composer!.y)
     expect(composer!.y).toBeGreaterThanOrEqual(20)
     expect(composer!.y + composer!.height).toBeLessThanOrEqual(height + 20)
-    await expect(page.locator('.composer-model')).toBeInViewport()
+    await expect(page.locator('.composer-attachment')).toBeInViewport()
     await expect(page.locator('.composer-submit')).toBeInViewport()
     expect(await page.evaluate(() => scrollX === 0 && scrollY === 0 && document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   }

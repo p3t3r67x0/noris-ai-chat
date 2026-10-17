@@ -1,3 +1,4 @@
+import { expectSelectedModel } from './model-helpers'
 import { expect, test } from '@playwright/test'
 import { savedChat, seedChat } from './chat-fixtures'
 import { openSettingsCategory, returnToChat } from './settings-helpers'
@@ -95,9 +96,9 @@ test('model preference shares the composer state and survives reload', async ({ 
   await page.getByRole('combobox', { name: 'Standardmodell' }).click()
   await page.getByRole('option', { name: 'noris Fast', exact: true }).click()
   await returnToChat(page)
-  await expect(page.getByRole('button', { name: 'Modell im Eingabefeld auswählen' })).toContainText('Fast')
+  await expectSelectedModel(page, 'noris Fast')
   await page.reload()
-  await expect(page.getByRole('button', { name: 'Modell auswählen', exact: true })).toContainText('noris Fast')
+  await expectSelectedModel(page, 'noris Fast')
 })
 
 test('archived chats reuse restore and the delete confirmation', async ({ page }) => {
@@ -118,7 +119,7 @@ test('archived chats reuse restore and the delete confirmation', async ({ page }
   await expect(page.getByRole('heading', { name: 'Archivierte Chats', exact: true })).toBeFocused()
   await returnToChat(page)
   await page.reload()
-  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
   await expect(page.getByRole('navigation', { name: 'Gespräche' }).getByRole('button', { name: 'Gedanken 1', exact: true })).toBeVisible()
   await expect(page.locator('[data-conversation-id="conversation-2"]')).toHaveCount(0)

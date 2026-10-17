@@ -2,10 +2,11 @@ import { expect, test, type Page } from '@playwright/test'
 import { savedChat, seedChat } from './chat-fixtures'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const sizes = [[1700, 900], [1440, 900], [768, 1024], [390, 844]] as const
 async function sidebar(page: Page) {
-  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
   await expect(page.getByRole('navigation', { name: 'Gespräche', exact: true })).toBeVisible()
 }
@@ -42,7 +43,7 @@ for (const [width, height] of sizes) for (const theme of ['light', 'dark']) {
       await page.goto('/')
       await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
       await sidebar(page)
-      const evidence = resolve('..', 'docs/sidebar/evidence')
+      const evidence = fileURLToPath(new URL('../../../docs/ui-reference/final-parity/sidebar', import.meta.url))
       await mkdir(evidence, { recursive: true })
       const screenshot = async (state: string) => {
         const path = resolve(evidence, `after-${width}-${theme}-${state}.png`)

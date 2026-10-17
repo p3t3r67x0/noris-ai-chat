@@ -74,8 +74,17 @@ class ConversationResponse(JsonApiSchema):
     activeLeafMessageId: UUID | None
 
 
+class ConversationSearchMatch(JsonApiSchema):
+    conversationId: UUID
+    messageId: UUID
+    excerpt: str
+
+
 class ConversationListResponse(JsonApiSchema):
     conversations: list[ConversationResponse]
+    matches: list[ConversationSearchMatch] = Field(
+        default_factory=list[ConversationSearchMatch], exclude_if=lambda value: not value
+    )
     nextCursor: str | None = None
     hasMore: bool = False
 

@@ -1,3 +1,4 @@
+import { selectChatModel } from '../e2e/model-helpers'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { clearTestConversations, stableModelCatalog } from './chat-fixtures'
@@ -26,8 +27,7 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
     await enable(page)
     await input(page).fill('What is QGIS?')
-    await page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true }).click()
-    await page.getByRole('option', { name: /Fixture Beta/ }).click()
+    await selectChatModel(page, /Fixture Beta/)
     await expect(page.locator('[data-research-selected]')).toBeVisible()
     await input(page).press('Enter')
     const answer = page.locator('.message-assistant').last()
@@ -182,8 +182,7 @@ test('P7c model change during research affects only the next request', async ({ 
   await input(page).press('Enter')
   await expect(page.locator('[data-research-state="searching"]')).toBeVisible()
   const original = commands.find(command => command.type === 'chat.generate')!
-  await page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true }).click()
-  await page.getByRole('option', { name: /Fixture Beta/ }).click()
+  await selectChatModel(page, /Fixture Beta/)
   await expect(page.locator('[data-research-selected]')).toBeVisible()
   await expect(page.locator('.message-assistant').last()).toHaveAttribute('data-status', 'completed', { timeout: 30_000 })
   const path = await (await request.get(`/api/v1/conversations/${original.conversationId}/active-path`)).json()

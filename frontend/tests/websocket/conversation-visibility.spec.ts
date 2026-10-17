@@ -1,4 +1,4 @@
-import { clearTestConversations } from './chat-fixtures'
+import { clearTestConversations, stableModelCatalog } from './chat-fixtures'
 import { expect, test } from '@playwright/test'
 import type { APIRequestContext, Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
@@ -17,7 +17,7 @@ async function openSearch(page: Page) {
   return dialog
 }
 async function newChat(page: Page) {
-  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
   await page.locator('.sidebar-primary-actions').filter({ visible: true }).getByRole('button', { name: 'Neuer Chat', exact: true }).click()
   // Mobile focus remains trapped until the drawer's closing transition ends.
@@ -25,6 +25,7 @@ async function newChat(page: Page) {
   await expect(page.getByRole('textbox', { name: 'Nachricht', exact: true })).toBeFocused()
 }
 test.beforeEach(async ({ page, request }) => {
+  await stableModelCatalog(page)
   await clearTestConversations(request)
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: 'fixture-alpha' } })
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })

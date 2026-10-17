@@ -111,7 +111,7 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
       await expect.poll(async () => (await list(request))[0]?.titleSource).toBe('generated')
       const conversation = (await list(request))[0]!
       expect(conversation.title).toBe('SearXNG Funktionsweise')
-      const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+      const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
       if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
       const row = page.locator(`.conversation-row[data-conversation-id="${conversation.id}"]`).filter({ visible: true })
       await expect(row.locator('button').first()).toHaveAttribute('title', conversation.title)

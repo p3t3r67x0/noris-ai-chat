@@ -1,10 +1,11 @@
+import { expectSelectedModel } from './model-helpers'
 import { conversationRow, chatActions, openChatActions } from './sidebar-helpers'
 import { expect, test } from '@playwright/test'
 import { returnToChat } from './settings-helpers'
 
 async function openSidebar(page: import('@playwright/test').Page) {
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
-  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
   await expect(page.getByRole('navigation', { name: 'Gespräche' })).toBeVisible()
 }
@@ -16,7 +17,8 @@ test('shell is responsive, has a bounded composer and renders without client err
   await page.goto('/')
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   await expect(page.getByRole('heading', { name: 'Wie kann ich dir helfen?' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Modell auswählen' })).toBeVisible()
+  await expectSelectedModel(page, /noris Balanced/)
+  await expect(page.locator('.composer-model')).toHaveCount(0)
   await expect(page.getByRole('textbox', { name: 'Nachricht' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   expect(errors).toEqual([])

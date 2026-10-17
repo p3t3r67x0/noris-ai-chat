@@ -1,3 +1,4 @@
+import { openModelChoices, expectSelectedModel } from '../e2e/model-helpers'
 import { expect, test } from '@playwright/test'
 
 const fixtureOrigin = `http://127.0.0.1:${Number(process.env.NORIS_E2E_PROVIDER_PORT ?? 8591)}`
@@ -13,28 +14,27 @@ test.beforeEach(async ({ page, request }) => {
   await page.goto('/api/v1/llm/models')
   await page.goto('/')
   await expect(page.locator('[data-ready="true"]')).toBeVisible({ timeout: 20_000 })
-  await expect(page.getByRole('button', { name: 'Modell auswählen', exact: true })).toContainText('Fixture Alpha')
+  await expectSelectedModel(page, 'Fixture Alpha')
 })
 
 test.afterEach(async ({ request }) => {
   await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids } })
 })
 
-test('keyboard selection synchronizes the composer, preserves drafts and survives reload', async ({ page }, info) => {
+test('keyboard selection synchronizes the composer, preserves drafts and survives reload', async ({ page }) => {
   const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
   await input.fill('Entwurf bleibt erhalten')
-  const menu = page.getByRole('button', { name: 'Modell auswählen', exact: true })
-  await menu.focus()
-  await menu.press('Enter')
+  const draft = await openModelChoices(page)
   await expect(page.getByRole('option', { name: 'Fixture Beta' })).toBeVisible()
-  await page.keyboard.press('End')
-  await page.keyboard.press('Enter')
-  await expect(menu).toContainText('Fixture Beta')
-  if (info.project.name === 'desktop') await expect(page.getByRole('button', { name: 'Modell im Eingabefeld auswählen' })).toContainText('Fixture Beta')
+  await input.press('End')
+  await input.press('Enter')
+  expect([draft, `${draft} `]).toContain(await input.inputValue())
+  await input.fill(draft)
+  await expectSelectedModel(page, 'Fixture Beta')
   await expect(input).toHaveValue('Entwurf bleibt erhalten')
   await expect(page.locator('.chat-message')).toHaveCount(0)
   await page.reload()
-  await expect(menu).toContainText('Fixture Beta')
+  await expectSelectedModel(page, 'Fixture Beta')
   await expect(input).toHaveValue('Entwurf bleibt erhalten')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
@@ -54,7 +54,7 @@ test('revocation preserves messages and draft until an explicit fallback choice'
   await expect(input).toHaveValue('Nächster Entwurf')
   await expect(page.locator('.chat-content')).toContainText('HTTP-Antwort')
   await page.getByRole('button', { name: 'Verfügbares Modell auswählen' }).click()
-  await expect(page.getByRole('button', { name: 'Modell auswählen', exact: true })).toContainText('Fixture Beta')
+  await expectSelectedModel(page, 'Fixture Beta')
   await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   const after = await request.get(`${fixtureOrigin}/fixture/state`).then(response => response.json()) as { calls: unknown[] }
   expect(after.calls).toHaveLength(before.calls.length)
@@ -88,9 +88,8 @@ test('documented models are grouped and the entitled router is first', async ({ 
   await page.reload()
   // The prior preference remains unavailable until the user chooses the offered fallback.
   await page.getByRole('button', { name: 'Verfügbares Modell auswählen' }).click()
-  const menu = page.getByRole('button', { name: 'Modell auswählen', exact: true })
-  await expect(menu).toContainText('Automatisch')
-  await menu.click()
+  await expectSelectedModel(page, 'Automatisch')
+  await openModelChoices(page)
   await expect(page.getByRole('option').first()).toContainText('Automatisch')
   await expect(page.getByText('Reasoning & Entwicklung', { exact: true })).toBeVisible()
   await expect(page.getByRole('option', { name: 'GPT-OSS 120B', exact: false })).toBeVisible()
@@ -116,9 +115,8 @@ test('native 2.4 catalogs include new approved models with dated USD quotes', as
   }).toEqual([...chatIds].sort())
   await page.reload()
   await page.getByRole('button', { name: 'Verfügbares Modell auswählen' }).click()
-  const menu = page.getByRole('button', { name: 'Modell auswählen', exact: true })
-  await expect(menu).toContainText('DeepSeek V4.1 Flash')
-  await menu.click()
+  await expectSelectedModel(page, 'DeepSeek V4.1 Flash')
+  await openModelChoices(page)
   const deepseek = page.getByRole('option', { name: 'DeepSeek V4.1 Flash', exact: false })
   await expect(deepseek).toContainText('1.048.576 Tokens Kontext')
   await expect(deepseek).toContainText('10 / 30 USD je Mio.')

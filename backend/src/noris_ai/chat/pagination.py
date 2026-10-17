@@ -6,7 +6,7 @@ Only the selected ancestors are walked; variant metadata is one batch query.
 from collections.abc import Sequence
 from uuid import UUID
 
-from sqlalchemy import Integer, func, literal, select, text, tuple_
+from sqlalchemy import Integer, func, literal, or_, select, text, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from noris_ai.chat.cursors import Cursor
@@ -63,7 +63,21 @@ async def conversation_page(
         stmt = stmt.where(ChatConversation.pinned_at.is_(None))
     if query:
         escaped = query.lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        stmt = stmt.where(func.lower(ChatConversation.title).like(f"%{escaped}%", escape="\\"))
+        message_match = (
+            select(ChatMessage.id)
+            .where(
+                ChatMessage.conversation_id == ChatConversation.id,
+                ChatMessage.role.in_(("user", "assistant")),
+                func.lower(ChatMessage.content).like(f"%{escaped}%", escape="\\"),
+            )
+            .exists()
+        )
+        stmt = stmt.where(
+            or_(
+                func.lower(ChatConversation.title).like(f"%{escaped}%", escape="\\"),
+                message_match,
+            )
+        )
     if cursor:
         seek = Cursor.decode(cursor, scope)
         if seek.timestamp is None or seek.leaf is not None or seek.revision is not None:

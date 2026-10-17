@@ -1,0 +1,196 @@
+{
+  "viewport": {
+    "width": 1440,
+    "height": 900,
+    "deviceScaleFactor": 1
+  },
+  "theme": "light",
+  "metrics": {
+    "rail": {
+      "x": 0,
+      "y": 0,
+      "width": 52,
+      "height": 900,
+      "top": 0,
+      "right": 52,
+      "bottom": 900,
+      "left": 0
+    },
+    "sidebar": {
+      "x": 52,
+      "y": 0,
+      "width": 288,
+      "height": 900,
+      "top": 0,
+      "right": 340,
+      "bottom": 900,
+      "left": 52
+    },
+    "header": {
+      "x": 60,
+      "y": 4,
+      "width": 271,
+      "height": 44,
+      "top": 4,
+      "right": 331,
+      "bottom": 48,
+      "left": 60
+    },
+    "newChat": {
+      "x": 60,
+      "y": 58,
+      "width": 271,
+      "height": 37,
+      "top": 58,
+      "right": 331,
+      "bottom": 95,
+      "left": 60
+    },
+    "recents": {
+      "x": 60,
+      "y": 148,
+      "width": 271,
+      "height": 1680,
+      "top": 148,
+      "right": 331,
+      "bottom": 1828,
+      "left": 60
+    },
+    "row": {
+      "x": 60,
+      "y": 200,
+      "width": 271,
+      "height": 37,
+      "top": 200,
+      "right": 331,
+      "bottom": 237,
+      "left": 60
+    },
+    "composer": {
+      "x": 506,
+      "y": 391,
+      "width": 768,
+      "height": 54,
+      "top": 391,
+      "right": 1274,
+      "bottom": 445,
+      "left": 506
+    },
+    "textarea": {
+      "x": 559,
+      "y": 406,
+      "width": 610,
+      "height": 24,
+      "top": 406,
+      "right": 1169,
+      "bottom": 430,
+      "left": 559
+    },
+    "plus": {
+      "x": 511,
+      "y": 396,
+      "width": 44,
+      "height": 44,
+      "top": 396,
+      "right": 555,
+      "bottom": 440,
+      "left": 511
+    },
+    "microphone": {
+      "x": 1177,
+      "y": 396,
+      "width": 44,
+      "height": 44,
+      "top": 396,
+      "right": 1221,
+      "bottom": 440,
+      "left": 1177
+    },
+    "submit": {
+      "x": 1225,
+      "y": 396,
+      "width": 44,
+      "height": 44,
+      "top": 396,
+      "right": 1269,
+      "bottom": 440,
+      "left": 1225
+    },
+    "greeting": {
+      "x": 522,
+      "y": 317.5,
+      "width": 736,
+      "height": 37.5,
+      "top": 317.5,
+      "right": 1258,
+      "bottom": 355,
+      "left": 522
+    },
+    "main": {
+      "x": 340,
+      "y": 0,
+      "width": 1100,
+      "height": 900,
+      "top": 0,
+      "right": 1440,
+      "bottom": 900,
+      "left": 340
+    }
+  },
+  "comparisons": [
+    {
+      "name": "rail",
+      "dimension": "width",
+      "expected": 52,
+      "certainty": "user-stated markup target; original HTML unavailable",
+      "actual": 52,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "sidebar",
+      "dimension": "width",
+      "expected": 288,
+      "certainty": "derived from user-stated markup targets",
+      "actual": 288,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "main",
+      "dimension": "x",
+      "expected": 340,
+      "certainty": "user-stated markup target; original HTML unavailable",
+      "actual": 340,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "composer",
+      "dimension": "width",
+      "expected": 768,
+      "certainty": "visual estimate / responsive Noris rule",
+      "actual": 768,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "composer",
+      "dimension": "height",
+      "expected": 54,
+      "certainty": "visual estimate",
+      "actual": 54,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    },
+    {
+      "name": "row",
+      "dimension": "height",
+      "expected": 37,
+      "certainty": "current raster estimate; mobile controls retain 44px",
+      "actual": 37,
+      "absoluteDeviationPx": 0,
+      "relativeDeviation": 0
+    }
+  ]
+}

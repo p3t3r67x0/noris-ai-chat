@@ -1,0 +1,109 @@
+{
+  "before": {
+    "font-400": {
+      "fonts": [
+        {
+          "familyName": "Noto Sans",
+          "postScriptName": "NotoSans-Regular",
+          "isCustomFont": false,
+          "glyphCount": 34
+        }
+      ]
+    },
+    "font-500": {
+      "fonts": [
+        {
+          "familyName": "Noto Sans Medium",
+          "postScriptName": "NotoSans-Medium",
+          "isCustomFont": false,
+          "glyphCount": 34
+        }
+      ]
+    },
+    "font-600": {
+      "fonts": [
+        {
+          "familyName": "Noto Sans SemiBold",
+          "postScriptName": "NotoSans-SemiBold",
+          "isCustomFont": false,
+          "glyphCount": 34
+        }
+      ]
+    },
+    "font-700": {
+      "fonts": [
+        {
+          "familyName": "Noto Sans",
+          "postScriptName": "NotoSans-Bold",
+          "isCustomFont": false,
+          "glyphCount": 34
+        }
+      ]
+    },
+    "font-mono": {
+      "fonts": [
+        {
+          "familyName": "Liberation Mono",
+          "postScriptName": "LiberationMono",
+          "isCustomFont": false,
+          "glyphCount": 24
+        }
+      ]
+    }
+  },
+  "selfHosted": {
+    "font-400": {
+      "fonts": [
+        {
+          "familyName": "Noris Sans",
+          "postScriptName": "NorisSans-Regular",
+          "isCustomFont": true,
+          "glyphCount": 34
+        }
+      ]
+    },
+    "font-500": {
+      "fonts": [
+        {
+          "familyName": "Noris Sans Medium",
+          "postScriptName": "NorisSans-Medium",
+          "isCustomFont": true,
+          "glyphCount": 34
+        }
+      ]
+    },
+    "font-600": {
+      "fonts": [
+        {
+          "familyName": "Noris Sans SemiBold",
+          "postScriptName": "NorisSans-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 34
+        }
+      ]
+    },
+    "font-700": {
+      "fonts": [
+        {
+          "familyName": "Noris Sans",
+          "postScriptName": "NorisSans-Bold",
+          "isCustomFont": true,
+          "glyphCount": 34
+        }
+      ]
+    },
+    "font-mono": {
+      "fonts": [
+        {
+          "familyName": "Noris Mono",
+          "postScriptName": "NorisMono",
+          "isCustomFont": true,
+          "glyphCount": 24
+        }
+      ]
+    }
+  },
+  "browser": "Chromium 1248; locale de-DE",
+  "sourceMetrics": "/fonts/manifest.json",
+  "CIObservation": "123 visual failures with identical CSS targets, visibly wider glyphs; actual CI platform font family was not recorded in that earlier run."
+}

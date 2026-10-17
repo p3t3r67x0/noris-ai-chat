@@ -8,7 +8,8 @@ generation.py and reuses this service.
 import uuid
 from typing import TYPE_CHECKING, cast
 
-from sqlalchemy import text
+from sqlalchemy import func, select, text
+from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,6 +27,7 @@ from noris_ai.chat.schemas import (
     ConversationListResponse,
     ConversationMode,
     ConversationResponse,
+    ConversationSearchMatch,
     DraftResponse,
     ImportConflict,
     ImportConversation,
@@ -191,8 +193,43 @@ class ChatService:
                 pinned=pinned,
                 prepared_only=prepared_only,
             )
+            matches: list[ConversationSearchMatch] = []
+            if query and rows:
+                escaped = (
+                    query.lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+                )
+                # One bounded, owner-scoped query for this result page. DISTINCT ON
+                # returns the newest matching message per authorized conversation.
+                found = await session.scalars(
+                    select(ChatMessage)
+                    .where(
+                        ChatMessage.conversation_id.in_([row.id for row in rows]),
+                        ChatMessage.role.in_(("user", "assistant")),
+                        func.lower(ChatMessage.content).like(f"%{escaped}%", escape="\\"),
+                    )
+                    .ext(distinct_on(ChatMessage.conversation_id))
+                    .order_by(
+                        ChatMessage.conversation_id,
+                        ChatMessage.created_at.desc(),
+                        ChatMessage.id.desc(),
+                    )
+                )
+                for message in found:
+                    index = message.content.lower().find(query.lower())
+                    start = max(0, index - 60)
+                    excerpt = ("…" if start else "") + message.content[start : start + 180]
+                    if start + 180 < len(message.content):
+                        excerpt += "…"
+                    matches.append(
+                        ConversationSearchMatch(
+                            conversationId=message.conversation_id,
+                            messageId=message.id,
+                            excerpt=excerpt,
+                        )
+                    )
         return ConversationListResponse(
             conversations=[conversation_response(c) for c in rows],
+            matches=matches,
             nextCursor=next_cursor,
             hasMore=next_cursor is not None,
         )

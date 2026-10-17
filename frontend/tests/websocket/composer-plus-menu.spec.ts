@@ -1,4 +1,5 @@
-import { clearTestConversations } from './chat-fixtures'
+import { openModelChoices, expectSelectedModel } from '../e2e/model-helpers'
+import { clearTestConversations, stableModelCatalog } from './chat-fixtures'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
@@ -21,6 +22,7 @@ const buttonAppearance = (page: Page) => triggerFor(page).evaluate(element => {
 })
 
 test.beforeEach(async ({ page, request }) => {
+  await stableModelCatalog(page)
   await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: ['fixture-alpha', 'fixture-beta', 'fixture-long'] } })
   await clearTestConversations(request)
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
@@ -73,14 +75,14 @@ test('delayed action-menu focus return preserves a newly opened model picker', a
   const chooser = page.waitForEvent('filechooser')
   await uploadFor(page).click()
   await (await chooser).setFiles(uploadFile)
-  const model = page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true })
-  await model.click()
+  const originalDraft = await openModelChoices(page)
   await expect(page.getByRole('listbox')).toBeVisible()
   await expect(page.locator('.composer-action-menu')).toHaveCount(0)
-  await expect(model).toHaveAttribute('aria-expanded', 'true')
-  await expect(inputFor(page)).not.toBeFocused()
+  await expect(inputFor(page)).toHaveAttribute('aria-controls', /.+/)
+  await expect(inputFor(page)).toBeFocused()
   await page.getByRole('option', { name: 'Fixture Beta' }).click()
-  await expect(model).toContainText('Fixture Beta')
+  await inputFor(page).fill(originalDraft)
+  await expectSelectedModel(page, 'Fixture Beta')
   await expect(inputFor(page)).toHaveValue(draft)
   await expect(page.locator('[data-upload-status="uploaded"]')).toHaveCount(1)
 })

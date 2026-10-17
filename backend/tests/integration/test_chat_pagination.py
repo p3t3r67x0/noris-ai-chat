@@ -7,7 +7,7 @@ from typing import Any, cast
 import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
-from sqlalchemy import insert, text, update
+from sqlalchemy import insert, select, text, update
 from test_chat_api import AUTH, chat_app, chat_config, client, migrated
 
 from noris_ai.chat.cursors import Cursor
@@ -302,3 +302,89 @@ async def test_pagination_indexes_exist(client: AsyncClient, chat_app: FastAPI) 
         "ix_chat_conversation_active_seek",
         "ix_chat_message_seek",
     } <= set(indexes)
+
+
+async def test_message_search_is_paginated_scoped_literal_and_has_direct_targets(
+    client: AsyncClient, chat_app: FastAPI
+) -> None:
+    ids = await seed(chat_app, count=65)
+    database = cast(ModelDatabase, chat_app.state.chat_database)
+    async with database() as session:
+        await session.execute(
+            insert(ChatMessage),
+            [
+                dict(
+                    id=uuid.uuid4(),
+                    conversation_id=conversation_id,
+                    role="user",
+                    content="Neutral prefix Needle_% literal search suffix",
+                    status="completed",
+                )
+                for conversation_id in ids
+            ],
+        )
+        foreign = (
+            await session.scalars(
+                select(ChatConversation).where(ChatConversation.owner_id != OWNER)
+            )
+        ).first()
+        assert foreign is not None
+        await session.execute(
+            insert(ChatMessage).values(
+                id=uuid.uuid4(),
+                conversation_id=foreign.id,
+                role="user",
+                status="completed",
+                content="Needle_% private foreign marker",
+            )
+        )
+        await session.commit()
+    first = (
+        await client.get(
+            "/api/v1/conversations",
+            params={
+                "q": "NEEDLE_%",
+                "archived": "true",
+                "limit": 50,
+            },
+            auth=AUTH,
+        )
+    ).json()
+    assert len(first["conversations"]) == 50 and first["hasMore"]
+    assert len(first["matches"]) == 50
+    assert all("Needle_%" in match["excerpt"] for match in first["matches"])
+    assert all("foreign" not in match["excerpt"] for match in first["matches"])
+    second = (
+        await client.get(
+            "/api/v1/conversations",
+            params={
+                "q": "NEEDLE_%",
+                "archived": "true",
+                "cursor": first["nextCursor"],
+            },
+            auth=AUTH,
+        )
+    ).json()
+    assert len(second["conversations"]) == 15 and not second["hasMore"]
+    all_ids = [row["id"] for row in first["conversations"] + second["conversations"]]
+    assert len(set(all_ids)) == 65
+    match = first["matches"][0]
+    target = (
+        await client.get(
+            f"/api/v1/conversations/{match['conversationId']}/active-path",
+            params={"messageId": match["messageId"]},
+            auth=AUTH,
+        )
+    ).json()
+    assert any(message["id"] == match["messageId"] for message in target["messages"])
+    missing = (
+        await client.get(
+            "/api/v1/conversations",
+            params={
+                "q": "NeedleX%",
+                "archived": "true",
+            },
+            auth=AUTH,
+        )
+    ).json()
+    assert not missing["conversations"]
