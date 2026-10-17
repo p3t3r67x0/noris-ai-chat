@@ -8,6 +8,46 @@ test.beforeEach(async ({ page, request }) => {
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
 })
 
+for (const theme of ['light', 'dark']) {
+  test(`October pending cancellation ${theme}`, async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'Capture the pending protocol state once per theme.')
+    await page.setViewportSize({ width: 1701, height: 863 })
+    await page.addInitScript(theme => localStorage.setItem('noris-ai-theme', theme), theme)
+    let releaseCancel: (() => void) | undefined
+    let cancelCommands = 0
+    // Delay the real outgoing cancellation, preserving the production protocol.
+    // This makes the pending state reproducible without a fake component prop.
+    await page.routeWebSocket('**/api/v1/chat/ws', client => {
+      const server = client.connectToServer()
+      client.onMessage(message => {
+        if (JSON.parse(String(message)).type === 'chat.cancel') {
+          cancelCommands++
+          releaseCancel = () => server.send(message)
+        }
+        else server.send(message)
+      })
+      server.onMessage(message => client.send(message))
+    })
+    await page.goto('/')
+    const input = page.locator('.composer-input')
+    await input.fill('/quiet')
+    await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
+    await input.press('Enter')
+    await expect(page.locator('[data-generation-status="streaming"]')).toBeAttached()
+    await page.getByRole('button', { name: 'Antwort stoppen', exact: true }).click()
+    try {
+      await expect.poll(() => cancelCommands).toBe(1)
+      await expect(page.getByRole('button', { name: 'Abbruch läuft', exact: true })).toHaveAttribute('aria-disabled', 'true')
+      await expect(input).toBeFocused()
+      await expect(page).toHaveScreenshot(`october-pending-stop-${theme}.png`, { animations: 'disabled' })
+    }
+    finally { releaseCancel?.() }
+    await expect(page.locator('[data-generation-status="cancelled"]')).toBeAttached()
+    expect(cancelCommands).toBe(1)
+    await expect(input).toBeFocused()
+  })
+}
+
 for (const theme of ['light', 'dark']) for (const width of [1701, 390]) {
   test(`October real attachments ${width} ${theme}`, async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop', 'This matrix defines its own viewport; existing upload tests also run in the touch project.')
