@@ -362,6 +362,34 @@ einen unter Last abgelaufenen Sidebar-Test sowie die korrigierten 250-px- und
 320-px-Randfälle. Die Läufe wurden für den finalen Build beendet; nicht erreichte
 Fälle und unterbrochene Tests werden nicht als bestanden gezählt.
 
+## CI-Nachprüfung zu PR #88
+
+Der [CI-Job 117411213241](https://github.com/p3t3r67x0/noris-ai-chat/actions/runs/39037862011/job/117411213241?pr=88)
+bestand die komplette Mock-Suite mit **350 Fällen / 59 ausgelassen**. Auch der
+Compose-Smoke-Job bestand. Die gesamte SSE-Suite führte dagegen **82 erfolgreiche,
+13 ausgelassene und einen fehlgeschlagenen Fall** aus. Der Fehler lag in einem
+SSE-Titeltest, der im früheren lokalen Teilumfang nicht enthalten war.
+
+`frontend/tests/llm/conversation-titles.spec.ts:70` erwartete bei 1280 px weiterhin
+den ungekürzten Titel „Docker DNS Troubleshooting Guide“. Die frühere Geometrie
+verwendete hier 14 px Sidebartext, die neue 16 px. Die Beschriftung hat jetzt
+255 px verfügbaren Platz; der vollständige Titel misst lokal in Chromium
+254,640625 px. Wegen der bereits vorhandenen 1-px-Reserve in
+`frontend/app/components/chat/ConversationTitle.vue:26` beträgt das Nutzungsbudget
+254 px. Die mittlere semantische Variante ist deshalb korrekt.
+
+Der unveränderte Test wurde lokal mit **einem Fehler / einem erfolgreichen
+Touchfall** reproduziert. Die korrigierte Desktop-/Touchprüfung bestand mit
+**zwei Fällen**. Sie prüft zusätzlich gemessene Textbreite, unveränderte Zeilenhöhe,
+erreichbare Aktionen bei Hover und Tastaturfokus, fehlende Überlagerung,
+unveränderten gespeicherten Volltitel und genau einen Titelrequest auch nach
+Reload. Geometrie wird als JSON an den Browserreport angehängt. Produktcode,
+Snapshot-Toleranzen, Assertion-Timeouts und Baselines bleiben unverändert.
+
+Die Zahlen der ursprünglichen lokalen Teilprüfungen oben bleiben historische
+Nachweise. Aktuelle vollständige CI-Ergebnisse sind über die Checks des
+[Pull Requests #88](https://github.com/p3t3r67x0/noris-ai-chat/pull/88) nachvollziehbar.
+
 ## Restabweichungen und Folgearbeiten
 
 - Das PNG misst 1920×975; die zugehörige CSS-Pixel-Skalierung und das erwähnte

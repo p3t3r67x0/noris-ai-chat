@@ -458,6 +458,7 @@ frontend/tests/llm/__screenshots__/linux/mobile/composer-multiline-dark.png
 frontend/tests/llm/__screenshots__/linux/mobile/composer-multiline-light.png
 frontend/tests/llm/__screenshots__/linux/mobile/composer-streaming-dark.png
 frontend/tests/llm/__screenshots__/linux/mobile/composer-streaming-light.png
+frontend/tests/llm/conversation-titles.spec.ts
 frontend/tests/unit/sidebar-actions.spec.ts
 frontend/tests/websocket/__screenshots__/linux/desktop/attachment-1440-dark.png
 frontend/tests/websocket/__screenshots__/linux/desktop/attachment-1440-light.png

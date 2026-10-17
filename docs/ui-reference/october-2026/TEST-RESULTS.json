@@ -136,5 +136,43 @@
     "External live-provider suites",
     "Backend unit suite (unchanged backend)",
     "Real iOS/Android keyboards and screenreader device acceptance"
-  ]
+  ],
+  "ciFollowup": {
+    "reportedRun": 39037862011,
+    "reportedJob": 117411213241,
+    "reportedHead": "595af77b971f5b96580fcfa129c99010a3c49efc",
+    "mock": {
+      "passed": 350,
+      "skipped": 59,
+      "failed": 0
+    },
+    "composeSmoke": "passed",
+    "sseBeforeFix": {
+      "passed": 82,
+      "skipped": 13,
+      "failed": 1
+    },
+    "cause": "SSE title assertion expected the former typography/layout. The existing component correctly chooses the semantic middle candidate within its one-pixel glyph rounding budget.",
+    "localReproduction": {
+      "passed": 1,
+      "failed": 1,
+      "exitCode": 1
+    },
+    "localFocusedRecheck": {
+      "passed": 2,
+      "failed": 0,
+      "exitCode": 0
+    },
+    "measuredTitleGeometry": {
+      "viewportWidth": 1280,
+      "fontSizePx": 16,
+      "availableLabelWidthPx": 255,
+      "fullTitleWidthPx": 254.640625,
+      "existingGlyphReservePx": 1
+    },
+    "productCodeChanged": false,
+    "snapshotToleranceChanged": false,
+    "baselinesChanged": false,
+    "latestChecks": "https://github.com/p3t3r67x0/noris-ai-chat/pull/88/checks"
+  }
 }
