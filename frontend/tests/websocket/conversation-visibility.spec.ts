@@ -1,4 +1,4 @@
-import { clearTestConversations } from './chat-fixtures'
+import { clearTestConversations, stableModelCatalog } from './chat-fixtures'
 import { expect, test } from '@playwright/test'
 import type { APIRequestContext, Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
@@ -25,6 +25,7 @@ async function newChat(page: Page) {
   await expect(page.getByRole('textbox', { name: 'Nachricht', exact: true })).toBeFocused()
 }
 test.beforeEach(async ({ page, request }) => {
+  await stableModelCatalog(page)
   await clearTestConversations(request)
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: 'fixture-alpha' } })
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
