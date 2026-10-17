@@ -1,0 +1,150 @@
+{
+  "format": "WOFF2",
+  "packager": "fonttools 4.61.1",
+  "fonts": [
+    {
+      "family": "Noris Sans",
+      "weight": 400,
+      "style": "normal",
+      "asset": "noris-sans-regular.woff2",
+      "source": "NotoSans-Regular.ttf",
+      "sourceVersion": "Version 2.004; ttfautohint (v1.8.3) -l 8 -r 50 -G 200 -x 14 -D latn -f none -a qsq -X \"\"",
+      "sourceSHA256": "89c3c497f618fdaa0b2d1e98fef93582f28c71debd2c4a8cdf41f190ced2909d",
+      "assetSHA256": "d5217801f435fd6a0090dde08f85d8dbac4cc003f4ec8080671ab94f121dc8f7",
+      "glyphCount": 3317,
+      "metricsVerified": true
+    },
+    {
+      "family": "Noris Sans",
+      "weight": 400,
+      "style": "italic",
+      "asset": "noris-sans-italic.woff2",
+      "source": "NotoSans-Italic.ttf",
+      "sourceVersion": "Version 2.004; ttfautohint (v1.8.3) -l 8 -r 50 -G 200 -x 14 -D latn -f none -a qsq -X \"\"",
+      "sourceSHA256": "5d7618dda819443fd07301c84adcee9fe8960c873ea5e5e1f0f59db384b78082",
+      "assetSHA256": "95fcc66459404ae6cabed06e7dba1f514e409979089cf0d4926d9e269cdc2061",
+      "glyphCount": 3327,
+      "metricsVerified": true
+    },
+    {
+      "family": "Noris Sans",
+      "weight": 500,
+      "style": "normal",
+      "asset": "noris-sans-medium.woff2",
+      "source": "NotoSans-Medium.ttf",
+      "sourceVersion": "Version 2.004; ttfautohint (v1.8.3) -l 8 -r 50 -G 200 -x 14 -D latn -f none -a qsq -X \"\"",
+      "sourceSHA256": "013ae62f5187c01e8752de78829ee7e1e0feaed6edee17db0dbf703988c99f3d",
+      "assetSHA256": "325e350cee89853ca46bc6ab109ce80c6d6df23323dd3adafaa8ea15739982b0",
+      "glyphCount": 3317,
+      "metricsVerified": true
+    },
+    {
+      "family": "Noris Sans",
+      "weight": 500,
+      "style": "italic",
+      "asset": "noris-sans-medium-italic.woff2",
+      "source": "NotoSans-MediumItalic.ttf",
+      "sourceVersion": "Version 2.004; ttfautohint (v1.8.3) -l 8 -r 50 -G 200 -x 14 -D latn -f none -a qsq -X \"\"",
+      "sourceSHA256": "a31fb90c49533d7daf0d69ca3100176942654a0411befc72489950ec8b9218b8",
+      "assetSHA256": "dc42db8d6ecbcb44b3721b0ca7568b1ebbd90be178ed4701436567d4b0cf2262",
+      "glyphCount": 3327,
+      "metricsVerified": true
+    },
+    {
+      "family": "Noris Sans",
+      "weight": 600,
+      "style": "normal",
+      "asset": "noris-sans-semibold.woff2",
+      "source": "NotoSans-SemiBold.ttf",
+      "sourceVersion": "Version 2.004; ttfautohint (v1.8.3) -l 8 -r 50 -G 200 -x 14 -D latn -f none -a qsq -X \"\"",
+      "sourceSHA256": "68543590a7c3185d69ad16664c46df28832beeb72621d2470e86b04099eb4efb",
+      "assetSHA256": "0dae6cd3e6e74036b6b5defba65a7831c41a9f5e8253aa25414b642634123567",
+      "glyphCount": 3317,
+      "metricsVerified": true
+    },
+    {
+      "family": "Noris Sans",
+      "weight": 600,
+      "style": "italic",
+      "asset": "noris-sans-semibold-italic.woff2",
+      "source": "NotoSans-SemiBoldItalic.ttf",
+      "sourceVersion": "Version 2.004; ttfautohint (v1.8.3) -l 8 -r 50 -G 200 -x 14 -D latn -f none -a qsq -X \"\"",
+      "sourceSHA256": "3de501625775e0607ca1d5142df077040f07064c854afdc8681f1bdf1e8f68de",
+      "assetSHA256": "7567fbd3fa4ffbc589669568181d6375d6b9a6f570528eb1cbd593407f8bb7b8",
+      "glyphCount": 3327,
+      "metricsVerified": true
+    },
+    {
+      "family": "Noris Sans",
+      "weight": 700,
+      "style": "normal",
+      "asset": "noris-sans-bold.woff2",
+      "source": "NotoSans-Bold.ttf",
+      "sourceVersion": "Version 2.004; ttfautohint (v1.8.3) -l 8 -r 50 -G 200 -x 14 -D latn -f none -a qsq -X \"\"",
+      "sourceSHA256": "e83493c945848ecd4a9ad0f6d19164541a0d3e23a9c952304a00a46e00272ac5",
+      "assetSHA256": "ff39085bc7879b471687ab0984cf76e6cd188fc9af2ef7592ac5fe5c30158278",
+      "glyphCount": 3317,
+      "metricsVerified": true
+    },
+    {
+      "family": "Noris Sans",
+      "weight": 700,
+      "style": "italic",
+      "asset": "noris-sans-bold-italic.woff2",
+      "source": "NotoSans-BoldItalic.ttf",
+      "sourceVersion": "Version 2.004; ttfautohint (v1.8.3) -l 8 -r 50 -G 200 -x 14 -D latn -f none -a qsq -X \"\"",
+      "sourceSHA256": "4315b26e5afb62f70f5ffe0edaa3363e57765ff2af2beda12b6fef197e3e5f5a",
+      "assetSHA256": "6e0cd9d09e69acc02740a3621ad14104fe943253b08c1e0baadb4840549c4c73",
+      "glyphCount": 3327,
+      "metricsVerified": true
+    },
+    {
+      "family": "Noris Mono",
+      "weight": 400,
+      "style": "normal",
+      "asset": "noris-mono-regular.woff2",
+      "source": "LiberationMono-Regular.ttf",
+      "sourceVersion": "Version 2.1.5",
+      "sourceSHA256": "d18235f1e874771f4eaec3ddd6ddb4db849d334bdc6930c5c2185d9344834e62",
+      "assetSHA256": "a90d679dd4f36c8953cc8fe4edfa57e185dbb8e29b6ede44480f48c35f43dcca",
+      "glyphCount": 2423,
+      "metricsVerified": true
+    },
+    {
+      "family": "Noris Mono",
+      "weight": 400,
+      "style": "italic",
+      "asset": "noris-mono-italic.woff2",
+      "source": "LiberationMono-Italic.ttf",
+      "sourceVersion": "Version 2.1.5",
+      "sourceSHA256": "35c3116d4366eb0e58494d8e432d4ee0c60c5735c7f775ffc096008bd2907c74",
+      "assetSHA256": "855bc502870a1eac2a8ded8a36dc86b8a21032fb926ad165db5e95332a722632",
+      "glyphCount": 2425,
+      "metricsVerified": true
+    },
+    {
+      "family": "Noris Mono",
+      "weight": 700,
+      "style": "normal",
+      "asset": "noris-mono-bold.woff2",
+      "source": "LiberationMono-Bold.ttf",
+      "sourceVersion": "Version 2.1.5",
+      "sourceSHA256": "50464e64aaadea741fb9516748aee296d570439406be11d63df22294e77ba867",
+      "assetSHA256": "de6956288b840f33e8d149dbc3d87978e4201ad98379be9491ae441497c7c1bd",
+      "glyphCount": 2423,
+      "metricsVerified": true
+    },
+    {
+      "family": "Noris Mono",
+      "weight": 700,
+      "style": "italic",
+      "asset": "noris-mono-bold-italic.woff2",
+      "source": "LiberationMono-BoldItalic.ttf",
+      "sourceVersion": "Version 2.1.5",
+      "sourceSHA256": "291872531f0e8013df602c412fc570241860e41b1fa1b7972537c27a19024d4d",
+      "assetSHA256": "774c1cf3ee04e09cca8ecffb62f66a72ed95779dac84ebd8ef138a5f7fb0c0a3",
+      "glyphCount": 2425,
+      "metricsVerified": true
+    }
+  ]
+}

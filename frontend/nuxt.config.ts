@@ -40,7 +40,12 @@ export default defineNuxtConfig({
     },
   },
   app: {
-    head: { title: 'noris AI', htmlAttrs: { lang: 'de' } },
+    head: {
+      title: 'noris AI', htmlAttrs: { lang: 'de' },
+      link: ['regular', 'medium', 'semibold'].map(weight => ({
+        rel: 'preload', href: `/fonts/noris-sans-${weight}.woff2`, as: 'font', type: 'font/woff2', crossorigin: 'anonymous' as const,
+      })),
+    },
   },
   typescript: {
     strict: true,
