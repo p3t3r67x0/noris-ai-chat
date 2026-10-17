@@ -178,9 +178,13 @@ test('draft reload, first response failure, retry and title failure remain recov
   }
   const previousTitleErrors = await titleErrorCalls()
   await page.keyboard.press('Control+Shift+O')
+  await expect(page.locator('.empty-chat')).toBeVisible()
   await input.fill('/title-error SearXNG')
   await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await input.press('Enter')
+  // Completion from the previous conversation remains visible until the new
+  // send is acknowledged. Observe this new message before awaiting completion.
+  await expect(page.locator('.message-user')).toContainText('/title-error SearXNG')
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   // The retry's asynchronous title can reorder the list after this chat completes.
   const conversations = await list(request)

@@ -357,14 +357,16 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 /* VisualViewport can shrink while the layout viewport and media queries stay
    unchanged. Reserve the visible space for a growing draft and its controls. */
 @container (max-height: 500px) {
+  .chat-content[data-empty="false"] { --noris-composer-input-max-height: min(10rem, 18cqh); }
+  .chat-timeline { padding-block: 0.5rem; }
+  .last-chat-turn > .chat-message:last-child { margin-bottom: 0; }
   .chat-content[data-empty="true"] { padding-block: 0.5rem max(0.5rem, env(safe-area-inset-bottom)); }
   .chat-content[data-empty="true"]::after { flex: 0 0 0; min-height: 0; }
   .empty-chat h1 { font-size: 1.25rem; margin-bottom: 0.75rem; }
 }
 @container (max-height: 300px) {
   .chat-main { --noris-header-height: 44px; }
-  .chat-content[data-empty="false"] { --noris-composer-input-max-height: min(10rem, 18cqh); }
-  .composer-dock { padding-top: 0; }
+  .composer-dock { padding-top: 0; padding-bottom: max(0.25rem, env(safe-area-inset-bottom)); }
   .composer-note { display: none; }
   .chat-content[data-empty="true"] { padding-block: 0 env(safe-area-inset-bottom); }
   .chat-content[data-empty="true"]::before { flex-basis: 0; }
