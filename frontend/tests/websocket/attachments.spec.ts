@@ -5,7 +5,8 @@ import type { Page } from '@playwright/test'
 
 const fixtureOrigin = `http://127.0.0.1:${Number(process.env.NORIS_E2E_PROVIDER_PORT ?? 8591)}`
 const fixtureModels = ['fixture-alpha', 'fixture-beta', 'fixture-long']
-test.beforeEach(async ({ request }) => {
+test.beforeEach(async ({ page, request }) => {
+  await stableModelCatalog(page)
   await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: fixtureModels } })
   await clearTestConversations(request)
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })

@@ -122,7 +122,7 @@ describe('chat metadata version conflicts', () => {
 
 describe('direct conversation bootstrap', () => {
   it('uses one requested path instead of the preferred path, then releases the URL intent', async () => {
-    const other = { ...conversation, id: '00000000-0000-4000-8000-000000000002', title: 'Direkter synthetischer Chat' }
+    const other = { ...conversation, id: '00000000-0000-4000-8000-0000000000ab', title: 'Direkter synthetischer Chat' }
     const fetcher = vi.fn<typeof fetch>(async input => {
       const path = String(input)
       if (path.includes('/chat/preferences')) return Response.json({ activeConversationId: conversation.id, modelId: null })
@@ -131,12 +131,12 @@ describe('direct conversation bootstrap', () => {
       return Response.json({ conversations: path.includes('pinned=true') || path.includes('preparedOnly=true') ? [] : [conversation, other] })
     })
     const backend = new ChatBackend(fetcher)
-    backend.requestedConversationId = other.id
+    backend.requestedConversationId = other.id.toUpperCase()
     expect((await backend.load()).activeConversationId).toBe(other.id)
     const paths = fetcher.mock.calls.map(([input]) => String(input)).filter(path => path.includes('/active-path'))
     expect(paths).toHaveLength(1)
     expect(paths[0]).toContain(other.id)
-    expect(backend.requestedConversationId).toBeNull()
+    expect(backend.requestedConversationId).toBeUndefined()
     expect((await backend.load()).activeConversationId).toBe(conversation.id)
   })
 
@@ -146,6 +146,21 @@ describe('direct conversation bootstrap', () => {
     backend.requestedConversationId = '../chat/preferences'
     await expect(backend.load()).rejects.toMatchObject({ code: 'NOT_FOUND' })
     expect(fetcher).not.toHaveBeenCalled()
+  })
+
+  it('opens an explicitly new chat without loading the preferred conversation', async () => {
+    const fetcher = vi.fn<typeof fetch>(async input => {
+      const path = String(input)
+      if (path.includes('/chat/preferences')) return Response.json({ activeConversationId: conversation.id, modelId: null })
+      if (path.includes('/chat/drafts')) return Response.json({ drafts: [] })
+      if (path.includes('/active-path')) return Response.json({ conversation, messages: [], variants: [], hasMore: false, nextCursor: null, boundaryParentId: null, leafMessageId: null })
+      return Response.json({ conversations: path.includes('pinned=true') || path.includes('preparedOnly=true') ? [] : [conversation] })
+    })
+    const backend = new ChatBackend(fetcher)
+    backend.requestedConversationId = null
+    expect(await backend.load()).toMatchObject({ activeConversationId: null, path: null })
+    expect(fetcher.mock.calls.some(([input]) => String(input).includes('/active-path'))).toBe(false)
+    expect((await backend.load()).activeConversationId).toBe(conversation.id)
   })
 
   it('preserves an unavailable direct target for retry without falling back to another conversation', async () => {

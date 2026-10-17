@@ -27,8 +27,8 @@
 }
 .chat-loading-track { stroke: #ccc; }
 .chat-loading-arc { stroke: #5d5d5d; }
-:global(.dark) .chat-loading-track { stroke: rgb(255 255 255 / 20%); }
-:global(.dark) .chat-loading-arc { stroke: #bdbdbd; }
+:global(.dark .chat-loading-track) { stroke: rgb(255 255 255 / 20%); }
+:global(.dark .chat-loading-arc) { stroke: #bdbdbd; }
 @keyframes chat-loading-rotate { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
   .chat-loading-ring { animation: none; }

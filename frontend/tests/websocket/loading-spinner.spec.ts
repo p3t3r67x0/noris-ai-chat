@@ -10,6 +10,7 @@ test.use({ deviceScaleFactor: 1 })
 test.setTimeout(60_000)
 const status = (page: Page) => page.getByRole('status', { name: 'Chat wird geladen', exact: true })
 
+
 async function centered(page: Page) {
   await expect(status(page)).toBeVisible()
   await expect(status(page)).toHaveText('')
@@ -67,10 +68,11 @@ for (const [width, height] of [[1920, 976], [1701, 863], [1440, 900], [390, 844]
       const chats = await seedLoadingChats(page, request)
       const id = sidebar ? chats.first : chats.second
       const gate = await holdLoadingPath(page, id)
-      await page.goto(sidebar ? '/' : `/?conversationId=${id}`)
+      await page.goto(sidebar ? '/' : `/?conversationId=${width === 1920 && theme === 'light' ? id.toUpperCase() : id}`)
       await gate.hit
       await page.evaluate(() => document.fonts.ready)
       const geometry = await centered(page)
+      expect(geometry.styles.color).toBe(theme === 'dark' ? 'rgb(189, 189, 189)' : 'rgb(93, 93, 93)')
       await expect(page.locator('.chat-message-pane')).toHaveAttribute('data-loading-state', 'initial')
       if (width >= 1024) {
         expect(geometry.pane.x).toBe(sidebar ? 340 : 52)
@@ -264,6 +266,14 @@ test('reload and initial retry restore an older saved anchor before revealing th
   }, chats.messages[0]!.id)
   const before = await snapshot()
   const gate = await holdLoadingPath(page, chats.first)
+  await page.reload()
+  await gate.hit
+  await centered(page)
+  gate.release()
+  await expect(status(page)).toHaveCount(0)
+  await expect(oldest).toBeInViewport()
+  await expect.poll(async () => (await oldest.boundingBox())!.y - (await scroller.boundingBox())!.y).toBeCloseTo(offset, 0)
+  gate.reset()
   await page.reload()
   await gate.hit
   await centered(page)

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { clearTestConversations, stableModelCatalog } from './chat-fixtures'
+import { writeFile } from 'node:fs/promises'
 
 test.beforeEach(async ({ page, request }) => {
   await stableModelCatalog(page)
@@ -69,7 +70,20 @@ for (const theme of ['light', 'dark']) for (const width of [1701, 390]) {
     await page.locator('input[type="file"]').setInputFiles([file('synthetic-one.txt')])
     try {
       await expect(page.locator('[data-upload-status="uploading"]')).toHaveCount(1)
-      await expect(page).toHaveScreenshot(`october-uploading-${width}-${theme}.png`, { animations: 'disabled' })
+      try { await expect(page).toHaveScreenshot(`october-uploading-${width}-${theme}.png`, { animations: 'disabled' }) }
+      finally {
+        const geometry = await page.evaluate(() => Object.fromEntries([
+          '.chat-content', '.chat-composer', '.composer-container', '.composer-files', '.attachment-list', '.attachment-preview', '.attachment-copy', '.attachment-filename', '.attachment-detail', 'progress', '.composer-input', '.composer-trailing', '.composer-microphone', '.composer-submit',
+        ].map(selector => {
+          const element = document.querySelector(selector)
+          if (!element) return [selector, null]
+          const style = getComputedStyle(element)
+          return [selector, { rect: element.getBoundingClientRect().toJSON(), font: style.font, lineHeight: style.lineHeight, verticalAlign: style.verticalAlign, display: style.display, position: style.position, padding: style.padding, margin: style.margin }]
+        })))
+        const geometryPath = info.outputPath('upload-geometry.json')
+        await writeFile(geometryPath, JSON.stringify(geometry, null, 2) + '\n')
+        await info.attach('upload-geometry', { path: geometryPath, contentType: 'application/json' })
+      }
     }
     finally { release() }
     await expect(page.locator('[data-upload-status="uploaded"]')).toHaveCount(1)

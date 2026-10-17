@@ -1,5 +1,5 @@
 import { openModelChoices, expectSelectedModel } from '../e2e/model-helpers'
-import { clearTestConversations } from './chat-fixtures'
+import { clearTestConversations, stableModelCatalog } from './chat-fixtures'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
@@ -22,6 +22,7 @@ const buttonAppearance = (page: Page) => triggerFor(page).evaluate(element => {
 })
 
 test.beforeEach(async ({ page, request }) => {
+  await stableModelCatalog(page)
   await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: ['fixture-alpha', 'fixture-beta', 'fixture-long'] } })
   await clearTestConversations(request)
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })

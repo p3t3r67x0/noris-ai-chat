@@ -348,7 +348,19 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     return conversation
   }
   const newChat = state.newChat
-  state.newChat = () => { userNavigated = true; newChat() }
+  state.newChat = () => {
+    userNavigated = true
+    newChat()
+    if (!backendReady.value) {
+      const id = state.conversations.activeId.value
+      backend.requestedConversationId = id
+      if (!initialLoading.value) void reloadSidebar().then(() => {
+        if (backendReady.value && state.conversations.activeId.value === id) {
+          void persist(backend.preferences(id), { operation: 'preferences', conversationId: id, attemptId: crypto.randomUUID() }, () => backend.preferences(state.conversations.activeId.value))
+        }
+      })
+    }
+  }
   for (const action of ['rename', 'archive', 'restore'] as const) {
     const original = state.conversations[action]
     state.conversations[action] = (id: string, title?: string) => {
