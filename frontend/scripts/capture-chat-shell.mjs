@@ -1,18 +1,23 @@
 // Synthetic, loopback-only browser evidence. Run against the mock transport.
-import { chromium, expect } from '../frontend/node_modules/@playwright/test/index.mjs'
+import { chromium, expect } from '@playwright/test'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 
+/** @type {('light' | 'dark')[]} */
+const themes = ['light', 'dark']
+/** @type {[number, number][]} */
+const viewports = [[1701, 863], [1440, 900], [1280, 800], [1024, 768], [768, 1024], [390, 844]]
+
 const stage = process.argv[2]
-if (stage !== 'before' && stage !== 'after') throw new Error('Usage: node scripts/capture-chat-shell.mjs before|after')
+if (stage !== 'before' && stage !== 'after') throw new Error('Usage: node frontend/scripts/capture-chat-shell.mjs before|after')
 const origin = new URL(process.env.NORIS_SHELL_URL ?? 'http://127.0.0.1:3000')
 if (!['127.0.0.1', 'localhost', '[::1]'].includes(origin.hostname)) throw new Error('Use a local synthetic browser fixture')
-const root = fileURLToPath(new URL('../docs/ui-reference/october-2026/', import.meta.url))
+const root = fileURLToPath(new URL('../../docs/ui-reference/october-2026/', import.meta.url))
 await mkdir(root, { recursive: true })
 const selectors = ['.chat-rail', '.conversation-sidebar', '.sidebar-heading', '.sidebar-new-chat', '.sidebar-section', '.conversation-row', '.chat-composer', '.composer-input', '.composer-attachment', '.composer-model', '.composer-microphone', '.composer-submit', '.empty-chat h1']
 const browser = await chromium.launch()
 try {
-  for (const theme of ['light', 'dark']) for (const [width, height] of [[1701, 863], [1440, 900], [1280, 800], [1024, 768], [768, 1024], [390, 844]]) {
+  for (const theme of themes) for (const [width, height] of viewports) {
     const context = await browser.newContext({ viewport: { width, height }, locale: 'de-DE', deviceScaleFactor: 1, colorScheme: theme })
     try {
       const page = await context.newPage()
