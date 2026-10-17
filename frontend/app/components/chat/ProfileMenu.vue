@@ -81,7 +81,7 @@ const submenuContent = { side: 'right' as const, sideOffset: 6, collisionPadding
     :ui="{ content: 'profile-menu', viewport: 'profile-menu-viewport', group: 'profile-menu-group', item: 'profile-menu-item', itemLeadingIcon: 'profile-menu-icon', itemTrailingIcon: 'profile-menu-icon', itemLabel: 'profile-menu-label' }"
     @update:open="updateOpen"
   >
-    <UTooltip :text="compact ? (demo ? t('localAccount') : t('account')) : undefined">
+    <UTooltip :text="demo ? t('localAccount') : t('account')" :disabled="!compact">
       <UButton ref="trigger" color="neutral" variant="ghost" :class="compact ? 'profile-trigger touch-control' : 'profile-trigger profile-trigger-wide'" :aria-label="demo ? t('localAccount') : t('account')">
         <UAvatar text="N" size="sm" class="profile-avatar" />
         <span v-if="!compact" class="profile-trigger-copy"><span>Noris AI</span><small>{{ identity }}</small></span>
