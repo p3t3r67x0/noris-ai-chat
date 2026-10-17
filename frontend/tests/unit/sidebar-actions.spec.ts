@@ -10,15 +10,26 @@ const Sidebar = defineComponent({ setup(_, { slots }) { return () => h('aside', 
 const Dropdown = defineComponent({ props: ['items'], emits: ['update:open'], setup(_, { slots, emit }) { const open = ref(false); return () => h('div', { onClick: () => { open.value = !open.value; emit('update:open', open.value) } }, slots.default?.()) } })
 const wrappers: ReturnType<typeof mount>[] = []
 afterEach(() => wrappers.splice(0).forEach(w => w.unmount()))
-function fixture(conversation = chat, setPinned = vi.fn()) {
+function fixture(conversation = chat, setPinned = vi.fn(), sidebar = Sidebar) {
   const wrapper = mount(ChatSidebar, {
     props: { open: true, conversations: [conversation], archived: [], activeId: chat.id, removeConversation: vi.fn(), setPinned },
-    global: { stubs: { USidebar: Sidebar, UButton: Button, UDropdownMenu: Dropdown, UModal: true, UInput: true, UColorModeSelect: true, ProfileMenu: true, ConversationTitle: false, ChatSearchDialog: true, DeleteConversationDialog: true } },
+    global: { stubs: { USidebar: sidebar, UButton: Button, UDropdownMenu: Dropdown, UModal: true, UInput: true, UColorModeSelect: true, ProfileMenu: true, ConversationTitle: false, ChatSearchDialog: true, DeleteConversationDialog: true } },
   })
   wrappers.push(wrapper)
   return { wrapper, setPinned }
 }
 describe('existing sidebar chat actions', () => {
+  it('assigns unique ARIA targets when USidebar reuses its content in the drawer', async () => {
+    const ReusedSidebar = defineComponent({ setup(_, { slots }) { return () => h('aside', [h('div', slots.default?.()), h('div', slots.default?.())]) } })
+    const { wrapper } = fixture(chat, vi.fn(), ReusedSidebar)
+    const toggles = wrapper.findAll('.sidebar-section-toggle')
+    const targets = toggles.map(toggle => toggle.attributes('aria-controls'))
+    expect(toggles).toHaveLength(2)
+    expect(new Set(targets).size).toBe(2)
+    for (const target of targets) expect(wrapper.findAll(`[id="${target}"]`)).toHaveLength(1)
+    await toggles[1]!.trigger('click')
+    for (const toggle of toggles) expect(toggle.attributes('aria-expanded')).toBe('false')
+  })
   it('collapses recent rows without unmounting them or changing conversation state', async () => {
     const { wrapper } = fixture()
     const toggle = wrapper.get('.sidebar-section-toggle')

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { normalizeAppError } from '../../lib/notifications/errors'
 import { useAppLocale } from '../../composables/useAppLocale'
-import { computed, nextTick, ref, useId } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import type { useChatBackend } from '../../composables/useChatBackend'
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { Conversation } from '../../lib/chat/conversations'
@@ -10,6 +10,7 @@ import DeleteConversationDialog from './DeleteConversationDialog.vue'
 import ConversationTitle from './ConversationTitle.vue'
 import ProfileMenu from './ProfileMenu.vue'
 import ChatSearchDialog from './ChatSearchDialog.vue'
+import ChatSidebarSection from './ChatSidebarSection.vue'
 const { t } = useAppLocale()
 
 const props = defineProps<{ demo?: boolean, pagination?: ReturnType<typeof useChatBackend>['pagination'] | undefined, conversations: readonly Conversation[], archived: readonly Conversation[], activeId: string | null, removeConversation: (id: string) => void | Promise<void>, setPinned: (id: string, pinned: boolean) => void | Promise<void> }>()
@@ -23,7 +24,6 @@ const groups = computed(() => {
   return [...pinned, { label: 'recents', conversations: sorted.filter(group => group.label !== 'Fixierte Chats').flatMap(group => group.conversations) }]
 })
 const recentsOpen = ref(true)
-const recentListId = useId()
 const hasConversations = computed(() => groups.value.some(group => group.conversations.length > 0))
 const openMenuId = ref<string | null>(null)
 const pendingPins = ref(new Set<string>())
@@ -198,15 +198,8 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
       <details v-if="pagination?.sidebarError.value" class="px-3 py-2 text-sm text-warning"><summary>Chatliste nicht verfügbar.</summary><p>{{ pagination.sidebarError.value }}</p></details>
       <UButton v-if="pagination?.sidebarError.value || pagination?.windowedList.value" color="neutral" variant="ghost" label="Neueste Chats laden" :loading="pagination?.sidebarLoading.value" @click="pagination?.reloadSidebar" />
       <p v-if="pagination?.sidebarLoading.value && !hasConversations" role="status" class="px-3 py-2 text-sm text-muted">Chats werden geladen …</p>
-      <section v-for="group in groups" :key="group.label" class="sidebar-section" :aria-label="group.label === 'Fixierte Chats' ? t('pinnedChats') : t('recents')">
-        <h2 v-if="group.label === 'Fixierte Chats'" class="sidebar-group">{{ t('pinnedChats') }}</h2>
-        <h2 v-else class="sidebar-group">
-          <button type="button" class="sidebar-section-toggle" :aria-expanded="recentsOpen" :aria-controls="recentListId" @click="recentsOpen = !recentsOpen">
-            {{ t('recents') }}
-            <UIcon :name="recentsOpen ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'" class="size-4" aria-hidden="true" />
-          </button>
-        </h2>
-        <ul v-show="group.label === 'Fixierte Chats' || recentsOpen" :id="group.label === 'recents' ? recentListId : undefined">
+      <ChatSidebarSection v-for="group in groups" :key="group.label" v-model:open="recentsOpen" :collapsible="group.label === 'recents'" :title="group.label === 'Fixierte Chats' ? t('pinnedChats') : t('recents')">
+        <ul>
           <li v-for="conversation in group.conversations" :key="conversation.id" class="conversation-row group" :data-conversation-id="conversation.id" :data-active="activeId === conversation.id" :data-menu-open="openMenuId === conversation.id">
             <button type="button" :aria-current="activeId === conversation.id ? 'page' : undefined" :title="conversation.title" @click="selectChat(conversation.id)">
               <ConversationTitle :title="conversation.title" :source="conversation.titleSource" />
@@ -222,7 +215,7 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
         <p v-if="group.label === 'recents' && recentsOpen && !hasConversations && !pagination?.sidebarLoading.value && !pagination?.sidebarError.value" class="px-2 py-3 text-sm leading-relaxed text-muted">{{ t('emptyConversations') }}</p>
         <UButton v-if="group.label === 'Fixierte Chats' && pagination?.hasMorePinned.value" color="neutral" variant="ghost" :label="t('morePinnedChats')" :loading="pagination.pinnedLoading.value" class="mt-2 w-full" @click="pagination.loadMorePinned" />
         <UButton v-if="group.label === 'Fixierte Chats' && pagination?.pinnedWindowedList.value" color="neutral" variant="ghost" label="Neueste fixierte Chats laden" :loading="pagination.pinnedLoading.value" class="mt-2 w-full" @click="pagination.reloadPinned" />
-      </section>
+      </ChatSidebarSection>
       <p v-if="pagination?.pinnedError.value" role="alert" class="px-3 py-2 text-sm text-warning">{{ pagination.pinnedError.value }} <UButton label="Fixierte Chats erneut laden" variant="link" @click="pagination.reloadPinned" /></p>
       <UButton v-if="recentsOpen && pagination?.hasMore.value" color="neutral" variant="ghost" :label="t('moreChats')" :loading="pagination.sidebarLoading.value" class="mt-3 w-full" @click="pagination.loadMore" />
     </nav>

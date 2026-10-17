@@ -110,6 +110,10 @@ for (const theme of ['light', 'dark']) {
       else {
         await page.getByRole('button', { name: 'Sidebar öffnen', exact: true }).click()
         await expect(page.getByRole('navigation', { name: 'Gespräche' })).toBeVisible()
+        const recentId = await page.locator('.sidebar-section-toggle:visible').getAttribute('aria-controls')
+        const recentContent = page.locator(`[id="${recentId}"]`)
+        await expect(recentContent).toHaveCount(1)
+        await expect(recentContent).toBeVisible()
         await expect(page).toHaveScreenshot(`october-${width}-${theme}-drawer.png`, { animations: 'disabled' })
         await page.getByRole('button', { name: 'Gesprächsliste schließen', exact: true }).click()
       }
