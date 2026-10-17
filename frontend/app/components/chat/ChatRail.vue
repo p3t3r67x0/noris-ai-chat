@@ -19,6 +19,6 @@ const { t } = useAppLocale()
       <UButton icon="i-lucide-archive" color="neutral" variant="ghost" class="touch-control" :aria-label="t('archived')" :aria-current="archiveActive ? 'page' : undefined" @click="$emit('archive')" />
     </UTooltip>
     <div class="flex-1" />
-    <UTooltip :text="t('account')"><ProfileMenu :demo="demo" /></UTooltip>
+    <ProfileMenu :demo="demo" />
   </nav>
 </template>

@@ -137,6 +137,8 @@ for (const theme of ['light', 'dark']) {
       await expect(page).toHaveScreenshot(`october-${theme}-${state}.png`, { animations: 'disabled' })
     }
     await input.fill('')
+    await page.locator('.chat-rail .profile-trigger').hover()
+    await expect(page.getByRole('tooltip')).toHaveText('Lokaler Arbeitsbereich')
     await page.locator('.rail-home').hover()
     await expect(page.locator('.rail-home')).toHaveAttribute('aria-current', 'page')
     await expect(page).toHaveScreenshot(`october-${theme}-rail.png`, { animations: 'disabled' })
