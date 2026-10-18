@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import type { Conversation } from '../../lib/chat/conversations'
 import { useWorkspace } from '../../composables/useWorkspace'
 import { useAppLocale } from '../../composables/useAppLocale'
@@ -8,11 +8,16 @@ import DeleteConversationDialog from '../../components/chat/DeleteConversationDi
 import { normalizeAppError } from '../../lib/notifications/errors'
 const { chat } = useWorkspace()
 const { t } = useAppLocale()
+const route = useRoute()
+const requested = computed(() => {
+  try { return route.hash.startsWith('#archive-') ? decodeURIComponent(route.hash.slice(9)) : '' }
+  catch { return '' }
+})
 const ids = ref<string[]>([])
 const cursor = ref<string | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
-const rows = computed(() => chat.pagination ? ids.value.flatMap(id => {
+const rows = computed(() => chat.pagination ? [...new Set([requested.value, ...ids.value])].flatMap(id => {
   const c = chat.conversations.records.value[id]
   return c?.archivedAt ? [c] : []
 }) : chat.conversations.archived.value)
@@ -27,7 +32,24 @@ async function load(more = false): Promise<void> {
   catch (cause) { error.value = normalizeAppError(cause, { operation: 'archive' }).message }
   finally { loading.value = false }
 }
-onMounted(() => { void load() })
+async function loadRequested(): Promise<void> {
+  if (!requested.value || !chat.pagination || chat.conversations.records.value[requested.value]?.archivedAt) return
+  try { await chat.pagination.loadArchiveTarget(requested.value) }
+  catch (cause) { error.value = normalizeAppError(cause, { operation: 'archive' }).message }
+}
+onMounted(() => { void load().then(loadRequested) })
+let focused = ''
+watch([requested, rows], () => {
+  if (!import.meta.client) return
+  if (!requested.value || focused === requested.value || !rows.value.some(row => row.id === requested.value)) return
+  void nextTick(() => requestAnimationFrame(() => {
+    const element = document.getElementById(`archive-${requested.value}`)
+    if (!element) return
+    focused = requested.value
+    element.scrollIntoView({ block: 'nearest' })
+    element.querySelector<HTMLElement>('button')?.focus({ preventScroll: true })
+  }))
+}, { immediate: true, flush: 'post' })
 const target = ref<Conversation | null>(null)
 const returnFocus = ref<HTMLElement | null>(null)
 const open = computed({ get: () => target.value !== null, set: (value: boolean) => { if (!value) target.value = null } })
@@ -45,7 +67,7 @@ function restore(conversation: Conversation): void {
       <details v-if="chat.storageWarning.value" class="text-sm text-muted"><summary>Sicherung und Änderungen prüfen</summary><p>{{ chat.storageWarning.value }}</p><UButton v-if="chat.retryPersistence.value" color="neutral" variant="link" label="Erneut speichern" @click="chat.retryPersistence.value?.()" /></details>
       <p v-if="loading" role="status" class="text-muted">{{ t('archiveLoading') }}</p>
       <p v-else-if="!rows.length && !error" class="text-muted">{{ t('emptyArchive') }}</p>
-      <SettingsRow v-for="conversation in rows" :key="conversation.id" :title="conversation.title">
+      <SettingsRow v-for="conversation in rows" :id="`archive-${conversation.id}`" :key="conversation.id" :title="conversation.title">
         <UButton icon="i-lucide-undo-2" color="neutral" variant="ghost" class="touch-control" :aria-label="`${conversation.title} ${t('restore').toLowerCase()}`" @click="restore(conversation)" />
         <UButton icon="i-lucide-trash-2" color="neutral" variant="ghost" class="touch-control" :aria-label="`${conversation.title} ${t('delete').toLowerCase()}`" @click="showDelete(conversation, $event)" />
       </SettingsRow>

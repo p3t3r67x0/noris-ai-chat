@@ -22,6 +22,24 @@ function setup(search = vi.fn().mockResolvedValue(page(['recent'])), server = tr
 }
 
 describe('existing conversation search coordination', () => {
+  it('resets cursors and aborts stale results when filters change, preserving current ranked rows', async () => {
+    vi.useFakeTimers()
+    const request = vi.fn().mockResolvedValueOnce(page(['phrase', 'recent'], 'old-cursor')).mockResolvedValue(page(['archive'], 'filtered-cursor'))
+    const state = setup(request)
+    await vi.advanceTimersByTimeAsync(0)
+    const signal = request.mock.calls[0]![1] as AbortSignal
+    state.archive.value = 'archived'; state.pin.value = 'pinned'
+    expect(signal.aborted).toBe(true)
+    expect(state.cursor.value).toBeNull()
+    expect(state.results.value.map(row => row.id)).toEqual(['phrase', 'recent'])
+    await vi.advanceTimersByTimeAsync(200)
+    expect(request).toHaveBeenLastCalledWith('', expect.any(AbortSignal), undefined, { archive: 'archived', pin: 'pinned' })
+    await state.search(true)
+    expect(request).toHaveBeenLastCalledWith('', expect.any(AbortSignal), 'filtered-cursor', { archive: 'archived', pin: 'pinned' })
+    state.open.value = false; state.open.value = true
+    expect(state.archive.value).toBe('active')
+    expect(state.pin.value).toBe('all')
+  })
   it('requeries an open search on authoritative updates and resets stale pagination', async () => {
     vi.useFakeTimers()
     const request = vi.fn().mockResolvedValueOnce(page([], 'old-cursor')).mockResolvedValueOnce(page(['started'])).mockResolvedValueOnce({ ...page(['started']), conversations: [{ ...row('started'), title: 'Generated title', titleSource: 'generated' }] })
@@ -35,7 +53,7 @@ describe('existing conversation search coordination', () => {
     state.query.value = 'Generated'
     state.revision.value++
     await vi.advanceTimersByTimeAsync(200)
-    expect(request).toHaveBeenLastCalledWith('Generated', expect.any(AbortSignal), undefined)
+    expect(request).toHaveBeenLastCalledWith('Generated', expect.any(AbortSignal), undefined, { archive: 'active', pin: 'all' })
     expect(state.results.value[0]?.title).toBe('Generated title')
     state.open.value = false
     state.revision.value++
@@ -53,10 +71,10 @@ describe('existing conversation search coordination', () => {
     await vi.advanceTimersByTimeAsync(199)
     expect(state.request).toHaveBeenCalledTimes(1)
     await vi.advanceTimersByTimeAsync(1)
-    expect(state.request).toHaveBeenLastCalledWith('ab', expect.any(AbortSignal), undefined)
+    expect(state.request).toHaveBeenLastCalledWith('ab', expect.any(AbortSignal), undefined, { archive: 'active', pin: 'all' })
     state.open.value = false; state.open.value = true
     expect(state.query.value).toBe('')
-    expect(state.request).toHaveBeenLastCalledWith('', expect.any(AbortSignal), undefined)
+    expect(state.request).toHaveBeenLastCalledWith('', expect.any(AbortSignal), undefined, { archive: 'active', pin: 'all' })
   })
 
   it('does not request or delay local/demo filtering', () => {
@@ -94,7 +112,7 @@ describe('existing conversation search coordination', () => {
     expect(state.error.value).toContain('Bitte versuche es erneut')
     expect(state.error.value).not.toContain('private detail')
     await state.search(true)
-    expect(request).toHaveBeenLastCalledWith('', expect.any(AbortSignal), 'next')
+    expect(request).toHaveBeenLastCalledWith('', expect.any(AbortSignal), 'next', { archive: 'active', pin: 'all' })
     expect(state.results.value.map(row => row.id)).toEqual(['first', 'beyond-50'])
     expect(state.cursor.value).toBeNull()
     expect(state.error.value).toBeNull()

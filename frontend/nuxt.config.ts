@@ -26,7 +26,7 @@ export default defineNuxtConfig({
       scan: true,
       icons: [
         'lucide:menu', 'lucide:panel-left', 'lucide:panel-left-close', 'lucide:panel-left-open',
-        'lucide:square-pen', 'lucide:search', 'lucide:chevron-down', 'lucide:chevron-up',
+        'lucide:square-pen', 'lucide:search', 'lucide:list-filter', 'lucide:chevron-down', 'lucide:chevron-up',
         'lucide:chevron-left', 'lucide:chevron-right', 'lucide:check', 'lucide:x',
         'lucide:moon', 'lucide:sun', 'lucide:monitor', 'lucide:ellipsis', 'lucide:pencil',
         'lucide:archive', 'lucide:trash-2', 'lucide:undo-2', 'lucide:settings', 'lucide:user', 'lucide:pin', 'lucide:pin-off',

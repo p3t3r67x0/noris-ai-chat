@@ -153,7 +153,7 @@ describe('lazy chat resources', () => {
     const aborted = new AbortController()
     aborted.abort()
     await sync.pagination.search('Chat', aborted.signal, 'server-cursor')
-    expect(pages).toHaveBeenLastCalledWith({ q: 'Chat', cursor: 'server-cursor' }, aborted.signal)
+    expect(pages).toHaveBeenLastCalledWith({ q: 'Chat', archiveFilter: 'active', cursor: 'server-cursor' }, aborted.signal)
     expect(state.conversations.records.value[id(999)]).toBeUndefined()
     await sync.pagination.search('Chat', new AbortController().signal, 'server-cursor')
     expect(state.conversations.records.value[id(999)]?.title).toBe('Chat 999')

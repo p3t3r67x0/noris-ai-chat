@@ -16,6 +16,7 @@ from noris_ai.llm.schemas import ReasoningPreference
 from noris_ai.research.schemas import ResearchView
 
 ConversationMode = Literal["normal", "learning"]
+ArchiveFilter = Literal["active", "archived", "all"]
 TitleSource = Literal["fallback", "generated", "manual"]
 MessageRole = Literal["user", "assistant"]
 MessageStatus = Literal["pending", "streaming", "completed", "incomplete", "cancelled", "failed"]

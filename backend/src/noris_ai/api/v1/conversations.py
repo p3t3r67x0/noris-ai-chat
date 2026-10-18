@@ -17,6 +17,7 @@ from noris_ai.chat.generation import GenerationManager
 from noris_ai.chat.repository import UNCHANGED
 from noris_ai.chat.schemas import (
     ActivePathResponse,
+    ArchiveFilter,
     ChatImportRequest,
     ChatImportResponse,
     ConversationCreate,
@@ -69,19 +70,40 @@ async def list_conversations(
     preparedOnly: bool = False,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     cursor: Annotated[str | None, Query(max_length=2048)] = None,
-    q: Annotated[str, Query(max_length=200)] = "",
+    q: Annotated[
+        str,
+        Query(
+            max_length=200,
+            description=(
+                "Literal Unicode NFC/casefold word-AND across title and all saved branches. "
+                "Whitespace separates up to 32 distinct terms; exact phrases rank first."
+            ),
+        ),
+    ] = "",
     pinned: bool | None = None,
+    archiveFilter: Annotated[
+        ArchiveFilter | None,
+        Query(
+            description=(
+                "Archive scope, independent of pinned. Omit to retain legacy "
+                "archived/archiveOnly behavior. Cannot combine with true legacy archive flags."
+            )
+        ),
+    ] = None,
 ) -> ConversationListResponse:
     service, owner_id = access
+    if archiveFilter is not None and (archived or archiveOnly):
+        raise ChatError("INVALID_INPUT", 422)
     return await service.conversation_page(
         owner_id,
         limit=limit,
         cursor=cursor,
         include_archived=archived,
         archive_only=archiveOnly,
-        query=q.strip(),
+        query=q,
         pinned=pinned,
         prepared_only=preparedOnly,
+        archive_filter=archiveFilter,
     )
 
 
