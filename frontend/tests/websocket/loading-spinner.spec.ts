@@ -119,6 +119,7 @@ test('sidebar navigation loads one existing conversation and preserves restored 
   const top = await scroller.evaluate(element => element.scrollTop)
   const gate = await holdLoadingPath(page, chats.second)
   const toggle = page.getByRole('button', { name: 'Sidebar öffnen', exact: true })
+  await expect(page.getByRole('dialog', { name: 'Gespräche', exact: true })).toBeHidden()
   if (await toggle.isVisible()) await toggle.click()
   await page.getByRole('button', { name: 'Ladetest B', exact: true }).click()
   await gate.hit
@@ -127,6 +128,9 @@ test('sidebar navigation loads one existing conversation and preserves restored 
   gate.release()
   await expect(status(page)).toHaveCount(0)
   await expect(input).toHaveValue('Gespeicherter Entwurf B')
+  // The path can finish before the mobile drawer's exit animation. Wait for
+  // dismissal before checking the opener; the closing drawer still hides it.
+  await expect(page.getByRole('dialog', { name: 'Gespräche', exact: true })).toBeHidden()
   if (await toggle.isVisible()) await toggle.click()
   await page.getByRole('button', { name: 'Ladetest A', exact: true }).click()
   await expect(input).toHaveValue('Gespeicherter Entwurf A')

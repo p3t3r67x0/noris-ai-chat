@@ -34,6 +34,9 @@ test('keyboard selection synchronizes the composer, preserves drafts and survive
   await expect(input).toHaveValue('Entwurf bleibt erhalten')
   await expect(page.locator('.chat-message')).toHaveCount(0)
   await page.reload()
+  // The model helper edits the composer to open /modell. Observe the restored
+  // draft first so that helper cannot replace it during initial hydration.
+  await expect(input).toHaveValue('Entwurf bleibt erhalten')
   await expectSelectedModel(page, 'Fixture Beta')
   await expect(input).toHaveValue('Entwurf bleibt erhalten')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
