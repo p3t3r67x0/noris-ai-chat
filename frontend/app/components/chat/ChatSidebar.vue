@@ -182,10 +182,10 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
       <div class="sidebar-heading">
         <span class="sidebar-title">Noris AI</span>
         <UTooltip :text="t('chatSearch')">
-          <UButton icon="i-lucide-search" color="neutral" variant="ghost" class="touch-control hidden lg:inline-flex" :aria-label="t('chatSearch')" @click="showSearch" />
+          <UButton icon="i-lucide-search" color="neutral" variant="ghost" class="noris-nav-icon-button sidebar-search-button" :aria-label="t('chatSearch')" @click="showSearch" />
         </UTooltip>
         <UTooltip :text="t('closeConversations')">
-          <UButton icon="i-lucide-panel-left-close" color="neutral" variant="ghost" class="touch-control" :aria-label="t('closeConversations')" aria-controls="chat-sidebar" :aria-expanded="open" @click="open = false" />
+          <UButton icon="i-lucide-panel-left-close" color="neutral" variant="ghost" class="noris-nav-icon-button" :aria-label="t('closeConversations')" aria-controls="chat-sidebar" :aria-expanded="open" @click="open = false" />
         </UTooltip>
       </div>
       <div class="sidebar-primary-actions">

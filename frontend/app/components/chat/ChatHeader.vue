@@ -9,13 +9,13 @@ defineEmits<{ toggleSidebar: [], newChat: [] }>()
 <template>
   <header class="chat-header" :aria-label="t('chatControls')">
     <UButton
-      icon="i-lucide-panel-left" color="neutral" variant="ghost" class="touch-control lg:hidden"
+      icon="i-lucide-panel-left" color="neutral" variant="ghost" class="noris-nav-icon-button"
       :aria-label="sidebarOpen ? t('closeSidebar') : t('openSidebar')" :aria-expanded="sidebarOpen"
       aria-controls="chat-sidebar" @click="$emit('toggleSidebar')"
     />
     <UButton
       v-if="!sidebarOpen" icon="i-lucide-square-pen" color="neutral" variant="ghost"
-      class="touch-control" :aria-label="t('newChat')" @click="$emit('newChat')"
+      class="noris-nav-icon-button" :aria-label="t('newChat')" @click="$emit('newChat')"
     />
     <div class="flex-1" />
     <span v-if="demo" class="header-demo">{{ t('demo') }}</span>

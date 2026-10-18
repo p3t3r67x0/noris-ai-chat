@@ -17,6 +17,9 @@
   --noris-sidebar-width: 288px;
   --noris-shell-navigation-width: calc(var(--noris-rail-width) + var(--noris-sidebar-width));
   --noris-navigation-row-height: 44px;
+  --noris-nav-control-size: 44px;
+  --noris-nav-icon-size: 20px;
+  --noris-nav-control-radius: 12px;
   --noris-sidebar-section-gap: 2rem;
   --noris-chat-max-width: 768px;
   --noris-composer-max-width: var(--noris-chat-max-width);
@@ -115,9 +118,23 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 .touch-control { min-width: 2.75rem; min-height: 2.75rem; }
 .chat-workspace { position: fixed; top: var(--chat-viewport-offset, 0); inset-inline: 0; display: flex; height: 100vh; height: var(--chat-viewport-height, 100dvh); overflow: hidden; container-type: size; }
 .chat-rail { display: none; }
-/* Slot content and icon-only Nuxt UI buttons share one rail geometry. */
-.chat-rail button { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 2.75rem; height: 2.75rem; padding: 0; gap: 0; margin-inline: 0; }
-.chat-rail button > .iconify { width: 1.25rem; height: 1.25rem; flex: none; }
+/* Nuxt UI 4.11.3 renders the icon as a direct data-slot="leadingIcon" span.
+   Own geometry only for navigation controls, including every interaction state. */
+.noris-nav-icon-button {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: var(--noris-nav-control-size); height: var(--noris-nav-control-size);
+  min-width: var(--noris-nav-control-size); min-height: var(--noris-nav-control-size);
+  padding: 0; gap: 0; margin: 0; border-radius: var(--noris-nav-control-radius); line-height: 1;
+  color: var(--noris-text-primary); background: transparent;
+}
+.noris-nav-icon-button > [data-slot="leadingIcon"] {
+  width: var(--noris-nav-icon-size); height: var(--noris-nav-icon-size);
+  flex: none; margin: 0;
+}
+.noris-nav-icon-button:not(:disabled):hover { background: var(--noris-hover-background); }
+.noris-nav-icon-button:not(:disabled):active, .noris-nav-icon-button[aria-current="page"] { background: var(--noris-active-background); }
+.noris-nav-icon-button:focus-visible { outline: 2px solid var(--noris-text-primary); outline-offset: -2px; box-shadow: none; }
+.sidebar-heading .sidebar-search-button { display: none; }
 .chat-sidebar-container { display: contents; }
 .settings-workspace { display: grid; grid-template-columns: var(--noris-rail-width) var(--noris-settings-sidebar-width) minmax(0, 1fr); }
 .settings-layout { display: contents; }
@@ -334,8 +351,8 @@ button, a, textarea, input { -webkit-tap-highlight-color: transparent; }
 @media (min-width: 1024px) {
   :root { --noris-rail-width: 52px; --noris-navigation-row-height: 37px; }
   .chat-rail { display: flex; flex-shrink: 0; flex-direction: column; align-items: center; gap: 1rem; width: var(--noris-rail-width); padding: 0.5rem 0; z-index: 11; background: var(--noris-rail-background); box-shadow: inset -1px 0 var(--noris-border); }
-  .chat-rail button { border-radius: 0.75rem; }
-  .chat-rail button[aria-current="page"] { background: var(--noris-active-background); }
+  .sidebar-heading .sidebar-search-button { display: inline-flex; }
+  .chat-header button[aria-controls="chat-sidebar"] { display: none; }
   .conversation-sidebar > [data-slot="container"] { inset-inline-start: var(--noris-rail-width); }
   .conversation-sidebar > [data-slot="container"][data-state="collapsed"] { inset-inline-start: calc(var(--noris-rail-width) - var(--noris-sidebar-width)); }
   .conversation-sidebar > [data-slot="container"] { border-inline-end: 1px solid var(--noris-border); }

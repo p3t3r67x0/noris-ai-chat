@@ -82,7 +82,7 @@ const submenuContent = { side: 'right' as const, sideOffset: 6, collisionPadding
     @update:open="updateOpen"
   >
     <UTooltip :text="demo ? t('localAccount') : t('account')" :disabled="!compact">
-      <UButton ref="trigger" color="neutral" variant="ghost" :class="compact ? 'profile-trigger touch-control' : 'profile-trigger profile-trigger-wide'" :aria-label="demo ? t('localAccount') : t('account')">
+      <UButton ref="trigger" color="neutral" variant="ghost" :class="compact ? 'profile-trigger noris-nav-icon-button' : 'profile-trigger profile-trigger-wide'" :aria-label="demo ? t('localAccount') : t('account')">
         <UAvatar text="N" size="sm" class="profile-avatar" />
         <span v-if="!compact" class="profile-trigger-copy"><span>Noris AI</span><small>{{ identity }}</small></span>
       </UButton>
