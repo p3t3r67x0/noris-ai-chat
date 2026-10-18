@@ -1,0 +1,164 @@
+[
+  {
+    "scene": "1440-dark-1.png",
+    "size": [
+      1440,
+      900
+    ],
+    "changedPixels": 200250,
+    "changedFraction": 0.1545138888888889
+  },
+  {
+    "scene": "1440-dark-5.png",
+    "size": [
+      1440,
+      900
+    ],
+    "changedPixels": 251566,
+    "changedFraction": 0.19410956790123457
+  },
+  {
+    "scene": "1440-dark-50.png",
+    "size": [
+      1440,
+      900
+    ],
+    "changedPixels": 263637,
+    "changedFraction": 0.20342361111111112
+  },
+  {
+    "scene": "1440-light-1.png",
+    "size": [
+      1440,
+      900
+    ],
+    "changedPixels": 217689,
+    "changedFraction": 0.16796990740740741
+  },
+  {
+    "scene": "1440-light-5.png",
+    "size": [
+      1440,
+      900
+    ],
+    "changedPixels": 269068,
+    "changedFraction": 0.2076141975308642
+  },
+  {
+    "scene": "1440-light-50.png",
+    "size": [
+      1440,
+      900
+    ],
+    "changedPixels": 281120,
+    "changedFraction": 0.21691358024691357
+  },
+  {
+    "scene": "1701-dark-1.png",
+    "size": [
+      1701,
+      863
+    ],
+    "changedPixels": 204055,
+    "changedFraction": 0.13900554714253696
+  },
+  {
+    "scene": "1701-dark-5.png",
+    "size": [
+      1701,
+      863
+    ],
+    "changedPixels": 255371,
+    "changedFraction": 0.17396283148825958
+  },
+  {
+    "scene": "1701-dark-50.png",
+    "size": [
+      1701,
+      863
+    ],
+    "changedPixels": 267442,
+    "changedFraction": 0.18218579078628003
+  },
+  {
+    "scene": "1701-light-1.png",
+    "size": [
+      1701,
+      863
+    ],
+    "changedPixels": 218373,
+    "changedFraction": 0.1487591989716362
+  },
+  {
+    "scene": "1701-light-5.png",
+    "size": [
+      1701,
+      863
+    ],
+    "changedPixels": 269752,
+    "changedFraction": 0.1837593999303797
+  },
+  {
+    "scene": "1701-light-50.png",
+    "size": [
+      1701,
+      863
+    ],
+    "changedPixels": 281798,
+    "changedFraction": 0.19196532882640774
+  },
+  {
+    "scene": "390-dark-1.png",
+    "size": [
+      390,
+      844
+    ],
+    "changedPixels": 64580,
+    "changedFraction": 0.19619637866083364
+  },
+  {
+    "scene": "390-dark-5.png",
+    "size": [
+      390,
+      844
+    ],
+    "changedPixels": 96760,
+    "changedFraction": 0.29396038400777735
+  },
+  {
+    "scene": "390-dark-50.png",
+    "size": [
+      390,
+      844
+    ],
+    "changedPixels": 105398,
+    "changedFraction": 0.32020294081905454
+  },
+  {
+    "scene": "390-light-1.png",
+    "size": [
+      390,
+      844
+    ],
+    "changedPixels": 80539,
+    "changedFraction": 0.2446803985903512
+  },
+  {
+    "scene": "390-light-5.png",
+    "size": [
+      390,
+      844
+    ],
+    "changedPixels": 112762,
+    "changedFraction": 0.34257503949447077
+  },
+  {
+    "scene": "390-light-50.png",
+    "size": [
+      390,
+      844
+    ],
+    "changedPixels": 121387,
+    "changedFraction": 0.3687781018349739
+  }
+]
