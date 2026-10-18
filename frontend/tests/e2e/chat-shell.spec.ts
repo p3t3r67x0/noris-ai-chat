@@ -55,7 +55,7 @@ test('conversation menu supports rename, search, archive and restore by keyboard
   await expect(conversationRow(page, 'Meine Notizen')).toBeVisible()
   await page.getByRole('button', { name: 'Chats suchen' }).click()
   await page.getByPlaceholder('Suchen...').fill('Notizen')
-  await expect(page.getByRole('option', { name: 'Meine Notizen', exact: true })).toBeVisible()
+  await expect(page.getByRole('option').filter({ has: page.getByTitle('Meine Notizen', { exact: true }) })).toBeVisible()
   await page.getByPlaceholder('Suchen...').press('ArrowDown')
   await page.keyboard.press('Enter')
   await expect(page.getByRole('dialog', { name: 'Chats suchen' })).not.toBeVisible()

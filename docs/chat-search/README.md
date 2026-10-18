@@ -161,3 +161,16 @@ werden; ein aktueller Build kann den alten Überlauf nicht dokumentieren.
 Der Such-PR baut auf [Icon-PR #92](https://github.com/p3t3r67x0/noris-ai-chat/pull/92)
 auf. `ChatWorkspace.vue`, Suche-Composable, API-Vertrag und Backend bleiben
 unverändert. Es wird nicht automatisch gemergt.
+
+Die bestehenden Shell-, PostgreSQL-Paginations- und Live-Aktualisierungstests
+prüfen den vollständigen Chattitel jetzt innerhalb der Ergebniszeile. Der
+zugängliche Gesamtname enthält zusätzlich Auszug und Datum; ein exakter
+Vergleich mit ausschließlich dem alten Titel würde gültige Treffer übersehen.
+Die bestehende Höhenassertion prüft die neue Dialoghöhe von 460px. Die Prüfungen
+für Tastaturauswahl, gespeicherte Entwürfe, Pagination, Fehlerbehandlung und
+überholte Antworten bleiben erhalten.
+
+Erneut mit dem gepinnten CI-Browser geprüft: **8 Shell-Fälle**, **14 Such- und
+PostgreSQL-Paginationsfälle** sowie **6 Live-Such-/Upload-Sichtbarkeitsfälle**
+bestehen auf Desktop und Mobile. Keine Assertion oder Bildtoleranz wurde
+abgeschwächt.
