@@ -53,6 +53,8 @@ async function states(page: Page, button: Locator) {
   await page.mouse.down(); result.active = await geometry(button)
   await page.mouse.move(0, 400); await page.mouse.up()
   await page.keyboard.press('Tab'); await button.focus()
+  await expect(button).toBeFocused()
+  expect(await button.evaluate(element => element.matches(':focus-visible'))).toBe(true)
   result.focus = await geometry(button)
   await button.evaluate(element => { (element as HTMLButtonElement).disabled = true })
   result.disabled = await geometry(button)
@@ -74,6 +76,7 @@ async function states(page: Page, button: Locator) {
 
 for (const [width, height] of [[1701, 863], [1440, 900], [390, 844]] as const) for (const theme of ['light', 'dark']) {
   test(`navigation icon geometry ${width} ${theme}`, async ({ page }, info) => {
+    test.setTimeout(60_000)
     test.skip(info.project.name !== 'desktop', 'Explicit viewport and DPR matrix')
     await mkdir(evidence, { recursive: true })
     await page.setViewportSize({ width, height })
@@ -91,6 +94,9 @@ for (const [width, height] of [[1701, 863], [1440, 900], [390, 844]] as const) f
     if (width >= 1024) {
       measurements.search = await states(page, page.locator('.sidebar-heading button').first())
       measurements.railSearch = await states(page, page.locator('.chat-rail button').nth(1))
+      measurements.railHome = await states(page, page.locator('.chat-rail button').first())
+      measurements.railArchive = await states(page, page.locator('.chat-rail button').nth(2))
+      if (phase !== 'before') await expect(page.locator('.chat-rail .profile-trigger')).toHaveCSS('border-radius', '12px')
     }
     await toggle.hover()
     await page.screenshot({ path: resolve(evidence, `${width}-${theme}-open.png`) })

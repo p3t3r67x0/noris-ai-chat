@@ -1,0 +1,8 @@
+{
+  "browserCases": 6,
+  "stateMeasurements": 170,
+  "maximumDomCenterDeviationPx": 0,
+  "maximumPaintedBoundsDeviationPx": 0.4375,
+  "allStatesHaveIdenticalRects": true,
+  "status": "passed"
+}

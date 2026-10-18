@@ -1,0 +1,110 @@
+[
+  {
+    "scene": "1440-dark-closed.png",
+    "size": [
+      1440,
+      900
+    ],
+    "changedPixels": 457,
+    "changedFraction": 0.00035262345679012346
+  },
+  {
+    "scene": "1440-dark-open.png",
+    "size": [
+      1440,
+      900
+    ],
+    "changedPixels": 662,
+    "changedFraction": 0.0005108024691358025
+  },
+  {
+    "scene": "1440-light-closed.png",
+    "size": [
+      1440,
+      900
+    ],
+    "changedPixels": 431,
+    "changedFraction": 0.0003325617283950617
+  },
+  {
+    "scene": "1440-light-open.png",
+    "size": [
+      1440,
+      900
+    ],
+    "changedPixels": 648,
+    "changedFraction": 0.0005
+  },
+  {
+    "scene": "1701-dark-closed.png",
+    "size": [
+      1701,
+      863
+    ],
+    "changedPixels": 457,
+    "changedFraction": 0.00031131574842145203
+  },
+  {
+    "scene": "1701-dark-open.png",
+    "size": [
+      1701,
+      863
+    ],
+    "changedPixels": 662,
+    "changedFraction": 0.0004509650447593025
+  },
+  {
+    "scene": "1701-light-closed.png",
+    "size": [
+      1701,
+      863
+    ],
+    "changedPixels": 431,
+    "changedFraction": 0.0002936041303493344
+  },
+  {
+    "scene": "1701-light-open.png",
+    "size": [
+      1701,
+      863
+    ],
+    "changedPixels": 648,
+    "changedFraction": 0.0004414280196435469
+  },
+  {
+    "scene": "390-dark-closed.png",
+    "size": [
+      390,
+      844
+    ],
+    "changedPixels": 753,
+    "changedFraction": 0.0022876412686839227
+  },
+  {
+    "scene": "390-dark-open.png",
+    "size": [
+      390,
+      844
+    ],
+    "changedPixels": 5290,
+    "changedFraction": 0.0160712115688419
+  },
+  {
+    "scene": "390-light-closed.png",
+    "size": [
+      390,
+      844
+    ],
+    "changedPixels": 728,
+    "changedFraction": 0.0022116903633491313
+  },
+  {
+    "scene": "390-light-open.png",
+    "size": [
+      390,
+      844
+    ],
+    "changedPixels": 410,
+    "changedFraction": 0.001245594847490582
+  }
+]
