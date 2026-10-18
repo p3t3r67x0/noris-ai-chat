@@ -1,0 +1,85 @@
+{
+  "classification": "Manual raster measurements, \u00b12px. Original CSS viewport, devicePixelRatio and browser zoom are unknown. No claim of identical original browser conditions.",
+  "inferredRasterScale": {
+    "railPixels": 68,
+    "railCssPixels": 52,
+    "ratio": 1.3076923076923077,
+    "dialogCssEstimate": [
+      720,
+      460
+    ]
+  },
+  "reference": {
+    "sha256": "9a7a7dcd69d376adea7b1374b1649a3c73afbbce5816e73d7d0d0fb6edd6cb23",
+    "imagePixels": [
+      1920,
+      975
+    ],
+    "dialogPixels": {
+      "x": 490,
+      "y": 167,
+      "width": 939,
+      "height": 600
+    },
+    "originalCssViewport": null,
+    "originalDpr": null,
+    "originalZoom": null,
+    "additionalRasterEstimates": {
+      "inputHeight": 83,
+      "categoryHeight": 57,
+      "rowHeight": 83,
+      "titleFontSize": 18,
+      "excerptFontSize": 16,
+      "dateFontSize": 16
+    }
+  },
+  "current": {
+    "sha256": "0d438b138f0fc284e76064e505a1bc88a090d870b2f5e28344a3925bf7640129",
+    "imagePixels": [
+      1920,
+      975
+    ],
+    "dialogPixels": {
+      "x": 419,
+      "y": 121,
+      "width": 1082,
+      "height": 692
+    },
+    "originalCssViewport": null,
+    "originalDpr": null,
+    "originalZoom": null
+  },
+  "reconstruction": {
+    "cssViewport": [
+      1477,
+      750
+    ],
+    "devicePixelRatio": 1.3,
+    "visualViewportScale": 1,
+    "actualDialogRasterEquivalent": {
+      "x": 492.05,
+      "y": 167.7,
+      "width": 936,
+      "height": 598
+    },
+    "paintedFirstChatIcon": {
+      "referenceBounds": [
+        533,
+        347,
+        554,
+        367
+      ],
+      "afterBounds": [
+        533,
+        345,
+        554,
+        366
+      ],
+      "centerDeltaRasterPx": [
+        0,
+        -1.5
+      ]
+    },
+    "classification": "Inferred calibration, not proof of original capture environment"
+  }
+}

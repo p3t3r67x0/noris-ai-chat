@@ -14,9 +14,9 @@ function contrast(foreground: string, background: string): number {
 async function start(page: Page, theme = 'light', count = 6) {
   const snapshot = savedChat()
   snapshot.conversations.conversations = Object.fromEntries(Object.entries(snapshot.conversations.conversations).slice(0, count))
-  // Keep the sidebar's relative date group stable without freezing Date.now:
-  // Vue's event timestamp guards need time to advance for bubbled Tab events.
-  const activity = Date.now() - 2 * 24 * 60 * 60 * 1000
+  // Stable result dates without freezing Date.now: Vue's event timestamps
+  // still need to advance for bubbled keyboard events.
+  const activity = Date.parse('2026-10-09T12:00:00.000Z')
   Object.values(snapshot.conversations.conversations).forEach((conversation, index) => {
     conversation.createdAt = conversation.updatedAt = new Date(activity - index).toISOString()
   })
@@ -43,9 +43,13 @@ test('focus, shortcuts, dismissal, reset and a trapped Tab sequence', async ({ p
   await page.keyboard.press('Tab')
   await expect(dialog.getByRole('button', { name: 'Suche schließen' })).toBeFocused()
   await page.keyboard.press('Tab')
+  await expect(dialog.getByRole('button', { name: 'Alle', exact: true })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(dialog.getByRole('button', { name: 'Chats', exact: true })).toBeFocused()
+  await page.keyboard.press('Tab')
   await expect(input).toBeFocused()
   await page.keyboard.press('Shift+Tab')
-  await expect(dialog.getByRole('button', { name: 'Suche schließen' })).toBeFocused()
+  await expect(dialog.getByRole('button', { name: 'Chats', exact: true })).toBeFocused()
   await page.keyboard.press('Escape')
   await expect(dialog).not.toBeVisible()
   await expect(page.getByRole('textbox', { name: 'Nachricht', exact: true })).toBeFocused()
@@ -119,7 +123,7 @@ test('mouse and keyboard share a quiet selection, Enter opens the chat and draft
   await expect(dialog).not.toBeVisible()
   await expect(page.getByRole('textbox', { name: 'Nachricht', exact: true })).toHaveValue('')
   await page.keyboard.press('Control+k')
-  await page.getByRole('option', { name: 'Unser Gespräch', exact: true }).click()
+  await page.getByRole('option').filter({ has: page.getByTitle('Unser Gespräch', { exact: true }) }).click()
   await expect(page.getByRole('textbox', { name: 'Nachricht', exact: true })).toHaveValue('Synthetischer Entwurf bleibt erhalten')
   await expect(page.locator('.chat-timeline')).toContainText('Ein guter Anfang')
 })
@@ -132,7 +136,7 @@ test('long untrusted titles remain accessible and ellipsize without overflow', a
   await page.goto('/')
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
   await page.keyboard.press('Control+k')
-  const option = page.getByRole('option', { name: title, exact: true })
+  const option = page.getByRole('option').filter({ has: page.getByTitle(title, { exact: true }) })
   await expect(option).toBeVisible()
   await expect(option.locator('[title]')).toHaveAttribute('title', title)
   expect(await option.locator('.chat-search-row-title').evaluate(el => el.scrollWidth > el.clientWidth && getComputedStyle(el).textOverflow === 'ellipsis')).toBe(true)
@@ -171,8 +175,8 @@ for (const theme of ['light', 'dark']) {
       await page.setViewportSize(viewport)
       const dialog = await start(page, theme, 45)
       const box = (await dialog.boundingBox())!
-      expect(box.width).toBeCloseTo(Math.min(830, viewport.width - 32), 0)
-      expect(box.height).toBe(530)
+      expect(box.width).toBeCloseTo(Math.min(720, viewport.width - 32), 0)
+      expect(box.height).toBe(460)
       expect(box.x + box.width / 2).toBeCloseTo(viewport.width / 2, 0)
       await expect(dialog.getByPlaceholder('Suchen...')).toBeInViewport()
       await expect(dialog.getByRole('button', { name: 'Suche schließen' })).toBeInViewport()
@@ -186,7 +190,7 @@ for (const theme of ['light', 'dark']) {
       }))
       expect(contrast(colors.primary, colors.background)).toBeGreaterThanOrEqual(4.5)
       expect(contrast(colors.secondary, colors.background)).toBeGreaterThanOrEqual(4.5)
-      expect(await dialog.locator('.chat-search-row').first().evaluate(el => el.getBoundingClientRect().height)).toBe(56)
+      expect(await dialog.locator('.chat-search-row').first().evaluate(el => el.getBoundingClientRect().height)).toBe(64)
       await dialog.getByRole('option').last().scrollIntoViewIfNeeded()
       await expect(dialog.getByPlaceholder('Suchen...')).toBeInViewport()
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)

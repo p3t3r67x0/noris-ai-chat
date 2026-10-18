@@ -90,8 +90,8 @@ test('new chat stays hidden; first persisted input and titles update an open sea
   const renamed = await request.patch(`/api/v1/conversations/${saved.id}`, { data: { title: 'Neuer Chat', version: saved.version } })
   expect(renamed.ok()).toBe(true)
   // A real conversation remains findable under a manually chosen fallback name.
-  await expect(remote.getByRole('option')).toHaveText('Neuer Chat')
-  await expect(local.getByRole('option')).toHaveText('Neuer Chat')
+  await expect(remote.getByRole('option').locator('.chat-search-row-title')).toHaveText('Neuer Chat')
+  await expect(local.getByRole('option').locator('.chat-search-row-title')).toHaveText('Neuer Chat')
   const manual: Conversation = await renamed.json()
   expect((await request.patch(`/api/v1/conversations/${saved.id}`, { data: { archived: true, version: manual.version } })).ok()).toBe(true)
   await expect(remote.getByRole('option')).toHaveCount(0)

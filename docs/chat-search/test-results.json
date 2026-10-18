@@ -1,0 +1,95 @@
+{
+  "status": "passed",
+  "unitTests": {
+    "files": 45,
+    "passed": 594,
+    "unicodeHighlightCases": 10
+  },
+  "postgresqlIntegrationTests": {
+    "passed": 2
+  },
+  "websocketBrowserTests": {
+    "passed": 4,
+    "projects": [
+      "desktop",
+      "mobile"
+    ]
+  },
+  "searchGeometry": {
+    "cases": 18,
+    "rows": 336,
+    "adjacentPairs": 318,
+    "overlappingPairs": 0,
+    "overflowingTextBlocks": 0,
+    "longExcerptRowHeightPx": 84,
+    "recentAndSingleLineRowHeightPx": 64,
+    "maximumExcerptHeightPx": 40,
+    "maximumIconCenterDeltaYPx": 0.0
+  },
+  "browserRegression": {
+    "passedInitial": 95,
+    "resourceTimeoutsInitial": 2,
+    "skippedDuplicateMobileMatrices": 41,
+    "serialFollowupPassed": 20,
+    "serialFollowupSkipped": 2,
+    "snapshotUpdateInSerialFollowup": false,
+    "note": "The two 1440px sidebar cases timed out during a concurrent production build; both pass serially with their unchanged 30s timeout. The follow-up also verifies 16 final search screenshots and two focus cases without updating snapshots."
+  },
+  "lastVisualIteration": {
+    "passed": 45,
+    "skipped": 29,
+    "includes": [
+      "18 geometry cases",
+      "inferred reference scale",
+      "16 synthetic search screenshots",
+      "8 workspace/message navigation cases",
+      "2 October interaction matrices"
+    ]
+  },
+  "checks": {
+    "eslint": "passed",
+    "typescriptAppAndTests": "passed",
+    "productionBuild": "passed"
+  },
+  "browser": {
+    "playwright": "1.64.0",
+    "localChromiumRevision": "1243",
+    "mainMatrixDpr": 1,
+    "referenceReconstructionDpr": 1.3
+  },
+  "limitations": [
+    "Reference original CSS viewport, zoom and DPR unavailable",
+    "Unsupported categories are disabled",
+    "Private reference PNGs are not committed"
+  ],
+  "pinnedBrowserValidation": {
+    "chromiumRevision": "1248",
+    "version": "156.0.8078.4",
+    "passed": 34,
+    "skipped": 30,
+    "includes": [
+      "25 new geometry cases",
+      "9 cases covering stale navigation screenshots"
+    ],
+    "snapshotsUpdated": 15,
+    "note": "Additional run using the exact CI browser. Controlled before/after images retain revision 1243; separate ci-after folders record revision 1248.",
+    "followupWithoutSnapshotUpdates": {
+      "passed": 31,
+      "skipped": 11
+    }
+  },
+  "releaseVerification": {
+    "chromiumRevision": "1248",
+    "browserPassed": 43,
+    "browserSkipped": 25,
+    "snapshotsUpdated": false,
+    "unitPassed": 594,
+    "unicodeHighlightCases": 10,
+    "wideMobileProfileRadiusPx": 14,
+    "maximumNavigationDomDeltaPx": 0,
+    "realWebsocketPassed": 4,
+    "typescript": "passed",
+    "eslint": "passed",
+    "productionBuild": "passed"
+  }
+}
