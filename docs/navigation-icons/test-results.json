@@ -1,0 +1,27 @@
+{
+  "browserCases": 6,
+  "stateMeasurements": 170,
+  "maximumDomCenterDeviationPx": 0,
+  "maximumPaintedBoundsDeviationPx": 0.4375,
+  "allStatesHaveIdenticalRects": true,
+  "status": "passed",
+  "pinnedBrowserValidation": {
+    "revision": "1248",
+    "version": "156.0.8078.4",
+    "navigationCases": 6,
+    "stateMeasurements": 190,
+    "closedRailSearchFocusRestoration": "passed",
+    "relatedBaselineCases": 9,
+    "relatedGoldenFilesUpdated": 15,
+    "followupWithoutSnapshotUpdates": {
+      "passed": 31,
+      "skipped": 11
+    },
+    "wideMobileProfileRadiusPx": 14,
+    "releaseVerification": {
+      "passed": 43,
+      "skipped": 25,
+      "snapshotsUpdated": false
+    }
+  }
+}

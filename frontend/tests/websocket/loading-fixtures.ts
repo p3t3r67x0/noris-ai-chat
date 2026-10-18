@@ -26,7 +26,9 @@ export async function seedLoadingChats(page: Page, request: APIRequestContext, c
         modelId: index % 2 ? 'fixture-alpha' : null, createdAt: time, updatedAt: time })
       parent = messageId
     }
-    return { id, title: `Ladetest ${chat ? 'B' : 'A'}`, titleSource: 'manual', activeLeafMessageId: parent, createdAt, updatedAt: messages.at(-1)!.updatedAt }
+    // Keep the visual order stable: equal timestamps fall back to random UUIDs.
+    const updatedAt = new Date(Date.parse(messages.at(-1)!.updatedAt) + (1 - chat) * 1000).toISOString()
+    return { id, title: `Ladetest ${chat ? 'B' : 'A'}`, titleSource: 'manual', activeLeafMessageId: parent, createdAt, updatedAt }
   })
   const imported = await request.post('/api/v1/conversations/import', { data: {
     conversations, messages, activeConversationId: ids[0], drafts: { [ids[0]!]: 'Gespeicherter Entwurf A', [ids[1]!]: 'Gespeicherter Entwurf B' },

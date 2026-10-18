@@ -1,0 +1,452 @@
+{
+  "environment": {
+    "viewport": [
+      390,
+      844
+    ],
+    "dpr": 1,
+    "scale": 1,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Safari/537.36"
+  },
+  "toggle": {
+    "default": {
+      "button": {
+        "x": 299,
+        "y": 4,
+        "width": 44,
+        "height": 44,
+        "top": 4,
+        "right": 343,
+        "bottom": 48,
+        "left": 299
+      },
+      "icon": {
+        "x": 311,
+        "y": 16,
+        "width": 20,
+        "height": 20,
+        "top": 16,
+        "right": 331,
+        "bottom": 36,
+        "left": 311
+      },
+      "deltaX": 0,
+      "deltaY": 0,
+      "radius": "12px",
+      "ink": {
+        "deltaX": 0,
+        "deltaY": 0
+      }
+    },
+    "hover": {
+      "button": {
+        "x": 299,
+        "y": 4,
+        "width": 44,
+        "height": 44,
+        "top": 4,
+        "right": 343,
+        "bottom": 48,
+        "left": 299
+      },
+      "icon": {
+        "x": 311,
+        "y": 16,
+        "width": 20,
+        "height": 20,
+        "top": 16,
+        "right": 331,
+        "bottom": 36,
+        "left": 311
+      },
+      "deltaX": 0,
+      "deltaY": 0,
+      "radius": "12px",
+      "ink": {
+        "deltaX": 0,
+        "deltaY": 0
+      }
+    },
+    "active": {
+      "button": {
+        "x": 299,
+        "y": 4,
+        "width": 44,
+        "height": 44,
+        "top": 4,
+        "right": 343,
+        "bottom": 48,
+        "left": 299
+      },
+      "icon": {
+        "x": 311,
+        "y": 16,
+        "width": 20,
+        "height": 20,
+        "top": 16,
+        "right": 331,
+        "bottom": 36,
+        "left": 311
+      },
+      "deltaX": 0,
+      "deltaY": 0,
+      "radius": "12px",
+      "ink": {
+        "deltaX": 0,
+        "deltaY": 0
+      }
+    },
+    "focus": {
+      "button": {
+        "x": 299,
+        "y": 4,
+        "width": 44,
+        "height": 44,
+        "top": 4,
+        "right": 343,
+        "bottom": 48,
+        "left": 299
+      },
+      "icon": {
+        "x": 311,
+        "y": 16,
+        "width": 20,
+        "height": 20,
+        "top": 16,
+        "right": 331,
+        "bottom": 36,
+        "left": 311
+      },
+      "deltaX": 0,
+      "deltaY": 0,
+      "radius": "12px",
+      "ink": {
+        "deltaX": 0,
+        "deltaY": 0
+      }
+    },
+    "disabled": {
+      "button": {
+        "x": 299,
+        "y": 4,
+        "width": 44,
+        "height": 44,
+        "top": 4,
+        "right": 343,
+        "bottom": 48,
+        "left": 299
+      },
+      "icon": {
+        "x": 311,
+        "y": 16,
+        "width": 20,
+        "height": 20,
+        "top": 16,
+        "right": 331,
+        "bottom": 36,
+        "left": 311
+      },
+      "deltaX": 0,
+      "deltaY": 0,
+      "radius": "12px",
+      "ink": {
+        "deltaX": 0,
+        "deltaY": 0
+      }
+    }
+  },
+  "newChat": {
+    "default": {
+      "button": {
+        "x": 54,
+        "y": 4,
+        "width": 44,
+        "height": 44,
+        "top": 4,
+        "right": 98,
+        "bottom": 48,
+        "left": 54
+      },
+      "icon": {
+        "x": 66,
+        "y": 16,
+        "width": 20,
+        "height": 20,
+        "top": 16,
+        "right": 86,
+        "bottom": 36,
+        "left": 66
+      },
+      "deltaX": 0,
+      "deltaY": 0,
+      "radius": "12px",
+      "ink": {
+        "deltaX": 0.4375,
+        "deltaY": -0.4375
+      }
+    },
+    "hover": {
+      "button": {
+        "x": 54,
+        "y": 4,
+        "width": 44,
+        "height": 44,
+        "top": 4,
+        "right": 98,
+        "bottom": 48,
+        "left": 54
+      },
+      "icon": {
+        "x": 66,
+        "y": 16,
+        "width": 20,
+        "height": 20,
+        "top": 16,
+        "right": 86,
+        "bottom": 36,
+        "left": 66
+      },
+      "deltaX": 0,
+      "deltaY": 0,
+      "radius": "12px",
+      "ink": {
+        "deltaX": 0.4375,
+        "deltaY": -0.4375
+      }
+    },
+    "active": {
+      "button": {
+        "x": 54,
+        "y": 4,
+        "width": 44,
+        "height": 44,
+        "top": 4,
+        "right": 98,
+        "bottom": 48,
+        "left": 54
+      },
+      "icon": {
+        "x": 66,
+        "y": 16,
+        "width": 20,
+        "height": 20,
+        "top": 16,
+        "right": 86,
+        "bottom": 36,
+        "left": 66
+      },
+      "deltaX": 0,
+      "deltaY": 0,
+      "radius": "12px",
+      "ink": {
+        "deltaX": 0.4375,
+        "deltaY": -0.4375
+      }
+    },
+    "focus": {
+      "button": {
+        "x": 54,
+        "y": 4,
+        "width": 44,
+        "height": 44,
+        "top": 4,
+        "right": 98,
+        "bottom": 48,
+        "left": 54
+      },
+      "icon": {
+        "x": 66,
+        "y": 16,
+        "width": 20,
+        "height": 20,
+        "top": 16,
+        "right": 86,
+        "bottom": 36,
+        "left": 66
+      },
+      "deltaX": 0,
+      "deltaY": 0,
+      "radius": "12px",
+      "ink": {
+        "deltaX": 0.4375,
+        "deltaY": -0.4375
+      }
+    },
+    "disabled": {
+      "button": {
+        "x": 54,
+        "y": 4,
+        "width": 44,
+        "height": 44,
+        "top": 4,
+        "right": 98,
+        "bottom": 48,
+        "left": 54
+      },
+      "icon": {
+        "x": 66,
+        "y": 16,
+        "width": 20,
+        "height": 20,
+        "top": 16,
+        "right": 86,
+        "bottom": 36,
+        "left": 66
+      },
+      "deltaX": 0,
+      "deltaY": 0,
+      "radius": "12px",
+      "ink": {
+        "deltaX": 0.4375,
+        "deltaY": -0.4375
+      }
+    }
+  },
+  "mobileToggle": {
+    "default": {
+      "button": {
+        "x": 8,
+        "y": 4,
+        "width": 44,
+        "height": 44,
+        "top": 4,
+        "right": 52,
+        "bottom": 48,
+        "left": 8
+      },
+      "icon": {
+        "x": 20,
+        "y": 16,
+        "width": 20,
+        "height": 20,
+        "top": 16,
+        "right": 40,
+        "bottom": 36,
+        "left": 20
+      },
+      "deltaX": 0,
+      "deltaY": 0,
+      "radius": "12px",
+      "ink": {
+        "deltaX": 0,
+        "deltaY": 0
+      }
+    },
+    "hover": {
+      "button": {
+        "x": 8,
+        "y": 4,
+        "width": 44,
+        "height": 44,
+        "top": 4,
+        "right": 52,
+        "bottom": 48,
+        "left": 8
+      },
+      "icon": {
+        "x": 20,
+        "y": 16,
+        "width": 20,
+        "height": 20,
+        "top": 16,
+        "right": 40,
+        "bottom": 36,
+        "left": 20
+      },
+      "deltaX": 0,
+      "deltaY": 0,
+      "radius": "12px",
+      "ink": {
+        "deltaX": 0,
+        "deltaY": 0
+      }
+    },
+    "active": {
+      "button": {
+        "x": 8,
+        "y": 4,
+        "width": 44,
+        "height": 44,
+        "top": 4,
+        "right": 52,
+        "bottom": 48,
+        "left": 8
+      },
+      "icon": {
+        "x": 20,
+        "y": 16,
+        "width": 20,
+        "height": 20,
+        "top": 16,
+        "right": 40,
+        "bottom": 36,
+        "left": 20
+      },
+      "deltaX": 0,
+      "deltaY": 0,
+      "radius": "12px",
+      "ink": {
+        "deltaX": 0,
+        "deltaY": 0
+      }
+    },
+    "focus": {
+      "button": {
+        "x": 8,
+        "y": 4,
+        "width": 44,
+        "height": 44,
+        "top": 4,
+        "right": 52,
+        "bottom": 48,
+        "left": 8
+      },
+      "icon": {
+        "x": 20,
+        "y": 16,
+        "width": 20,
+        "height": 20,
+        "top": 16,
+        "right": 40,
+        "bottom": 36,
+        "left": 20
+      },
+      "deltaX": 0,
+      "deltaY": 0,
+      "radius": "12px",
+      "ink": {
+        "deltaX": 0,
+        "deltaY": 0
+      }
+    },
+    "disabled": {
+      "button": {
+        "x": 8,
+        "y": 4,
+        "width": 44,
+        "height": 44,
+        "top": 4,
+        "right": 52,
+        "bottom": 48,
+        "left": 8
+      },
+      "icon": {
+        "x": 20,
+        "y": 16,
+        "width": 20,
+        "height": 20,
+        "top": 16,
+        "right": 40,
+        "bottom": 36,
+        "left": 20
+      },
+      "deltaX": 0,
+      "deltaY": 0,
+      "radius": "12px",
+      "ink": {
+        "deltaX": 0,
+        "deltaY": 0
+      }
+    }
+  }
+}
