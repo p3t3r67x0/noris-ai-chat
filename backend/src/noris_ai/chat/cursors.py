@@ -19,6 +19,7 @@ class Cursor(BaseModel):
     timestamp: datetime | None = None
     leaf: UUID | None = None
     revision: int | None = Field(default=None, ge=1)
+    rank: int | None = Field(default=None, ge=0, le=1, exclude_if=lambda value: value is None)
 
     @field_validator("timestamp")
     @classmethod

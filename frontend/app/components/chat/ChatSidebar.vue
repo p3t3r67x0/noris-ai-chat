@@ -231,7 +231,7 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
   </USidebar>
 
   <ChatSearchDialog
-    v-model:open="searchOpen" :messages="messages" :conversations="conversations" :pagination="pagination"
+    v-model:open="searchOpen" :messages="messages" :conversations="pagination ? conversations : [...conversations, ...archived]" :pagination="pagination"
     :return-focus="searchReturnFocus" @select="selectChat"
   />
 

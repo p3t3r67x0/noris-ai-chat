@@ -6,13 +6,14 @@ Only the selected ancestors are walked; variant metadata is one batch query.
 from collections.abc import Sequence
 from uuid import UUID
 
-from sqlalchemy import Integer, func, literal, or_, select, text, tuple_
+from sqlalchemy import Integer, Select, func, literal, select, text, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from noris_ai.chat.cursors import Cursor
 from noris_ai.chat.errors import ChatError
 from noris_ai.chat.models import ChatConversation, ChatMessage
-from noris_ai.chat.schemas import VariantSummary
+from noris_ai.chat.schemas import ArchiveFilter, VariantSummary
+from noris_ai.chat.search import SearchQuery
 
 
 async def owned(session: AsyncSession, owner: UUID, conversation: UUID) -> ChatConversation:
@@ -39,67 +40,93 @@ async def conversation_page(
     query: str,
     pinned: bool | None = None,
     prepared_only: bool = False,
+    archive_filter: ArchiveFilter | None = None,
 ) -> tuple[Sequence[ChatConversation], str | None]:
-    scope = f"conversations:{owner}:{archived}:{archive_only}:{query}"
-    if prepared_only:
-        scope += ":prepared"
-    if pinned is not None:
-        scope += f":pinned={pinned}"
-    sort_time = ChatConversation.pinned_at if pinned else ChatConversation.updated_at
+    search = SearchQuery.parse(query)
+    legacy_pin = archive_filter is None and pinned is True
+    archive_filter = archive_filter or (
+        "archived" if archive_only else "all" if archived else "active"
+    )
+    scope = (
+        f"conversations:v2:{owner}:{archive_filter}:{pinned}:"
+        f"{prepared_only}:{legacy_pin}:{search.digest}"
+    )
+    sort_time = (
+        ChatConversation.pinned_at if pinned and not search.terms else ChatConversation.updated_at
+    )
     stmt = select(ChatConversation).where(
         ChatConversation.owner_id == owner,
         ChatConversation.deleted_at.is_(None),
         ~ChatConversation.has_user_message if prepared_only else ChatConversation.has_user_message,
     )
-    if archive_only:
+    if archive_filter == "archived":
         stmt = stmt.where(ChatConversation.archived_at.is_not(None))
-    elif not archived:
+    elif archive_filter == "active":
         stmt = stmt.where(ChatConversation.archived_at.is_(None))
     if pinned is True:
-        stmt = stmt.where(
-            ChatConversation.pinned_at.is_not(None), ChatConversation.archived_at.is_(None)
-        )
+        stmt = stmt.where(ChatConversation.pinned_at.is_not(None))
+        if legacy_pin:
+            stmt = stmt.where(ChatConversation.archived_at.is_(None))
     elif pinned is False:
         stmt = stmt.where(ChatConversation.pinned_at.is_(None))
-    if query:
-        escaped = query.lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        message_match = (
-            select(ChatMessage.id)
-            .where(
-                ChatMessage.conversation_id == ChatConversation.id,
-                ChatMessage.role.in_(("user", "assistant")),
-                func.lower(ChatMessage.content).like(f"%{escaped}%", escape="\\"),
-            )
-            .exists()
-        )
-        stmt = stmt.where(
-            or_(
-                func.lower(ChatConversation.title).like(f"%{escaped}%", escape="\\"),
-                message_match,
-            )
-        )
+    seek = None
     if cursor:
         seek = Cursor.decode(cursor, scope)
-        if seek.timestamp is None or seek.leaf is not None or seek.revision is not None:
+        if (
+            seek.timestamp is None
+            or seek.leaf is not None
+            or seek.revision is not None
+            or seek.rank is None
+        ):
             raise ChatError("INVALID_CURSOR", 422)
-        stmt = stmt.where(tuple_(sort_time, ChatConversation.id) < tuple_(seek.timestamp, seek.id))
-    rows = list(
-        (
-            await session.scalars(
-                stmt.order_by(
-                    sort_time.desc(),
-                    ChatConversation.id.desc(),
-                ).limit(limit + 1)
-            )
-        ).all()
-    )
-    more = len(rows) > limit
-    rows = rows[:limit]
+        if " " not in search.phrase and seek.rank != (1 if search.terms else 0):
+            raise ChatError("INVALID_CURSOR", 422)
+
+    async def block(
+        statement: Select[ChatConversation], rank: int, size: int
+    ) -> list[tuple[ChatConversation, int]]:
+        if seek is not None:
+            if seek.rank is not None and seek.rank < rank:
+                return []
+            if seek.rank == rank:
+                statement = statement.where(
+                    tuple_(sort_time, ChatConversation.id) < tuple_(seek.timestamp, seek.id)
+                )
+        rows = await session.scalars(
+            statement.order_by(sort_time.desc(), ChatConversation.id.desc()).limit(size)
+        )
+        return [(row, rank) for row in rows]
+
+    if " " in search.phrase:
+        # Two ordered blocks avoid sorting/ranking every matching conversation
+        # for a broad phrase. Both queries share the service's read snapshot.
+        phrase = SearchQuery(search.phrase, (search.phrase,)).condition(owner)
+        page = await block(stmt.where(phrase), 1, limit + 1)
+        if len(page) <= limit:
+            # On the first page this is the complete phrase set, so excluding
+            # its (at most limit) IDs avoids scanning an absent phrase twice.
+            remaining = stmt.where(search.condition(owner))
+            if seek is None:
+                if page:
+                    remaining = remaining.where(
+                        ChatConversation.id.not_in([row.id for row, _ in page])
+                    )
+            else:
+                remaining = remaining.where(~phrase)
+            page += await block(remaining, 0, limit + 1 - len(page))
+    else:
+        if search.terms:
+            stmt = stmt.where(search.condition(owner))
+        page = await block(stmt, 1 if search.terms else 0, limit + 1)
+    more = len(page) > limit
+    page = page[:limit]
+    rows = [row[0] for row in page]
     after = (
         Cursor(
             scope=scope,
             id=rows[-1].id,
-            timestamp=rows[-1].pinned_at if pinned else rows[-1].updated_at,
+            timestamp=rows[-1].pinned_at if pinned and not search.terms else rows[-1].updated_at,
+            rank=page[-1][1],
         ).encode()
         if more
         else None
@@ -120,7 +147,12 @@ async def message_page(
     stmt = select(ChatMessage).where(ChatMessage.conversation_id == conversation)
     if cursor:
         seek = Cursor.decode(cursor, scope)
-        if seek.timestamp is None or seek.leaf is not None or seek.revision is not None:
+        if (
+            seek.timestamp is None
+            or seek.leaf is not None
+            or seek.revision is not None
+            or seek.rank is not None
+        ):
             raise ChatError("INVALID_CURSOR", 422)
         stmt = stmt.where(
             tuple_(ChatMessage.created_at, ChatMessage.id) < tuple_(seek.timestamp, seek.id)
@@ -292,7 +324,7 @@ async def path_page(
             if before is None:
                 raise ChatError("INVALID_CURSOR", 422)
             seek = Cursor(scope=scope, id=before, leaf=leaf)
-        if message or seek.timestamp is not None or seek.leaf != leaf:
+        if message or seek.timestamp is not None or seek.leaf != leaf or seek.rank is not None:
             raise ChatError("VERSION_CONFLICT", 409)
         # Cursors are not credentials. Verify the boundary belongs to this
         # selected immutable path even if a client constructs its own cursor.

@@ -5,6 +5,7 @@ import type { useChatBackend } from './useChatBackend'
 import type { Conversation } from '../lib/chat/conversations'
 import { normalizeAppError } from '../lib/notifications/errors'
 import type { ErrorDiagnostics } from '../lib/notifications/errors'
+import type { ConversationSearchFilters } from '../lib/chat/search'
 
 type Pagination = ReturnType<typeof useChatBackend>['pagination']
 
@@ -12,6 +13,8 @@ type Pagination = ReturnType<typeof useChatBackend>['pagination']
 // continues to filter local/demo conversations immediately.
 export function useConversationSearch(open: Ref<boolean>, conversations: () => readonly Conversation[], pagination: () => Pagination | undefined) {
   const query = ref('')
+  const archive = ref<ConversationSearchFilters['archive']>('active')
+  const pin = ref<ConversationSearchFilters['pin']>('all')
   const results = ref<Conversation[]>([])
   const matches = ref<ApiSchemas['ConversationSearchMatch'][]>([])
   const loading = ref(false)
@@ -40,7 +43,7 @@ export function useConversationSearch(open: Ref<boolean>, conversations: () => r
     loading.value = true
     error.value = null
     try {
-      const page = await source.search(query.value, request.signal, nextCursor)
+      const page = await source.search(query.value, request.signal, nextCursor, { archive: archive.value, pin: pin.value })
       if (revision !== current || request.signal.aborted || !open.value) return
       const rows = page.conversations.map(row => ({ ...row, titleGenerationAttempted: row.titleSource !== 'fallback' }))
       results.value = more ? [...new Map([...results.value, ...rows].map(row => [row.id, row])).values()] : rows
@@ -66,6 +69,8 @@ export function useConversationSearch(open: Ref<boolean>, conversations: () => r
     if (!opened) return
     resetting = true
     query.value = ''
+    archive.value = 'active'
+    pin.value = 'all'
     matches.value = []
     resetting = false
     results.value = [...conversations()]
@@ -81,12 +86,12 @@ export function useConversationSearch(open: Ref<boolean>, conversations: () => r
     // Only server requests are debounced; old rows remain visible meanwhile.
     timer = setTimeout(() => { void search() }, 200)
   }
-  watch(query, scheduleSearch, { flush: 'sync' })
+  watch([query, archive, pin], scheduleSearch, { flush: 'sync' })
   // Metadata broadcasts are authoritative for first sends, title changes,
   // archives and deletions, including updates from other browser tabs. Requery
   // on the server so title matching and cursor boundaries use the same rule.
   watch(() => pagination()?.revision?.value, scheduleSearch, { flush: 'sync' })
 
   onScopeDispose(cancel)
-  return { query, results, matches, loading, error, diagnostics, cursor, search }
+  return { query, archive, pin, results, matches, loading, error, diagnostics, cursor, search }
 }

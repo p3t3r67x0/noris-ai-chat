@@ -163,6 +163,10 @@ function addReference(value: ApiSchemas['TextReference']): void {
   composer.value?.focus()
 }
 async function selectConversation(id: string, messageId?: string): Promise<void> {
+  if (conversations.records.value[id]?.archivedAt) {
+    await router.push({ path: '/settings/archived', hash: `#archive-${encodeURIComponent(id)}` })
+    return
+  }
   conversations.select(id)
   if (!chat.backendReady.value && transport.backend) {
     transport.backend.requestedConversationId = id

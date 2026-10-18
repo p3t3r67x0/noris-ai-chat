@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { savedChat, seedChat } from './chat-fixtures'
+import { returnToChat } from './settings-helpers'
 
 function contrast(foreground: string, background: string): number {
   const luminance = (color: string) => {
@@ -40,6 +41,8 @@ test('focus, shortcuts, dismissal, reset and a trapped Tab sequence', async ({ p
   await expect(dialog.getByRole('listbox', { name: 'Letzte Chats' })).toHaveAttribute('id', 'chat-search-listbox')
   const input = dialog.getByPlaceholder('Suchen...')
   await expect(dialog.getByRole('heading', { name: 'Chats suchen' })).not.toBeVisible()
+  await page.keyboard.press('Tab')
+  await expect(dialog.getByRole('button', { name: 'Suchfilter', exact: true })).toBeFocused()
   await page.keyboard.press('Tab')
   await expect(dialog.getByRole('button', { name: 'Suche schließen' })).toBeFocused()
   await page.keyboard.press('Tab')
@@ -103,6 +106,34 @@ test('search retains the existing interface language setting', async ({ page }) 
   await expect(dialog.getByText('No chats found', { exact: true })).toBeVisible()
   await dialog.getByRole('button', { name: 'Close search' }).click()
   await expect(dialog).not.toBeVisible()
+})
+
+test('demo search combines archived pins and opens the existing archive without losing a draft', async ({ page }) => {
+  const snapshot = savedChat()
+  const archived = snapshot.conversations.conversations['conversation-1']!
+  archived.title = 'Docker Archiv'
+  archived.archivedAt = archived.pinnedAt = archived.createdAt
+  archived.activeLeafMessageId = 'archived-message'
+  snapshot.messages['archived-message'] = { id: 'archived-message', conversationId: archived.id, parentMessageId: null, role: 'user', content: 'healthcheck im lokalen Chat', status: 'completed', createdAt: archived.createdAt }
+  snapshot.drafts.main = 'Entwurf im Demomodus'
+  await seedChat(page, snapshot)
+  await page.goto('/')
+  await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+  await page.keyboard.press('Control+k')
+  const dialog = page.locator('.chat-search-dialog')
+  await dialog.getByRole('combobox', { name: 'Chats suchen', exact: true }).fill('docker healthcheck')
+  await expect(dialog.getByRole('option')).toHaveCount(0)
+  await dialog.getByRole('button', { name: 'Suchfilter', exact: true }).click()
+  await page.getByRole('combobox', { name: 'Chat-Status', exact: true }).click()
+  await page.getByRole('option', { name: 'Archivierte Chats', exact: true }).click()
+  await page.getByRole('combobox', { name: 'Angeheftete Chats', exact: true }).click()
+  await page.getByRole('option', { name: 'Nur angeheftete Chats', exact: true }).click()
+  await dialog.getByRole('button', { name: 'Suchfilter', exact: true }).click()
+  await expect(dialog.getByRole('option')).toHaveCount(1)
+  await dialog.getByRole('option').click()
+  await expect(page.getByRole('button', { name: 'Docker Archiv wiederherstellen', exact: true })).toBeFocused()
+  await returnToChat(page)
+  await expect(page.locator('.composer-input')).toHaveValue('Entwurf im Demomodus')
 })
 
 test('mouse and keyboard share a quiet selection, Enter opens the chat and drafts survive', async ({ page }) => {

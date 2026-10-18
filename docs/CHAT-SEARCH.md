@@ -1,5 +1,9 @@
 # Chat search dialog
 
+Current search semantics, archive/pin filters, migration and performance evidence:
+[P0/A1 Chat-Suche](CHAT-SEARCH-A1.md). The sections below preserve the earlier
+dialog design and verification history.
+
 Search uses the existing Nuxt UI 4.11.3 `UModal`, `UCommandPalette`, `UInput`,
 `UButton` and `UIcon`, the existing conversation actions and PostgreSQL list
 endpoint. No other workspace geometry or persistence/streaming contract changes.

@@ -133,7 +133,7 @@ async def test_stable_conversation_seeks_search_archives_and_scope(
             "/api/v1/conversations", params={"q": "Synthetic 1", "archived": "true"}, auth=AUTH
         )
     ).json()["conversations"]
-    assert all("Synthetic 1" in r["title"] for r in found)
+    assert all("Synthetic" in r["title"] and "1" in r["title"] for r in found)
     assert (await client.get("/api/v1/conversations?q=%25", auth=AUTH)).json()[
         "conversations"
     ] == []

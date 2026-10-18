@@ -313,8 +313,8 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     catch (error) { if (state.conversations.activeId.value === id) historyError.value = report(error, { operation: 'older-history', conversationId: id, attemptId: crypto.randomUUID() }, { label: 'Erneut laden', onClick: loadOlder }) }
     finally { olderLoading.value = false; olderConversation = undefined }
   }
-  async function search(query: string, signal: AbortSignal, cursor?: string): Promise<ApiSchemas['ConversationListResponse']> {
-    const result = await backend.page({ q: query, ...(cursor ? { cursor } : {}) }, signal)
+  async function search(query: string, signal: AbortSignal, cursor?: string, filters: import('../lib/chat/search').ConversationSearchFilters = { archive: 'active', pin: 'all' }): Promise<ApiSchemas['ConversationListResponse']> {
+    const result = await backend.page({ q: query, archiveFilter: filters.archive, ...(filters.pin !== 'all' ? { pinned: String(filters.pin === 'pinned') } : {}), ...(cursor ? { cursor } : {}) }, signal)
     if (!disposed && !signal.aborted) mergeMetadata(result.conversations)
     return result
   }
@@ -322,6 +322,10 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     const result = await backend.page({ archiveOnly: 'true', ...(cursor ? { cursor } : {}) })
     if (!disposed) mergeMetadata(result.conversations)
     return result
+  }
+  async function loadArchiveTarget(id: string): Promise<void> {
+    const result = await backend.request<ApiSchemas['ConversationResponse']>(`/conversations/${encodeURIComponent(id)}`)
+    if (!disposed && result.archivedAt) mergeMetadata([result])
   }
   async function persist(operation: Promise<unknown>, context: ErrorContext, retry: () => Promise<unknown>): Promise<void> {
     pendingWrites.value++
@@ -597,7 +601,7 @@ export function useChatBackend(state: ReturnType<typeof createChatState>, transp
     conversationLoading: computed(() => historyLoading.value && !viewRequest.value?.preserve),
     hasOlder: computed(() => Boolean(windows.value[state.conversations.activeId.value ?? '']?.nextCursor)),
     loadOlder, retryHistory: () => { const id = state.conversations.activeId.value; if (id) void loadConversation(id, true) },
-    search, loadArchive, loadConversation, navigateToMessage,
+    search, loadArchive, loadArchiveTarget, loadConversation, navigateToMessage,
   }
   function saveModelPreference(modelId: string): Promise<void> {
     preferredModelId = modelId

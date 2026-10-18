@@ -5442,11 +5442,13 @@
             }
           },
           {
+            "description": "Literal Unicode NFC/casefold word-AND across title and all saved branches. Whitespace separates up to 32 distinct terms; exact phrases rank first.",
             "in": "query",
             "name": "q",
             "required": false,
             "schema": {
               "default": "",
+              "description": "Literal Unicode NFC/casefold word-AND across title and all saved branches. Whitespace separates up to 32 distinct terms; exact phrases rank first.",
               "maxLength": 200,
               "title": "Q",
               "type": "string"
@@ -5466,6 +5468,29 @@
                 }
               ],
               "title": "Pinned"
+            }
+          },
+          {
+            "description": "Archive scope, independent of pinned. Omit to retain legacy archived/archiveOnly behavior. Cannot combine with true legacy archive flags.",
+            "in": "query",
+            "name": "archiveFilter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "active",
+                    "archived",
+                    "all"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Archive scope, independent of pinned. Omit to retain legacy archived/archiveOnly behavior. Cannot combine with true legacy archive flags.",
+              "title": "Archivefilter"
             }
           }
         ],

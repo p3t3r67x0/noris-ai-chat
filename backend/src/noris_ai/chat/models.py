@@ -22,13 +22,32 @@ from sqlalchemy import (
     UniqueConstraint,
     Uuid,
     func,
+    literal_column,
     select,
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
+from sqlalchemy.sql.elements import Grouping
 
 from noris_ai.db.base import Base
+
+
+def _search_index(column: str) -> Grouping[str]:
+    # Fixed model identifiers only. Match PostgreSQL's CASE deparser (including
+    # line breaks): Alembic compares expressions textually and strips only spaces.
+    # The migration test compares this parsed expression with the query helper.
+    if column not in {"title", "content"}:
+        raise ValueError("Unknown search index column")
+    return Grouping(
+        literal_column(
+            f"\nCASE\n    WHEN char_length({column}) = octet_length({column}) "
+            f'THEN lower({column} COLLATE "C")\n    ELSE normalize(casefold(normalize({column}) '
+            'COLLATE pg_unicode_fast)) COLLATE "C"\nEND',
+            Text,
+        )
+    )
+
 
 TITLE_SOURCE_ENUM = Enum(
     "fallback", "generated", "manual", name="chat_title_source", validate_strings=True
@@ -86,6 +105,12 @@ class ChatMessage(Base):
             "role",
             "created_at",
             "id",
+        ),
+        Index(
+            "ix_chat_message_search_unicode",
+            _search_index("content").label("search_text"),
+            postgresql_using="gin",
+            postgresql_ops={"search_text": "gin_trgm_ops"},
         ),
     )
 
@@ -164,6 +189,13 @@ class ChatConversation(Base):
             func.lower(text("title")).label("title_lower"),
             postgresql_using="gin",
             postgresql_ops={"title_lower": "gin_trgm_ops"},
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+        Index(
+            "ix_chat_conversation_search_unicode",
+            _search_index("title").label("search_text"),
+            postgresql_using="gin",
+            postgresql_ops={"search_text": "gin_trgm_ops"},
             postgresql_where=text("deleted_at IS NULL"),
         ),
     )

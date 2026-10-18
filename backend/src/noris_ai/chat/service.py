@@ -8,7 +8,7 @@ generation.py and reuses this service.
 import uuid
 from typing import TYPE_CHECKING, cast
 
-from sqlalchemy import func, select, text
+from sqlalchemy import case, or_, select, text
 from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +20,7 @@ from noris_ai.chat.replay import tool_generation_ids
 from noris_ai.chat.repository import ChatRepository
 from noris_ai.chat.schemas import (
     ActivePathResponse,
+    ArchiveFilter,
     AttachmentResponse,
     ChatImportRequest,
     ChatImportResponse,
@@ -40,6 +41,7 @@ from noris_ai.chat.schemas import (
     TextReference,
     TitleSource,
 )
+from noris_ai.chat.search import SearchQuery, excerpt, literal_match
 from noris_ai.llm.schemas import ReasoningPreference
 
 FALLBACK_TITLE = "Neuer Chat"
@@ -180,8 +182,15 @@ class ChatService:
         query: str = "",
         pinned: bool | None = None,
         prepared_only: bool = False,
+        archive_filter: ArchiveFilter | None = None,
     ) -> ConversationListResponse:
-        async with self.repository.database() as session:
+        search = SearchQuery.parse(query)
+        async with self.repository.database() as session, session.begin():
+            if search.terms:
+                # Page/rank and snippets observe the same authorized snapshot.
+                await session.execute(
+                    text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+                )
             rows, next_cursor = await pagination.conversation_page(
                 session,
                 owner_id,
@@ -192,39 +201,44 @@ class ChatService:
                 query=query,
                 pinned=pinned,
                 prepared_only=prepared_only,
+                archive_filter=archive_filter,
             )
             matches: list[ConversationSearchMatch] = []
-            if query and rows:
-                escaped = (
-                    query.lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            if search.terms and rows:
+                message_rank = case(
+                    (literal_match(ChatMessage.content, search.phrase), 0),
+                    *[
+                        (literal_match(ChatMessage.content, term), index + 1)
+                        for index, term in enumerate(search.terms)
+                    ],
+                    else_=len(search.terms) + 1,
                 )
-                # One bounded, owner-scoped query for this result page. DISTINCT ON
-                # returns the newest matching message per authorized conversation.
-                found = await session.scalars(
-                    select(ChatMessage)
+                # One owner-scoped query for this result page. Prefer a phrase,
+                # then the first matching term, then the newest message/ID.
+                found = await session.execute(
+                    select(ChatMessage.id, ChatMessage.conversation_id, ChatMessage.content)
+                    .join(ChatConversation, ChatConversation.id == ChatMessage.conversation_id)
                     .where(
+                        ChatConversation.owner_id == owner_id,
+                        ChatConversation.deleted_at.is_(None),
                         ChatMessage.conversation_id.in_([row.id for row in rows]),
                         ChatMessage.role.in_(("user", "assistant")),
-                        func.lower(ChatMessage.content).like(f"%{escaped}%", escape="\\"),
+                        or_(*[literal_match(ChatMessage.content, term) for term in search.terms]),
                     )
                     .ext(distinct_on(ChatMessage.conversation_id))
                     .order_by(
                         ChatMessage.conversation_id,
+                        message_rank,
                         ChatMessage.created_at.desc(),
                         ChatMessage.id.desc(),
                     )
                 )
-                for message in found:
-                    index = message.content.lower().find(query.lower())
-                    start = max(0, index - 60)
-                    excerpt = ("…" if start else "") + message.content[start : start + 180]
-                    if start + 180 < len(message.content):
-                        excerpt += "…"
+                for message_id, conversation_id, content in found:
                     matches.append(
                         ConversationSearchMatch(
-                            conversationId=message.conversation_id,
-                            messageId=message.id,
-                            excerpt=excerpt,
+                            conversationId=conversation_id,
+                            messageId=message_id,
+                            excerpt=excerpt(content, search),
                         )
                     )
         return ConversationListResponse(

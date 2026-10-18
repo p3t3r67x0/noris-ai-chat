@@ -6,7 +6,7 @@ import { useChatViewport } from '../../composables/useChatViewport'
 import { useAppLocale } from '../../composables/useAppLocale'
 import type { ChatMessage } from '../../lib/chat/types'
 import type { Conversation } from '../../lib/chat/conversations'
-import { compareConversations } from '../../lib/chat/conversations'
+import { localConversationSearch } from '../../lib/chat/search'
 import { useAppNotifications } from '../../composables/useAppNotifications'
 import SearchHighlight from './SearchHighlight.vue'
 
@@ -18,11 +18,23 @@ const props = defineProps<{
 }>()
 const open = defineModel<boolean>('open', { required: true })
 const emit = defineEmits<{ select: [id: string, messageId?: string] }>()
-const { query, results, matches, loading, error, diagnostics, cursor, search } = useConversationSearch(open, () => props.conversations, () => props.pagination)
+const { query, archive, pin, results, matches, loading, error, diagnostics, cursor, search } = useConversationSearch(open, () => props.conversations, () => props.pagination)
 const notifications = useAppNotifications()
 const { viewportStyle } = useChatViewport()
 const { t, language } = useAppLocale()
 const category = ref('all')
+const filtersOpen = ref(false)
+const filtersActive = computed(() => archive.value !== 'active' || pin.value !== 'all')
+const archiveItems = computed(() => [
+  { label: t('searchActiveChats'), value: 'active' },
+  { label: t('searchArchivedChats'), value: 'archived' },
+  { label: t('searchAllChats'), value: 'all' },
+])
+const pinItems = computed(() => [
+  { label: t('searchAnyPin'), value: 'all' },
+  { label: t('searchPinnedChats'), value: 'pinned' },
+  { label: t('searchUnpinnedChats'), value: 'unpinned' },
+])
 // Only conversations (including message text) have a searchable data source.
 const categories = computed(() => [
   { id: 'all', label: t('searchAll'), available: true },
@@ -44,7 +56,8 @@ const selected = ref(false)
 const selectedMessage = ref<string | undefined>()
 const selectionVisible = ref(false)
 let focusRevision = 0
-watch(query, () => { selectionVisible.value = false }, { flush: 'sync' })
+watch([query, archive, pin], () => { selectionVisible.value = false }, { flush: 'sync' })
+watch(open, () => { filtersOpen.value = false })
 // UCommandPalette forwards this object to UInput, including native attributes.
 const input = computed(() => ({
   id: 'chat-search-input', 'aria-label': t('searchChats'), role: 'combobox',
@@ -59,24 +72,16 @@ function select(id: string, messageId?: string): void {
   emit('select', id, messageId)
 }
 
-const localMatches = computed(() => {
-  const needle = query.value.trim().toLocaleLowerCase()
-  if (!needle || props.pagination) return []
-  return (props.messages ?? []).filter(message => message.content.toLocaleLowerCase().includes(needle)).map(message => {
-    const index = message.content.toLocaleLowerCase().indexOf(needle)
-    const start = Math.max(0, index - 60)
-    return { conversationId: message.conversationId, messageId: message.id, excerpt: `${start ? '…' : ''}${message.content.slice(start, start + 180)}` }
-  })
-})
-const searchMatches = computed(() => props.pagination ? matches.value : localMatches.value)
+const local = computed(() => props.pagination ? null : localConversationSearch(props.conversations, props.messages ?? [], query.value, { archive: archive.value, pin: pin.value }))
+const searchMatches = computed(() => props.pagination ? matches.value : local.value?.matches ?? [])
 const groups = computed(() => [{
   id: 'recent-chats', label: t('recentChats'), ignoreFilter: true,
-  items: [...(props.pagination ? results.value : props.conversations)].sort(compareConversations).filter(conversation => props.pagination || !query.value.trim() || conversation.title.toLocaleLowerCase().includes(query.value.trim().toLocaleLowerCase()) || searchMatches.value.some(match => match.conversationId === conversation.id)).map(conversation => {
+  items: (props.pagination ? results.value : local.value?.conversations ?? []).map(conversation => {
     const match = searchMatches.value.find(match => match.conversationId === conversation.id)
     // Render text ourselves via #item. Nuxt UI's descriptionHtml branch bypasses
     // #item-description; interpolation here keeps server excerpts out of v-html.
     const date = conversation.updatedAt
-    return { id: conversation.id, label: conversation.title, excerpt: match?.excerpt, date, icon: 'i-lucide-message-circle', onSelect: () => select(conversation.id, match?.messageId) }
+    return { id: conversation.id, label: conversation.title, excerpt: match?.excerpt, date, archived: Boolean(conversation.archivedAt), icon: conversation.archivedAt ? 'i-lucide-archive' : 'i-lucide-message-circle', onSelect: () => select(conversation.id, match?.messageId) }
   }),
 }])
 
@@ -159,6 +164,18 @@ const content = computed(() => ({
         @keydown="revealKeyboardSelection" @pointermove="revealPointerSelection"
       >
         <template #close>
+          <UPopover v-model:open="filtersOpen" :content="{ align: 'end', sideOffset: 8 }" :ui="{ content: 'chat-search-filter-popover' }">
+            <UButton icon="i-lucide-list-filter" color="neutral" variant="ghost" :aria-label="t('searchFilters')" :title="filtersActive ? t('searchFiltersActive') : t('searchFilters')" :aria-pressed="filtersActive" class="noris-nav-icon-button chat-search-filter" :class="{ 'chat-search-filter-active': filtersActive }" />
+            <template #content>
+              <div class="chat-search-filter-panel">
+                <label for="chat-search-archive">{{ t('searchArchiveFilter') }}</label>
+                <USelect id="chat-search-archive" v-model="archive" :items="archiveItems" :aria-label="t('searchArchiveFilter')" :ui="{ content: 'chat-search-filter-options' }" color="neutral" />
+                <label for="chat-search-pin">{{ t('searchPinFilter') }}</label>
+                <USelect id="chat-search-pin" v-model="pin" :items="pinItems" :aria-label="t('searchPinFilter')" :ui="{ content: 'chat-search-filter-options' }" color="neutral" />
+                <UButton color="neutral" variant="ghost" :label="t('searchResetFilters')" :disabled="!filtersActive" @click="archive = 'active'; pin = 'all'" />
+              </div>
+            </template>
+          </UPopover>
           <span class="chat-search-loading" aria-hidden="true">
             <UIcon v-if="loading" name="i-lucide-loader-circle" class="size-4 motion-safe:animate-spin" />
           </span>
@@ -169,7 +186,7 @@ const content = computed(() => ({
         <template #item="{ item }">
           <span class="chat-search-leading" aria-hidden="true"><UIcon :name="item.icon" class="chat-search-icon" /></span>
           <span class="chat-search-row-copy">
-            <span class="chat-search-row-title" :title="item.label"><SearchHighlight :text="item.label ?? ''" :query="query" /></span>
+            <span class="chat-search-row-title" :title="item.archived ? `${item.label} · ${t('searchArchivedResult')}` : item.label"><SearchHighlight :text="item.label ?? ''" :query="query" /></span>
             <span v-if="item.excerpt" class="chat-search-row-excerpt"><SearchHighlight :text="item.excerpt" :query="query" /></span>
           </span>
           <time class="chat-search-row-date" :datetime="item.date">{{ formatDate(item.date) }}</time>
@@ -239,6 +256,11 @@ const content = computed(() => ({
 .chat-search-loading { display: flex; width: 16px; color: var(--noris-text-secondary); }
 .chat-search-clear { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 12px; border-radius: 8px; color: var(--noris-text-secondary); font-size: 14px; }
 .chat-search-close { color: var(--noris-text-secondary); }
+.chat-search-filter { color: var(--noris-text-secondary); }
+.chat-search-filter-active { color: var(--noris-text-primary); background: var(--noris-hover-background); }
+.chat-search-filter-panel { display: grid; gap: 8px; width: min(260px, calc(100vw - 48px)); padding: 16px; font-size: 14px; }
+.chat-search-filter-popover { z-index: 80; }
+.chat-search-filter-options { z-index: 90; }
 .chat-search-separator { width: 1px; height: 20px; background: var(--noris-border); }
 .chat-search-categories { grid-row: 2; display: flex; align-items: center; gap: 4px; min-width: 0; min-height: var(--search-category-height); padding: 0 12px 8px; }
 .chat-search-categories button { flex: none; min-height: 36px; padding: 6px 12px; border-radius: 999px; color: var(--noris-text-secondary); font-size: 14px; line-height: 24px; cursor: pointer; }

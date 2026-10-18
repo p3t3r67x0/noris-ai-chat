@@ -1191,6 +1191,7 @@ export interface ApiPaths {
           "cursor"?: string | null
           "q"?: string
           "pinned"?: boolean | null
+          "archiveFilter"?: string | null
         }
       }
       responses: {

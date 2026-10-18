@@ -204,7 +204,7 @@ export class ChatBackend {
   path(id: string, options: { cursor?: string, beforeMessageId?: string, messageId?: string, preferredLeafId?: string } = {}, signal?: AbortSignal): Promise<ApiSchemas['ActivePathResponse']> {
     return this.request(`/conversations/${id}/active-path?${new URLSearchParams({ limit: '50', ...options })}`, 'GET', undefined, signal)
   }
-  page(options: { cursor?: string, q?: string, archiveOnly?: string, pinned?: string, preparedOnly?: string } = {}, signal?: AbortSignal): Promise<ApiSchemas['ConversationListResponse']> {
+  page(options: { cursor?: string, q?: string, archiveOnly?: string, archiveFilter?: 'active' | 'archived' | 'all', pinned?: string, preparedOnly?: string } = {}, signal?: AbortSignal): Promise<ApiSchemas['ConversationListResponse']> {
     return this.request(`/conversations?${new URLSearchParams({ limit: '50', ...options })}`, 'GET', undefined, signal)
   }
 }
