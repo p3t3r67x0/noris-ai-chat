@@ -12,7 +12,10 @@ test.beforeEach(async ({ page, request }) => {
   await request.put('/api/v1/chat/drafts/new', { data: { content: '' } })
   await request.put('/api/v1/chat/preferences', { data: { activeConversationId: null, modelId: null } })
 })
-test.afterEach(async ({ request }) => {
+test.afterEach(async ({ page, request }) => {
+  // Catalog refreshes can still be reading route.fetch() responses when the
+  // test finishes. Drain handlers before Playwright disposes their request context.
+  await page.unrouteAll({ behavior: 'wait' })
   await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids: fixtureModels } })
 })
 
