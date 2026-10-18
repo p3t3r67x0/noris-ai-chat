@@ -4,7 +4,7 @@ export interface SearchTextPart { text: string, matched: boolean }
 
 // Keep an offset map per grapheme: case conversion and Unicode normalization
 // can change string length (e.g. İ and decomposed accents). Never split a glyph.
-export function searchTextParts(text: string, query: string): SearchTextPart[] {
+export function searchTextParts(text: string, query: string, phraseOnly = false): SearchTextPart[] {
   const needle = foldSearchText(query).replace(/\p{White_Space}+/gu, ' ').replace(/^ +| +$/g, '')
   if (!needle) return [{ text, matched: false }]
   let folded = ''
@@ -16,7 +16,7 @@ export function searchTextParts(text: string, query: string): SearchTextPart[] {
   }
   // Highlight an exact phrase first, then individual AND terms. All text stays
   // literal; the offset map retains original graphemes after casefold expansion.
-  const needles = [...new Set([needle, ...needle.split(' ')])].sort((a, b) => b.length - a.length)
+  const needles = phraseOnly ? [needle] : [...new Set([needle, ...needle.split(' ')])].sort((a, b) => b.length - a.length)
   const matcher = new RegExp(needles.map(value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'gu')
   const parts: SearchTextPart[] = []
   let source = 0, match: RegExpExecArray | null

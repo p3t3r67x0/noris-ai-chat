@@ -239,7 +239,7 @@ Frontendprüfungen mit Node 24.22.0):
 | --- | --- |
 | Backend Unit/Contract/lokale HTTP-Provider | 1.191 bestanden |
 | Vollständige PostgreSQL-Integration inkl. nginx/Caddy und Migrationen | 327 bestanden, keine übersprungen |
-| Frontend Vitest | 607 bestanden, 46 Dateien |
+| Frontend Vitest | 609 bestanden, 46 Dateien (einschließlich CI-Nachprüfung) |
 | Suchdialog-/Layout-/Streamingbrowser, Desktop und Mobil | 77 bestanden; 19 planmäßige Skips für doppelte explizite Viewportfälle |
 | WebSocket-Suche/Pagination/Pins/Archiv | 18 Szenarien geprüft; erster Lauf 17 bestanden, Reader-Anchor im Wiederholungslauf bestanden; sechs fokussierte Fälle zuletzt vollständig grün |
 | ESLint, Nuxt/vue-tsc App und Tests, TypeScript Tools | bestanden |
@@ -262,6 +262,16 @@ die gesamte sonstige Browsersuite sowie Firefox/Safari/Screenreaderabnahme
 wurden für A1 nicht lokal ausgeführt; dafür wird kein grünes Ergebnis behauptet.
 Remote-CI bleibt vor einer Freigabe separat zu prüfen; es erfolgt kein
 automatischer Merge.
+
+CI-Nachprüfung: Die vollständige visuelle Suite zeigte einen Ausschnittfehler
+im lokalen Demomodus. Ein früher Einzelworttreffer konnte eine später vorhandene
+vollständige Phrase aus dem Snippet verdrängen. Der lokale Ausschnitt verwendet
+jetzt wie das Backend zuerst die Phrase, danach den ersten passenden Suchterm,
+mit 180 Zeichen Kontextfenster und vollständigem Treffer. Zwei Regressionstests
+decken beide Fälle ab. Alle acht `final-parity`-Fälle bestehen damit gegen die
+unveränderten ursprünglichen Referenzbilder; Bildtoleranzen wurden nicht erhöht.
+Die Attachment-Browserfixture wartet außerdem auf laufende Routehandler, bevor
+Playwright deren Requestkontext beim Testende freigibt.
 
 ## Grenzen
 

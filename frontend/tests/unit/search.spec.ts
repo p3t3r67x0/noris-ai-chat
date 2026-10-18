@@ -8,6 +8,19 @@ const row = (id: string, title: string, day = 1): Conversation => ({ id, title, 
 const message = (id: string, conversationId: string, content: string): ChatMessage => ({ id, conversationId, content, parentMessageId: null, role: 'user', status: 'completed', createdAt: '2026-01-01T00:00:00Z' })
 
 describe('shared literal Unicode search semantics', () => {
+  it('centers the excerpt on a later complete phrase before an earlier individual word', () => {
+    const content = `Schritt ${'x'.repeat(400)} Nächster Schritt`
+    const result = localConversationSearch([row('chat', 'Fixture')], [message('m', 'chat', content)], 'Nächster Schritt', { archive: 'active', pin: 'all' })
+    expect(result.matches[0]?.excerpt).toContain('Nächster Schritt')
+    expect(result.matches[0]?.excerpt).toMatch(/^…x/)
+    expect(result.matches[0]!.excerpt.length).toBeLessThanOrEqual(182)
+  })
+  it('uses the first query term for the excerpt when there is no complete phrase', () => {
+    const content = `healthcheck ${'x'.repeat(400)} Docker`
+    const result = localConversationSearch([row('chat', 'Fixture')], [message('m', 'chat', content)], 'docker healthcheck', { archive: 'active', pin: 'all' })
+    expect(result.matches[0]?.excerpt).toContain('Docker')
+    expect(result.matches[0]?.excerpt).not.toContain('healthcheck')
+  })
   it.each([
     ['Straße STRASSE', 'strasse strasse', ['strasse']],
     ['Äpfel A\u0308PFEL', 'äpfel äpfel', ['äpfel']],

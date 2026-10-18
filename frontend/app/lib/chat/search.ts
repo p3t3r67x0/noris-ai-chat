@@ -37,10 +37,12 @@ export function localConversationSearch(conversations: readonly Conversation[], 
       if (match) {
         // Presentation only: preserve original text and use the grapheme map to
         // locate expanded casefold matches without indexing the original string.
-        const parts = searchTextParts(match.message.content, value)
+        const needle = [query.phrase, ...query.terms].find(term => match.content.includes(term))!
+        const parts = searchTextParts(match.message.content, needle, true)
         const index = parts.findIndex(part => part.matched)
         const offset = index < 0 ? 0 : parts.slice(0, index).reduce((sum, part) => sum + part.text.length, 0)
-        const start = Math.max(0, offset - 60), end = Math.min(match.message.content.length, start + 200)
+        const start = Math.max(0, offset - 60)
+        const end = Math.min(match.message.content.length, Math.max(start + 180, offset + (parts[index]?.text.length ?? 0)))
         matches.push({ conversationId: conversation.id, messageId: match.message.id, excerpt: `${start ? '…' : ''}${match.message.content.slice(start, end)}${end < match.message.content.length ? '…' : ''}` })
       }
     }
