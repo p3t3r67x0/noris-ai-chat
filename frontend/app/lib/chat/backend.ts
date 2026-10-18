@@ -38,6 +38,8 @@ export class ChatBackend {
   versions = new Map<string, number>()
   private revisions = new Map<string, ServerConversation>()
   preferredModelId: string | null = null
+  // undefined restores preferences; null explicitly opens a new chat.
+  requestedConversationId: string | null | undefined = undefined
   onConversation?: (conversation: ServerConversation) => void
   onPinnedPage?: (page: ApiSchemas['ConversationListResponse']) => void
   onDeleted?: (id: string) => void
@@ -159,6 +161,8 @@ export class ChatBackend {
     return this.enqueue(() => this.request('/chat/preferences', 'PUT', { activeConversationId, ...(modelId ? { modelId } : {}) }))
   }
   async load(): Promise<ChatBootstrap> {
+    const requestedId = typeof this.requestedConversationId === 'string' ? this.requestedConversationId.toLowerCase() : this.requestedConversationId
+    if (requestedId && !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(requestedId)) throw new TransportError('NOT_FOUND')
     await this.pending
     const [list, pins, prepared, preferences] = await Promise.all([
       this.page({ pinned: 'false' }),
@@ -177,11 +181,11 @@ export class ChatBackend {
       if (value.version >= (metadata.get(value.id)?.version ?? 0)) metadata.set(value.id, value)
     }
     const conversations = [...metadata.values()]
-    let activeId = preferences.activeConversationId
+    let activeId = requestedId === undefined ? preferences.activeConversationId : requestedId
     this.onMetadata?.([...conversations], conversations.some(c => c.id === activeId) ? activeId : null)
     if (activeId && !conversations.some(c => c.id === activeId)) {
       try { conversations.push(await this.request<ServerConversation>(`/conversations/${activeId}`)) }
-      catch (error) { if ((error as { code?: string }).code === 'NOT_FOUND') activeId = null; else throw error }
+      catch (error) { if ((error as { code?: string }).code === 'NOT_FOUND' && requestedId === undefined) activeId = null; else throw error }
     }
     if (conversations.find(c => c.id === activeId)?.archivedAt) activeId = null
     for (const conversation of conversations) this.cacheRevision(conversation)
@@ -191,6 +195,7 @@ export class ChatBackend {
       activeId ? this.path(activeId) : Promise.resolve(null),
     ])
     this.initialPath = path
+    this.requestedConversationId = undefined
     return {
       metadata: conversations, activeConversationId: activeId, path,
       drafts: { __new__: '', ...(activeId ? { [activeId]: '' } : {}), ...Object.fromEntries(drafts.drafts.map(d => [d.key, d.content])) },

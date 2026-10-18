@@ -24,6 +24,7 @@ for (const viewport of [{ width: 1920, height: 975 }, { width: 1440, height: 900
       await page.addInitScript(value => localStorage.setItem('noris-ai-theme', value), theme)
       await page.goto('/')
       await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
+      await expect(page.locator('.chat-message-pane')).toHaveAttribute('data-loading-state', 'idle')
       const composer = page.locator('.chat-composer')
       const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
       await input.focus()

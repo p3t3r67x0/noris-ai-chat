@@ -7,7 +7,10 @@ export function useChatTransport(): { mode: 'mock' | 'real' | 'websocket', trans
   const mode = useRuntimeConfig().public.chatTransport
   if (mode === 'websocket') {
     const url = useRuntimeConfig().public.chatWebsocketUrl
-    return { mode, transport: createWebSocketTransport(url ? { url } : {}) }
+    const transport = createWebSocketTransport(url ? { url } : {})
+    const requestedId = useRoute().query.conversationId
+    if (typeof requestedId === 'string') transport.backend!.requestedConversationId = requestedId
+    return { mode, transport }
   }
   if (mode !== 'mock' && mode !== 'real') throw new Error('Ungültiger Chat-Transport')
   return { mode, transport: mode === 'real' ? createRealTransport() : createMockTransport() }

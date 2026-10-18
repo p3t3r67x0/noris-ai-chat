@@ -67,7 +67,12 @@ for (const theme of ['light', 'dark']) for (const width of [1701, 390]) {
       await route.continue()
     })
     const file = (name: string) => ({ name, mimeType: 'text/plain', buffer: Buffer.from(`Synthetic local test content: ${name}`) })
-    await page.locator('input[type="file"]').setInputFiles([file('synthetic-one.txt')])
+    // Follow the available upload action. Mounted UI alone does not imply that
+    // the backend and attachment limits have finished loading.
+    await page.locator('.composer-attachment').click()
+    const chooser = page.waitForEvent('filechooser')
+    await page.getByRole('menuitem', { name: /^Fotos und Dateien hinzufügen/ }).click()
+    await (await chooser).setFiles([file('synthetic-one.txt')])
     try {
       await expect(page.locator('[data-upload-status="uploading"]')).toHaveCount(1)
       try { await expect(page).toHaveScreenshot(`october-uploading-${width}-${theme}.png`, { animations: 'disabled' }) }
