@@ -78,6 +78,7 @@ for (const [width, height] of [[1920, 976], [1701, 863], [1440, 900], [390, 844]
         expect(geometry.pane.x).toBe(sidebar ? 340 : 52)
         await expect(page.locator('.chat-rail')).toBeVisible()
       }
+      if (sidebar) await expect(page.locator('.conversation-row').first()).toHaveAttribute('data-conversation-id', chats.first)
       expect(geometry.styles.animation).toBe('none')
       const input = page.locator('.composer-input')
       const original = await input.elementHandle()

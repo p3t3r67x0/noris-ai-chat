@@ -103,3 +103,12 @@ Ein erneuter Lauf ohne Snapshot-Aktualisierung besteht: 31 Fälle, 11 bewusst
 übersprungene doppelte Mobile-Matrizen. Keine Assertion oder Bildtoleranz wurde
 abgeschwächt. Der breite Profilbutton im mobilen Drawer behält seinen bisherigen
 14px-Radius; die Icon-Variante verwendet weiter den gemeinsamen 12px-Radius.
+
+Der vollständige WebSocket-CI-Lauf deckte acht weitere veraltete Baselines für
+mobile Anhänge, offene Ladeansichten und den wartenden Abbruch auf. Die
+CI-Diff-Bilder wurden visuell geprüft und mit Chromium-Revision 1248 neu
+aufgenommen. Die Ladefixture verwendet nun unterschiedliche, feste
+Aktivitätszeitpunkte; zuvor wechselte bei Zeitgleichheit die Reihenfolge anhand
+zufälliger UUIDs. Eine zusätzliche Assertion prüft die feste Reihenfolge.
+Die acht betroffenen Fälle bestehen erneut ohne Snapshot-Aktualisierung, bei
+unveränderter Bildtoleranz von 0,001.
