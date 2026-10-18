@@ -88,7 +88,10 @@ for (const [width, height] of [[1701, 863], [1440, 900], [390, 844]] as const) f
       environment: await page.evaluate(() => ({ viewport: [innerWidth, innerHeight], dpr: devicePixelRatio, scale: visualViewport?.scale, userAgent: navigator.userAgent })),
     }
     const toggle = page.locator('.sidebar-heading button[aria-controls="chat-sidebar"]:visible')
-    if (width < 1024) await page.locator('.chat-header button[aria-controls="chat-sidebar"]').click()
+    if (width < 1024) {
+      await page.locator('.chat-header button[aria-controls="chat-sidebar"]').click()
+      await expect(page.locator('.profile-trigger-wide:visible')).toHaveCSS('border-radius', '14px')
+    }
     await expect(toggle).toBeVisible()
     measurements.toggle = await states(page, toggle)
     if (width >= 1024) {
@@ -106,6 +109,7 @@ for (const [width, height] of [[1701, 863], [1440, 900], [390, 844]] as const) f
     measurements.newChat = await states(page, newChat)
     if (width >= 1024) {
       measurements.reopen = await states(page, page.locator('.rail-sidebar-open'))
+      measurements.railSearchClosed = await states(page, page.locator('.chat-rail button').nth(1))
       await expect(page.locator('.chat-rail')).toBeVisible()
       await expect(page.locator('.chat-header button[aria-controls="chat-sidebar"]')).toBeHidden()
     } else measurements.mobileToggle = await states(page, page.locator('.chat-header button[aria-controls="chat-sidebar"]'))
@@ -115,6 +119,11 @@ for (const [width, height] of [[1701, 863], [1440, 900], [390, 844]] as const) f
     await writeFile(resolve(evidence, `${width}-${theme}.json`), JSON.stringify(measurements, null, 2))
     if (phase === 'before') return
     if (width >= 1024) {
+      const railSearch = page.locator('.chat-rail button').nth(1)
+      await railSearch.click()
+      await expect(page.locator('#chat-search-input')).toBeFocused()
+      await page.keyboard.press('Escape')
+      await expect(railSearch).toBeFocused()
       await page.reload()
       await expect(page.locator('.rail-sidebar-open')).toBeVisible()
       await page.locator('.rail-sidebar-open').click()

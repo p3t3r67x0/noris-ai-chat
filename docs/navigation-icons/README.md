@@ -53,11 +53,13 @@ Reload, Öffnen/Schließen, genau einen sichtbaren Neuer-Chat-Button, Fokus im
 neuen Composer und Suche mit Escape/Fokus-Rückgabe. Die übrigen bestehenden
 Sidebar-/Suchtests werden im Such-PR zusätzlich ausgeführt.
 
-Lokale Ausführung: Playwright 1.64.0 mit vorhandenem Chromium Revision 1243
-statt des nicht installierten gepinnten Browsers 1248. Browser-User-Agent,
-Viewport, DPR und Skala stehen pro Fall in den JSON-Dateien. Der Browserdownload
-scheiterte am temporären Speicherlimit; Browser-Temporärdateien wurden deshalb
-ins ignorierte Testverzeichnis verlegt. Es wurde keine Testtoleranz vergrößert.
+Kontrollierte Vorher/Nachher-Aufnahmen: Playwright 1.64.0 mit Chromium Revision 1243.
+Browser-User-Agent,
+Viewport, DPR und Skala stehen pro Fall in den JSON-Dateien. Der erste Browserdownload
+scheiterte am temporären Speicherlimit; Browser-Temporärdateien und Browser wurden
+anschließend ins ignorierte Testverzeichnis verlegt. Die zusätzliche Prüfung mit
+**Chromium 156.0.8078.4 / Revision 1248**, identisch mit CI, besteht ebenfalls.
+Es wurde keine Testtoleranz vergrößert.
 
 ```sh
 pnpm --dir frontend exec playwright test navigation-icon-alignment.spec.ts --project=desktop --workers=1
@@ -82,3 +84,22 @@ Alle Viewports und Themes: [Vorher](evidence/before/), [Nachher](evidence/after/
 identischen Aufnahmebedingungen. Die Referenz-PNGs allein beweisen keine
 ursprünglichen CSS-Viewports oder DPR-Werte; daraus wird keine Pixelgleichheit
 mit dem privaten ChatGPT-Browser behauptet.
+
+## Zusätzlicher Abgleich mit dem CI-Browser
+
+Die ursprünglichen Vorher/Nachher-Dateien behalten beide Revision 1243, damit
+ihr Pixelvergleich kontrolliert bleibt. [Zusätzliche Nachher-Aufnahmen](evidence/ci-after/)
+und JSON-Messungen stammen aus Revision 1248. Dieser Lauf umfasst **190**
+Zustandsmessungen, zusätzlich explizit die Rail-Suche bei geschlossener Sidebar
+sowie Öffnen, Escape und Fokus-Rückgabe an ihren tatsächlichen Rail-Trigger.
+
+Der erste Compose-CI-Lauf erreichte die bestehenden visuellen Tests und meldete
+neun alte Bildbaselines. Die Diff-Bilder wurden einzeln geprüft: auf kurzen und
+schmalen Viewports werden die korrigierten Header-Icons sichtbar; die ältere
+1024-Dark-Aufnahme enthielt zusätzlich einen inzwischen entfernten Home-Button.
+Mit der gepinnten Browserrevision wurden nur die betroffenen 15 PNG-Baselines
+aktualisiert, einschließlich nachfolgender 250px-Tastatur- und Lernmodus-Szenen.
+Ein erneuter Lauf ohne Snapshot-Aktualisierung besteht: 31 Fälle, 11 bewusst
+übersprungene doppelte Mobile-Matrizen. Keine Assertion oder Bildtoleranz wurde
+abgeschwächt. Der breite Profilbutton im mobilen Drawer behält seinen bisherigen
+14px-Radius; die Icon-Variante verwendet weiter den gemeinsamen 12px-Radius.
