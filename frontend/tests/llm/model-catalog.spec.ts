@@ -5,7 +5,10 @@ const fixtureOrigin = `http://127.0.0.1:${Number(process.env.NORIS_E2E_PROVIDER_
 const ids = ['fixture-alpha', 'fixture-beta']
 
 test.beforeEach(async ({ page, request }) => {
-  await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids } })
+  // This fixture reset is idempotent. Retry a closed keep-alive connection,
+  // while HTTP failures and all product/browser assertions still fail normally.
+  const reset = await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids }, maxRetries: 1 })
+  expect(reset.ok()).toBe(true)
   await expect.poll(async () => {
     const response = await request.get('/api/v1/llm/models')
     const catalog = await response.json() as { models: { id: string }[] }
@@ -18,7 +21,8 @@ test.beforeEach(async ({ page, request }) => {
 })
 
 test.afterEach(async ({ request }) => {
-  await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids } })
+  const reset = await request.post(`${fixtureOrigin}/fixture/catalog`, { data: { ids }, maxRetries: 1 })
+  expect(reset.ok()).toBe(true)
 })
 
 test('keyboard selection synchronizes the composer, preserves drafts and survives reload', async ({ page }) => {
