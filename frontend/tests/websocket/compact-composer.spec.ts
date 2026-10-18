@@ -29,15 +29,15 @@ for (const viewport of [{ width: 1920, height: 975 }, { width: 1440, height: 900
       await input.focus()
       await input.evaluate(element => { element.dataset.instance = 'original' })
       const original = (await composer.boundingBox())!
-      const controls = ['.composer-attachment', '.composer-model', '.composer-microphone', '.composer-submit']
+      const controls = ['.composer-attachment', '.composer-microphone', '.composer-submit']
       const positions = await Promise.all(controls.map(selector => page.locator(selector).boundingBox()))
       const singleLine = await input.evaluate(element => element.clientHeight)
       if (viewport.width === 1920) {
         // October CSS targets are distinct from the supplied 1920 × 975 image pixels.
-        expect(original.width).toBeCloseTo(888, 0)
-        expect(original.height).toBeCloseTo(62, 0)
+        expect(original.width).toBeCloseTo(768, 0)
+        expect(original.height).toBeCloseTo(54, 0)
         expect(original.y + original.height).toBeCloseTo(975 * 0.49 + 4, 0)
-        expect(await input.evaluate(element => Number.parseFloat(getComputedStyle(element).fontSize))).toBeCloseTo(18, 1)
+        expect(await input.evaluate(element => Number.parseFloat(getComputedStyle(element).fontSize))).toBeCloseTo(16, 1)
       }
 
       async function geometry(): Promise<void> {
@@ -48,7 +48,7 @@ for (const viewport of [{ width: 1920, height: 975 }, { width: 1440, height: 900
           }
           const root = document.querySelector('.chat-composer')!
           return {
-            composer: box('.chat-composer'), input: box('.composer-input'), model: box('.composer-model'),
+            composer: box('.chat-composer'), input: box('.composer-input'), microphone: box('.composer-microphone'),
             controls: selectors.map(box),
             pageFits: scrollX === 0 && scrollY === 0 && document.documentElement.scrollWidth <= innerWidth,
             composerFits: root.scrollWidth <= root.clientWidth,
@@ -61,7 +61,7 @@ for (const viewport of [{ width: 1920, height: 975 }, { width: 1440, height: 900
           expect(control.y).toBeCloseTo(positions[index]!.y, 0)
           expect(control.x + control.width).toBeLessThanOrEqual(box.x + box.width)
         }
-        expect(metrics.input.y + metrics.input.height <= metrics.model.y || metrics.input.x + metrics.input.width <= metrics.model.x).toBe(true)
+        expect(metrics.input.y + metrics.input.height <= metrics.microphone.y || metrics.input.x + metrics.input.width <= metrics.microphone.x).toBe(true)
         expect(metrics.pageFits).toBe(true)
         expect(metrics.composerFits).toBe(true)
         await expect(input).toBeFocused()
@@ -108,7 +108,7 @@ for (const viewport of [{ width: 1920, height: 975 }, { width: 1440, height: 900
       expect(await composer.boundingBox()).toEqual(original)
       await screenshot('shrunk-empty')
 
-      const colors = await page.locator('.composer-submit').evaluate(element => ({ background: getComputedStyle(element).backgroundColor, color: getComputedStyle(element).color }))
+      const colors = await page.locator('.composer-submit').evaluate(element => ({ background: getComputedStyle(element, '::before').backgroundColor, color: getComputedStyle(element).color }))
       expect(colors).toEqual(theme === 'dark'
         ? { background: 'rgb(236, 236, 236)', color: 'rgb(21, 21, 21)' }
         : { background: 'rgb(13, 13, 13)', color: 'rgb(255, 255, 255)' })

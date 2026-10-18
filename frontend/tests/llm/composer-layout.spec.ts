@@ -1,3 +1,4 @@
+import { openModelChoices, expectSelectedModel } from '../e2e/model-helpers'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { DEFAULT_CHAT_LIMITS } from '../../app/lib/chat/limits'
@@ -5,6 +6,8 @@ import { DEFAULT_CHAT_LIMITS } from '../../app/lib/chat/limits'
 // Compare CSS-pixel geometry at DPR 1, like the local reference and the UI
 // regression suite. Fractional device scales can snap text glyphs differently.
 test.use({ deviceScaleFactor: 1 })
+// Four catalog choices, keyboard verification and repeated popover captures.
+test.setTimeout(60_000)
 
 // Display names are synthetic catalog data. Provider IDs still reach only the
 // existing loopback simulator; these tests cannot contact a paid provider.
@@ -12,27 +15,20 @@ const names = ['Gemma 4 31B', 'GPT-OSS 120B', 'GLM 5.3 Flash', 'Ein besonders la
 const ids = ['fixture-alpha', 'fixture-beta', 'fixture-long', 'fixture-extra']
 
 async function selectModel(page: Page, name: string): Promise<void> {
-  const menu = page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true })
-  if (await menu.getAttribute('title') === name) return
-  await menu.focus()
-  await menu.press('Enter')
-  await expect(page.getByRole('option', { name, exact: true })).toBeVisible()
-  await page.evaluate(async () => {
-    await Promise.all(document.getAnimations().filter(animation => animation.effect && Number.isFinite(Number(animation.effect.getComputedTiming().endTime))).map(animation => animation.finished.catch(() => {})))
-  })
-  // Exercise the same keyboard interaction on desktop and touch devices.
-  await page.getByRole('listbox').focus()
-  await page.keyboard.press('Home')
-  await expect(page.getByRole('option', { name: names[0]!, exact: true })).toBeFocused()
-  for (let index = 0; index < names.indexOf(name); index++) {
-    await page.keyboard.press('ArrowDown')
-    await expect(page.getByRole('option', { name: names[index + 1]!, exact: true })).toBeFocused()
-  }
-  await expect(page.getByRole('option', { name, exact: true })).toBeFocused()
-  await page.getByRole('option', { name, exact: true }).press('Enter')
-  await expect(menu).toHaveAttribute('title', name)
-  await expect(menu).toHaveAttribute('data-state', 'closed')
-  await expect(page.getByRole('listbox')).toHaveCount(0)
+  const input = page.locator('.composer-input')
+  const draft = await openModelChoices(page)
+  await input.press('Home')
+  for (let index = 0; index < names.indexOf(name); index++) await input.press('ArrowDown')
+  const option = page.getByRole('option', { name, exact: true })
+  await expect(option).toBeVisible()
+  await expect(input).toHaveAttribute('aria-activedescendant', await option.getAttribute('id') as string)
+  const box = (await option.boundingBox())!
+  expect(box.x + box.width).toBeLessThanOrEqual((await page.viewportSize())!.width)
+  await input.press('Enter')
+  await expect(page.locator('.composer-slash-menu')).toBeHidden()
+  expect([draft, `${draft} `]).toContain(await input.inputValue())
+  await input.fill(draft)
+  await expectSelectedModel(page, name)
 }
 
 test.beforeEach(async ({ page, request }) => {
@@ -61,23 +57,13 @@ for (const theme of ['light', 'dark']) {
       const composer = page.locator('.chat-composer')
       const before = await composer.boundingBox()
       await input.fill('Testentwurf')
-      for (const [index, name] of names.entries()) {
+      for (const name of names) {
         await selectModel(page, name)
         await expect(input).toHaveValue('Testentwurf')
-        await expect(page.getByRole('button', { name: 'Modell auswählen', exact: true })).toContainText(name)
+        await expectSelectedModel(page, name)
         expect(await composer.boundingBox()).toEqual(before)
-        const label = await page.locator('.composer-model .model-label').evaluate(element => ({
-          whiteSpace: getComputedStyle(element).whiteSpace,
-          height: element.getBoundingClientRect().height,
-          lineHeight: Number.parseFloat(getComputedStyle(element).lineHeight),
-          clipped: element.scrollWidth > element.clientWidth,
-        }))
-        expect(label.whiteSpace).toBe('nowrap')
-        expect(label.height).toBeLessThanOrEqual(label.lineHeight + 1)
-        if (index === 3) expect(label.clipped).toBe(true) // Long labels truncate inside the compact selector; the title retains the full name.
-        const textBox = await page.locator('.composer-model .model-label').boundingBox()
-        const chevron = await page.locator('.composer-model [data-slot="trailing"]').boundingBox()
-        expect(textBox!.x + textBox!.width).toBeLessThan(chevron!.x)
+        await expect(page.locator('.composer-model')).toHaveCount(0)
+        await expect(page.locator('.chat-header')).not.toContainText(name)
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
       }
       await selectModel(page, captureName)
@@ -120,7 +106,7 @@ for (const viewport of [{ width: 1920, height: 975 }, { width: 1440, height: 900
     await page.setViewportSize(viewport)
     await page.goto('/')
     await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
-    await expect(page.locator('.composer-model')).toHaveAttribute('title', names[0]!)
+    await expectSelectedModel(page, names[0]!)
     const original = await page.locator('.chat-composer').boundingBox()
     for (const name of names) {
       await selectModel(page, name)

@@ -1070,6 +1070,13 @@
             "title": "Hasmore",
             "type": "boolean"
           },
+          "matches": {
+            "items": {
+              "$ref": "#/components/schemas/ConversationSearchMatch"
+            },
+            "title": "Matches",
+            "type": "array"
+          },
           "nextCursor": {
             "anyOf": [
               {
@@ -1220,6 +1227,32 @@
           "activeLeafMessageId"
         ],
         "title": "ConversationResponse",
+        "type": "object"
+      },
+      "ConversationSearchMatch": {
+        "additionalProperties": false,
+        "properties": {
+          "conversationId": {
+            "format": "uuid",
+            "title": "Conversationid",
+            "type": "string"
+          },
+          "excerpt": {
+            "title": "Excerpt",
+            "type": "string"
+          },
+          "messageId": {
+            "format": "uuid",
+            "title": "Messageid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversationId",
+          "messageId",
+          "excerpt"
+        ],
+        "title": "ConversationSearchMatch",
         "type": "object"
       },
       "ConversationTitleRequest": {

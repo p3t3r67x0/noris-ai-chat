@@ -33,7 +33,9 @@ test('automatically completes Markdown on one node with a continuous streaming s
     element.scrollTop = 0
     element.dispatchEvent(new Event('scroll'))
   })
-  await expect(reply).toHaveAttribute('data-status', 'completed')
+  // Includes continuation plus rendering the 3,000-line code block on touch
+  // emulation. Use the same provider-completion budget as the reload case.
+  await expect(reply).toHaveAttribute('data-status', 'completed', { timeout: 15_000 })
   expect(await scroller.evaluate(element => element.scrollTop)).toBeLessThanOrEqual(1)
   await expect(reply).toHaveAttribute('data-message-id', id!)
   await expect(reply.locator('.code-block')).toHaveCount(1)

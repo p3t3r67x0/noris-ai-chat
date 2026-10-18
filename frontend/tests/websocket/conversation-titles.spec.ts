@@ -1,3 +1,4 @@
+import { selectChatModel } from '../e2e/model-helpers'
 import { clearTestConversations } from './chat-fixtures'
 import { expect, test } from '@playwright/test'
 import type { Page, WebSocketRoute } from '@playwright/test'
@@ -26,7 +27,7 @@ test.afterEach(async ({ request }) => {
 })
 
 async function openSidebar(page: Page): Promise<void> {
-  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
   await expect(page.getByRole('navigation', { name: 'Gespräche', exact: true })).toBeVisible()
 }
@@ -169,8 +170,7 @@ for (const [index, name] of ['DeepSeek V4.1 Flash', 'GPT-OSS 120B'].entries()) {
     const other = await context.newPage()
     await Promise.all([page.goto('/'), other.goto('/')])
     for (const tab of [page, other]) await expect(tab.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
-    await page.getByRole('button', { name: 'Modell auswählen', exact: true }).click()
-    await page.getByRole('option', { name: new RegExp(`^${name}`) }).click()
+    await selectChatModel(page, new RegExp(`^${name}`))
     const before = (await (await request.get(`${providerURL}/fixture/state`, { maxRetries: 2 })).json()).title_calls.length
     const composer = page.getByRole('textbox', { name: 'Nachricht', exact: true })
     await expect(composer).toBeEnabled()
@@ -183,7 +183,7 @@ for (const [index, name] of ['DeepSeek V4.1 Flash', 'GPT-OSS 120B'].entries()) {
     await expect.poll(async () => (await (await request.get(path)).json()).titleSource).toBe('generated')
     const saved = await (await request.get(path)).json()
     for (const tab of [page, other]) {
-      const toggle = tab.locator('.chat-header button[aria-controls="chat-sidebar"]')
+      const toggle = tab.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
       if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
       await expect(tab.locator(`[data-conversation-id="${conversation.id}"] button`).first()).toHaveAttribute('title', saved.title)
     }
@@ -198,7 +198,7 @@ for (const [index, name] of ['DeepSeek V4.1 Flash', 'GPT-OSS 120B'].entries()) {
       await expect(tab.locator(`[data-conversation-id="${conversation.id}"] button`).first()).toHaveAttribute('title', 'Mein manueller Titel')
       await tab.reload()
       await expect(tab.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
-      const toggle = tab.locator('.chat-header button[aria-controls="chat-sidebar"]')
+      const toggle = tab.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
       if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
       await expect(tab.locator(`[data-conversation-id="${conversation.id}"] button`).first()).toHaveAttribute('title', 'Mein manueller Titel')
     }

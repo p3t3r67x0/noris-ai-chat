@@ -8,7 +8,7 @@ const id = (n: number) => `${namespace}${String(n).padStart(12, '0')}`
 
 async function open(page: Page) {
   await expect(page.locator('.chat-workspace')).toHaveAttribute('data-ready', 'true')
-  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
   await expect(page.getByRole('navigation', { name: 'Gespräche', exact: true })).toBeVisible()
 }

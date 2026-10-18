@@ -4,6 +4,14 @@ import MarkdownContent, { safeMarkdownHref } from '../../app/components/chat/Mar
 import { fiveColumnTable, longIdentifier, longUrl, overflowMarkdown, strengthTable } from '../fixtures/markdown'
 
 describe('safe Markdown presentation', () => {
+  it('keeps tight lists compact while preserving paragraphs in loose lists', () => {
+    const tight = mount(MarkdownContent, { props: { content: '1. First\n2. Second' } })
+    expect(tight.findAll('li')).toHaveLength(2)
+    expect(tight.findAll('li p')).toHaveLength(0)
+    const loose = mount(MarkdownContent, { props: { content: '- First\n\n- Second' } })
+    expect(loose.findAll('li p')).toHaveLength(2)
+    tight.unmount(); loose.unmount()
+  })
   it('preserves all table cells, long links and inline code without scroll wrappers', () => {
     const wrapper = mount(MarkdownContent, { props: { content: overflowMarkdown }, global: { stubs: { CodeBlock: true } } })
     const tables = wrapper.findAll('table')

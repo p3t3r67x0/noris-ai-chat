@@ -1,3 +1,5 @@
+import { expectSelectedModel } from '../e2e/model-helpers'
+import { stableModelCatalog } from '../websocket/chat-fixtures'
 import { openChatActions } from '../e2e/sidebar-helpers'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
@@ -8,19 +10,22 @@ import type { ConversationTitleRequest } from '../../app/lib/chat/types'
 const fixtureOrigin = `http://127.0.0.1:${Number(process.env.NORIS_E2E_PROVIDER_PORT ?? 8591)}`
 
 async function sidebar(page: Page) {
-  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
   await expect(page.getByRole('navigation', { name: 'Gespräche' })).toBeVisible()
 }
 async function send(page: Page, text: string) {
   await page.getByRole('textbox', { name: 'Nachricht', exact: true }).fill(text)
+  await expect(page.getByRole('button', { name: 'Nachricht senden', exact: true })).toBeEnabled()
   await page.getByRole('textbox', { name: 'Nachricht', exact: true }).press('Enter')
 }
 test.beforeEach(async ({ page }) => {
+  // Title behavior is independent of one-second catalog expiry, covered separately.
+  await stableModelCatalog(page)
   await page.goto('/api/v1/llm/models')
   await page.goto('/')
   await expect(page.locator('[data-ready="true"]')).toBeVisible({ timeout: 20_000 })
-  await expect(page.getByRole('button', { name: 'Modell auswählen', exact: true })).toContainText('Fixture Alpha')
+  await expectSelectedModel(page, 'Fixture Alpha')
 })
 
 test('real transport starts chat first, posts only the first message and persists the returned title', async ({ page, request }) => {
@@ -69,7 +74,7 @@ test('the existing provider contract compacts a verbose title without another pa
 
 test('a generated title uses available space and fits beside hover or touch actions without changing storage', async ({ page, isMobile }, info) => {
   const fullTitle = 'Docker DNS Troubleshooting Guide'
-  const caption = isMobile ? 'Docker DNS' : 'Docker DNS Troubleshooting'
+  const caption = isMobile ? 'Docker DNS' : fullTitle
   let titleRequests = 0
   page.on('request', request => { if (request.url().endsWith('/llm/conversation-title')) titleRequests++ })
   await page.setViewportSize({ width: 1280, height: 800 })
@@ -77,8 +82,8 @@ test('a generated title uses available space and fits beside hover or touch acti
   await expect(page.locator('[data-generation-status="completed"]')).toBeAttached()
   await sidebar(page)
   const label = page.getByRole('navigation', { name: 'Gespräche' }).locator('span[data-title-source="generated"]').first()
-  // The 288 px sidebar with 16 px text needs the middle candidate before hover.
-  // Verify the actual font geometry, rather than assuming the old sidebar width.
+  // At the reference-sized 14px font the full title fits on desktop before
+  // hover. Touch actions still reserve their space; verify actual glyph bounds.
   await expect(label).toHaveText(caption)
   const button = label.locator('..')
   const row = button.locator('..')
@@ -95,7 +100,8 @@ test('a generated title uses available space and fits beside hover or touch acti
   // Keep the component's existing one-pixel reserve for browser glyph rounding.
   const fittingBudget = widths.available - 1
   expect(widths.caption).toBeLessThanOrEqual(fittingBudget)
-  expect(widths.fullTitle).toBeGreaterThan(fittingBudget)
+  if (isMobile) expect(widths.fullTitle).toBeGreaterThan(fittingBudget)
+  else expect(widths.fullTitle).toBeLessThanOrEqual(fittingBudget)
   const before = await row.boundingBox()
   await button.hover()
   await expect(label).toHaveText('Docker DNS')

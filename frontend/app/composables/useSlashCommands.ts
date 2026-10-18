@@ -3,21 +3,38 @@ import type { Ref } from 'vue'
 import type { ChatCommand, CommandContext, CommandToken } from '../lib/chat/commands'
 import { commandToken, findCommand, leadingCommand, matchingCommands } from '../lib/chat/commands'
 
-export function useSlashCommands(text: Ref<string>, context: Ref<CommandContext>, input: () => HTMLTextAreaElement | undefined, conversation: () => string | null | undefined) {
+export interface SlashChoice { id: string, label: string, description: string, group?: string, virtual?: boolean, disabled?: boolean, checked?: boolean }
+interface ModelChoices { items: Ref<SlashChoice[]>, available: () => boolean, select: (id: string) => void }
+
+export function useSlashCommands(text: Ref<string>, context: Ref<CommandContext>, input: () => HTMLTextAreaElement | undefined, conversation: () => string | null | undefined, models?: ModelChoices) {
   const open = ref(false)
   const token = ref<CommandToken | null>(null)
   const help = ref(false)
+  const modelView = ref(false)
   const active = ref(0)
   const unavailable = ref(false)
   const composing = ref(false)
   let compositionEndedAt = -Infinity
   const listId = useId()
   const items = computed(() => matchingCommands(help.value ? '' : token.value?.query ?? '', context.value))
-  const activeId = computed(() => open.value && items.value[active.value] ? `${listId}-${items.value[active.value]!.id}` : undefined)
+  const choices = computed(() => modelView.value ? models?.items.value ?? [] : items.value)
+  const activeId = computed(() => open.value && choices.value[active.value] ? `${listId}-${choices.value[active.value]!.id}` : undefined)
   function focus(): void { input()?.focus({ preventScroll: true }) }
-  function close(): void { open.value = false; token.value = null; help.value = false }
+  function close(): void { open.value = false; token.value = null; help.value = false; modelView.value = false }
+  function showModels(): void {
+    if (!models?.available()) return
+    modelView.value = true; help.value = false; token.value = null; active.value = 0; open.value = true
+    void nextTick(focus)
+  }
+  function chooseModel(choice: SlashChoice): void {
+    // A catalog refresh or generation can revoke availability while open.
+    const current = models?.items.value.find(item => item.id === choice.id)
+    if (!models?.available() || !current || current.disabled) { unavailable.value = true; return }
+    models.select(current.id); unavailable.value = false; close(); focus()
+  }
   function update(): void {
     if (composing.value) return
+    modelView.value = false
     const element = input()
     const next = element && element.selectionStart === element.selectionEnd ? commandToken(element.value, element.selectionStart) : null
     if (next?.query !== token.value?.query || next?.start !== token.value?.start) active.value = 0
@@ -43,6 +60,7 @@ export function useSlashCommands(text: Ref<string>, context: Ref<CommandContext>
   function guardSubmit(): boolean {
     if (composing.value || performance.now() - compositionEndedAt < 50) return true
     if (open.value) {
+      if (modelView.value) { const entry = choices.value[active.value] as SlashChoice | undefined; if (entry) chooseModel(entry); return true }
       const entry = items.value[active.value] ?? (token.value ? findCommand(token.value.query) : undefined)
       if (entry) { execute(entry); return true }
       close()
@@ -59,6 +77,12 @@ export function useSlashCommands(text: Ref<string>, context: Ref<CommandContext>
     if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End', 'Enter', 'Tab', 'Escape'].includes(event.key)) return
     if (event.key === 'Enter' || event.key === 'Tab') {
+      if (modelView.value) {
+        event.preventDefault(); event.stopPropagation()
+        const entry = choices.value[active.value] as SlashChoice | undefined
+        if (entry) chooseModel(entry)
+        return
+      }
       const entry = items.value[active.value] ?? (token.value ? findCommand(token.value.query) : undefined)
       if (!entry) { close(); return } // Unknown tokens remain ordinary chat text.
       event.preventDefault()
@@ -69,14 +93,14 @@ export function useSlashCommands(text: Ref<string>, context: Ref<CommandContext>
     event.preventDefault()
     event.stopPropagation()
     if (event.key === 'Escape') { close(); focus(); return }
-    const count = items.value.length
+    const count = choices.value.length
     if (!count) return
     active.value = event.key === 'Home' ? 0 : event.key === 'End' ? count - 1 : (active.value + (event.key === 'ArrowUp' ? -1 : 1) + count) % count
   }
   function compositionStart(): void { composing.value = true; close() }
   function compositionEnd(): void { composing.value = false; compositionEndedAt = performance.now(); void nextTick(update) }
-  watch(items, entries => { if (active.value >= entries.length) active.value = 0 })
-  watch(text, () => { if (open.value && !help.value) void nextTick(update) })
+  watch(choices, entries => { if (active.value >= entries.length) active.value = 0 })
+  watch(text, () => { if (open.value && !help.value && !modelView.value) void nextTick(update) })
   watch(conversation, () => { close(); unavailable.value = false; composing.value = false })
-  return { open, token, help, active, unavailable, items, activeId, listId, close, update, showHelp, execute, guardSubmit, keydown, compositionStart, compositionEnd }
+  return { open, token, help, modelView, active, unavailable, items, activeId, listId, close, update, showHelp, showModels, chooseModel, execute, guardSubmit, keydown, compositionStart, compositionEnd }
 }

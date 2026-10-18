@@ -1,5 +1,13 @@
+import { selectChatModel, expectSelectedModel } from '../e2e/model-helpers'
 import { expect, test } from '@playwright/test'
 import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { mkdir, writeFile } from 'node:fs/promises'
+
+// Multiple model/effort transitions, reload and provider assertions share one case.
+test.setTimeout(60_000)
+test.use({ deviceScaleFactor: 1 })
+const evidenceDir = fileURLToPath(new URL('../../../docs/ui-reference/final-parity/reasoning', import.meta.url))
 
 const fixtureOrigin = `http://127.0.0.1:${process.env.NORIS_E2E_PROVIDER_PORT ?? 8591}`
 const gpt = 'vllm/release/gpt-oss-120b'
@@ -8,7 +16,7 @@ const otherModels = ['GLM 5.3 Flash', 'DeepSeek V4.1 Flash', 'Qwen3.8 27B', 'Qwe
 const ids = [gpt, glm, 'vllm/qsu/glm-5-3-flash', 'vllm/qsu/deepseek-v41-flash', 'vllm/qsu/qwen3.8-27b', 'vllm/release/qwen3.6-27b', 'vllm/release/gemma-4-31b-it']
 type ProviderCall = { model: string, max_tokens: number, reasoning_effort?: string, chat_template_kwargs?: { reasoning_effort: string } }
 
-for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900 }, { width: 768, height: 1024 }, { width: 390, height: 844 }]) {
+for (const viewport of [{ width: 1920, height: 976 }, { width: 1701, height: 863 }, { width: 1700, height: 900 }, { width: 1440, height: 900 }, { width: 768, height: 1024 }, { width: 390, height: 844 }]) {
   for (const theme of ['light', 'dark']) {
     test(`reasoning selection ${viewport.width} ${theme}`, async ({ page, request }, info) => {
       test.skip(info.project.name !== 'desktop', 'Each viewport and theme is checked once.')
@@ -29,7 +37,6 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
       const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
       const composer = page.locator('.chat-composer')
       const send = page.locator('.composer-submit')
-      const modelMenu = page.getByRole('button', { name: 'Modell im Eingabefeld auswählen', exact: true })
       await input.fill('Eine Frage\nmit Kontext')
       await expect(page.locator('.composer-container')).toHaveAttribute('data-layout', 'expanded')
       async function fittedDraft(): Promise<void> {
@@ -61,9 +68,8 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
         expect(await composer.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
       }
       async function chooseModel(name: string) {
-        await modelMenu.click()
-        await page.getByRole('option', { name: new RegExp(`^${name.replaceAll('.', '\\.')}`) }).click()
-        await expect(modelMenu).toContainText(name)
+        await selectChatModel(page, new RegExp(`^${name.replaceAll('.', '\\.')}`))
+        await expectSelectedModel(page, new RegExp(`^${name.replaceAll('.', '\\.')}`))
       }
       async function submit(expectedModel: string): Promise<ProviderCall> {
         const before: { calls: ProviderCall[] } = await (await request.get(`${fixtureOrigin}/fixture/state`)).json()
@@ -112,7 +118,22 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1440, height: 900
       await geometry()
       await input.blur()
       await expect(page.locator('.composer-container')).toHaveScreenshot(`reasoning-${viewport.width}-${theme}-composer.png`, { animations: 'disabled', caret: 'hide' })
-      await page.locator('.composer-container').screenshot({ path: resolve(`../docs/ui-reference/reasoning/after-${viewport.width}-${theme}.png`), animations: 'disabled' })
+      await mkdir(evidenceDir, { recursive: true })
+      await page.locator('.composer-container').screenshot({ path: resolve(evidenceDir, `after-${viewport.width}-${theme}.png`), animations: 'disabled' })
+      const measurements = await page.evaluate(() => Object.fromEntries([
+        ['composer', '.chat-composer'], ['textarea', '.composer-input'],
+        ['reasoning', '.composer-reasoning'], ['microphone', '.composer-microphone'],
+        ['send', '.composer-submit'],
+      ].map(([name, selector]) => {
+        const element = document.querySelector(selector!)
+        if (!element) return [name, null]
+        const style = getComputedStyle(element)
+        return [name, { rect: element.getBoundingClientRect().toJSON(), styles: Object.fromEntries(
+          ['font-size', 'line-height', 'font-weight', 'padding', 'margin', 'border-radius', 'background', 'box-shadow'].map(key => [key, style.getPropertyValue(key)]),
+        ) }]
+      })))
+      expect(measurements.reasoning).not.toBeNull()
+      await writeFile(resolve(evidenceDir, `geometry-${viewport.width}-${theme}.json`), JSON.stringify({ viewport, dpr: 1, theme, measurements }, null, 2) + '\n')
       await reasoning.click()
       await expect(page.getByRole('menuitemcheckbox', { name: /^Sehr hoch / })).toHaveAttribute('aria-checked', 'true')
       const rows = await page.getByRole('menuitemcheckbox').evaluateAll(elements => elements.map(element => {

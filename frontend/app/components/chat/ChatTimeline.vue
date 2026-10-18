@@ -31,6 +31,17 @@ async function older(): Promise<void> {
   if (scroller.value && props.conversationId === id) scroller.value.scrollTop = top + scroller.value.scrollHeight - before
 }
 watch(() => props.messages.at(-1)?.content, scroll.contentChanged, { flush: 'post' })
+function revealMessage(id: string): void {
+  scroll.pause()
+  void nextTick(() => requestAnimationFrame(() => {
+    const message = [...(content.value?.querySelectorAll<HTMLElement>('[data-message-id]') ?? [])].find(node => node.dataset.messageId === id)
+    if (!message) return
+    message.tabIndex = -1
+    message.scrollIntoView({ block: 'center' })
+    message.focus({ preventScroll: true })
+  }))
+}
+defineExpose({ revealMessage })
 </script>
 
 <template>

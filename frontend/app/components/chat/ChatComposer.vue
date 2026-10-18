@@ -3,13 +3,12 @@ import { useAppNotifications } from '../../composables/useAppNotifications'
 import { useAppLocale } from '../../composables/useAppLocale'
 import { CHAT_LIMITS } from '../../lib/chat/limits'
 import { computed, nextTick, ref, useId, watch } from 'vue'
-import ChatModelMenu from './ChatModelMenu.vue'
 import ChatReasoningMenu from './ChatReasoningMenu.vue'
 import { CHAT_MODELS } from '../../composables/useModelSelection'
 import type { ReasoningPreference } from '../../lib/chat/reasoning'
 import { reasoningChoices } from '../../lib/chat/reasoning'
 import type { ConversationMode } from '../../lib/chat/conversations'
-import type { ChatModelId } from '../../composables/useModelSelection'
+import type { ChatModel, ChatModelId } from '../../composables/useModelSelection'
 import { useComposerDictation } from '../../composables/useComposerDictation'
 import { useComposerAutosize } from '../../composables/useComposerAutosize'
 import type { UploadEntry } from '../../composables/useChatAttachments'
@@ -20,7 +19,7 @@ import ChatCommandMenu from './ChatCommandMenu.vue'
 const { t, language } = useAppLocale()
 const privacyId = useId()
 
-const props = defineProps<{ conversationId?: string | null, modelSelectionBusy?: boolean, researchAvailable?: boolean, researchError?: string | null, busy: boolean, streaming: boolean, cancellationRequested: boolean, modelUnavailable?: boolean, inputError?: string | null, files?: UploadEntry[], uploadAvailable?: boolean, uploadUnavailableReason?: string | null, uploadBlocked?: boolean, uploadError?: string | null, uploadErrorNotified?: boolean, imageSupported?: boolean, conversationMode?: ConversationMode, reasoningPreference?: ReasoningPreference | null, settingsBusy?: boolean, learningAvailable?: boolean }>()
+const props = defineProps<{ conversationId?: string | null, models?: ChatModel[], modelSelectionBusy?: boolean, researchAvailable?: boolean, researchError?: string | null, busy: boolean, streaming: boolean, cancellationRequested: boolean, modelUnavailable?: boolean, inputError?: string | null, files?: UploadEntry[], uploadAvailable?: boolean, uploadUnavailableReason?: string | null, uploadBlocked?: boolean, uploadError?: string | null, uploadErrorNotified?: boolean, imageSupported?: boolean, conversationMode?: ConversationMode, reasoningPreference?: ReasoningPreference | null, settingsBusy?: boolean, learningAvailable?: boolean }>()
 const notifications = useAppNotifications()
 const text = defineModel<string>({ required: true })
 const webSearch = defineModel<boolean>('research', { default: false })
@@ -44,7 +43,6 @@ watch([learning, webSearch, showReasoning, model], () => nextTick(autosize.resiz
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploadMenu = ref(false)
 const attachmentButton = ref<{ $el: HTMLButtonElement } | null>(null)
-const modelMenu = ref<InstanceType<typeof ChatModelMenu> | null>(null)
 const reasoningMenu = ref<InstanceType<typeof ChatReasoningMenu> | null>(null)
 const commandContext = computed<CommandContext>(() => ({
   learning: props.learningAvailable !== false && !props.settingsBusy,
@@ -57,12 +55,27 @@ const commandContext = computed<CommandContext>(() => ({
     learning: activateLearning,
     search: () => { webSearch.value = true; void nextTick(focus) },
     reasoning: () => { void nextTick(() => reasoningMenu.value?.open()) },
-    model: () => { void nextTick(() => modelMenu.value?.open()) },
+    model: () => { void nextTick(() => slash.showModels()) },
     file: chooseFiles,
     help: () => slash.showHelp(),
   },
 }))
-const slash = useSlashCommands(text, commandContext, () => prompt.value?.textareaRef, () => props.conversationId)
+const modelChoices = computed(() => {
+  const source = props.models ?? CHAT_MODELS
+  const ordered = source.some(item => item.category) ? [
+    ...source.filter(item => item.virtual),
+    ...source.filter(item => !item.virtual && item.category !== 'REASONING'),
+    ...source.filter(item => !item.virtual && item.category === 'REASONING'),
+  ] : source
+  return ordered.map(item => ({
+    id: item.id, label: item.label, description: item.description, virtual: Boolean(item.virtual),
+    ...(item.category ? { group: item.virtual ? 'Automatisch' : item.category === 'REASONING' ? 'Reasoning & Entwicklung' : 'Allgemein' } : {}),
+    disabled: Boolean(item.disabled || !commandContext.value.model), checked: item.id === model.value,
+  }))
+})
+const slash = useSlashCommands(text, commandContext, () => prompt.value?.textareaRef, () => props.conversationId, {
+  items: modelChoices, available: () => commandContext.value.model, select: id => { model.value = id },
+})
 watch(slash.open, open => { if (open) uploadMenu.value = false })
 watch(uploadMenu, open => { if (open) slash.close() })
 const actionItems = computed(() => composerMenuItems(t, { upload: chooseFiles, learning: activateLearning, web: toggleSearch }, Boolean(props.uploadAvailable), props.uploadUnavailableReason, { learningAvailable: props.learningAvailable !== false && !props.settingsBusy, learningActive: learning.value, webAvailable: props.researchAvailable, webActive: webSearch.value, webReason: props.researchError }))
@@ -187,8 +200,7 @@ defineExpose({ focus })
         <UDropdownMenu v-model:open="uploadMenu" :items="actionItems" :modal="false" :content="{ side: 'top', align: 'start', ...(container ? { reference: container } : {}), sideOffset: 10, collisionPadding: 12, loop: true, updatePositionStrategy: 'always', onEscapeKeyDown: menuEscape, onCloseAutoFocus: menuClosed }" :ui="{ content: 'composer-plus-menu composer-floating-menu composer-action-menu ring-0', viewport: 'p-0', item: 'composer-plus-menu-item composer-menu-item before:hidden', itemLeadingIcon: 'size-5 text-inherit', itemWrapper: 'composer-menu-copy', itemLabel: 'composer-menu-title', itemDescription: 'composer-menu-description' }">
           <UButton ref="attachmentButton" icon="i-lucide-plus" color="neutral" variant="ghost" class="composer-attachment touch-control" :aria-label="t('composerActions')" :title="t('composerActions')" @click="slash.close" />
         </UDropdownMenu>
-        <div class="composer-model-controls">
-          <ChatModelMenu ref="modelMenu" v-model="model" :busy="modelSelectionBusy ?? (busy || settingsBusy)" compact :label="t('composerModel')" />
+        <div class="composer-reasoning-controls">
           <ChatReasoningMenu v-if="showReasoning" ref="reasoningMenu" :model="selectedModel" :preference="reasoningPreference" :disabled="settingsBusy || busy" :anchor="container" @select="emit('reasoning', $event)" />
         </div>
         <UButton type="button" :icon="dictation.listening.value ? 'i-lucide-mic-off' : 'i-lucide-mic'" color="neutral" variant="ghost" class="composer-microphone touch-control" :class="{ 'is-listening': dictation.listening.value }" :disabled="!dictation.supported.value || busy" :aria-pressed="dictation.listening.value" :aria-label="t(dictation.listening.value ? 'stopDictation' : 'startDictation')" :title="t(dictation.supported.value ? 'startDictation' : 'dictationUnavailable')" @click="dictation.toggle" />
@@ -200,7 +212,7 @@ defineExpose({ focus })
         />
       </template>
     </UChatPrompt>
-    <ChatCommandMenu v-model:open="slash.open.value" :anchor="container" :input="prompt?.textareaRef" :items="slash.items.value" :active="slash.active.value" :list-id="slash.listId" :help="slash.help.value" @select="slash.execute($event)" @active="slash.active.value = $event" @close="slash.close" />
+    <ChatCommandMenu v-model:open="slash.open.value" :anchor="container" :input="prompt?.textareaRef" :items="slash.items.value" :active="slash.active.value" :list-id="slash.listId" :help="slash.help.value" :models="slash.modelView.value" :choices="modelChoices" @model="slash.chooseModel($event)" @select="slash.execute($event)" @active="slash.active.value = $event" @close="slash.close" />
     <p v-if="slash.unavailable.value" role="status" class="mt-2 text-sm text-muted">{{ t('commandUnavailable') }}</p>
     <p v-if="webSearch" :id="privacyId" class="research-privacy sr-only">{{ t('researchPrivacy') }}</p>
     <p v-if="dictation.error.value" role="status" class="mt-2 text-sm text-error">{{ t('dictationFailed') }}</p>

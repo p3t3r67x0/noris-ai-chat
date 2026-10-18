@@ -36,10 +36,10 @@ export function useComposerAutosize(prompt: Ref<{ textareaRef: HTMLTextAreaEleme
     if (!input || !root || !mirror) return
     const style = getComputedStyle(input)
     const layout = getComputedStyle(root)
-    const controls = [...root.querySelectorAll<HTMLElement>('.composer-attachment, .composer-model-controls, .composer-microphone, .composer-submit')]
+    const controls = [...root.querySelectorAll<HTMLElement>('.composer-attachment, .composer-reasoning-controls, .composer-microphone, .composer-submit')]
     // The same textarea stays mounted. On narrow composers the controls always
     // occupy the bottom row, so adding/removing the inline search chip cannot
-    // push the model selector over the input or move the actions down a row.
+    // push the reasoning selector over the input or move the actions down a row.
     const narrow = root.clientWidth < 560
     const changed = stacked.value !== narrow
     stacked.value = narrow
@@ -82,7 +82,7 @@ export function useComposerAutosize(prompt: Ref<{ textareaRef: HTMLTextAreaEleme
     })
     const root = input?.closest('.chat-composer')
     if (root) observer.observe(root)
-    const controls = root?.querySelector('.composer-model-controls')
+    const controls = root?.querySelector('.composer-reasoning-controls')
     if (controls) observer.observe(controls)
     window.addEventListener('resize', resize)
     window.visualViewport?.addEventListener('resize', resize)

@@ -4,6 +4,7 @@ import { useAppLocale } from '../../composables/useAppLocale'
 import { computed, nextTick, ref } from 'vue'
 import type { useChatBackend } from '../../composables/useChatBackend'
 import type { DropdownMenuItem } from '@nuxt/ui'
+import type { ChatMessage } from '../../lib/chat/types'
 import type { Conversation } from '../../lib/chat/conversations'
 import { groupConversations } from '../../lib/chat/conversations'
 import DeleteConversationDialog from './DeleteConversationDialog.vue'
@@ -13,9 +14,9 @@ import ChatSearchDialog from './ChatSearchDialog.vue'
 import ChatSidebarSection from './ChatSidebarSection.vue'
 const { t } = useAppLocale()
 
-const props = defineProps<{ demo?: boolean, pagination?: ReturnType<typeof useChatBackend>['pagination'] | undefined, conversations: readonly Conversation[], archived: readonly Conversation[], activeId: string | null, removeConversation: (id: string) => void | Promise<void>, setPinned: (id: string, pinned: boolean) => void | Promise<void> }>()
+const props = defineProps<{ messages?: readonly ChatMessage[], demo?: boolean, pagination?: ReturnType<typeof useChatBackend>['pagination'] | undefined, conversations: readonly Conversation[], archived: readonly Conversation[], activeId: string | null, removeConversation: (id: string) => void | Promise<void>, setPinned: (id: string, pinned: boolean) => void | Promise<void> }>()
 const open = defineModel<boolean>('open', { required: true })
-const emit = defineEmits<{ newChat: [], focusComposer: [], select: [id: string], rename: [id: string, title: string], archive: [id: string], restore: [id: string], settings: [] }>()
+const emit = defineEmits<{ newChat: [], focusComposer: [], select: [id: string, messageId?: string], rename: [id: string, title: string], archive: [id: string], restore: [id: string], settings: [] }>()
 // Presentation only: preserve the existing comparators and independent server
 // cursor windows, but collect the chronological sections under one heading.
 const groups = computed(() => {
@@ -99,9 +100,9 @@ function closeOnMobile(): void {
   if (import.meta.client && window.matchMedia('(max-width: 1023px)').matches) open.value = false
 }
 
-function selectChat(id: string): void {
+function selectChat(id: string, messageId?: string): void {
   searchOpen.value = false
-  emit('select', id)
+  emit('select', id, messageId)
   closeOnMobile()
 }
 
@@ -230,7 +231,7 @@ defineExpose({ openSearch: showSearch, openArchive: showArchive })
   </USidebar>
 
   <ChatSearchDialog
-    v-model:open="searchOpen" :conversations="conversations" :pagination="pagination"
+    v-model:open="searchOpen" :messages="messages" :conversations="conversations" :pagination="pagination"
     :return-focus="searchReturnFocus" @select="selectChat"
   />
 

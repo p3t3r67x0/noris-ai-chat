@@ -1,0 +1,28 @@
+{
+  "width": 1920,
+  "height": 976,
+  "dpr": 1,
+  "theme": "light",
+  "scrollToBottom": {
+    "rect": {
+      "x": 1108,
+      "y": 696,
+      "width": 44,
+      "height": 44,
+      "top": 696,
+      "right": 1152,
+      "bottom": 740,
+      "left": 1108
+    },
+    "styles": {
+      "font-size": "16px",
+      "line-height": "24px",
+      "font-weight": "400",
+      "padding": "10px",
+      "margin": "0px",
+      "border-radius": "3.35544e+07px",
+      "background": "rgb(252, 252, 252) none repeat scroll 0% 0% / auto padding-box border-box",
+      "box-shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklch(0.87 0 none) 0px 0px 0px 1px inset, rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.1) 0px 1px 2px -1px"
+    }
+  }
+}

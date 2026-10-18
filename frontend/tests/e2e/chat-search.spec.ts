@@ -74,7 +74,7 @@ test('focus, shortcuts, dismissal, reset and a trapped Tab sequence', async ({ p
   await expect(input).toBeFocused()
   await page.mouse.click(2, 2)
   await expect(dialog).not.toBeVisible()
-  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
   const trigger = page.locator('.sidebar-heading, .sidebar-primary-actions').getByRole('button', { name: /^(Chat-Suche öffnen|Chats suchen)$/ }).filter({ visible: true })
   await trigger.click()

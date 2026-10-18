@@ -66,6 +66,9 @@ export async function notificationBackend(page: Page, options: { generationCode?
       const command = JSON.parse(String(raw)) as Record<string, string>
       if (command.type === 'chat.ping') return
       if (command.type === 'chat.resume') {
+        // Tool projection replay is a separate subscription, not another
+        // generation resume. With no fixture tool events it has no payload.
+        if ((command as Record<string, unknown>).toolEventsOnly === true) return
         state.resumes++
         const reply = messages.find(message => message.generationId === command.generationId)!
         reply.status = 'completed'

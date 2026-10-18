@@ -220,12 +220,16 @@ export type Prepared = boolean
 export type Title3 = (string | null)
 export type Conversations1 = ConversationResponse[]
 export type Hasmore1 = boolean
-export type Nextcursor1 = (string | null)
 export type Conversationid5 = string
+export type Excerpt1 = string
+export type Messageid2 = string
+export type Matches = ConversationSearchMatch[]
+export type Nextcursor1 = (string | null)
+export type Conversationid6 = string
 export type Firstmessage = string
 export type Inputmessageid1 = string
 export type Modelid3 = string
-export type Conversationid6 = string
+export type Conversationid7 = string
 export type Inputmessageid2 = string
 export type Title4 = string
 export type Activeleafmessageid2 = (string | null)
@@ -304,7 +308,7 @@ export type SourceId1 = string
 export type Text1 = string
 export type Seq5 = number
 export type Type5 = "response.started"
-export type Conversationid7 = string
+export type Conversationid8 = string
 export type Sourceconversationid1 = string
 export type Sourcemessageid1 = string
 export type Text2 = string
@@ -367,6 +371,7 @@ export interface ApiSchemas {
   ConversationCreate: ConversationCreate
   ConversationListResponse: ConversationListResponse
   ConversationResponse: ConversationResponse
+  ConversationSearchMatch: ConversationSearchMatch
   ConversationTitleRequest: ConversationTitleRequest
   ConversationTitleResponse: ConversationTitleResponse
   ConversationUpdate: ConversationUpdate
@@ -695,16 +700,22 @@ export interface ConversationCreate {
 export interface ConversationListResponse {
   conversations: Conversations1
   hasMore?: Hasmore1
+  matches?: Matches
   nextCursor?: Nextcursor1
 }
-export interface ConversationTitleRequest {
+export interface ConversationSearchMatch {
   conversationId: Conversationid5
+  excerpt: Excerpt1
+  messageId: Messageid2
+}
+export interface ConversationTitleRequest {
+  conversationId: Conversationid6
   firstMessage: Firstmessage
   inputMessageId: Inputmessageid1
   modelId: Modelid3
 }
 export interface ConversationTitleResponse {
-  conversationId: Conversationid6
+  conversationId: Conversationid7
   inputMessageId: Inputmessageid2
   title: Title4
 }
@@ -835,7 +846,7 @@ export interface StartedEvent {
   type?: Type5
 }
 export interface TextReferenceCreate {
-  conversationId: Conversationid7
+  conversationId: Conversationid8
   sourceConversationId: Sourceconversationid1
   sourceMessageId: Sourcemessageid1
   text: Text2

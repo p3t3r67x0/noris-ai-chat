@@ -21,7 +21,7 @@ async function start(page: Page, theme = 'light', targetTitle = title) {
 }
 
 async function openDelete(page: Page, targetTitle = title, keyboard = false) {
-  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
   await conversationRow(page, targetTitle).getByRole('button', { name: targetTitle, exact: true }).focus()
   const trigger = chatActions(page, `${targetTitle}`)

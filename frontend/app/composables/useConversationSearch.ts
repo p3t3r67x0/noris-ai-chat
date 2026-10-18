@@ -1,5 +1,6 @@
 import { onScopeDispose, ref, watch } from 'vue'
 import type { Ref } from 'vue'
+import type { ApiSchemas } from '../types/generated/api'
 import type { useChatBackend } from './useChatBackend'
 import type { Conversation } from '../lib/chat/conversations'
 import { normalizeAppError } from '../lib/notifications/errors'
@@ -12,6 +13,7 @@ type Pagination = ReturnType<typeof useChatBackend>['pagination']
 export function useConversationSearch(open: Ref<boolean>, conversations: () => readonly Conversation[], pagination: () => Pagination | undefined) {
   const query = ref('')
   const results = ref<Conversation[]>([])
+  const matches = ref<ApiSchemas['ConversationSearchMatch'][]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
   const diagnostics = ref<ErrorDiagnostics | null>(null)
@@ -42,6 +44,7 @@ export function useConversationSearch(open: Ref<boolean>, conversations: () => r
       if (revision !== current || request.signal.aborted || !open.value) return
       const rows = page.conversations.map(row => ({ ...row, titleGenerationAttempted: row.titleSource !== 'fallback' }))
       results.value = more ? [...new Map([...results.value, ...rows].map(row => [row.id, row])).values()] : rows
+      matches.value = more ? [...matches.value, ...(page.matches ?? [])] : page.matches ?? []
       cursor.value = page.nextCursor ?? null
     }
     catch (cause) {
@@ -63,6 +66,7 @@ export function useConversationSearch(open: Ref<boolean>, conversations: () => r
     if (!opened) return
     resetting = true
     query.value = ''
+    matches.value = []
     resetting = false
     results.value = [...conversations()]
     void search()
@@ -84,5 +88,5 @@ export function useConversationSearch(open: Ref<boolean>, conversations: () => r
   watch(() => pagination()?.revision?.value, scheduleSearch, { flush: 'sync' })
 
   onScopeDispose(cancel)
-  return { query, results, loading, error, diagnostics, cursor, search }
+  return { query, results, matches, loading, error, diagnostics, cursor, search }
 }

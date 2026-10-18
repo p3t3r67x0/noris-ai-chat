@@ -6,12 +6,12 @@ import { pauseBeforeGeneration, savedChat } from './chat-fixtures'
 import { CHAT_STORAGE_KEY } from '../../app/lib/chat/persistence'
 
 async function sidebar(page: Page) {
-  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click()
   await expect(page.getByRole('navigation', { name: 'Gespräche' })).toBeVisible()
 }
 async function send(page: Page, text: string) {
-  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
   if ((page.viewportSize()?.width ?? 1920) < 1024 && await toggle.getAttribute('aria-expanded') === 'true') await page.getByRole('button', { name: 'Gesprächsliste schließen', exact: true }).click()
   const input = page.getByRole('textbox', { name: 'Nachricht', exact: true })
   await input.fill(text); await input.press('Enter')
@@ -57,7 +57,7 @@ test('mock fallback updates asynchronously, retains row geometry and survives sw
   expect(after!.height).toBeCloseTo(before!.height, 0)
   await page.screenshot({ path: info.outputPath('generated-title.png'), animations: 'disabled' })
   await page.clock.runFor(4000)
-  const toggle = page.locator('.chat-header button[aria-controls="chat-sidebar"]')
+  const toggle = page.locator('.rail-sidebar-open:visible, .chat-header button[aria-controls="chat-sidebar"][aria-expanded="false"]:visible, .sidebar-heading button[aria-controls="chat-sidebar"][aria-expanded="true"]:visible')
   if (await toggle.getAttribute('aria-expanded') === 'true') await page.getByRole('button', { name: 'Gesprächsliste schließen', exact: true }).click()
   await page.locator('.chat-header').getByRole('button', { name: 'Neuer Chat', exact: true }).click()
   await send(page, 'Why does Docker DNS fail?')
